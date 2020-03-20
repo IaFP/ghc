@@ -20,9 +20,6 @@ T16270.hs:13:8: error:
     You could write it with parentheses
     Or perhaps you meant to enable BlockArguments?
 
-T16270.hs:15:6: error:
-    Illegal datatype context (use DatatypeContexts): Num a =>
-
 T16270.hs:17:22: error:
     Illegal record syntax (use TraditionalRecordSyntax): {fst :: a,
                                                           snd :: b}
@@ -57,13 +54,13 @@ T16270.hs:27:9: error:
 T16270.hs:29:9: error:
     Multi-way if-expressions need MultiWayIf turned on
 
-T16270.hs:32:6: Illegal lambda-case (use LambdaCase)
+T16270.hs:32:6: error: Illegal lambda-case (use LambdaCase)
 
-T16270.hs:35:5:
+T16270.hs:35:5: error:
     Use NumericUnderscores to allow underscores in integer literals
 
-T16270.hs:37:5:
-    primitive string literal must contain only characters <= '/xFF'
+T16270.hs:37:5: error:
+    primitive string literal must contain only characters <= '\xFF'
 
 T16270.hs:43:1: error:
     parse error (possibly incorrect indentation or mismatched brackets)

@@ -1,5 +1,6 @@
 {-# LANGUAGE Unsafe #-}
 {-# LANGUAGE CPP, NoImplicitPrelude, MagicHash, RoleAnnotations #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 -----------------------------------------------------------------------------

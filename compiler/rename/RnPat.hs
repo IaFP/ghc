@@ -17,6 +17,9 @@ free variables.
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE DeriveFunctor #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module RnPat (-- main entry points
               rnPat, rnPats, rnBindPat, rnPatAndThen,
@@ -76,6 +79,9 @@ import qualified GHC.LanguageExtensions as LangExt
 import Control.Monad       ( when, ap, guard )
 import qualified Data.List.NonEmpty as NE
 import Data.Ratio
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 {-
 *********************************************************
@@ -110,6 +116,9 @@ newtype CpsRn b = CpsRn { unCpsRn :: forall r. (b -> RnM (r, FreeVars))
                                             -> RnM (r, FreeVars) }
         deriving (Functor)
         -- See Note [CpsRn monad]
+#if MIN_VERSION_base(4,14,0)
+instance Total CpsRn
+#endif
 
 instance Applicative CpsRn where
     pure x = CpsRn (\k -> k x)

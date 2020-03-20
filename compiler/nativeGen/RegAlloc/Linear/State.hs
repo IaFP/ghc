@@ -3,6 +3,10 @@
 #if !defined(GHC_LOADED_INTO_GHCI)
 {-# LANGUAGE UnboxedTuples #-}
 #endif
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- | State monad for the linear register allocator.
 
@@ -51,6 +55,9 @@ import Unique
 import UniqSupply
 
 import Control.Monad (ap)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -- Avoids using unboxed tuples when loading into GHCi
 #if !defined(GHC_LOADED_INTO_GHCI)
@@ -64,6 +71,9 @@ pattern RA_Result a b = (# a, b #)
 
 data RA_Result freeRegs a = RA_Result {-# UNPACK #-} !(RA_State freeRegs) !a
   deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total (RA_Result freeRegs)
+#endif
 
 #endif
 
@@ -71,6 +81,9 @@ data RA_Result freeRegs a = RA_Result {-# UNPACK #-} !(RA_State freeRegs) !a
 newtype RegM freeRegs a
         = RegM { unReg :: RA_State freeRegs -> RA_Result freeRegs a }
         deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total (RegM freeRegs)
+#endif
 
 instance Applicative (RegM freeRegs) where
       pure a  =  RegM $ \s -> RA_Result s a

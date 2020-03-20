@@ -1,6 +1,9 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+#if __GLASGOW_HASKELL__ >= 810
+#endif
 
 --
 -- (c) The University of Glasgow 2002-2006

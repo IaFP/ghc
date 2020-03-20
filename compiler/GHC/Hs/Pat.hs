@@ -17,6 +17,10 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns      #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, DataKinds #-}
+#endif
 
 module GHC.Hs.Pat (
         Pat(..), InPat, OutPat, LPat,
@@ -68,6 +72,9 @@ import DynFlags( gopt, GeneralFlag(..) )
 import Maybes
 -- libraries:
 import Data.Data hiding (TyCon,Fixity)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types(type (@@))
+#endif
 
 type InPat p  = LPat p        -- No 'Out' constructors
 type OutPat p = LPat p        -- No 'In' constructors
@@ -275,6 +282,9 @@ data Pat p
       (XXPat p)
 
 -- ---------------------------------------------------------------------
+#if MIN_VERSION_base(4,14,0)
+type instance Pat @@ a = ()
+#endif
 
 data ListPatTc
   = ListPatTc
@@ -509,7 +519,13 @@ pprParendPat p pat = sdocWithDynFlags $ \ dflags ->
       -- But otherwise the CoPat is discarded, so it
       -- is the pattern inside that matters.  Sigh.
 
-pprPat :: (OutputableBndrId p) => Pat (GhcPass p) -> SDoc
+pprPat :: (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+          , FieldOcc @@ GhcPass p
+          , HsConDetails (Located (Pat (GhcPass p))) @@ HsRecFields (GhcPass p) (Located (Pat (GhcPass p)))
+          , HsConDetails @@ Located (Pat (GhcPass p))
+#endif
+          ) => Pat (GhcPass p) -> SDoc
 pprPat (VarPat _ lvar)          = pprPatBndr (unLoc lvar)
 pprPat (WildPat _)              = char '_'
 pprPat (LazyPat _ pat)          = char '~' <> pprParendLPat appPrec pat
@@ -644,7 +660,11 @@ patterns are treated specially, of course.
 The 1.3 report defines what ``irrefutable'' and ``failure-free'' patterns are.
 -}
 
-isBangedLPat :: LPat (GhcPass p) -> Bool
+isBangedLPat ::
+#if MIN_VERSION_base(4,14,0)
+  Pat @@ GhcPass p => 
+#endif
+  LPat (GhcPass p) -> Bool
 isBangedLPat = isBangedPat . unLoc
 
 isBangedPat :: Pat (GhcPass p) -> Bool
@@ -676,7 +696,13 @@ looksLazyPat (VarPat {})   = False
 looksLazyPat (WildPat {})  = False
 looksLazyPat _             = True
 
-isIrrefutableHsPat :: (OutputableBndrId p) => LPat (GhcPass p) -> Bool
+isIrrefutableHsPat :: (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+                      , HsConDetails @@ Located (Pat (GhcPass p))
+                      , HsConDetails (Located (Pat (GhcPass p))) @@ HsRecFields (GhcPass p) (Located (Pat (GhcPass p)))
+                      , FieldOcc @@ GhcPass p
+#endif
+                      ) => LPat (GhcPass p) -> Bool
 -- (isIrrefutableHsPat p) is true if matching against p cannot fail,
 -- in the sense of falling through to the next pattern.
 --      (NB: this is not quite the same as the (silly) defn

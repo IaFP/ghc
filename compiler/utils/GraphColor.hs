@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 -- | Graph Coloring.
 --      This is a generic graph coloring library, abstracted over the type of
 --      the node keys, nodes and colors.

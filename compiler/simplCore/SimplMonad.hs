@@ -5,6 +5,11 @@
 -}
 
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
+
 module SimplMonad (
         -- The monad
         SimplM,
@@ -40,6 +45,9 @@ import Util                ( count )
 import Panic               (throwGhcExceptionIO, GhcException (..))
 import BasicTypes          ( IntWithInf, treatZeroAsInf, mkIntWithInf )
 import Control.Monad       ( ap )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 {-
 ************************************************************************
@@ -60,6 +68,9 @@ newtype SimplM result
                 -> IO (result, UniqSupply, SimplCount)}
   -- we only need IO here for dump output
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total SimplM
+#endif
 
 data SimplTopEnv
   = STE { st_flags     :: DynFlags

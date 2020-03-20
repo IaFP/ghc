@@ -1,5 +1,9 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE GADTs, DeriveGeneric, StandaloneDeriving, ScopedTypeVariables,
     GeneralizedNewtypeDeriving, ExistentialQuantification, RecordWildCards #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 {-# OPTIONS_GHC -fno-warn-name-shadowing -fno-warn-orphans #-}
 
 -- |
@@ -52,6 +56,9 @@ import qualified Language.Haskell.TH.Syntax as TH
 import System.Exit
 import System.IO
 import System.IO.Error
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 -- -----------------------------------------------------------------------------
 -- The RPC protocol between GHC and the interactive server
@@ -342,6 +349,9 @@ data ResumeContext a = ResumeContext
   , resumeStatusMVar :: MVar (EvalStatus a)
   , resumeThreadId :: ThreadId
   }
+#if MIN_VERSION_base(4,14,0)
+type instance ResumeContext @@ a = ()
+#endif
 
 -- | We can pass simple expressions to EvalStmt, consisting of values
 -- and application.  This allows us to wrap the statement to be
@@ -366,6 +376,10 @@ data EvalStatus_ a b
        (RemoteRef (ResumeContext b))
        (RemotePtr CostCentreStack) -- Cost centre stack
   deriving (Generic, Show)
+#if MIN_VERSION_base(4,14,0)
+type instance EvalStatus_ @@ a = ()
+type instance EvalStatus_ a @@ b = ()
+#endif
 
 instance Binary a => Binary (EvalStatus_ a b)
 

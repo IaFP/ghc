@@ -1,5 +1,9 @@
 -- | This is the syntax for bkp files which are parsed in 'ghc --backpack'
 -- mode.  This syntax is used purely for testing purposes.
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module BkpSyn (
     -- * Backpack abstract syntax
@@ -24,6 +28,9 @@ import SrcLoc
 import Outputable
 import Module
 import PackageConfig
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 {-
 ************************************************************************
@@ -42,6 +49,10 @@ instance Outputable HsComponentId where
     ppr (HsComponentId _pn cid) = ppr cid -- todo debug with pn
 
 data HsUnitId n = HsUnitId (Located n) [LHsModuleSubst n]
+#if MIN_VERSION_base(4,14,0)
+type instance HsUnitId @@ a = ()
+#endif
+
 type LHsUnitId n = Located (HsUnitId n)
 
 type HsModuleSubst n = (Located ModuleName, LHsModuleId n)
@@ -49,6 +60,10 @@ type LHsModuleSubst n = Located (HsModuleSubst n)
 
 data HsModuleId n = HsModuleVar (Located ModuleName)
                   | HsModuleId (LHsUnitId n) (Located ModuleName)
+#if MIN_VERSION_base(4,14,0)
+type instance HsModuleId @@ a = ()
+#endif
+                  
 type LHsModuleId n = Located (HsModuleId n)
 
 -- | Top level @unit@ declaration in a Backpack file.

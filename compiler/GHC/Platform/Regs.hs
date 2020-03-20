@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module GHC.Platform.Regs
        (callerSaves, activeStgRegs, haveRegBase, globalRegMaybe, freeReg)

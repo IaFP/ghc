@@ -6,17 +6,17 @@ module MonadFailWarnings where
 import Control.Monad.Fail
 import Control.Monad.ST
 import Data.Functor.Identity
+import GHC.Types (Total)
 
 
-
-general :: Monad m => m a
+general :: (Monad m, Total m) => m a
 general = do
     Just x <- undefined
     undefined
 
 
 
-general' :: MonadFail m => m a
+general' :: (Total m, MonadFail m) => m a
 general' = do
     Just x <- undefined
     undefined
@@ -78,7 +78,7 @@ customFailable = do
     undefined
 
 
-wildcardx, explicitlyIrrefutable, wildcard_, tuple :: Monad m => m a
+wildcardx, explicitlyIrrefutable, wildcard_, tuple :: (Total m, Monad m) => m a
 wildcardx = do
     x <- undefined
     undefined

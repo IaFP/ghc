@@ -2,8 +2,21 @@ type role A phantom phantom
 type A :: forall k k1. k -> k1 -> *
 data A x y
   	-- Defined at <interactive>:2:1
+type instance forall k1 k2 (x :: k1) (y :: k2). A x @@ y
+  = () :: Constraint
+  	-- Defined at <interactive>:2:1
+type instance forall k1 k2 (x :: k1). A @@ x = () :: Constraint
+  	-- Defined at <interactive>:2:1
+type instance A @@ k2 = () :: Constraint
+  	-- Defined at <interactive>:2:1
+type instance A @@ k = () :: Constraint
+  	-- Defined at <interactive>:2:1
 A :: k1 -> k2 -> *
 type role T phantom
 type T :: forall k. k -> *
 data T a = forall a1. MkT a1
+  	-- Defined at <interactive>:6:1
+type instance forall k (a :: k). T @@ a = () :: Constraint
+  	-- Defined at <interactive>:6:1
+type instance T @@ k = () :: Constraint
   	-- Defined at <interactive>:6:1

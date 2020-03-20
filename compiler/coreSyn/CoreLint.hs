@@ -9,6 +9,9 @@ See Note [Core Lint guarantee].
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module CoreLint (
     lintCoreBindings, lintUnfolding,
@@ -76,6 +79,9 @@ import Data.List.NonEmpty ( NonEmpty )
 import Data.Maybe
 import Pair
 import qualified GHC.LanguageExtensions as LangExt
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 {-
 Note [Core Lint guarantee]
@@ -2032,9 +2038,11 @@ lintCoercion this@(AxiomRuleCo co cs)
            Just (Pair l r) ->
              return (typeKind l, typeKind r, l, r, coaxrRole co) }
   where
+  err :: String -> [SDoc] -> LintM a
   err m xs  = failWithL $
                 hang (text m) 2 $ vcat (text "Rule:" <+> ppr (coaxrName co) : xs)
-
+    
+  lintRoles :: Int -> [Role] -> [(LintedKind, LintedKind, LintedType, LintedType, Role)] -> LintM ()
   lintRoles n (e : es) ((_,_,_,_,r) : rs)
     | e == r    = lintRoles (n+1) es rs
     | otherwise = err "Argument roles mismatch"
@@ -2117,6 +2125,9 @@ newtype LintM a =
             WarnsAndErrs ->           -- Warning and error messages so far
             (Maybe a, WarnsAndErrs) } -- Result and messages (if any)
    deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total LintM
+#endif
 
 type WarnsAndErrs = (Bag MsgDoc, Bag MsgDoc)
 

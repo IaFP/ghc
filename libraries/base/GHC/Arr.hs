@@ -1,6 +1,7 @@
 {-# LANGUAGE Unsafe #-}
 {-# LANGUAGE NoImplicitPrelude, MagicHash, UnboxedTuples, RoleAnnotations #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 -----------------------------------------------------------------------------

@@ -1,3 +1,6 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+#endif
 ---------------------------------------------------------
 -- The main program for the hpc-markup tool, part of HPC.
 -- Andy Gill and Colin Runciman, June 2006

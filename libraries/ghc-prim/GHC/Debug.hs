@@ -1,5 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE MagicHash, NoImplicitPrelude, UnboxedTuples, UnliftedFFITypes #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 
 module GHC.Debug ( debugLn, debugErrLn ) where
 

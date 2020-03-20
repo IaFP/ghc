@@ -36,8 +36,8 @@ type CmmLocalLive = CmmLive LocalReg
 
 -- | The dataflow lattice
 liveLattice :: Ord r => DataflowLattice (CmmLive r)
-{-# SPECIALIZE liveLattice :: DataflowLattice (CmmLive LocalReg) #-}
-{-# SPECIALIZE liveLattice :: DataflowLattice (CmmLive GlobalReg) #-}
+-- {-# SPECIALIZE liveLattice :: DataflowLattice (CmmLive LocalReg) #-}
+-- {-# SPECIALIZE liveLattice :: DataflowLattice (CmmLive GlobalReg) #-}
 liveLattice = DataflowLattice emptyRegSet add
   where
     add (OldFact old) (NewFact new) =
@@ -89,5 +89,7 @@ xferLive dflags (BlockCC eNode middle xNode) fBase =
     let joined = gen_kill dflags xNode $! joinOutFacts liveLattice xNode fBase
         !result = foldNodesBwdOO (gen_kill dflags) middle joined
     in mapSingleton (entryLabel eNode) result
-{-# SPECIALIZE xferLive :: DynFlags -> TransferFun (CmmLive LocalReg) #-}
-{-# SPECIALIZE xferLive :: DynFlags -> TransferFun (CmmLive GlobalReg) #-}
+
+-- TODO FIX SPECIALIZE
+-- {-# SPECIALIZE xferLive :: DynFlags -> TransferFun (CmmLive LocalReg) #-}
+--{-# SPECIALIZE xferLive :: DynFlags -> TransferFun (CmmLive GlobalReg) #-}

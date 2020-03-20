@@ -84,11 +84,15 @@ holes3.hs:11:15: error:
         filter :: forall a. (a -> Bool) -> [a] -> [a]
         fromInteger :: forall a. Num a => Integer -> a
         (-) :: forall a. Num a => a -> a -> a
-        fromRational :: forall a. Fractional a => Rational -> a
+        fromRational :: forall a.
+                        (Fractional a, GHC.Real.Ratio @@ Integer) =>
+                        Rational -> a
         negate :: forall a. Num a => a -> a
-        fromIntegral :: forall a b. (Integral a, Num b) => a -> b
+        fromIntegral :: forall a b. (Num b, Integral a) => a -> b
         toInteger :: forall a. Integral a => a -> Integer
-        toRational :: forall a. Real a => a -> Rational
+        toRational :: forall a.
+                      (Real a, GHC.Real.Ratio @@ Integer) =>
+                      a -> Rational
         (:) :: forall a. a -> [a] -> [a]
         Nothing :: forall a. Maybe a
         Just :: forall a. a -> Maybe a
@@ -118,7 +122,7 @@ holes3.hs:11:15: error:
         takeWhile :: forall a. (a -> Bool) -> [a] -> [a]
         subtract :: forall a. Num a => a -> a -> a
         readParen :: forall a. Bool -> ReadS a -> ReadS a
-        (^) :: forall a b. (Num a, Integral b) => a -> b -> a
+        (^) :: forall a b. (Integral b, Num a) => a -> b -> a
         even :: forall a. Integral a => a -> Bool
         gcd :: forall a. Integral a => a -> a -> a
         lcm :: forall a. Integral a => a -> a -> a
@@ -171,7 +175,7 @@ holes3.hs:11:15: error:
         fst :: forall a b. (a, b) -> a
         snd :: forall a b. (a, b) -> b
         map :: forall a b. (a -> b) -> [a] -> [b]
-        realToFrac :: forall a b. (Real a, Fractional b) => a -> b
+        realToFrac :: forall a b. (Fractional b, Real a) => a -> b
         Left :: forall a b. a -> Either a b
         Right :: forall a b. b -> Either a b
         maybe :: forall b a. b -> (a -> b) -> Maybe a -> b
@@ -179,7 +183,7 @@ holes3.hs:11:15: error:
         scanl :: forall b a. (b -> a -> b) -> b -> [a] -> [b]
         scanr :: forall a b. (a -> b -> b) -> b -> [a] -> [b]
         unzip :: forall a b. [(a, b)] -> ([a], [b])
-        (^^) :: forall a b. (Fractional a, Integral b) => a -> b -> a
+        (^^) :: forall a b. (Integral b, Fractional a) => a -> b -> a
         ceiling :: forall a b. (RealFrac a, Integral b) => a -> b
         floor :: forall a b. (RealFrac a, Integral b) => a -> b
         properFraction :: forall a b.
@@ -189,7 +193,9 @@ holes3.hs:11:15: error:
         truncate :: forall a b. (RealFrac a, Integral b) => a -> b
         seq :: forall a b. a -> b -> b
         ($) :: forall a b. (a -> b) -> a -> b
-        either :: forall a c b. (a -> c) -> (b -> c) -> Either a b -> c
+        either :: forall a c b.
+                  (Either a @@ b, Either @@ a) =>
+                  (a -> c) -> (b -> c) -> Either a b -> c
         curry :: forall a b c. ((a, b) -> c) -> a -> b -> c
         uncurry :: forall a b c. (a -> b -> c) -> (a, b) -> c
         ($!) :: forall a b. (a -> b) -> a -> b

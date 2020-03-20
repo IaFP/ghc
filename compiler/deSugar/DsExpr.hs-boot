@@ -1,3 +1,8 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+{-# OPTIONS -fno-enable-rewrite-rules #-}
+#endif
 module DsExpr where
 import GHC.Hs      ( HsExpr, LHsExpr, LHsLocalBinds, SyntaxExpr )
 import DsMonad     ( DsM )

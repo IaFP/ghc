@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
 -- | An architecture independent description of a register.
 --      This needs to stay architecture independent because it is used
 --      by NCGMonad and the register allocators, which are shared

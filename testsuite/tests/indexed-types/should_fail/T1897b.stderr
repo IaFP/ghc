@@ -1,6 +1,12 @@
 
 T1897b.hs:16:1: error:
-    • Couldn't match type ‘Depend a’ with ‘Depend a0’
+    • Could not deduce: Depend a0 ~ Depend a
+      from the context: (t @@ Depend a, Foldable t, Bug a)
+        bound by the inferred type for ‘isValid’:
+                   forall (t :: * -> *) a.
+                   (t @@ Depend a, Foldable t, Bug a) =>
+                   t (Depend a) -> Bool
+        at T1897b.hs:16:1-41
       Expected type: t (Depend a) -> Bool
         Actual type: t (Depend a0) -> Bool
       NB: ‘Depend’ is a non-injective type family
@@ -9,5 +15,5 @@ T1897b.hs:16:1: error:
       To defer the ambiguity check to use sites, enable AllowAmbiguousTypes
       When checking the inferred type
         isValid :: forall (t :: * -> *) a.
-                   (Foldable t, Bug a) =>
+                   (t @@ Depend a, Foldable t, Bug a) =>
                    t (Depend a) -> Bool

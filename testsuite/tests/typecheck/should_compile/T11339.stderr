@@ -1,15 +1,104 @@
 
-T11339.hs:15:5: error:
-    • Overloaded signature conflicts with monomorphism restriction
-        t :: forall (f :: * -> *). Applicative f => (a -> f b) -> f t
-    • In an equation for ‘failing’:
-          failing left right afb s
-            = case pins t of
-                [] -> right afb s
-                _ -> t afb
-            where
-                t :: Applicative f => (a -> f b) -> f t
-                Bazaar {getBazaar = t} = left sell s
-                sell :: a -> Bazaar a b b
-                sell w = Bazaar ($ w)
-                ....
+T11339.hs:13:9: error:
+    • Could not deduce: (f @@ b, f @@ t) arising from a use of ‘t’
+      from the context: Applicative f
+        bound by the type signature for:
+                   failing :: Traversal s t a b
+                              -> Traversal s t a b -> Traversal s t a b
+        at T11339.hs:(11,1)-(23,56)
+    • In the expression: t afb
+      In a case alternative: _ -> t afb
+      In the expression:
+        case pins t of
+          [] -> right afb s
+          _ -> t afb
+    • Relevant bindings include
+        t :: forall (f :: * -> *).
+             (f @@ b, f @@ t, Applicative f) =>
+             (a -> f b) -> f t
+          (bound at T11339.hs:17:26)
+        sell :: (Bazaar a @@ b, Bazaar @@ a, Bazaar a b @@ b) =>
+                a -> Bazaar a b b
+          (bound at T11339.hs:20:5)
+        pins :: (Const [Identity a] @@ t, Const @@ *,
+                 Const @@ [Identity a], Const @@ [Identity a], Const @@ *,
+                 Const [Identity a] @@ b, Identity @@ a) =>
+                ((a -> Const [Identity a] b) -> Const [Identity a] t)
+                -> [Identity a]
+          (bound at T11339.hs:23:5)
+        afb :: a -> f b (bound at T11339.hs:11:20)
+        right :: Traversal s t a b (bound at T11339.hs:11:14)
+        left :: Traversal s t a b (bound at T11339.hs:11:9)
+        (Some bindings suppressed; use -fmax-relevant-binds=N or -fno-max-relevant-binds)
+
+T11339.hs:28:31: error:
+    • Could not deduce: (f @@ b1, f @@ a1) arising from a use of ‘fmap’
+      from the context: (Bazaar a @@ b, Bazaar @@ a)
+        bound by the instance declaration at T11339.hs:27:10-29
+      or from: (Bazaar a b @@ b1, Bazaar a b @@ a1)
+        bound by the type signature for:
+                   fmap :: forall a1 b1.
+                           (Bazaar a b @@ b1, Bazaar a b @@ a1) =>
+                           (a1 -> b1) -> Bazaar a b a1 -> Bazaar a b b1
+        at T11339.hs:28:3-6
+      or from: Applicative f
+        bound by a type expected by the context:
+                   forall (f :: * -> *). Applicative f => (a -> f b) -> f b1
+        at T11339.hs:28:30-41
+    • In the first argument of ‘(.)’, namely ‘fmap f’
+      In the first argument of ‘Bazaar’, namely ‘(fmap f . k)’
+      In the expression: Bazaar (fmap f . k)
+    • Relevant bindings include
+        f :: a1 -> b1 (bound at T11339.hs:28:8)
+        fmap :: (a1 -> b1) -> Bazaar a b a1 -> Bazaar a b b1
+          (bound at T11339.hs:28:3)
+
+T11339.hs:31:27: error:
+    • Could not deduce: f @@ a1 arising from a use of ‘pure’
+      from the context: (Bazaar a @@ b, Bazaar @@ a)
+        bound by the instance declaration at T11339.hs:30:10-33
+      or from: Bazaar a b @@ a1
+        bound by the type signature for:
+                   pure :: forall a1. (Bazaar a b @@ a1) => a1 -> Bazaar a b a1
+        at T11339.hs:31:3-6
+      or from: Applicative f
+        bound by a type expected by the context:
+                   forall (f :: * -> *). Applicative f => (a -> f b) -> f a1
+        at T11339.hs:31:21-32
+    • In the expression: pure a
+      In the second argument of ‘($)’, namely ‘\ _ -> pure a’
+      In the expression: Bazaar $ \ _ -> pure a
+    • Relevant bindings include
+        a :: a1 (bound at T11339.hs:31:8)
+        pure :: a1 -> Bazaar a b a1 (bound at T11339.hs:31:3)
+
+T11339.hs:32:46: error:
+    • Could not deduce: (f @@ (a1 -> b1), f @@ b1, f @@ a1)
+        arising from a use of ‘<*>’
+      from the context: (Bazaar a @@ b, Bazaar @@ a)
+        bound by the instance declaration at T11339.hs:30:10-33
+      or from: (Bazaar a b @@ (a1 -> b1), Bazaar a b @@ b1,
+                Bazaar a b @@ a1)
+        bound by the type signature for:
+                   (<*>) :: forall a1 b1.
+                            (Bazaar a b @@ (a1 -> b1), Bazaar a b @@ b1, Bazaar a b @@ a1) =>
+                            Bazaar a b (a1 -> b1) -> Bazaar a b a1 -> Bazaar a b b1
+        at T11339.hs:32:13-15
+      or from: Applicative f
+        bound by a type expected by the context:
+                   forall (f :: * -> *). Applicative f => (a -> f b) -> f b1
+        at T11339.hs:32:38-62
+    • In the expression: mf afb <*> ma afb
+      In the second argument of ‘($)’, namely
+        ‘\ afb -> mf afb <*> ma afb’
+      In the expression: Bazaar $ \ afb -> mf afb <*> ma afb
+    • Relevant bindings include
+        afb :: a -> f b (bound at T11339.hs:32:39)
+        ma :: forall (f :: * -> *). Applicative f => (a -> f b) -> f a1
+          (bound at T11339.hs:32:24)
+        mf :: forall (f :: * -> *).
+              Applicative f =>
+              (a -> f b) -> f (a1 -> b1)
+          (bound at T11339.hs:32:10)
+        (<*>) :: Bazaar a b (a1 -> b1) -> Bazaar a b a1 -> Bazaar a b b1
+          (bound at T11339.hs:32:13)

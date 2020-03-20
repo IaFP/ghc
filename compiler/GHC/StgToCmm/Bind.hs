@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE NoMonomorphismRestriction #-}
+#endif
 -----------------------------------------------------------------------------
 --
 -- Stg to C-- code generation: bindings

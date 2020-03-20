@@ -1,5 +1,8 @@
 {-# LANGUAGE CPP, NondecreasingIndentation, TupleSections, RecordWildCards #-}
 {-# LANGUAGE BangPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 --
 --  (c) The University of Glasgow 2002-2006
@@ -65,6 +68,9 @@ import System.FilePath
 import System.Directory
 import System.IO.Unsafe
 import System.Environment (lookupEnv)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 #if defined(mingw32_HOST_OS)
 import System.Win32.Info (getSystemDirectory)
@@ -202,7 +208,11 @@ linkDependencies hsc_env pls span needed_mods = do
 
 -- | Temporarily extend the linker state.
 
-withExtendedLinkEnv :: (ExceptionMonad m) =>
+withExtendedLinkEnv :: (ExceptionMonad m
+#if MIN_VERSION_base(4,14,0)
+                       , m @@ ()
+#endif
+                       ) =>
                        DynLinker -> [(Name,ForeignHValue)] -> m a -> m a
 withExtendedLinkEnv dl new_env action
     = gbracket (liftIO $ extendLinkEnv dl new_env)
@@ -1117,6 +1127,7 @@ unload_wkr hsc_env keep_linkables pls@PersistentLinkerState{..}  = do
       -- Note that we want to remove all *local*
       -- (i.e. non-isExternal) names too (these are the
       -- temporary bindings from the command line).
+      keep_name :: (Name, b) -> Bool
       keep_name (n,_) = isExternalName n &&
                         nameModule n `elemModuleSet` bcos_retained
 

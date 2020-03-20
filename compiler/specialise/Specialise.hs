@@ -7,6 +7,9 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 module Specialise ( specProgram, specUnfolding ) where
 
 #include "HsVersions.h"
@@ -49,6 +52,9 @@ import TyCoRep (TyCoBinder (..))
 
 import Control.Monad
 import qualified Control.Monad.Fail as MonadFail
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 {-
 ************************************************************************
@@ -2533,6 +2539,9 @@ deleteCallsFor bs calls = delDVarEnvList calls bs
 -}
 
 newtype SpecM a = SpecM (State SpecState a) deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total SpecM
+#endif
 
 data SpecState = SpecState {
                      spec_uniq_supply :: UniqSupply,

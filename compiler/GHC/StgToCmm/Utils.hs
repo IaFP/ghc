@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -----------------------------------------------------------------------------
 --
@@ -83,6 +86,10 @@ import qualified Data.Map as M
 import Data.Char
 import Data.List
 import Data.Ord
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+import GHC.StgToCmm.Monad ()
+#endif
 
 
 -------------------------------------------------------------------------
@@ -311,7 +318,11 @@ assignTemp e = do { dflags <- getDynFlags
                   ; emitAssign (CmmLocal reg) e
                   ; return reg }
 
-newTemp :: MonadUnique m => CmmType -> m LocalReg
+newTemp :: (MonadUnique m
+#if MIN_VERSION_base(4,14,0)
+           , m @@ Unique
+#endif
+           ) => CmmType -> m LocalReg
 newTemp rep = do { uniq <- getUniqueM
                  ; return (LocalReg uniq rep) }
 

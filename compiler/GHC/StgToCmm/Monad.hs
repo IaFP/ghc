@@ -1,5 +1,9 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -----------------------------------------------------------------------------
 --
@@ -11,7 +15,6 @@
 
 module GHC.StgToCmm.Monad (
         FCode,        -- type
-
         initC, runC, fixC,
         newUnique,
 
@@ -83,7 +86,9 @@ import Util
 import Control.Monad
 import Data.List
 
-
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 --------------------------------------------------------
 -- The FCode monad and its types
@@ -113,6 +118,9 @@ import Data.List
 
 newtype FCode a = FCode { doFCode :: CgInfoDownwards -> CgState -> (a, CgState) }
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total FCode
+#endif
 
 instance Applicative FCode where
     pure val = FCode (\_info_down state -> (val, state))

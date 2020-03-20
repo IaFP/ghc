@@ -1,6 +1,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude, ExistentialQuantification #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 
 -----------------------------------------------------------------------------
 -- |

@@ -15,7 +15,7 @@ tables required for the CJK double-byte codepages are too large to be
 statically linked into every executable.  We plan to add support for them once
 GHC is able to produce Windows DLLs.
 --}
-
+{-# LANGUAGE FlexibleContexts #-}
 module Main where
 
 import System.FilePath
@@ -200,7 +200,9 @@ compress n ms = runState (mapM lookupOrAdd chunks) (Map.empty, Map.empty)
 -- Static parts of the generated module.
 
 languageDirectives :: [String]
-languageDirectives = ["{-# LANGUAGE MagicHash, NoImplicitPrelude #-}"]
+languageDirectives = ["{-# LANGUAGE MagicHash, NoImplicitPrelude #-}"
+                     , "{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}"
+                     ]
 
 
 firstComment :: [FilePath] -> [String]
@@ -254,7 +256,7 @@ instance Embed Char where
 instance Embed Int where
     mkHex = repDualByte
 
-showHex' :: Integral a => a -> String
+showHex' :: (Integral a, Show a) => a -> String
 showHex' s = "\\x" ++ showHex s ""
 
 repDualByte :: Enum c => c -> String

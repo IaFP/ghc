@@ -4,6 +4,7 @@ T12444.hs:19:11: error:
       ‘b’ is a rigid type variable bound by
         the type signature for:
           foo :: forall (c :: Nat) (b :: Nat).
+                 (SNat @@ 'Succ c, SNat @@ 'Succ (c :+: b), SNat @@ b) =>
                  SNat ('Succ c) -> SNat b -> SNat ('Succ (c :+: b))
         at T12444.hs:18:1-55
       Expected type: SNat ('Succ (c :+: b))

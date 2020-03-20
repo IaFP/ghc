@@ -1,6 +1,9 @@
 -- The @FamInst@ type: family instance heads
 
 {-# LANGUAGE CPP, GADTs, ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module FamInst (
         FamInstEnvs, tcGetFamInstEnvs,

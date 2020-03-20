@@ -7,6 +7,7 @@
            , TypeSynonymInstances
            , FlexibleInstances
   #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 
 -- |
 -- The event manager supports event notification on fds. Each fd may

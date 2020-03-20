@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE EmptyCase #-}
@@ -13,6 +14,9 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE UndecidableInstances #-} -- Note [Pass sensitive types]
                                       -- in module GHC.Hs.PlaceHolder
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module GHC.Hs.Extension where
 
@@ -30,6 +34,9 @@ import Outputable
 import SrcLoc (Located)
 
 import Data.Kind
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@), Total)
+#endif
 
 {-
 Note [Trees that grow]
@@ -134,6 +141,13 @@ code that consumes unused extension constructors.
 data GhcPass (c :: Pass)
 deriving instance Eq (GhcPass c)
 deriving instance Typeable c => Data (GhcPass c)
+#if MIN_VERSION_base(4,14,0)
+instance Total GhcPass
+type instance GhcPass @@ 'Parsed = ()
+type instance GhcPass @@ 'Renamed = ()
+type instance GhcPass @@ 'Typechecked = ()
+type instance GhcPass @@ a = ()
+#endif
 
 data Pass = Parsed | Renamed | Typechecked
          deriving (Data)

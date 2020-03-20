@@ -4,6 +4,9 @@ T16456.hs:7:7: error:
     • In the expression: _
       In an equation for ‘foo’: foo = _
     • Relevant bindings include foo :: T Int (bound at T16456.hs:7:1)
+      Constraints include
+        T @@ * (from T16456.hs:6:1-12)
+        T @@ Int (from T16456.hs:6:1-12)
       Valid hole fits include
         foo :: T Int (bound at T16456.hs:7:1)
         MkT :: forall {k} (p :: k). T p

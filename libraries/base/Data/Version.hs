@@ -1,6 +1,7 @@
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 
 -----------------------------------------------------------------------------
 -- |

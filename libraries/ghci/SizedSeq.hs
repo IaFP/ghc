@@ -1,4 +1,9 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE StandaloneDeriving, DeriveGeneric #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
+
 module SizedSeq
   ( SizedSeq(..)
   , emptySS
@@ -13,9 +18,15 @@ import Control.DeepSeq
 import Data.Binary
 import Data.List
 import GHC.Generics
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 data SizedSeq a = SizedSeq {-# UNPACK #-} !Word [a]
   deriving (Generic, Show)
+#if MIN_VERSION_base(4,14,0)
+instance Total SizedSeq 
+#endif
 
 instance Functor SizedSeq where
   fmap f (SizedSeq sz l) = SizedSeq sz (fmap f l)

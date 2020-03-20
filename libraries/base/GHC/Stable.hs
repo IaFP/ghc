@@ -2,6 +2,7 @@
 {-# LANGUAGE NoImplicitPrelude
            , MagicHash
            , UnboxedTuples
+           , PartialTypeConstructors
   #-}
 {-# OPTIONS_HADDOCK not-home #-}
 

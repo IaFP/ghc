@@ -1,6 +1,6 @@
 TYPE SIGNATURES
   empty :: forall c. Coll c => c
-  emptyL :: forall a. ListColl a
+  emptyL :: forall a. (ListColl @@ a) => ListColl a
   insert :: forall c. Coll c => Elem c -> c -> c
   test2 ::
     forall c a b. (Coll c, Num a, Num b, Elem c ~ (a, b)) => c -> c
@@ -14,9 +14,12 @@ COERCION AXIOMS
 DATA CONSTRUCTORS
   L :: forall a. [a] -> ListColl a
 CLASS INSTANCES
-  instance Coll (ListColl a) -- Defined at T3017.hs:12:11
+  instance (ListColl @@ a) => Coll (ListColl a)
+    -- Defined at T3017.hs:12:11
 FAMILY INSTANCES
   type instance Elem (ListColl a) = a -- Defined at T3017.hs:13:9
+  type instance ListColl @@ a = () :: Constraint
+                  -- Defined at T3017.hs:11:2
 Dependent modules: []
-Dependent packages: [base-4.13.0.0, ghc-prim-0.6.1,
-                     integer-gmp-1.0.2.0]
+Dependent packages: [base-4.14.0.0, ghc-prim-0.6.1,
+                     integer-gmp-1.0.3.0]

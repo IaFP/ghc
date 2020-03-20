@@ -1,3 +1,8 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+{-# OPTIONS -fno-enable-rewrite-rules #-}
+#endif
 module TcEnv where
 
 import TcRnTypes( TcM )
@@ -7,4 +12,3 @@ import VarEnv( TidyEnv )
 -- (which does zonking and hence needs TcMType) and
 -- addErrTc etc which live in TcRnMonad.  Rats.
 tcInitTidyEnv :: TcM TidyEnv
-

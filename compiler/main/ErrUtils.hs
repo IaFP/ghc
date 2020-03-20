@@ -7,6 +7,9 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module ErrUtils (
         -- * Basic types
@@ -89,6 +92,10 @@ import System.IO
 import System.IO.Error  ( catchIOError )
 import GHC.Conc         ( getAllocationCounter )
 import System.CPUTime
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+import GHC.Int (Int64)
+#endif
 
 -------------------------
 type MsgDoc  = SDoc
@@ -647,7 +654,11 @@ data PrintTimings = PrintTimings | DontPrintTimings
 -- requested, the result is only forced when timings are enabled.
 --
 -- See Note [withTiming] for more.
-withTiming :: MonadIO m
+withTiming :: (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+              , m @@ Integer, m @@ Int64, m @@ ()
+#endif
+              )
            => DynFlags     -- ^ DynFlags
            -> SDoc         -- ^ The name of the phase
            -> (a -> ())    -- ^ A function to force the result
@@ -658,7 +669,11 @@ withTiming dflags what force action =
   withTiming' dflags what force PrintTimings action
 
 -- | Like withTiming but get DynFlags from the Monad.
-withTimingD :: (MonadIO m, HasDynFlags m)
+withTimingD :: (MonadIO m, HasDynFlags m
+#if MIN_VERSION_base(4,14,0)
+               , m @@ DynFlags, m @@ Integer, m @@ Int64, m @@ ()
+#endif
+               )
            => SDoc         -- ^ The name of the phase
            -> (a -> ())    -- ^ A function to force the result
                            -- (often either @const ()@ or 'rnf')
@@ -674,7 +689,11 @@ withTimingD what force action = do
 --
 --   See Note [withTiming] for more.
 withTimingSilent
-  :: MonadIO m
+  :: (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+     , m @@ Integer, m @@ Int64, m @@ ()
+#endif
+     )
   => DynFlags   -- ^ DynFlags
   -> SDoc       -- ^ The name of the phase
   -> (a -> ())  -- ^ A function to force the result
@@ -690,7 +709,11 @@ withTimingSilent dflags what force action =
 --
 --   See Note [withTiming] for more.
 withTimingSilentD
-  :: (MonadIO m, HasDynFlags m)
+  :: (MonadIO m, HasDynFlags m
+#if MIN_VERSION_base(4,14,0)
+     , m @@ DynFlags, m @@ Integer, m @@ Int64, m @@ ()
+#endif
+     )
   => SDoc       -- ^ The name of the phase
   -> (a -> ())  -- ^ A function to force the result
                 -- (often either @const ()@ or 'rnf')
@@ -701,7 +724,11 @@ withTimingSilentD what force action = do
   withTiming' dflags what force DontPrintTimings action
 
 -- | Worker for 'withTiming' and 'withTimingSilent'.
-withTiming' :: MonadIO m
+withTiming' :: (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+                , m @@ (), m @@ Int64, m @@ Integer
+#endif
+               )
             => DynFlags   -- ^ A means of getting a 'DynFlags' (often
                             -- 'getDynFlags' will work here)
             -> SDoc         -- ^ The name of the phase

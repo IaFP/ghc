@@ -4,7 +4,7 @@ T16414.hs:14:6: error:
       Matching givens (or their superclasses):
         AllZip2 I
           bound by the type signature for:
-                     f1 :: forall x. (All x, AllZip2 I) => x -> ()
+                     f1 :: forall x. (AllZip2 I, All x) => x -> ()
           at T16414.hs:13:1-35
       Matching instances:
         instance AllZip2 f -- Defined at T16414.hs:11:10

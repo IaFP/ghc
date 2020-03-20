@@ -19,7 +19,14 @@ T9834.hs:23:10: warning: [-Wdeferred-type-errors (in -Wdefault)]
           (bound at T9834.hs:23:3)
 
 T9834.hs:23:10: warning: [-Wdeferred-type-errors (in -Wdefault)]
-    • Couldn't match type ‘a1’ with ‘a’
+    • Could not deduce: a1 ~ a
+      from the context: p @@ a
+        bound by the type signature for:
+                   afix :: forall a.
+                           (p @@ a) =>
+                           (forall (q :: * -> *). Applicative q => Comp p q a -> Comp p q a)
+                           -> p a
+        at T9834.hs:22:11-74
       ‘a1’ is a rigid type variable bound by
         a type expected by the context:
           forall (q :: * -> *). Applicative q => Nat (Comp p q) (Comp p q)
@@ -27,6 +34,7 @@ T9834.hs:23:10: warning: [-Wdeferred-type-errors (in -Wdefault)]
       ‘a’ is a rigid type variable bound by
         the type signature for:
           afix :: forall a.
+                  (p @@ a) =>
                   (forall (q :: * -> *). Applicative q => Comp p q a -> Comp p q a)
                   -> p a
         at T9834.hs:22:11-74

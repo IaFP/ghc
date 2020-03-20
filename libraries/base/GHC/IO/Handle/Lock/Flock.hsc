@@ -3,6 +3,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 
 -- | File locking via POSIX @flock@.
 module GHC.IO.Handle.Lock.Flock where

@@ -76,6 +76,8 @@ Library
                    ghc-boot-th == @ProjectVersionMunged@,
                    ghc-heap   == @ProjectVersionMunged@,
                    ghci == @ProjectVersionMunged@
+    if impl(ghc>=8.10.1)
+       Build-Depends: ghc-prim >= 0.6.1
 
     if os(windows)
         Build-Depends: Win32  >= 2.3 && < 2.7
@@ -88,6 +90,14 @@ Library
                  -Wno-name-shadowing
                  -Wnoncanonical-monad-instances
                  -Wnoncanonical-monoid-instances
+    -- if flag(stage1)
+    --    default-extensions: PartialTypeConstructors
+    -- if flag(stage1)
+    --    GHC-Options: -fno-enable-rewrite-rules
+    -- if flag(stage2)
+    --    default-extensions: PartialTypeConstructors
+    -- if flag(stage2)
+    --    GHC-Options: -fno-enable-rewrite-rules
 
     if flag(ghci)
         CPP-Options: -DHAVE_INTERNAL_INTERPRETER
@@ -204,6 +214,7 @@ Library
         AsmUtils
         BasicTypes
         ConLike
+        ClosureEnv
         DataCon
         PatSyn
         Demand
@@ -518,6 +529,7 @@ Library
         TcTyDecls
         TcTypeable
         TcType
+        TcTyWF
         TcEvidence
         TcEvTerm
         TcUnify

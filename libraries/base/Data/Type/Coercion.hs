@@ -9,6 +9,7 @@
 {-# LANGUAGE PolyKinds           #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE MagicHash           #-}
+{-# LANGUAGE ConstrainedClassMethods  #-}
 
 -----------------------------------------------------------------------------
 -- |

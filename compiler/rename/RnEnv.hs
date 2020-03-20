@@ -6,6 +6,9 @@ RnEnv contains functions which convert RdrNames into Names.
 -}
 
 {-# LANGUAGE CPP, MultiWayIf, NamedFieldPuns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module RnEnv (
         newTopSrcBinder,

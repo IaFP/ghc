@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module StgSubst where
 
@@ -11,6 +14,9 @@ import VarEnv
 import Control.Monad.Trans.State.Strict
 import Outputable
 import Util
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -- | A renaming substitution from 'Id's to 'Id's. Like 'RnEnv2', but not
 -- maintaining pairs of substitutions. Like @"CoreSubst".'CoreSubst.Subst'@, but
@@ -43,7 +49,11 @@ substBndr id (Subst in_scope env)
       | otherwise = extendVarEnv env id new_id
 
 -- | @substBndrs = runState . traverse (state . substBndr)@
-substBndrs :: Traversable f => f Id -> Subst -> (f Id, Subst)
+substBndrs :: (Traversable f
+#if MIN_VERSION_base(4,14,0)
+              , Total f
+#endif
+              ) => f Id -> Subst -> (f Id, Subst)
 substBndrs = runState . traverse (state . substBndr)
 
 -- | Substitutes an occurrence of an identifier for its counterpart recorded

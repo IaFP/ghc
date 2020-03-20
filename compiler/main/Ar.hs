@@ -1,4 +1,7 @@
 {-# LANGUAGE OverloadedStrings, GeneralizedNewtypeDeriving, CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 {- Note: [The need for Ar.hs]
 Building `-staticlib` required the presence of libtool, and was a such
 restricted to mach-o only. As libtool on macOS and gnu libtool are very

@@ -6,6 +6,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE Trustworthy #-}
 {-# OPTIONS_GHC -Wno-unused-binds #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 -- XXX -Wno-unused-binds stops us warning about unused constructors,
 -- but really we should just remove them if we don't want them
 

@@ -1,4 +1,8 @@
 {-# LANGUAGE BangPatterns, RecordWildCards, GADTs #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 module CmmLayoutStack (
        cmmLayoutStack, setInfoTableStackMap
   ) where

@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP, TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -----------------------------------------------------------------------------
 --

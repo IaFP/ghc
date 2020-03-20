@@ -14,6 +14,8 @@ import Surface
 import Data
 import Parse (rayParse, rayParseF)
 
+import GHC.Types (Total)
+
 class Monad m => MonadEval m where
   doOp :: PrimOp -> GMLOp -> Stack -> m Stack
   tick :: m ()
@@ -22,6 +24,7 @@ class Monad m => MonadEval m where
   tick = return ()
 
 newtype Pure a = Pure a deriving Show
+instance Total Pure
 
 instance Functor Pure where
     fmap = liftM
@@ -59,7 +62,7 @@ callback env code stk
 {-# SPECIALIZE eval ::  State -> Pure Stack #-}
 {-# SPECIALIZE eval ::  State -> IO Stack #-}
 
-eval :: MonadEval m => State -> m Stack
+eval :: (MonadEval m, Total m) => State -> m Stack
 eval st =
   do { () <- return () -- $ unsafePerformIO (print st)   -- Functional debugger
      ; if moreCode st then
@@ -77,7 +80,7 @@ moreCode _                   = True
 -- Step has a precondition that there *is* code to run
 {-# SPECIALIZE step ::  State -> Pure State #-}
 {-# SPECIALIZE step ::  State -> IO State #-}
-step :: MonadEval m => State -> m State
+step :: (MonadEval m, Total m) => State -> m State
 
 -- Rule 1: Pushing BaseValues
 step st@(State{ stack = stack, code = (TBool b):cs })
@@ -290,6 +293,9 @@ absapply env code stk =
        AbsFail m      -> Nothing
 
 newtype Abs a   = Abs { runAbs :: Int -> AbsState a }
+
+instance Total Abs
+
 data AbsState a = AbsState a !Int
                 | AbsFail String
 

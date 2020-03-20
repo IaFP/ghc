@@ -2,11 +2,15 @@ parsePlugin()
 interfacePlugin: Prelude
 interfacePlugin: Language.Haskell.TH
 interfacePlugin: Language.Haskell.TH.Quote
+interfacePlugin: Data.Traversable
 interfacePlugin: GHC.Float
 interfacePlugin: GHC.Base
 interfacePlugin: Language.Haskell.TH.Syntax
 typeCheckPlugin (rn)
 interfacePlugin: GHC.Types
+interfacePlugin: GHC.Classes
+interfacePlugin: GHC.Tuple
+interfacePlugin: GHC.Maybe
 typeCheckPlugin (tc)
 interfacePlugin: GHC.Integer.Type
 interfacePlugin: GHC.Natural

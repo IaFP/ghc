@@ -8,8 +8,8 @@
 -- And (forall m. Monad m => m a) /~ IO a
 
 module Main(main) where
-
-foo :: (forall m. Monad m => m a) -> IO a
+import GHC.Types (Total)
+foo :: (forall m. (Monad m, Total m) => m a) -> IO a
 foo = id . id
 
 main :: IO ()

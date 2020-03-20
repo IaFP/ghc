@@ -1,6 +1,9 @@
 -- (c) The University of Glasgow 2006
 
 {-# LANGUAGE CPP, DeriveDataTypeable #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcEvidence (
 

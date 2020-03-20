@@ -6,6 +6,9 @@
 -}
 
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 -- |
 -- #name_types#
@@ -150,6 +153,9 @@ import Unique
 import UniqSupply
 import FastString
 import Util
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 -- infixl so you can say (id `set` a `set` b)
 infixl  1 `setIdUnfolding`,
@@ -319,10 +325,18 @@ mkSysLocalOrCoVar :: FastString -> Unique -> Type -> Id
 mkSysLocalOrCoVar fs uniq ty
   = mkLocalIdOrCoVar (mkSystemVarName uniq fs) ty
 
-mkSysLocalM :: MonadUnique m => FastString -> Type -> m Id
+mkSysLocalM :: (MonadUnique m
+#if MIN_VERSION_base(4,14,0)
+               , m @@ Unique
+#endif
+               ) => FastString -> Type -> m Id
 mkSysLocalM fs ty = getUniqueM >>= (\uniq -> return (mkSysLocal fs uniq ty))
 
-mkSysLocalOrCoVarM :: MonadUnique m => FastString -> Type -> m Id
+mkSysLocalOrCoVarM :: (MonadUnique m
+#if MIN_VERSION_base(4,14,0)
+                      , m @@ Unique
+#endif
+                      ) => FastString -> Type -> m Id
 mkSysLocalOrCoVarM fs ty
   = getUniqueM >>= (\uniq -> return (mkSysLocalOrCoVar fs uniq ty))
 

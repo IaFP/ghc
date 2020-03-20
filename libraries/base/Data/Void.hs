@@ -4,6 +4,7 @@
 {-# LANGUAGE EmptyDataDeriving #-}
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 
 -----------------------------------------------------------------------------
 -- |

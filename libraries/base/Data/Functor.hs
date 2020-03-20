@@ -1,6 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-
+{-# Language PartialTypeConstructors #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Functor

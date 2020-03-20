@@ -1,5 +1,6 @@
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 
 -----------------------------------------------------------------------------
 -- |

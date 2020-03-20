@@ -8,6 +8,9 @@ The bits common to TcInstDcls and TcDeriv.
 -}
 
 {-# LANGUAGE CPP, DeriveDataTypeable #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module InstEnv (
         DFunId, InstMatch, ClsInstLookupResult,

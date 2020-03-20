@@ -1,5 +1,8 @@
 {-# LANGUAGE CPP #-}
 #include <ghcplatform.h>
+#if __GLASGOW_HASKELL__ >= 810
+#endif
+  
 -----------------------------------------------------------------------------
 --
 -- (c) The University of Glasgow, 2004

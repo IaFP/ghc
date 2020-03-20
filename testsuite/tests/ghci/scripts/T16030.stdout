@@ -4,6 +4,10 @@ data Foo1 a where
   MkFoo1a :: forall k (a :: k). Proxy a -> Int -> Foo1 a
   MkFoo1b :: forall k (a :: k). {a :: Proxy a, b :: Int} -> Foo1 a
   	-- Defined at T16030.hs:8:1
+type instance forall k (a :: k). Foo1 @@ a = () :: Constraint
+  	-- Defined at T16030.hs:8:1
+type instance Foo1 @@ k = () :: Constraint
+  	-- Defined at T16030.hs:8:1
 type Foo2 :: forall k. k -> *
 data family Foo2 a
   	-- Defined at T16030.hs:12:1
@@ -17,6 +21,12 @@ data Foo1 @k a where
   MkFoo1a :: forall k (a :: k). Proxy @{k} a -> Int -> Foo1 @k a
   MkFoo1b :: forall k (a :: k).
              {a :: Proxy @{k} a, b :: Int} -> Foo1 @k a
+  	-- Defined at T16030.hs:8:1
+type instance forall k (a :: k). (@@) @(k -> *) @k (Foo1 @k) a
+  = () :: Constraint
+  	-- Defined at T16030.hs:8:1
+type instance (@@) @(forall k1. k1 -> *) @* Foo1 k
+  = () :: Constraint
   	-- Defined at T16030.hs:8:1
 type Foo2 :: forall k. k -> *
 data family Foo2 @k a

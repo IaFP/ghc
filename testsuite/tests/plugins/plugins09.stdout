@@ -1,5 +1,6 @@
 parsePlugin(a,b)
 interfacePlugin: Prelude
+interfacePlugin: Data.Traversable
 interfacePlugin: GHC.Float
 interfacePlugin: GHC.Base
 typeCheckPlugin (rn)

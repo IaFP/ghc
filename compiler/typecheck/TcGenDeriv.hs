@@ -15,6 +15,9 @@ This is where we do all the grimy bindings' generation.
 {-# LANGUAGE CPP, ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcGenDeriv (
         BagDerivStuff, DerivStuff(..),
@@ -32,7 +35,7 @@ module TcGenDeriv (
         mkCoerceClassMethEqn,
         genAuxBinds,
         ordOpTbl, boxConTbl, litConTbl,
-        mkRdrFunBind, mkRdrFunBindEC, mkRdrFunBindSE, error_Expr
+        mkRdrFunBind, mkRdrFunBindEC, mkRdrFunBindSE, error_Expr,
     ) where
 
 #include "HsVersions.h"
@@ -76,6 +79,7 @@ import FastString
 import Pair
 import Bag
 
+
 import Data.List  ( find, partition, intersperse )
 
 type BagDerivStuff = Bag DerivStuff
@@ -97,6 +101,10 @@ data DerivStuff     -- Please add this auxiliary stuff
   -- New top-level auxiliary bindings
   | DerivHsBind (LHsBind GhcPs, LSig GhcPs) -- Also used for SYB
 
+instance Outputable DerivStuff where
+  ppr (DerivAuxBind _) = text "DerivAuxBind <blah>"
+  ppr (DerivFamInst fi) = text "DerivFamInst" <+> ppr fi
+  ppr (DerivHsBind _) = text "DerivHsBind <blah>"
 
 {-
 ************************************************************************
@@ -160,6 +168,7 @@ produced don't get through the typechecker.
 gen_Eq_binds :: SrcSpan -> TyCon -> TcM (LHsBinds GhcPs, BagDerivStuff)
 gen_Eq_binds loc tycon = do
     dflags <- getDynFlags
+    -- at_deriv <- mk_atat_inst loc tycon
     return (method_binds dflags, aux_binds)
   where
     all_cons = tyConDataCons tycon

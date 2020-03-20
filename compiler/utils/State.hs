@@ -1,12 +1,23 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators  #-}
+#endif
 
 module State where
 
 import GhcPrelude
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 newtype State s a = State { runState' :: s -> (# a, s #) }
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total (State s)
+#endif
+
 
 instance Applicative (State s) where
    pure x   = State $ \s -> (# x, s #)

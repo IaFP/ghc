@@ -6,6 +6,7 @@
            , PatternSynonyms
   #-}
 {-# OPTIONS_HADDOCK not-home #-}
+{-# LANGUAGE PartialTypeConstructors, ConstrainedClassMethods #-}
 
 -----------------------------------------------------------------------------
 -- |

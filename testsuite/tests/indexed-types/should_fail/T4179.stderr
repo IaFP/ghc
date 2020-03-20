@@ -1,7 +1,13 @@
 
 T4179.hs:26:16: error:
-    • Couldn't match type ‘A2 (x (A2 (FCon x) -> A3 (FCon x)))’
-                     with ‘A2 (FCon x)’
+    • Could not deduce: A2 (x (A2 (FCon x) -> A3 (FCon x)))
+                        ~ A2 (FCon x)
+      from the context: (x @@ Con x, Con @@ x, DoC (FCon x), Functor x)
+        bound by the type signature for:
+                   fCon :: forall (x :: * -> *).
+                           (Con @@ x, x @@ Con x, Con @@ x, DoC (FCon x), Functor x) =>
+                           Con x -> A2 (FCon x) -> A3 (FCon x)
+        at T4179.hs:25:1-72
       Expected type: x (A2 (FCon x) -> A3 (FCon x))
                      -> A2 (FCon x) -> A3 (FCon x)
         Actual type: x (A2 (FCon x) -> A3 (FCon x))

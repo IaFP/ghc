@@ -15,6 +15,10 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, ConstrainedClassMethods, TypeOperators, UndecidableInstances, UndecidableSuperClasses #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+#endif
 
 module   RdrHsSyn (
         mkHsOpApp,
@@ -141,6 +145,9 @@ import Text.ParserCombinators.ReadP as ReadP
 import Data.Char
 import qualified Data.Monoid as Monoid
 import Data.Data       ( dataTypeOf, fromConstr, dataTypeConstrs )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@), Total)
+#endif
 
 #include "HsVersions.h"
 
@@ -902,7 +909,11 @@ checkRuleTyVarBndrNames = mapM_ (check . fmap hsTyVarName)
                                     ++ occNameString occ))
         check _ = panic "checkRuleTyVarBndrNames"
 
-checkRecordSyntax :: (MonadP m, Outputable a) => Located a -> m (Located a)
+checkRecordSyntax :: (MonadP m, Outputable a
+#if MIN_VERSION_base(4,14,0)
+                     , m @@ (), m @@ Bool
+#endif
+                     ) => Located a -> m (Located a)
 checkRecordSyntax lr@(dL->L loc r)
     = do allowed <- getBit TraditionalRecordSyntaxBit
          unless allowed $ addError loc $
@@ -1848,9 +1859,9 @@ checkMonadComp = do
 -- See Note [Parser-Validator]
 -- See Note [Ambiguous syntactic categories]
 newtype ECP =
-  ECP { runECP_PV :: forall b. DisambECP b => PV (Located b) }
+  ECP { runECP_PV :: forall b. (DisambECP b) => PV (Located b) }
 
-runECP_P :: DisambECP b => ECP -> P (Located b)
+runECP_P :: (DisambECP b) => ECP -> P (Located b)
 runECP_P p = runPV (runECP_PV p)
 
 ecpFromExp :: LHsExpr GhcPs -> ECP
@@ -1880,7 +1891,11 @@ instance DisambInfixOp RdrName where
 -- | Disambiguate constructs that may appear when we do not know ahead of time whether we are
 -- parsing an expression, a command, or a pattern.
 -- See Note [Ambiguous syntactic categories]
-class b ~ (Body b) GhcPs => DisambECP b where
+class (b ~ (Body b) GhcPs
+#if MIN_VERSION_base(4,14,0)
+      , Total (Body b)
+#endif
+      ) => DisambECP b where
   -- | See Note [Body in DisambECP]
   type Body b :: * -> *
   -- | Return a command without ambiguity, or fail in a non-command context.
@@ -2114,6 +2129,10 @@ data PatBuilder p
   | PatBuilderOpApp (Located (PatBuilder p)) (Located RdrName) (Located (PatBuilder p))
   | PatBuilderVar (Located RdrName)
   | PatBuilderOverLit (HsOverLit GhcPs)
+
+#if MIN_VERSION_base(4,14,0)
+instance Total PatBuilder
+#endif
 
 patBuilderBang :: SrcSpan -> Located (PatBuilder p) -> Located (PatBuilder p)
 patBuilderBang bang p =
@@ -3047,7 +3066,10 @@ data PV_Result a = PV_Ok PV_Accum a | PV_Failed PV_Accum
 
 -- See Note [Parser-Validator]
 newtype PV a = PV { unPV :: PV_Context -> PV_Accum -> PV_Result a }
-
+#if MIN_VERSION_base(4,14,0)
+instance Total PV
+#endif
+  
 instance Functor PV where
   fmap = liftM
 

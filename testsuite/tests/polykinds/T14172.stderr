@@ -1,26 +1,28 @@
 
-T14172.hs:6:46: error:
-    • Found type wildcard ‘_’ standing for ‘a'’
-      Where: ‘a'’ is a rigid type variable bound by
-               the inferred type of
-                 traverseCompose :: (a -> f b) -> g a -> f (h a')
-               at T14172.hs:7:1-46
-      To use the inferred type, enable PartialTypeSignatures
-    • In the first argument of ‘h’, namely ‘_’
-      In the first argument of ‘f’, namely ‘(h _)’
-      In the type ‘(a -> f b) -> g a -> f (h _)’
-
-T14172.hs:7:19: error:
-    • Occurs check: cannot construct the infinite type: a ~ g'0 a
-      Expected type: (f'0 a -> f (f'0 b))
-                     -> Compose f'0 g'0 a -> f (h a')
-        Actual type: (Unwrapped (Compose f'0 g'0 a)
-                      -> f (Unwrapped (h a')))
-                     -> Compose f'0 g'0 a -> f (h a')
-    • In the first argument of ‘(.)’, namely ‘_Wrapping Compose’
-      In the expression: _Wrapping Compose . traverse
-      In an equation for ‘traverseCompose’:
-          traverseCompose = _Wrapping Compose . traverse
+T14172a.hs:30:13: error:
+    • Could not deduce: (p @@ a, p a @@ f b, p @@ s, p s @@ f t)
+        arising from a use of ‘dimap’
+      from the context: (Profunctor p, Functor f)
+        bound by the type signature for:
+                   iso :: (s -> a) -> (b -> t) -> Iso s t a b
+        at T14172a.hs:30:1-30
+    • In the expression: dimap sa (fmap bt)
+      In an equation for ‘iso’: iso sa bt = dimap sa (fmap bt)
     • Relevant bindings include
-        traverseCompose :: (a -> f b) -> g a -> f (h a')
-          (bound at T14172.hs:7:1)
+        sa :: s -> a (bound at T14172a.hs:30:5)
+        iso :: (s -> a) -> (b -> t) -> Iso s t a b
+          (bound at T14172a.hs:30:1)
+
+T14172a.hs:30:23: error:
+    • Could not deduce: (f @@ t, f @@ b) arising from a use of ‘fmap’
+      from the context: (Profunctor p, Functor f)
+        bound by the type signature for:
+                   iso :: (s -> a) -> (b -> t) -> Iso s t a b
+        at T14172a.hs:30:1-30
+    • In the second argument of ‘dimap’, namely ‘(fmap bt)’
+      In the expression: dimap sa (fmap bt)
+      In an equation for ‘iso’: iso sa bt = dimap sa (fmap bt)
+    • Relevant bindings include
+        bt :: b -> t (bound at T14172a.hs:30:8)
+        iso :: (s -> a) -> (b -> t) -> Iso s t a b
+          (bound at T14172a.hs:30:1)

@@ -1,6 +1,9 @@
 -- (c) The University of Glasgow, 2006
 
 {-# LANGUAGE CPP, ScopedTypeVariables, BangPatterns, FlexibleContexts #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 -- | Package manipulation
 module Packages (

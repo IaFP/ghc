@@ -3,8 +3,11 @@
 
 \section[Foreign]{Foreign calls}
 -}
-
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module ForeignCall (
         ForeignCall(..), isSafeForeignCall,

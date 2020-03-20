@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 {-# LANGUAGE DeriveFunctor #-}
 -- | Our extended FCode monad.
 
@@ -55,6 +59,9 @@ import Unique
 import UniqSupply
 
 import Control.Monad (ap)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -- | The environment contains variable definitions or blockids.
 data Named
@@ -75,6 +82,9 @@ type Decls      = [(FastString,Named)]
 newtype CmmParse a
         = EC { unEC :: String -> Env -> Decls -> FCode (Decls, a) }
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total CmmParse
+#endif
 
 type ExtCode = CmmParse ()
 

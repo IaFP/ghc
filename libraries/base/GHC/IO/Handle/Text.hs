@@ -9,6 +9,7 @@
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-unused-matches #-}
 {-# OPTIONS_HADDOCK not-home #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 
 -----------------------------------------------------------------------------
 -- |

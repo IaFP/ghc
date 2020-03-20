@@ -1,4 +1,8 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE Safe #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, ConstrainedClassMethods, TypeOperators #-}
+#endif
 
 -- |
 -- Language.Haskell.TH.Lib.Internal exposes some additional functionality that

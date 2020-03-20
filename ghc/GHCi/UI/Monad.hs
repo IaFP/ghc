@@ -1,5 +1,9 @@
 {-# LANGUAGE CPP, FlexibleInstances, DeriveFunctor #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies, ConstrainedClassMethods, UndecidableInstances, Rank2Types #-}
+{-# OPTIONS -fno-enable-rewrite-rules #-}
+#endif
 
 -----------------------------------------------------------------------------
 --
@@ -71,6 +75,9 @@ import Control.Monad.IO.Class
 import Data.Map.Strict (Map)
 import qualified Data.IntMap.Strict as IntMap
 import qualified GHC.LanguageExtensions as LangExt
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@), Total)
+#endif
 
 -----------------------------------------------------------------------------
 -- GHCi monad
@@ -241,7 +248,11 @@ instance Outputable BreakLocation where
                 False -> text "disabled"
 
 recordBreak
-  :: GhciMonad m => BreakLocation -> m (Bool{- was already present -}, Int)
+  :: (GhciMonad m
+#if MIN_VERSION_base(4,14,0)
+     , m @@ GHCiState, m @@ ()
+#endif
+     ) => BreakLocation -> m (Bool{- was already present -}, Int)
 recordBreak brkLoc = do
    st <- getGHCiState
    let oldmap = breaks st
@@ -259,6 +270,10 @@ recordBreak brkLoc = do
 
 newtype GHCi a = GHCi { unGHCi :: IORef GHCiState -> Ghc a }
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total GHCi
+type instance GHCi @@ a = ()
+#endif
 
 reflectGHCi :: (Session, IORef GHCiState) -> GHCi a -> IO a
 reflectGHCi (s, gs) m = unGhc (unGHCi m gs) s
@@ -327,14 +342,12 @@ instance MonadCatch Ghc where
   catch = gcatch
 
 instance MonadMask Ghc where
-  mask f = Ghc $ \s ->
-    mask $ \io_restore ->
-      let g_restore (Ghc m) = Ghc $ \s -> io_restore (m s)
-      in unGhc (f g_restore) s
-  uninterruptibleMask f = Ghc $ \s ->
-    uninterruptibleMask $ \io_restore ->
-      let g_restore (Ghc m) = Ghc $ \s -> io_restore (m s)
-      in unGhc (f g_restore) s
+  mask f = Ghc b
+    where b s = mask $ \io_restore ->
+                         unGhc (f (\(Ghc m) -> Ghc $ \s' -> io_restore (m s'))) s
+  uninterruptibleMask f = Ghc b
+    where b s = uninterruptibleMask $ \io_restore ->
+                                        unGhc (f (\(Ghc m) -> Ghc $ (\s' -> io_restore (m s')))) s
   generalBracket acquire release use = Ghc $ \s ->
     generalBracket
       (unGhc acquire s)
@@ -348,14 +361,12 @@ instance MonadCatch GHCi where
   catch = gcatch
 
 instance MonadMask GHCi where
-  mask f = GHCi $ \s ->
-    mask $ \io_restore ->
-      let g_restore (GHCi m) = GHCi $ \s -> io_restore (m s)
-      in unGHCi (f g_restore) s
-  uninterruptibleMask f = GHCi $ \s ->
-    uninterruptibleMask $ \io_restore ->
-      let g_restore (GHCi m) = GHCi $ \s -> io_restore (m s)
-      in unGHCi (f g_restore) s
+  mask f = GHCi b
+    where b s = mask $ \io_restore ->
+                         unGHCi (f (\(GHCi m) -> GHCi $ \s' -> io_restore (m s'))) s
+  uninterruptibleMask f = GHCi b
+    where b s = uninterruptibleMask $ \io_restore ->
+                                        unGHCi (f (\(GHCi m) -> GHCi $ \s' -> io_restore (m s'))) s
   generalBracket acquire release use = GHCi $ \s ->
     generalBracket
       (unGHCi acquire s)
@@ -366,40 +377,69 @@ instance ExceptionMonad (InputT GHCi) where
   gcatch = catch
   gmask = mask
 
-isOptionSet :: GhciMonad m => GHCiOption -> m Bool
+isOptionSet :: (GhciMonad m
+#if MIN_VERSION_base(4,14,0)
+               , m @@ GHCiState
+#endif
+               ) => GHCiOption -> m Bool
 isOptionSet opt
  = do st <- getGHCiState
       return (opt `elem` options st)
 
-setOption :: GhciMonad m => GHCiOption -> m ()
+setOption :: (GhciMonad m
+#if MIN_VERSION_base(4,14,0)
+             , m @@ GHCiState
+#endif
+             ) => GHCiOption -> m ()
 setOption opt
  = do st <- getGHCiState
       setGHCiState (st{ options = opt : filter (/= opt) (options st) })
 
-unsetOption :: GhciMonad m => GHCiOption -> m ()
+unsetOption :: (GhciMonad m
+#if MIN_VERSION_base(4,14,0)
+               , m @@ GHCiState
+#endif
+               ) => GHCiOption -> m ()
 unsetOption opt
  = do st <- getGHCiState
       setGHCiState (st{ options = filter (/= opt) (options st) })
 
-printForUserNeverQualify :: GhcMonad m => SDoc -> m ()
+printForUserNeverQualify :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+               , m @@ DynFlags
+#endif
+                            ) => SDoc -> m ()
 printForUserNeverQualify doc = do
   dflags <- getDynFlags
   liftIO $ Outputable.printForUser dflags stdout neverQualify doc
 
-printForUserModInfo :: GhcMonad m => GHC.ModuleInfo -> SDoc -> m ()
+printForUserModInfo :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+               , m @@ DynFlags, m @@ Maybe PrintUnqualified, m @@ HscEnv, m @@ PrintUnqualified
+               , m @@ HscEnv
+#endif
+                       ) => GHC.ModuleInfo -> SDoc -> m ()
 printForUserModInfo info doc = do
   dflags <- getDynFlags
   mUnqual <- GHC.mkPrintUnqualifiedForModule info
   unqual <- maybe GHC.getPrintUnqual return mUnqual
   liftIO $ Outputable.printForUser dflags stdout unqual doc
 
-printForUser :: GhcMonad m => SDoc -> m ()
+printForUser :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+               , m @@ DynFlags, m @@ PrintUnqualified, m @@ HscEnv
+#endif
+                ) => SDoc -> m ()
 printForUser doc = do
   unqual <- GHC.getPrintUnqual
   dflags <- getDynFlags
   liftIO $ Outputable.printForUser dflags stdout unqual doc
 
-printForUserPartWay :: GhcMonad m => SDoc -> m ()
+printForUserPartWay :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+               , m @@ DynFlags, m @@ PrintUnqualified, m @@ HscEnv
+#endif
+                       ) => SDoc -> m ()
 printForUserPartWay doc = do
   unqual <- GHC.getPrintUnqual
   dflags <- getDynFlags
@@ -407,7 +447,11 @@ printForUserPartWay doc = do
 
 -- | Run a single Haskell expression
 runStmt
-  :: GhciMonad m
+  :: (GhciMonad m
+#if MIN_VERSION_base(4,14,0)
+     , Total m
+#endif
+     )
   => GhciLStmt GhcPs -> String -> GHC.SingleStep -> m (Maybe GHC.ExecResult)
 runStmt stmt stmt_text step = do
   st <- getGHCiState
@@ -420,7 +464,11 @@ runStmt stmt stmt_text step = do
                                                    (EvalThis fhv) }
     Just <$> GHC.execStmt' stmt stmt_text opts
 
-runDecls :: GhciMonad m => String -> m (Maybe [GHC.Name])
+runDecls :: (GhciMonad m
+#if MIN_VERSION_base(4,14,0)
+     , m @@ GHCiState
+#endif
+            ) => String -> m (Maybe [GHC.Name])
 runDecls decls = do
   st <- getGHCiState
   reifyGHCi $ \x ->
@@ -432,7 +480,11 @@ runDecls decls = do
           r <- GHC.runDeclsWithLocation (progname st) (line_number st) decls
           return (Just r)
 
-runDecls' :: GhciMonad m => [LHsDecl GhcPs] -> m (Maybe [GHC.Name])
+runDecls' :: (GhciMonad m
+#if MIN_VERSION_base(4,14,0)
+     , m @@ GHCiState
+#endif
+             ) => [LHsDecl GhcPs] -> m (Maybe [GHC.Name])
 runDecls' decls = do
   st <- getGHCiState
   reifyGHCi $ \x ->
@@ -444,7 +496,11 @@ runDecls' decls = do
                   return Nothing)
         (Just <$> GHC.runParsedDecls decls)
 
-resume :: GhciMonad m => (SrcSpan -> Bool) -> GHC.SingleStep -> m GHC.ExecResult
+resume :: (GhciMonad m
+#if MIN_VERSION_base(4,14,0)
+     , m @@ GHCiState
+#endif
+          ) => (SrcSpan -> Bool) -> GHC.SingleStep -> m GHC.ExecResult
 resume canLogSpan step = do
   st <- getGHCiState
   reifyGHCi $ \x ->
@@ -462,7 +518,12 @@ data ActionStats = ActionStats
   } deriving Show
 
 runAndPrintStats
-  :: GhciMonad m
+  :: (GhciMonad m
+#if MIN_VERSION_base(4,14,0)
+     , m @@ (), m @@ Bool, m @@ GHCiState, m @@ DynFlags
+     , m @@ Either SomeException a, m @@ UTCTime
+#endif
+     )
   => (a -> Maybe Integer)
   -> m a
   -> m (ActionStats, Either SomeException a)
@@ -478,7 +539,11 @@ runAndPrintStats getAllocs action = do
   return result
 
 runWithStats
-  :: ExceptionMonad m
+  :: (ExceptionMonad m
+#if MIN_VERSION_base(4,14,0)
+     , m @@ UTCTime, m @@ Either SomeException a
+#endif
+     )
   => (a -> Maybe Integer) -> m a -> m (ActionStats, Either SomeException a)
 runWithStats getAllocs action = do
   t0 <- liftIO getCurrentTime
@@ -506,7 +571,11 @@ printStats dflags ActionStats{actionAllocs = mallocs, actionElapsedTime = secs}
 -----------------------------------------------------------------------------
 -- reverting CAFs
 
-revertCAFs :: GhciMonad m => m ()
+revertCAFs :: (GhciMonad m
+#if MIN_VERSION_base(4,14,0)
+             , m @@ HscEnv, m @@ GHCiState
+#endif
+              ) => m ()
 revertCAFs = do
   hsc_env <- GHC.getSession
   liftIO $ iservCmd hsc_env RtsRevertCAFs
@@ -532,25 +601,44 @@ initInterpBuffering = do
   return (nobuf, flush)
 
 -- | Invoke "hFlush stdout; hFlush stderr" in the interpreter
-flushInterpBuffers :: GhciMonad m => m ()
+flushInterpBuffers :: (GhciMonad m
+#if MIN_VERSION_base(4,14,0)
+                      , m @@ GHCiState, m @@ HscEnv
+#endif
+                      ) => m ()
 flushInterpBuffers = do
   st <- getGHCiState
   hsc_env <- GHC.getSession
   liftIO $ evalIO hsc_env (flushStdHandles st)
 
 -- | Turn off buffering for stdin, stdout, and stderr in the interpreter
-turnOffBuffering :: GhciMonad m => m ()
+turnOffBuffering :: (GhciMonad m
+#if MIN_VERSION_base(4,14,0)
+                      , m @@ GHCiState, m @@ HscEnv
+#endif
+                    ) => m ()
 turnOffBuffering = do
   st <- getGHCiState
   turnOffBuffering_ (noBuffering st)
 
-turnOffBuffering_ :: GhcMonad m => ForeignHValue -> m ()
+turnOffBuffering_ :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                      , m @@ HscEnv
+#endif
+                     ) => ForeignHValue -> m ()
 turnOffBuffering_ fhv = do
   hsc_env <- getSession
   liftIO $ evalIO hsc_env fhv
 
-mkEvalWrapper :: GhcMonad m => String -> [String] ->  m ForeignHValue
+mkEvalWrapper :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                 , m @@ EvalStatus_ [ForeignHValue] [HValueRef]
+                 , m @@ (), m @@ Maybe ([GHC.Id], ForeignHValue, FixityEnv)
+                 , m @@ HscEnv, m @@ DynFlags
+#endif
+                 ) => String -> [String] ->  m ForeignHValue
 mkEvalWrapper progname args =
+
   runInternal $ GHC.compileParsedExprRemote
   $ evalWrapper `GHC.mkHsApp` nlHsString progname
                 `GHC.mkHsApp` nlList (map nlHsString args)
@@ -560,7 +648,11 @@ mkEvalWrapper progname args =
       GHC.nlHsVar $ RdrName.mkOrig gHC_GHCI_HELPERS (mkVarOcc "evalWrapper")
 
 -- | Run a 'GhcMonad' action to compile an expression for internal usage.
-runInternal :: GhcMonad m => m a -> m a
+runInternal :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+              , m @@ DynFlags, m @@ (), m @@ HscEnv
+#endif
+               ) => m a -> m a
 runInternal =
     withTempSession mkTempSession
   where
@@ -580,5 +672,11 @@ runInternal =
           `gopt_set` Opt_ImplicitImportQualified
       }
 
-compileGHCiExpr :: GhcMonad m => String -> m ForeignHValue
+compileGHCiExpr :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                   , m @@ Maybe ([GHC.Id], ForeignHValue, FixityEnv)
+                   , m @@ (), m @@ EvalStatus_ [ForeignHValue] [HValueRef], m @@ HscEnv
+                   , m @@ GHC.LHsExpr GhcPs, m @@ DynFlags
+#endif
+                   ) => String -> m ForeignHValue
 compileGHCiExpr expr = runInternal $ GHC.compileExprRemote expr

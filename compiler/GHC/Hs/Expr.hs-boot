@@ -7,6 +7,9 @@
 {-# LANGUAGE RoleAnnotations #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module GHC.Hs.Expr where
 

@@ -1,5 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies, UndecidableInstances #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -39,6 +40,9 @@ module Control.Concurrent.Chan
 import System.IO.Unsafe         ( unsafeInterleaveIO )
 import Control.Concurrent.MVar
 import Control.Exception (mask_)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 #define _UPK_(x) {-# UNPACK #-} !(x)
 
@@ -55,6 +59,11 @@ data Chan a
 type Stream a = MVar (ChItem a)
 
 data ChItem a = ChItem a _UPK_(Stream a)
+
+#if MIN_VERSION_base(4,14,0)
+type instance ChItem @@ a = MVar @@ ChItem a
+#endif
+
   -- benchmarks show that unboxing the MVar here is worthwhile, because
   -- although it leads to higher allocation, the channel data takes up
   -- less space and is therefore quicker to GC.

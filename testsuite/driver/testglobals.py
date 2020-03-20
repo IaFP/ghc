@@ -299,7 +299,7 @@ class TestOptions:
        self.compiler_always_flags = [] # type: List[str]
 
        # extra compiler opts for this test
-       self.extra_hc_opts = ''
+       self.extra_hc_opts = '-XPartialTypeConstructors'
 
        # extra run opts for this test
        self.extra_run_opts = ''

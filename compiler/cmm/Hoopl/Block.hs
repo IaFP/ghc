@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GADTs #-}
@@ -6,6 +7,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 module Hoopl.Block
     ( Extensibility (..)
     , O
@@ -39,6 +43,9 @@ module Hoopl.Block
     ) where
 
 import GhcPrelude
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif   
 
 -- -----------------------------------------------------------------------------
 -- Shapes: Open and Closed
@@ -73,6 +80,10 @@ data MaybeC ex t where
 
 deriving instance Functor (MaybeO ex)
 deriving instance Functor (MaybeC ex)
+#if MIN_VERSION_base(4,14,0)
+instance Total (MaybeO ex)
+instance Total (MaybeC ex)
+#endif   
 
 -- -----------------------------------------------------------------------------
 -- The Block type

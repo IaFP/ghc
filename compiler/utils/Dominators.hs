@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 {-# LANGUAGE RankNTypes, BangPatterns, FlexibleContexts, Strict #-}
 
 {- |
@@ -59,6 +63,9 @@ import Data.Array.Base hiding ((!))
   -- ,readArray,writeArray)
 
 import Util (debugIsOn)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types(Total)
+#endif
 
 -----------------------------------------------------------------------------
 
@@ -558,6 +565,10 @@ renum from = (\(_,m,g)->(g,m))
 -----------------------------------------------------------------------------
 
 newtype S z s a = S {unS :: forall o. (a -> s -> ST z o) -> s -> ST z o}
+#if MIN_VERSION_base(4,14,0)
+instance Total (S z s)
+#endif
+
 instance Functor (S z s) where
   fmap f (S g) = S (\k -> g (k . f))
 instance Monad (S z s) where

@@ -6,6 +6,9 @@
 -}
 
 {-# LANGUAGE CPP, FlexibleInstances, TypeSynonymInstances, RecordWildCards #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module Demand (
         StrDmd, UseDmd(..), Count,

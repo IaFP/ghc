@@ -9,6 +9,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module RnSource (
         rnSrcDecls, addTcgDUs, findSplice
@@ -1720,7 +1723,10 @@ rnDataDefn :: HsDocContext -> HsDataDefn GhcPs
 rnDataDefn doc (HsDataDefn { dd_ND = new_or_data, dd_cType = cType
                            , dd_ctxt = context, dd_cons = condecls
                            , dd_kindSig = m_sig, dd_derivs = derivs })
-  = do  { checkTc (h98_style || null (unLoc context))
+  = do  { dflags <- getDynFlags
+        ; let partyCtrs = xopt LangExt.PartialTypeConstructors dflags
+              theta_ok = if partyCtrs then True else null (unLoc context)
+        ; checkTc (h98_style || theta_ok)
                   (badGadtStupidTheta doc)
 
         ; (m_sig', sig_fvs) <- case m_sig of

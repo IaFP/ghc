@@ -4,7 +4,11 @@
              MagicHash, KindSignatures, PolyKinds, TypeApplications, DataKinds,
              GADTs, UnboxedTuples, UnboxedSums, TypeInType,
              Trustworthy #-}
-
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeFamilies,
+             ConstrainedClassMethods, TypeOperators,
+             UndecidableInstances, UndecidableSuperClasses #-}
+#endif
 {-# OPTIONS_GHC -fno-warn-inline-rule-shadowing #-}
 
 -----------------------------------------------------------------------------
@@ -44,6 +48,9 @@ import GHC.CString      ( unpackCString# )
 import GHC.Generics     ( Generic )
 import GHC.Types        ( Int(..), Word(..), Char(..), Double(..), Float(..),
                           TYPE, RuntimeRep(..) )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total, type (@@))
+#endif
 import GHC.Prim         ( Int#, Word#, Char#, Double#, Float#, Addr# )
 import GHC.Lexeme       ( startsVarSym, startsVarId )
 import GHC.ForeignSrcLang.Type
@@ -60,7 +67,11 @@ import qualified Control.Monad.Fail as Fail
 --
 -----------------------------------------------------
 
-class (MonadIO m, Fail.MonadFail m) => Quasi m where
+class (MonadIO m, Fail.MonadFail m
+#if MIN_VERSION_base(4,14,0)
+      , Total m
+#endif
+      ) => Quasi m where
   qNewName :: String -> m Name
         -- ^ Fresh names
 
@@ -168,7 +179,15 @@ counter = unsafePerformIO (newIORef 0)
 --
 -----------------------------------------------------
 
-newtype Q a = Q { unQ :: forall m. Quasi m => m a }
+newtype Q a = Q { unQ :: forall m. (Quasi m
+#if MIN_VERSION_base(4,14,0)
+                                   , m @@ a
+#endif
+                                   ) => m a }
+#if MIN_VERSION_base(4,14,0)
+instance Total Q
+type instance Q @@ a = ()
+#endif
 
 -- \"Runs\" the 'Q' monad. Normal users of Template Haskell
 -- should not need this function, as the splice brackets @$( ... )@
@@ -181,23 +200,38 @@ newtype Q a = Q { unQ :: forall m. Quasi m => m a }
 -- queries, are not supported when running 'Q' in 'IO'; these operations
 -- simply fail at runtime. Indeed, the only operations guaranteed to succeed
 -- are 'newName', 'runIO', 'reportError' and 'reportWarning'.
-runQ :: Quasi m => Q a -> m a
+runQ :: (Quasi m
+#if MIN_VERSION_base(4,14,0)
+        , Total m
+#endif
+        ) => Q a -> m a
 runQ (Q m) = m
 
 instance Monad Q where
   Q m >>= k  = Q (m >>= \x -> unQ (k x))
+#if MIN_VERSION_base(4,14,0)
+#else
   (>>) = (*>)
+#endif
 #if !MIN_VERSION_base(4,13,0)
   fail       = Fail.fail
 #endif
 
-instance Fail.MonadFail Q where
+instance
+#if MIN_VERSION_base(4,14,0)
+  Q @@ () => 
+#endif
+  Fail.MonadFail Q where
   fail s     = report True s >> Q (Fail.fail "Q monad failure")
 
 instance Functor Q where
   fmap f (Q x) = Q (fmap f x)
 
-instance Applicative Q where
+instance
+#if MIN_VERSION_base(4,14,0)
+  Total Q => 
+#endif
+  Applicative Q where
   pure x = Q (pure x)
   Q f <*> Q x = Q (f <*> x)
   Q m *> Q n = Q (m *> n)
@@ -212,6 +246,10 @@ type role TExp nominal   -- See Note [Role of TExp]
 newtype TExp (a :: TYPE (r :: RuntimeRep)) = TExp
   { unType :: Exp -- ^ Underlying untyped Template Haskell expression
   }
+#if MIN_VERSION_base(4,14,0)
+instance Total TExp
+#endif
+  
 -- ^ Represents an expression which has type @a@. Built on top of 'Exp', typed
 -- expressions allow for type-safe splicing via:
 --
@@ -250,7 +288,11 @@ newtype TExp (a :: TYPE (r :: RuntimeRep)) = TExp
 -- expression
 --
 -- Levity-polymorphic since /template-haskell-2.16.0.0/.
-unTypeQ :: forall (r :: RuntimeRep) (a :: TYPE r). Q (TExp a) -> Q Exp
+unTypeQ :: forall (r :: RuntimeRep) (a :: TYPE r).
+#if MIN_VERSION_base(4,14,0)
+  (Q @@ TExp a, TExp @@ a, Q @@ Exp) =>
+#endif
+  Q (TExp a) -> Q Exp
 unTypeQ m = do { TExp e <- m
                ; return e }
 
@@ -260,7 +302,11 @@ unTypeQ m = do { TExp e <- m
 -- really does have the type you claim it has.
 --
 -- Levity-polymorphic since /template-haskell-2.16.0.0/.
-unsafeTExpCoerce :: forall (r :: RuntimeRep) (a :: TYPE r). Q Exp -> Q (TExp a)
+unsafeTExpCoerce :: forall (r :: RuntimeRep) (a :: TYPE r).
+#if MIN_VERSION_base(4,14,0)
+  (Q @@ TExp a, TExp @@ a, Q @@ Exp) =>
+#endif
+  Q Exp -> Q (TExp a)
 unsafeTExpCoerce m = do { e <- m
                         ; return (TExp e) }
 
@@ -496,7 +542,11 @@ reifyConStrictness :: Name -> Q [DecidedStrictness]
 reifyConStrictness n = Q (qReifyConStrictness n)
 
 -- | Is the list of instances returned by 'reifyInstances' nonempty?
-isInstance :: Name -> [Type] -> Q Bool
+isInstance ::
+#if MIN_VERSION_base(4,14,0)
+       Q @@ [InstanceDec] => 
+#endif         
+  Name -> [Type] -> Q Bool
 isInstance nm tys = do { decs <- reifyInstances nm tys
                        ; return (not (null decs)) }
 
@@ -539,7 +589,11 @@ addTopDecls :: [Dec] -> Q ()
 addTopDecls ds = Q (qAddTopDecls ds)
 
 -- |
-addForeignFile :: ForeignSrcLang -> String -> Q ()
+addForeignFile ::
+#if MIN_VERSION_base(4,14,0)
+       Q @@ FilePath =>
+#endif         
+  ForeignSrcLang -> String -> Q ()
 addForeignFile = addForeignSource
 {-# DEPRECATED addForeignFile
                "Use 'Language.Haskell.TH.Syntax.addForeignSource' instead"
@@ -562,7 +616,11 @@ addForeignFile = addForeignSource
 -- >   [ "#line " ++ show (__LINE__ + 1) ++ " " ++ show __FILE__
 -- >   , ...
 -- >   ]
-addForeignSource :: ForeignSrcLang -> String -> Q ()
+addForeignSource ::
+#if MIN_VERSION_base(4,14,0)
+       Q @@ FilePath =>
+#endif         
+  ForeignSrcLang -> String -> Q ()
 addForeignSource lang src = do
   let suffix = case lang of
                  LangC      -> "c"
@@ -624,7 +682,11 @@ extsEnabled = Q qExtsEnabled
 instance MonadIO Q where
   liftIO = runIO
 
-instance Quasi Q where
+instance
+#if MIN_VERSION_base(4,14,0)
+  Q @@ () =>
+#endif         
+  Quasi Q where
   qNewName            = newName
   qReport             = report
   qRecover            = recover
@@ -701,7 +763,11 @@ class Lift (t :: TYPE r) where
   -- | Turn a value into a Template Haskell expression, suitable for use in
   -- a splice.
   lift :: t -> Q Exp
-  default lift :: (r ~ 'LiftedRep) => t -> Q Exp
+  default lift :: (r ~ 'LiftedRep
+#if MIN_VERSION_base(4,14,0)
+                  , Q @@ TExp t
+#endif         
+                  ) => t -> Q Exp
   lift = unTypeQ . liftTyped
 
   -- | Turn a value into a Template Haskell typed expression, suitable for use
@@ -712,96 +778,184 @@ class Lift (t :: TYPE r) where
 
 
 -- If you add any instances here, consider updating test th/TH_Lift
-instance Lift Integer where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (Q @@ Exp) => 
+#endif         
+  Lift Integer where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (IntegerL x))
 
-instance Lift Int where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (Q @@ Exp) => 
+#endif         
+  Lift Int where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (IntegerL (fromIntegral x)))
 
 -- | @since 2.16.0.0
-instance Lift Int# where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (TExp @@ Int#, Q @@ Exp) => 
+#endif         
+  Lift Int# where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (IntPrimL (fromIntegral (I# x))))
 
-instance Lift Int8 where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (Q @@ Exp) => 
+#endif         
+  Lift Int8 where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (IntegerL (fromIntegral x)))
 
-instance Lift Int16 where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (Q @@ Exp) => 
+#endif         
+  Lift Int16 where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (IntegerL (fromIntegral x)))
 
-instance Lift Int32 where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (Q @@ Exp) => 
+#endif         
+  Lift Int32 where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (IntegerL (fromIntegral x)))
 
-instance Lift Int64 where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (Q @@ Exp) => 
+#endif         
+  Lift Int64 where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (IntegerL (fromIntegral x)))
 
 -- | @since 2.16.0.0
-instance Lift Word# where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (TExp @@ Word#, Q @@ Exp) => 
+#endif         
+  Lift Word# where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (WordPrimL (fromIntegral (W# x))))
 
-instance Lift Word where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (Q @@ Exp) => 
+#endif         
+  Lift Word where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (IntegerL (fromIntegral x)))
 
-instance Lift Word8 where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (Q @@ Exp) => 
+#endif         
+  Lift Word8 where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (IntegerL (fromIntegral x)))
 
-instance Lift Word16 where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (Q @@ Exp) => 
+#endif         
+  Lift Word16 where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (IntegerL (fromIntegral x)))
 
-instance Lift Word32 where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (Q @@ Exp) => 
+#endif         
+  Lift Word32 where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (IntegerL (fromIntegral x)))
 
-instance Lift Word64 where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (Q @@ Exp) => 
+#endif         
+  Lift Word64 where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (IntegerL (fromIntegral x)))
 
-instance Lift Natural where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (Q @@ Exp) => 
+#endif         
+         Lift Natural where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (IntegerL (fromIntegral x)))
 
-instance Integral a => Lift (Ratio a) where
+instance (Integral a
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Exp
+#endif         
+         ) => Lift (Ratio a) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (RationalL (toRational x)))
 
-instance Lift Float where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (Q @@ Exp) => 
+#endif         
+         Lift Float where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (RationalL (toRational x)))
 
 -- | @since 2.16.0.0
-instance Lift Float# where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (TExp @@ Float#, Q @@ Exp) => 
+#endif         
+         Lift Float# where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (FloatPrimL (toRational (F# x))))
 
-instance Lift Double where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (Q @@ Exp) => 
+#endif         
+         Lift Double where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (RationalL (toRational x)))
 
 -- | @since 2.16.0.0
-instance Lift Double# where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (TExp @@ Double#, Q @@ Exp) => 
+#endif         
+         Lift Double# where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (DoublePrimL (toRational (D# x))))
 
-instance Lift Char where
+instance
+#if MIN_VERSION_base(4,14,0)
+         Q @@ Exp => 
+#endif         
+         Lift Char where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (CharL x))
 
 -- | @since 2.16.0.0
-instance Lift Char# where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (TExp @@ Char#, Q @@ Exp) => 
+#endif         
+         Lift Char# where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x = return (LitE (CharPrimL (C# x)))
 
-instance Lift Bool where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (Q @@ Exp) => 
+#endif         
+         Lift Bool where
   liftTyped x = unsafeTExpCoerce (lift x)
 
   lift True  = return (ConE trueName)
@@ -811,24 +965,40 @@ instance Lift Bool where
 -- the given memory address.
 --
 -- @since 2.16.0.0
-instance Lift Addr# where
+instance 
+#if MIN_VERSION_base(4,14,0)
+         (TExp @@ Addr#, Q @@ Exp) => 
+#endif         
+         Lift Addr# where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x
     = return (LitE (StringPrimL (map (fromIntegral . ord) (unpackCString# x))))
 
-instance Lift a => Lift (Maybe a) where
+instance (Lift a
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Exp
+#endif         
+         ) => Lift (Maybe a) where
   liftTyped x = unsafeTExpCoerce (lift x)
 
   lift Nothing  = return (ConE nothingName)
   lift (Just x) = liftM (ConE justName `AppE`) (lift x)
 
-instance (Lift a, Lift b) => Lift (Either a b) where
+instance (Lift a, Lift b
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Exp
+#endif         
+         ) => Lift (Either a b) where
   liftTyped x = unsafeTExpCoerce (lift x)
 
   lift (Left x)  = liftM (ConE leftName  `AppE`) (lift x)
   lift (Right y) = liftM (ConE rightName `AppE`) (lift y)
 
-instance Lift a => Lift [a] where
+instance (Lift a
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Exp, Q @@ [Exp]
+#endif         
+         ) => Lift [a] where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift xs = do { xs' <- mapM lift xs; return (ListE xs') }
 
@@ -837,7 +1007,11 @@ liftString :: String -> Q Exp
 liftString s = return (LitE (StringL s))
 
 -- | @since 2.15.0.0
-instance Lift a => Lift (NonEmpty a) where
+instance (Lift a
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Exp, Q @@ [Exp]
+#endif         
+  ) => Lift (NonEmpty a) where
   liftTyped x = unsafeTExpCoerce (lift x)
 
   lift (x :| xs) = do
@@ -850,97 +1024,158 @@ instance Lift Void where
   liftTyped = pure . absurd
   lift = pure . absurd
 
-instance Lift () where
+instance
+#if MIN_VERSION_base(4,14,0)
+  Q @@ Exp => 
+#endif         
+
+  Lift () where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift () = return (ConE (tupleDataName 0))
 
-instance (Lift a, Lift b) => Lift (a, b) where
+instance (Lift a, Lift b
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Maybe Exp, Q @@ [Maybe Exp], Q @@ Exp
+#endif         
+         ) => Lift (a, b) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift (a, b)
     = liftM TupE $ sequence $ map (fmap Just) [lift a, lift b]
 
-instance (Lift a, Lift b, Lift c) => Lift (a, b, c) where
+instance (Lift a, Lift b, Lift c
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Maybe Exp, Q @@ [Maybe Exp], Q @@ Exp
+#endif         
+         ) => Lift (a, b, c) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift (a, b, c)
     = liftM TupE $ sequence $ map (fmap Just) [lift a, lift b, lift c]
 
-instance (Lift a, Lift b, Lift c, Lift d) => Lift (a, b, c, d) where
+instance (Lift a, Lift b, Lift c, Lift d
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Maybe Exp, Q @@ [Maybe Exp], Q @@ Exp
+#endif         
+         ) => Lift (a, b, c, d) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift (a, b, c, d)
     = liftM TupE $ sequence $ map (fmap Just) [lift a, lift b, lift c, lift d]
 
-instance (Lift a, Lift b, Lift c, Lift d, Lift e)
-      => Lift (a, b, c, d, e) where
+instance (Lift a, Lift b, Lift c, Lift d, Lift e
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Maybe Exp, Q @@ [Maybe Exp], Q @@ Exp
+#endif         
+         ) => Lift (a, b, c, d, e) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift (a, b, c, d, e)
     = liftM TupE $ sequence $ map (fmap Just) [ lift a, lift b
                                               , lift c, lift d, lift e ]
 
-instance (Lift a, Lift b, Lift c, Lift d, Lift e, Lift f)
-      => Lift (a, b, c, d, e, f) where
+instance (Lift a, Lift b, Lift c, Lift d, Lift e, Lift f
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Maybe Exp, Q @@ [Maybe Exp], Q @@ Exp
+#endif         
+         )  => Lift (a, b, c, d, e, f) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift (a, b, c, d, e, f)
     = liftM TupE $ sequence $ map (fmap Just) [ lift a, lift b, lift c
                                               , lift d, lift e, lift f ]
 
-instance (Lift a, Lift b, Lift c, Lift d, Lift e, Lift f, Lift g)
-      => Lift (a, b, c, d, e, f, g) where
+instance (Lift a, Lift b, Lift c, Lift d, Lift e, Lift f, Lift g
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Maybe Exp, Q @@ [Maybe Exp], Q @@ Exp
+#endif         
+         ) => Lift (a, b, c, d, e, f, g) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift (a, b, c, d, e, f, g)
     = liftM TupE $ sequence $ map (fmap Just) [ lift a, lift b, lift c
                                               , lift d, lift e, lift f, lift g ]
 
 -- | @since 2.16.0.0
-instance Lift (# #) where
+instance
+#if MIN_VERSION_base(4,14,0)
+         (Q @@ Maybe Exp, Q @@ [Maybe Exp]
+         , TExp @@ (# #), Q @@ Exp) => 
+#endif         
+  Lift (# #) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift (# #) = return (ConE (unboxedTupleTypeName 0))
 
 -- | @since 2.16.0.0
-instance (Lift a) => Lift (# a #) where
+instance (Lift a
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Maybe Exp, Q @@ [Maybe Exp]
+         , TExp @@ (# a #), Q @@ Exp
+#endif         
+         ) => Lift (# a #) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift (# a #)
     = liftM UnboxedTupE $ sequence $ map (fmap Just) [lift a]
 
 -- | @since 2.16.0.0
-instance (Lift a, Lift b) => Lift (# a, b #) where
+instance (Lift a, Lift b
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Maybe Exp, Q @@ [Maybe Exp]
+         , TExp @@ (# a, b #), Q @@ Exp
+#endif         
+         ) => Lift (# a, b #) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift (# a, b #)
     = liftM UnboxedTupE $ sequence $ map (fmap Just) [lift a, lift b]
 
 -- | @since 2.16.0.0
-instance (Lift a, Lift b, Lift c)
-      => Lift (# a, b, c #) where
+instance (Lift a, Lift b, Lift c
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Maybe Exp, Q @@ [Maybe Exp]
+         , TExp @@ (# a, b, c #), Q @@ Exp
+#endif         
+         ) => Lift (# a, b, c #) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift (# a, b, c #)
     = liftM UnboxedTupE $ sequence $ map (fmap Just) [lift a, lift b, lift c]
 
 -- | @since 2.16.0.0
-instance (Lift a, Lift b, Lift c, Lift d)
-      => Lift (# a, b, c, d #) where
+instance (Lift a, Lift b, Lift c, Lift d
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Maybe Exp, Q @@ [Maybe Exp]
+         , TExp @@ (# a, b, c, d #), Q @@ Exp
+#endif         
+         ) => Lift (# a, b, c, d #) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift (# a, b, c, d #)
     = liftM UnboxedTupE $ sequence $ map (fmap Just) [ lift a, lift b
                                                      , lift c, lift d ]
 
 -- | @since 2.16.0.0
-instance (Lift a, Lift b, Lift c, Lift d, Lift e)
-      => Lift (# a, b, c, d, e #) where
+instance (Lift a, Lift b, Lift c, Lift d, Lift e
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Maybe Exp, Q @@ [Maybe Exp]
+         , TExp @@ (# a, b, c, d, e #), Q @@ Exp
+#endif         
+         ) => Lift (# a, b, c, d, e #) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift (# a, b, c, d, e #)
     = liftM UnboxedTupE $ sequence $ map (fmap Just) [ lift a, lift b
                                                      , lift c, lift d, lift e ]
 
 -- | @since 2.16.0.0
-instance (Lift a, Lift b, Lift c, Lift d, Lift e, Lift f)
-      => Lift (# a, b, c, d, e, f #) where
+instance (Lift a, Lift b, Lift c, Lift d, Lift e, Lift f
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Maybe Exp, Q @@ [Maybe Exp]
+         , TExp @@ (# a, b, c, d, e, f #), Q @@ Exp
+#endif         
+         ) => Lift (# a, b, c, d, e, f #) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift (# a, b, c, d, e, f #)
     = liftM UnboxedTupE $ sequence $ map (fmap Just) [ lift a, lift b, lift c
                                                      , lift d, lift e, lift f ]
 
 -- | @since 2.16.0.0
-instance (Lift a, Lift b, Lift c, Lift d, Lift e, Lift f, Lift g)
-      => Lift (# a, b, c, d, e, f, g #) where
+instance (Lift a, Lift b, Lift c, Lift d, Lift e, Lift f, Lift g
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ Maybe Exp, Q @@ [Maybe Exp]
+         , TExp @@ (# a, b, c, d, e, f, g #), Q @@ Exp
+#endif         
+         ) => Lift (# a, b, c, d, e, f, g #) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift (# a, b, c, d, e, f, g #)
     = liftM UnboxedTupE $ sequence $ map (fmap Just) [ lift a, lift b, lift c
@@ -948,7 +1183,12 @@ instance (Lift a, Lift b, Lift c, Lift d, Lift e, Lift f, Lift g)
                                                      , lift g ]
 
 -- | @since 2.16.0.0
-instance (Lift a, Lift b) => Lift (# a | b #) where
+instance (Lift a, Lift b
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ (SumArity -> Exp), Q @@ SumArity, Q @@ (SumAlt -> SumArity -> Exp)
+         , TExp @@ (# a | b #), Q @@ Exp
+#endif         
+         ) => Lift (# a | b #) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x
     = case x of
@@ -956,8 +1196,12 @@ instance (Lift a, Lift b) => Lift (# a | b #) where
         (# | y #) -> UnboxedSumE <$> lift y <*> pure 2 <*> pure 2
 
 -- | @since 2.16.0.0
-instance (Lift a, Lift b, Lift c)
-      => Lift (# a | b | c #) where
+instance (Lift a, Lift b, Lift c
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ (SumArity -> Exp), Q @@ SumArity, Q @@ (SumAlt -> SumArity -> Exp)
+         , TExp @@ (# a | b | c #), Q @@ Exp
+#endif         
+         ) => Lift (# a | b | c #) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x
     = case x of
@@ -966,8 +1210,12 @@ instance (Lift a, Lift b, Lift c)
         (# | | y #) -> UnboxedSumE <$> lift y <*> pure 3 <*> pure 3
 
 -- | @since 2.16.0.0
-instance (Lift a, Lift b, Lift c, Lift d)
-      => Lift (# a | b | c | d #) where
+instance (Lift a, Lift b, Lift c, Lift d
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ (SumArity -> Exp), Q @@ SumArity, Q @@ (SumAlt -> SumArity -> Exp)
+         , TExp @@ (# a | b | c | d #), Q @@ Exp
+#endif         
+         ) => Lift (# a | b | c | d #) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x
     = case x of
@@ -977,8 +1225,12 @@ instance (Lift a, Lift b, Lift c, Lift d)
         (# | | | y #) -> UnboxedSumE <$> lift y <*> pure 4 <*> pure 4
 
 -- | @since 2.16.0.0
-instance (Lift a, Lift b, Lift c, Lift d, Lift e)
-      => Lift (# a | b | c | d | e #) where
+instance (Lift a, Lift b, Lift c, Lift d, Lift e
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ (SumArity -> Exp), Q @@ SumArity, Q @@ (SumAlt -> SumArity -> Exp)
+         , TExp @@ (# a | b | c | d | e #), Q @@ Exp
+#endif
+         ) => Lift (# a | b | c | d | e #) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x
     = case x of
@@ -989,7 +1241,12 @@ instance (Lift a, Lift b, Lift c, Lift d, Lift e)
         (# | | | | y #) -> UnboxedSumE <$> lift y <*> pure 5 <*> pure 5
 
 -- | @since 2.16.0.0
-instance (Lift a, Lift b, Lift c, Lift d, Lift e, Lift f)
+instance (Lift a, Lift b, Lift c, Lift d, Lift e, Lift f
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ (SumArity -> Exp), Q @@ SumArity, Q @@ (SumAlt -> SumArity -> Exp)
+         , TExp @@ (# a | b | c | d | e | f #), Q @@ Exp
+#endif
+         )
       => Lift (# a | b | c | d | e | f #) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x
@@ -1002,7 +1259,12 @@ instance (Lift a, Lift b, Lift c, Lift d, Lift e, Lift f)
         (# | | | | | y #) -> UnboxedSumE <$> lift y <*> pure 6 <*> pure 6
 
 -- | @since 2.16.0.0
-instance (Lift a, Lift b, Lift c, Lift d, Lift e, Lift f, Lift g)
+instance (Lift a, Lift b, Lift c, Lift d, Lift e, Lift f, Lift g
+#if MIN_VERSION_base(4,14,0)
+         , Q @@ (SumArity -> Exp), Q @@ SumArity, Q @@ (SumAlt -> SumArity -> Exp)
+         , TExp @@ (# a | b | c | d | e | f | g #), Q @@ Exp
+#endif
+         )
       => Lift (# a | b | c | d | e | f | g #) where
   liftTyped x = unsafeTExpCoerce (lift x)
   lift x
@@ -1053,8 +1315,11 @@ nonemptyName = mkNameG DataName "base" "GHC.Base" ":|"
 -- expressions and patterns; @antiQ@ allows you to override type-specific
 -- cases, a common usage is just @const Nothing@, which results in
 -- no overloading.
-dataToQa  ::  forall a k q. Data a
-          =>  (Name -> k)
+dataToQa  ::  forall a k q. (Data a
+#if MIN_VERSION_base(4,14,0)
+             , Q @@ q, [] @@ Q q
+#endif
+          ) =>  (Name -> k)
           ->  (Lit -> Q q)
           ->  (k -> [Q q] -> Q q)
           ->  (forall b . Data b => b -> Maybe (Q q))
@@ -1142,10 +1407,13 @@ function.  Two complications
 -- same value, in the SYB style. It is generalized to take a function
 -- override type-specific cases; see 'liftData' for a more commonly
 -- used variant.
-dataToExpQ  ::  Data a
-            =>  (forall b . Data b => b -> Maybe (Q Exp))
-            ->  a
-            ->  Q Exp
+dataToExpQ  ::  (Data a
+#if MIN_VERSION_base(4,14,0)
+                , Q @@ ()
+#endif
+                ) => (forall b . Data b => b -> Maybe (Q Exp))
+                  ->  a
+                  ->  Q Exp
 dataToExpQ = dataToQa varOrConE litE (foldl appE)
     where
           -- Make sure that VarE is used if the Constr value relies on a
@@ -1162,16 +1430,23 @@ dataToExpQ = dataToQa varOrConE litE (foldl appE)
 
 -- | 'liftData' is a variant of 'lift' in the 'Lift' type class which
 -- works for any type with a 'Data' instance.
-liftData :: Data a => a -> Q Exp
+liftData :: (Data a
+#if MIN_VERSION_base(4,14,0)
+            , Q @@ ()
+#endif         
+            ) => a -> Q Exp
 liftData = dataToExpQ (const Nothing)
 
 -- | 'dataToPatQ' converts a value to a 'Q Pat' representation of the same
 -- value, in the SYB style. It takes a function to handle type-specific cases,
 -- alternatively, pass @const Nothing@ to get default behavior.
-dataToPatQ  ::  Data a
-            =>  (forall b . Data b => b -> Maybe (Q Pat))
-            ->  a
-            ->  Q Pat
+dataToPatQ  ::  (Data a
+#if MIN_VERSION_base(4,14,0)
+                , Q @@ Pat, Q @@ [Pat], Q @@ ()
+#endif
+                ) =>  (forall b . Data b => b -> Maybe (Q Pat))
+                  ->  a
+                  ->  Q Pat
 dataToPatQ = dataToQa id litP conP
     where litP l = return (LitP l)
           conP n ps =

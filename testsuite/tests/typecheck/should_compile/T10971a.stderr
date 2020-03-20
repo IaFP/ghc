@@ -1,6 +1,7 @@
 
 T10971a.hs:7:1: warning: [-Wmissing-signatures (in -Wall)]
-    Top-level binding with no type signature: f :: [a] -> Int
+    Top-level binding with no type signature:
+      f :: [GHC.Types.Any] -> Int
 
 T10971a.hs:7:11: warning: [-Wtype-defaults (in -Wall)]
     • Defaulting the following constraint to type ‘[]’
@@ -11,7 +12,8 @@ T10971a.hs:7:11: warning: [-Wtype-defaults (in -Wall)]
 
 T10971a.hs:8:1: warning: [-Wmissing-signatures (in -Wall)]
     Top-level binding with no type signature:
-      g :: (a -> b) -> [a] -> [b]
+      g :: (GHC.Types.Any -> GHC.Types.Any)
+           -> [GHC.Types.Any] -> [GHC.Types.Any]
 
 T10971a.hs:8:6: warning: [-Wname-shadowing (in -Wall)]
     This binding for ‘f’ shadows the existing binding
@@ -26,7 +28,8 @@ T10971a.hs:8:13: warning: [-Wtype-defaults (in -Wall)]
 
 T10971a.hs:9:1: warning: [-Wmissing-signatures (in -Wall)]
     Top-level binding with no type signature:
-      h :: (a -> b) -> [a] -> ([b], Int)
+      h :: (GHC.Types.Any -> GHC.Types.Any)
+           -> [GHC.Types.Any] -> ([GHC.Types.Any], Int)
 
 T10971a.hs:9:6: warning: [-Wname-shadowing (in -Wall)]
     This binding for ‘f’ shadows the existing binding

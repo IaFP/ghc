@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NoTypeOperators #-}
 
 -- Test #3265
 

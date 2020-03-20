@@ -13,6 +13,9 @@ have a standard form, namely:
 -}
 
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module MkId (
         mkDictFunId, mkDictFunTy, mkDictSelId, mkDictSelRhs,

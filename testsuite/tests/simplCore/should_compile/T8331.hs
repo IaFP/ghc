@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, RankNTypes #-}
+{-# LANGUAGE FlexibleInstances, RankNTypes, UndecidableInstances, ConstrainedClassMethods #-}
 
 module Main ( main, useAbstractMonad ) where
 
@@ -14,6 +14,9 @@ newtype ReaderT r m a = ReaderT {
 instance (Applicative m) => Applicative (ReaderT r m) where
     pure    = liftReaderT . pure
     f <*> v = ReaderT $ \ r -> runReaderT f r <*> runReaderT v r
+    -- liftA2 f (ReaderT r1) (ReaderT r2) = ReaderT (\r -> f . r1 . r2)
+    liftA2 f x y = ReaderT $ \ r -> liftA2 f (runReaderT x r) (runReaderT y r)
+
 
 instance (Functor m) => Functor (ReaderT r m) where
     fmap f  = mapReaderT (fmap f)

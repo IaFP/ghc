@@ -4,6 +4,7 @@
            , UnboxedTuples
   #-}
 {-# OPTIONS_HADDOCK not-home #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 
 -----------------------------------------------------------------------------
 -- |

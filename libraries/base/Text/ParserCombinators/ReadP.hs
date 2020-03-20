@@ -3,6 +3,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 
 -----------------------------------------------------------------------------
 -- |

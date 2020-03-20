@@ -1,8 +1,11 @@
 
-drvfail001.hs:16:33:
-    No instance for (Show (f (f a)))
-      arising from the first field of ‘ZeroS’ (type ‘f (f a)’)
-    Possible fix:
-      use a standalone 'deriving instance' declaration,
-        so you can specify the instance context yourself
-    When deriving the instance for (Show (SM f a))
+drvfail001.hs:16:33: error:
+    • Could not deduce (Show (f (f a)))
+        arising from the first field of ‘ZeroS’ (type ‘f (f a)’)
+      from the context: (f @@ a, f @@ f a, f @@ Cons f a)
+        bound by the deriving clause for ‘Show (SM f a)’
+        at drvfail001.hs:16:33-36
+      Possible fix:
+        use a standalone 'deriving instance' declaration,
+          so you can specify the instance context yourself
+    • When deriving the instance for (Show (SM f a))

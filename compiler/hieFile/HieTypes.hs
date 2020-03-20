@@ -8,6 +8,10 @@ For more information see https://gitlab.haskell.org/ghc/ghc/wikis/hie-files
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 module HieTypes where
 
 import GhcPrelude

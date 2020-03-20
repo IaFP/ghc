@@ -5,6 +5,10 @@
 -- (c) Galois Connections, Inc. 2006
 --
 -----------------------------------------------------------------------------
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module GHC.StgToCmm.Hpc ( initHpc, mkTickBox ) where
 

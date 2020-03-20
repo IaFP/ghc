@@ -6,6 +6,9 @@ Taken quite directly from the Peyton Jones/Lester paper.
 -}
 
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 -- | A module concerned with finding the free variables of an expression.
 module CoreFVs (

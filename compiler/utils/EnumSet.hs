@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 -- | A tiny wrapper around 'IntSet.IntSet' for representing sets of 'Enum'
 -- things.
 module EnumSet

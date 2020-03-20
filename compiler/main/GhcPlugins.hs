@@ -1,4 +1,8 @@
 {-# OPTIONS_GHC -fno-warn-duplicate-exports -fno-warn-orphans #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- | This module is not used by GHC itself.  Rather, it exports all of
 -- the functions and types you are likely to need when writing a

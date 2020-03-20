@@ -11,6 +11,10 @@ This module converts Template Haskell syntax into Hs syntax
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module GHC.ThToHs
    ( convertToHsExpr
@@ -54,6 +58,9 @@ import Language.Haskell.TH.Syntax as TH
 import Foreign.ForeignPtr
 import Foreign.Ptr
 import System.IO.Unsafe
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -------------------------------------------------------------------
 --              The external interface
@@ -81,6 +88,9 @@ newtype CvtM a = CvtM { unCvtM :: Origin -> SrcSpan -> Either MsgDoc (SrcSpan, a
         -- Push down the Origin (that is configurable by
         -- -fenable-th-splice-warnings) and source location;
         -- Can fail, with a single error message
+#if MIN_VERSION_base(4,14,0)
+instance Total CvtM 
+#endif
 
 -- NB: If the conversion succeeds with (Right x), there should
 --     be no exception values hiding in x

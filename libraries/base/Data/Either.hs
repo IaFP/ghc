@@ -3,7 +3,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE PolyKinds, DataKinds, TypeFamilies, TypeOperators, UndecidableInstances #-}
-
+{-# LANGUAGE PartialTypeConstructors #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Either
@@ -33,7 +33,7 @@ module Data.Either (
 import GHC.Base
 import GHC.Show
 import GHC.Read
-
+import GHC.Types (Total)
 -- $setup
 -- Allow the use of some Prelude functions in doctests.
 -- >>> import Prelude ( (+), (*), length, putStrLn )
@@ -128,7 +128,7 @@ data  Either a b  =  Left a | Right b
            , Read -- ^ @since 3.0
            , Show -- ^ @since 3.0
            )
-
+instance Total (Either a)
 -- | @since 3.0
 instance Functor (Either a) where
     fmap _ (Left x) = Left x

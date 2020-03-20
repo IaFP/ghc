@@ -13,6 +13,9 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 -- -Wno-unused-top-binds is there (I hope) to stop Haddock complaining
 -- about the constraint tuples being defined but not used
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 {-# OPTIONS_HADDOCK not-home #-}
 -----------------------------------------------------------------------------

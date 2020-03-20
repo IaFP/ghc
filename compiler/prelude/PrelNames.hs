@@ -143,6 +143,9 @@ Note [Wired-in packages] in Module. This is done in Packages.findWiredInPackages
 -}
 
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE NoPartialTypeConstructors #-}
+#endif
 
 module PrelNames (
         Unique, Uniquable(..), hasKey,  -- Re-exported for convenience
@@ -1525,6 +1528,9 @@ fingerprintDataConName :: Name
 fingerprintDataConName =
     dcQual gHC_FINGERPRINT_TYPE (fsLit "Fingerprint") fingerprintDataConKey
 
+undefinedName :: Name
+undefinedName = varQual gHC_ERR (fsLit "undefined") undefinedKey
+
 {-
 ************************************************************************
 *                                                                      *
@@ -1854,7 +1860,7 @@ errorMessageTypeErrorFamKey =  mkPreludeTyConUnique 176
 
 
 
-ntTyConKey:: Unique
+ntTyConKey :: Unique
 ntTyConKey = mkPreludeTyConUnique 177
 coercibleTyConKey :: Unique
 coercibleTyConKey = mkPreludeTyConUnique 178
@@ -1890,6 +1896,15 @@ someTypeRepDataConKey = mkPreludeTyConUnique 189
 typeSymbolAppendFamNameKey :: Unique
 typeSymbolAppendFamNameKey = mkPreludeTyConUnique 190
 
+atTyTyConKey :: Unique
+atTyTyConKey = mkPreludeTyConUnique 191
+
+totalTyConKey :: Unique
+totalTyConKey = mkPreludeTyConUnique 192
+
+total2TyConKey :: Unique
+total2TyConKey = mkPreludeTyConUnique 193
+
 ---------------- Template Haskell -------------------
 --      THNames.hs: USES TyConUniques 200-299
 -----------------------------------------------------
@@ -1912,7 +1927,8 @@ charDataConKey, consDataConKey, doubleDataConKey, falseDataConKey,
     floatDataConKey, intDataConKey, integerSDataConKey, nilDataConKey,
     ratioDataConKey, stableNameDataConKey, trueDataConKey, wordDataConKey,
     word8DataConKey, ioDataConKey, integerDataConKey, heqDataConKey,
-    coercibleDataConKey, eqDataConKey, nothingDataConKey, justDataConKey :: Unique
+    coercibleDataConKey, atTyDataConKey, totalDataConKey, total2DataConKey,
+    eqDataConKey, nothingDataConKey, justDataConKey :: Unique
 
 charDataConKey                          = mkPreludeDataConUnique  1
 consDataConKey                          = mkPreludeDataConUnique  2
@@ -1950,7 +1966,6 @@ ordLTDataConKey                         = mkPreludeDataConUnique 27
 ordEQDataConKey                         = mkPreludeDataConUnique 28
 ordGTDataConKey                         = mkPreludeDataConUnique 29
 
-
 coercibleDataConKey                     = mkPreludeDataConUnique 32
 
 staticPtrDataConKey :: Unique
@@ -1964,6 +1979,10 @@ fingerprintDataConKey                   = mkPreludeDataConUnique 35
 
 srcLocDataConKey :: Unique
 srcLocDataConKey                        = mkPreludeDataConUnique 37
+
+atTyDataConKey                          = mkPreludeDataConUnique 114
+totalDataConKey                         = mkPreludeDataConUnique 115
+total2DataConKey                        = mkPreludeDataConUnique 116
 
 trTyConTyConKey, trTyConDataConKey,
   trModuleTyConKey, trModuleDataConKey,
@@ -2372,10 +2391,13 @@ toDynIdKey            = mkPreludeMiscIdUnique 523
 bitIntegerIdKey :: Unique
 bitIntegerIdKey       = mkPreludeMiscIdUnique 550
 
-heqSCSelIdKey, eqSCSelIdKey, coercibleSCSelIdKey :: Unique
+heqSCSelIdKey, eqSCSelIdKey, coercibleSCSelIdKey, atTySCSelIdKey, totalSCSelIdKey, total2SCSelIdKey :: Unique
 eqSCSelIdKey        = mkPreludeMiscIdUnique 551
 heqSCSelIdKey       = mkPreludeMiscIdUnique 552
 coercibleSCSelIdKey = mkPreludeMiscIdUnique 553
+atTySCSelIdKey      = mkPreludeMiscIdUnique 701
+totalSCSelIdKey      = mkPreludeMiscIdUnique 702
+total2SCSelIdKey      = mkPreludeMiscIdUnique 703
 
 sappendClassOpKey :: Unique
 sappendClassOpKey = mkPreludeMiscIdUnique 554

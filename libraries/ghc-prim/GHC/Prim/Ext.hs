@@ -4,7 +4,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE GHCForeignImportPrim #-}
 {-# LANGUAGE UnliftedFFITypes #-}
-
+{-# LANGUAGE PartialTypeConstructors #-}
 -- We need platform defines (tests for mingw32 below).
 #include "ghcplatform.h"
 #include "MachDeps.h"

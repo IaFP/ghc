@@ -5,6 +5,9 @@ Authors: George Karachalias <george.karachalias@cs.kuleuven.be>
 -}
 
 {-# LANGUAGE CPP, LambdaCase, TupleSections, PatternSynonyms, ViewPatterns, MultiWayIf #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- | The pattern match oracle. The main export of the module are the functions
 -- 'addTmCt', 'addVarCoreCt', 'addRefutableAltCon' and 'addTypeEvidence' for

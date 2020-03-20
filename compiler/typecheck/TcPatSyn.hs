@@ -9,6 +9,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcPatSyn ( tcPatSynDecl, tcPatSynBuilderBind
                 , tcPatSynBuilderOcc, nonBidirectionalErr
@@ -661,10 +664,9 @@ tc_patsyn_finish lname dir is_infix lpat'
                         field_labels'
 
        -- Selectors
-       ; let rn_rec_sel_binds = mkPatSynRecSelBinds patSyn (patSynFieldLabels patSyn)
-             tything = AConLike (PatSynCon patSyn)
-       ; tcg_env <- tcExtendGlobalEnv [tything] $
-                    tcRecSelBinds rn_rec_sel_binds
+       ; rn_rec_sel_binds <- mkPatSynRecSelBinds patSyn (patSynFieldLabels patSyn)
+       ; let tything = AConLike (PatSynCon patSyn)
+       ; tcg_env <- tcExtendGlobalEnv [tything] $ tcRecSelBinds rn_rec_sel_binds
 
        ; traceTc "tc_patsyn_finish }" empty
        ; return (matcher_bind, tcg_env) }
@@ -763,10 +765,9 @@ tcPatSynMatcher (dL->L loc name) lpat
 
 mkPatSynRecSelBinds :: PatSyn
                     -> [FieldLabel]  -- ^ Visible field labels
-                    -> [(Id, LHsBind GhcRn)]
+                    -> TcM [(Id, LHsBind GhcRn)]
 mkPatSynRecSelBinds ps fields
-  = [ mkOneRecordSelector [PatSynCon ps] (RecSelPatSyn ps) fld_lbl
-    | fld_lbl <- fields ]
+  = mapM (mkOneRecordSelector [PatSynCon ps] (RecSelPatSyn ps)) fields 
 
 isUnidirectional :: HsPatSynDir a -> Bool
 isUnidirectional Unidirectional          = True

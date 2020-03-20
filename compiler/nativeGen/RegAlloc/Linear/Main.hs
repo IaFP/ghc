@@ -1,4 +1,7 @@
 {-# LANGUAGE BangPatterns, CPP, ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings #-}
+#if __GLASGOW_HASKELL__ >= 810
+#endif
 
 -----------------------------------------------------------------------------
 --

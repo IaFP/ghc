@@ -1,6 +1,10 @@
 --
 -- Copyright (c) 2014 Joachim Breitner
 --
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module CallArity
     ( callArityAnalProgram

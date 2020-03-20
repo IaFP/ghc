@@ -7,6 +7,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeInType #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+#endif
 
 {-|
 Module      :  GHC.Exts.Heap

@@ -9,7 +9,7 @@ T9400.hs:18:9: warning: [-Woverlapping-patterns (in -Wdefault)]
 
 ==================== Tidy Core ====================
 Result size of Tidy Core
-  = {terms: 37, types: 22, coercions: 0, joins: 0/0}
+  = {terms: 45, types: 22, coercions: 48, joins: 0/0}
 
 -- RHS size: {terms: 1, types: 0, coercions: 0, joins: 0/0}
 $trModule1 :: Addr#
@@ -36,7 +36,7 @@ T9400.$trModule :: Module
 [GblId, Caf=NoCafRefs, Unf=OtherCon []]
 T9400.$trModule = GHC.Types.Module $trModule2 $trModule4
 
--- RHS size: {terms: 22, types: 15, coercions: 0, joins: 0/0}
+-- RHS size: {terms: 30, types: 15, coercions: 48, joins: 0/0}
 main :: IO ()
 [GblId]
 main
@@ -45,24 +45,48 @@ main
       GHC.Base.$fMonadIO
       @ ()
       @ ()
+      (GHC.Classes.C:(%%)
+       `cast` (Sub (Sym (GHC.Base.D:R:@@->k1IOa[0] <*>_N <()>_N))
+               :: (() :: Constraint) ~R# (IO @@ ())))
+      (GHC.Classes.C:(%%)
+       `cast` (Sub (Sym (GHC.Base.D:R:@@->k1IOa[0] <*>_N <()>_N))
+               :: (() :: Constraint) ~R# (IO @@ ())))
       (putStrLn (unpackCString# "c"#))
       (>>
          @ IO
          GHC.Base.$fMonadIO
          @ ()
          @ ()
+         (GHC.Classes.C:(%%)
+          `cast` (Sub (Sym (GHC.Base.D:R:@@->k1IOa[0] <*>_N <()>_N))
+                  :: (() :: Constraint) ~R# (IO @@ ())))
+         (GHC.Classes.C:(%%)
+          `cast` (Sub (Sym (GHC.Base.D:R:@@->k1IOa[0] <*>_N <()>_N))
+                  :: (() :: Constraint) ~R# (IO @@ ())))
          (putStrLn (unpackCString# "x"#))
          (>>
             @ IO
             GHC.Base.$fMonadIO
             @ ()
             @ ()
+            (GHC.Classes.C:(%%)
+             `cast` (Sub (Sym (GHC.Base.D:R:@@->k1IOa[0] <*>_N <()>_N))
+                     :: (() :: Constraint) ~R# (IO @@ ())))
+            (GHC.Classes.C:(%%)
+             `cast` (Sub (Sym (GHC.Base.D:R:@@->k1IOa[0] <*>_N <()>_N))
+                     :: (() :: Constraint) ~R# (IO @@ ())))
             (putStrLn (unpackCString# "z"#))
             (>>
                @ IO
                GHC.Base.$fMonadIO
                @ ()
                @ ()
+               (GHC.Classes.C:(%%)
+                `cast` (Sub (Sym (GHC.Base.D:R:@@->k1IOa[0] <*>_N <()>_N))
+                        :: (() :: Constraint) ~R# (IO @@ ())))
+               (GHC.Classes.C:(%%)
+                `cast` (Sub (Sym (GHC.Base.D:R:@@->k1IOa[0] <*>_N <()>_N))
+                        :: (() :: Constraint) ~R# (IO @@ ())))
                (putStrLn (unpackCString# "efg"#))
                (Control.Exception.Base.patError
                   @ 'LiftedRep @ (IO ()) "T9400.hs:(17,5)-(18,29)|case"#))))

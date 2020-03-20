@@ -6,6 +6,9 @@
 -}
 
 {-# LANGUAGE CPP, DeriveDataTypeable #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module DataCon (
         -- * Main data types
@@ -928,23 +931,23 @@ mkDataCon name declared_infix prom_info
   where
     is_vanilla = null ex_tvs && null eq_spec && null theta
 
-    con = MkData {dcName = name, dcUnique = nameUnique name,
-                  dcVanilla = is_vanilla, dcInfix = declared_infix,
-                  dcUnivTyVars = univ_tvs,
-                  dcExTyCoVars = ex_tvs,
-                  dcUserTyVarBinders = user_tvbs,
-                  dcEqSpec = eq_spec,
-                  dcOtherTheta = theta,
-                  dcStupidTheta = stupid_theta,
-                  dcOrigArgTys = orig_arg_tys, dcOrigResTy = orig_res_ty,
-                  dcRepTyCon = rep_tycon,
-                  dcSrcBangs = arg_stricts,
-                  dcFields = fields, dcTag = tag, dcRepType = rep_ty,
-                  dcWorkId = work_id,
-                  dcRep = rep,
-                  dcSourceArity = length orig_arg_tys,
-                  dcRepArity = length rep_arg_tys + count isCoVar ex_tvs,
-                  dcPromoted = promoted }
+    con = MkData { dcName = name, dcUnique = nameUnique name,
+                   dcVanilla = is_vanilla, dcInfix = declared_infix,
+                   dcUnivTyVars = univ_tvs,
+                   dcExTyCoVars = ex_tvs,
+                   dcUserTyVarBinders = user_tvbs,
+                   dcEqSpec = eq_spec,
+                   dcOtherTheta = theta,
+                   dcStupidTheta = stupid_theta,
+                   dcOrigArgTys = orig_arg_tys, dcOrigResTy = orig_res_ty,
+                   dcRepTyCon = rep_tycon,
+                   dcSrcBangs = arg_stricts,
+                   dcFields = fields, dcTag = tag, dcRepType = rep_ty,
+                   dcWorkId = work_id,
+                   dcRep = rep,
+                   dcSourceArity = length orig_arg_tys,
+                   dcRepArity = length rep_arg_tys + count isCoVar ex_tvs,
+                   dcPromoted = promoted }
 
         -- The 'arg_stricts' passed to mkDataCon are simply those for the
         -- source-language arguments.  We add extra ones for the

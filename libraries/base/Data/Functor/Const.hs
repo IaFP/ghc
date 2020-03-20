@@ -4,6 +4,7 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -34,6 +35,7 @@ import GHC.Num (Num)
 import GHC.Real (Fractional, Integral, Real, RealFrac)
 import GHC.Read (Read(readsPrec), readParen, lex)
 import GHC.Show (Show(showsPrec), showParen, showString)
+import GHC.Types (Total)
 
 -- | The 'Const' functor.
 newtype Const a b = Const { getConst :: a }
@@ -57,6 +59,8 @@ newtype Const a b = Const { getConst :: a }
              , RealFloat  -- ^ @since 4.9.0.0
              , Storable   -- ^ @since 4.9.0.0
              )
+
+instance Total (Const a)
 
 -- | This instance would be equivalent to the derived instances of the
 -- 'Const' newtype if the 'getConst' field were removed

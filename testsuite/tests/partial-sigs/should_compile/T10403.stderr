@@ -1,39 +1,53 @@
 
 T10403.hs:15:7: warning: [-Wpartial-type-signatures (in -Wdefault)]
-    • Found type wildcard ‘_’ standing for ‘Functor f’
-      Where: ‘f’ is a rigid type variable bound by
-               the inferred type of h1 :: Functor f => (a -> b) -> f a -> H f
+    • Found type wildcard ‘_’
+        standing for ‘(f @@ (), f @@ b, f @@ a, Functor f)’
+      Where: ‘b’, ‘a’, ‘f’ are rigid type variables bound by
+               the inferred type of
+                 h1 :: (f @@ (), f @@ b, f @@ a, Functor f) =>
+                       (a -> b) -> f a -> H f
                at T10403.hs:17:1-41
     • In the type signature: h1 :: _ => _
 
 T10403.hs:15:12: warning: [-Wpartial-type-signatures (in -Wdefault)]
     • Found type wildcard ‘_’ standing for ‘(a -> b) -> f a -> H f’
       Where: ‘b’, ‘a’, ‘f’ are rigid type variables bound by
-               the inferred type of h1 :: Functor f => (a -> b) -> f a -> H f
+               the inferred type of
+                 h1 :: (f @@ (), f @@ b, f @@ a, Functor f) =>
+                       (a -> b) -> f a -> H f
                at T10403.hs:17:1-41
     • In the type signature: h1 :: _ => _
 
 T10403.hs:19:7: warning: [-Wpartial-type-signatures (in -Wdefault)]
-    • Found type wildcard ‘_’ standing for ‘(a -> b) -> f0 a -> H f0’
+    • Found type wildcard ‘_’
+        standing for ‘(() -> H I) -> f0 () -> H f0’
       Where: ‘f0’ is an ambiguous type variable
-             ‘b’, ‘a’ are rigid type variables bound by
-               the inferred type of h2 :: (a -> b) -> f0 a -> H f0
-               at T10403.hs:22:1-41
     • In the type signature: h2 :: _
+
+T10403.hs:22:15: warning: [-Wdeferred-type-errors (in -Wdefault)]
+    • Could not deduce: (f0 @@ (), f0 @@ H I)
+        arising from a use of ‘fmap’
+    • In the second argument of ‘(.)’, namely ‘fmap (const ())’
+      In the expression: H . fmap (const ())
+      In the expression: (H . fmap (const ())) (fmap f b)
+    • Relevant bindings include
+        b :: f0 () (bound at T10403.hs:22:6)
+        h2 :: (() -> H I) -> f0 () -> H f0 (bound at T10403.hs:22:1)
 
 T10403.hs:22:15: warning: [-Wdeferred-type-errors (in -Wdefault)]
     • Ambiguous type variable ‘f0’ arising from a use of ‘fmap’
       prevents the constraint ‘(Functor f0)’ from being solved.
       Relevant bindings include
-        b :: f0 a (bound at T10403.hs:22:6)
-        h2 :: (a -> b) -> f0 a -> H f0 (bound at T10403.hs:22:1)
+        b :: f0 () (bound at T10403.hs:22:6)
+        h2 :: (() -> H I) -> f0 () -> H f0 (bound at T10403.hs:22:1)
       Probable fix: use a type annotation to specify what ‘f0’ should be.
       These potential instances exist:
+        instance (Either @@ a) => Functor (Either a)
+          -- Defined in ‘Data.Either’
         instance Functor IO -- Defined in ‘GHC.Base’
-        instance Functor (B t) -- Defined at T10403.hs:10:10
-        instance Functor I -- Defined at T10403.hs:6:10
-        ...plus five others
-        ...plus two instances involving out-of-scope types
+        instance (B @@ t) => Functor (B t) -- Defined at T10403.hs:10:10
+        ...plus six others
+        ...plus 39 instances involving out-of-scope types
         (use -fprint-potential-instances to see them all)
     • In the second argument of ‘(.)’, namely ‘fmap (const ())’
       In the expression: H . fmap (const ())
@@ -44,7 +58,7 @@ T10403.hs:28:8: warning: [-Wdeferred-type-errors (in -Wdefault)]
         because type variable ‘t’ would escape its scope
       This (rigid, skolem) type variable is bound by
         the type signature for:
-          app2 :: forall t. H (B t)
+          app2 :: forall t. (H @@ B t, B @@ t) => H (B t)
         at T10403.hs:27:1-15
       Expected type: H (B t)
         Actual type: H f0

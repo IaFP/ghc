@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP, TypeFamilies, MultiParamTypeClasses, FunctionalDependencies,
       FlexibleContexts, FlexibleInstances, UndecidableInstances, OverlappingInstances,
-      TypeSynonymInstances, GeneralizedNewtypeDeriving #-}
+      TypeSynonymInstances, GeneralizedNewtypeDeriving, DefaultSignatures #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  HSX.XMLGenerator
@@ -28,7 +28,7 @@ import Control.Monad.Writer(MonadWriter)
 import Control.Monad.State (MonadState)
 import Control.Monad.RWS   (MonadRWS)
 import Control.Monad (MonadPlus(..),liftM)
-
+import GHC.Types (Total, type (@@))
 ----------------------------------------------
 -- General XML Generation
 
@@ -36,12 +36,13 @@ import Control.Monad (MonadPlus(..),liftM)
 newtype XMLGenT m a = XMLGenT (m a)
   deriving (Monad, Functor, MonadIO, MonadPlus, MonadWriter w, MonadReader r,
             MonadState s, MonadRWS r w s, MonadCont, MonadError e)
+instance Total (XMLGenT m)
 
-instance Monad m => Applicative (XMLGenT m) where
+instance (Total m, Monad m) => Applicative (XMLGenT m) where
   pure  = return
   (<*>) = ap
 
-instance Monad m => Alternative (XMLGenT m) where
+instance (Total m, Monad m) => Alternative (XMLGenT m) where
 
 -- | un-lift.
 unXMLGenT :: XMLGenT m a -> m a
@@ -57,7 +58,9 @@ class Monad m => XMLGen m where
  type XML m
  data Child m
  genElement  :: Name -> [XMLGenT m [Int]] -> [XMLGenT m [Child m]] -> XMLGenT m (XML m)
+ 
  genEElement :: Name -> [XMLGenT m [Int]]                          -> XMLGenT m (XML m)
+ default genEElement :: (m @@ [Child m]) => Name -> [XMLGenT m [Int]]                          -> XMLGenT m (XML m)
  genEElement n ats = genElement n ats []
 
 -- | Embed values as child nodes of an XML element. The parent type will be clear
@@ -65,18 +68,18 @@ class Monad m => XMLGen m where
 class XMLGen m => EmbedAsChild m c where
  asChild :: c -> XMLGenT m [Child m]
 
-instance (MonadIO m, EmbedAsChild m c, m ~ n) => EmbedAsChild m (XMLGenT n c) where
+instance (Total n, MonadIO m, EmbedAsChild m c, m ~ n) => EmbedAsChild m (XMLGenT n c) where
  asChild m = do
       liftIO $ putStrLn "EmbedAsChild m (XMLGenT n c)"
       a <- m
       asChild a
 
-instance (MonadIO m, EmbedAsChild m c) => EmbedAsChild m [c] where
+instance (Total m, MonadIO m, EmbedAsChild m c) => EmbedAsChild m [c] where
   asChild cs =
       do liftIO $ putStrLn "EmbedAsChild m [c]"
          liftM concat . mapM asChild $ cs
 
-instance (MonadIO m, XMLGen m) => EmbedAsChild m (Child m) where
+instance (Total m, MonadIO m, XMLGen m) => EmbedAsChild m (Child m) where
  asChild c =
      do liftIO $ putStrLn "EmbedAsChild m (Child m)"
         return . return $ c

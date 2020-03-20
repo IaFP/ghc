@@ -10,6 +10,9 @@ Pattern Matching Coverage Checking.
 {-# LANGUAGE ViewPatterns   #-}
 {-# LANGUAGE MultiWayIf     #-}
 {-# LANGUAGE LambdaCase     #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module GHC.HsToCore.PmCheck (
         -- Checking and printing
@@ -548,6 +551,7 @@ translatePat fam_insts x pat = case pat of
         , Just expr <- shortCutLit dflags val ty
         -> dsExpr expr
       _ -> dsOverLit olit
+    tracePm "whats wrong" (ppr core_expr)
     let lit  = expectJust "failed to detect OverLit" (coreExprAsPmLit core_expr)
     let lit' = case mb_neg of
           Just _  -> expectJust "failed to negate lit" (negatePmLit lit)

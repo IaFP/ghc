@@ -1,4 +1,8 @@
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -----------------------------------------------------------------------------
 --
@@ -43,11 +47,18 @@ import Control.Monad
 import Data.List ( (\\) )
 import Data.Maybe
 import Data.IORef
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@), Total)
+#endif
 
 -------------------------------------
 -- | The :print & friends commands
 -------------------------------------
-pprintClosureCommand :: GhcMonad m => Bool -> Bool -> String -> m ()
+pprintClosureCommand :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                       , Total m
+#endif
+                        ) => Bool -> Bool -> String -> m ()
 pprintClosureCommand bindThings force str = do
   tythings <- (catMaybes . concat) `liftM`
                  mapM (\w -> GHC.parseName w >>=
@@ -72,7 +83,11 @@ pprintClosureCommand bindThings force str = do
                     docterms)
  where
    -- Do the obtainTerm--bindSuspensions-computeSubstitution dance
-   go :: GhcMonad m => TCvSubst -> Id -> m (TCvSubst, Term)
+   go :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+        , Total m
+#endif
+         ) => TCvSubst -> Id -> m (TCvSubst, Term)
    go subst id = do
        let id_ty' = substTy subst (idType id)
            id'    = id `setIdType` id_ty'
@@ -96,7 +111,11 @@ pprintClosureCommand bindThings force str = do
                                   text "new substitution:" , ppr subst'])
                            ; return (subst `unionTCvSubst` subst', term')}
 
-   tidyTermTyVars :: GhcMonad m => Term -> m Term
+   tidyTermTyVars :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                     , Total m
+#endif
+                     ) => Term -> m Term
    tidyTermTyVars t =
      withSession $ \hsc_env -> do
      let env_tvs      = tyThingsTyCoVars $ ic_tythings $ hsc_IC hsc_env
@@ -111,7 +130,12 @@ pprintClosureCommand bindThings force str = do
 
 -- | Give names, and bind in the interactive environment, to all the suspensions
 --   included (inductively) in a term
-bindSuspensions :: GhcMonad m => Term -> m Term
+bindSuspensions :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                   , m @@ HscEnv, m @@ [TyThing], m @@ IORef [[Char]]
+                   , m @@ (Term, [(Name, Type, ForeignHValue)]), m @@ ()
+#endif
+                   ) => Term -> m Term
 bindSuspensions t = do
       hsc_env <- getSession
       inScope <- GHC.getBindings
@@ -157,7 +181,11 @@ bindSuspensions t = do
 
 
 --  A custom Term printer to enable the use of Show instances
-showTerm :: GhcMonad m => Term -> m SDoc
+showTerm :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+           , Total m
+#endif
+            ) => Term -> m SDoc
 showTerm term = do
     dflags       <- GHC.getSessionDynFlags
     if gopt Opt_PrintEvldWithShow dflags
@@ -217,7 +245,11 @@ newGrimName hsc_env userName
   where
     occ = mkOccName varName userName
 
-pprTypeAndContents :: GhcMonad m => Id -> m SDoc
+pprTypeAndContents :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                     , Total m
+#endif
+                      ) => Id -> m SDoc
 pprTypeAndContents id = do
   dflags  <- GHC.getSessionDynFlags
   let pcontents = gopt Opt_PrintBindContents dflags

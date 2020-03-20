@@ -1,5 +1,4 @@
 -- (c) 2007 Andy Gill
-
 module HpcFlags where
 
 import System.Console.GetOpt

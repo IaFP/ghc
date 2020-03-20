@@ -1,5 +1,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PartialTypeConstructors, ConstrainedClassMethods #-}
+{-# OPTIONS -fno-enable-rewrite-rules #-}
 
 {-
 This SOURCE-imported hs-boot module cuts a big dependency loop:

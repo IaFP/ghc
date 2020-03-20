@@ -1,10 +1,12 @@
-
+{-# LANGUAGE UndecidableInstances #-}
 module Basic where
 import TypesettingTricks
 --import Int( Num(fromInt) )
 import Physical
 --import GHC( (->) )
+import GHC.Types (type (@@))
 infixr 7 |>
+
 class Signal s where
   mapSignal:: (Physical a, Physical b) => (s a b) -> a -> b
   mapSigList:: (Physical a, Physical b) => (s a b) -> [a] -> [b]
@@ -12,12 +14,16 @@ class Signal s where
   mapSignal = mapSignal . toSig
   mapSigList = map . mapSignal
   toSig = FunctionRep . mapSignal
+
 instance Signal (->) where
   mapSignal f = f
   toSig = FunctionRep
-data {- (Physical a, Physical b) => -} SignalRep a b =
+
+data (Physical a, Physical b) => SignalRep a b =
    FunctionRep (a -> b) |
    PieceContRep (PieceCont a b)
+type instance SignalRep @@ a = (PieceCont @@ a, Physical a)
+type instance SignalRep a @@ b = (PieceCont a @@ b, Physical b)
 
 instance Eq (SignalRep a b) where
   (==) a b = error "No equality for SignalRep"
@@ -90,11 +96,18 @@ eventOccurs (BurstEvent i e) x =
 stepEval:: (Float -> Bool) -> Float -> Float
 stepEval f x = if f x then x else stepEval f (x + eventEps x)
 data ZeroIndicator = LocalZero | GlobalZero deriving (Eq, Show)
-data {- (Physical a, Physical b) => -} FunctionWindow a b =
+
+data (Physical a, Physical b) => FunctionWindow a b =
      Window ZeroIndicator Event (SignalRep a b)
      deriving (Eq, Show)
+type instance FunctionWindow @@ a = Physical a 
+type instance FunctionWindow a @@ b = Physical b
+
 data PieceCont a b = Windows [FunctionWindow a b]
      deriving (Eq, Show)
+type instance PieceCont @@ a = FunctionWindow @@ a
+type instance PieceCont a @@ b = FunctionWindow a @@ b
+
 instance Signal PieceCont where
   mapSignal (Windows []) t = toPhysical 0.0
   mapSignal (Windows wl) t = (mapSignal s) (toPhysical t')

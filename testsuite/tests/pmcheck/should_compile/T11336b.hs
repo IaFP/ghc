@@ -7,14 +7,14 @@
 module Bug where
 
 import Data.Proxy
-
+import GHC.Types (type (@@))
 class Prj s where
   prj :: Proxy a -> s a
 
 instance Prj Proxy where
   prj = id
 
-pattern PProxy :: Prj s => s a -> Proxy a
+pattern PProxy :: (Prj s, s @@ a) => s a -> Proxy a
 pattern PProxy s <- (prj -> s)
 
 -- | Although this is technically a complete match, the pattern match checker

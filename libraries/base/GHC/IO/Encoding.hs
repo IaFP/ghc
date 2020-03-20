@@ -1,6 +1,8 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE CPP, NoImplicitPrelude #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 
 -----------------------------------------------------------------------------
 -- |

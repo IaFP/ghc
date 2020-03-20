@@ -1,6 +1,7 @@
 ==pure.0
 parsePlugin()
 interfacePlugin: Prelude
+interfacePlugin: Data.Traversable
 interfacePlugin: GHC.Float
 interfacePlugin: GHC.Base
 interfacePlugin: System.IO

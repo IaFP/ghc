@@ -24,12 +24,15 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UnboxedTuples              #-}
+{-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE PartialTypeConstructors    #-}
 
 module K where
 
 import qualified Control.Monad.State.Strict as S
 import Control.Monad.Trans
 import GHC.Exts
+import GHC.Types (Total)
 
 class Monad m => PrimMonad m where
   type PrimState m
@@ -38,6 +41,6 @@ class Monad m => PrimMonad m where
 newtype StateT s m a = StateT (S.StateT s m a)
   deriving (Functor, Applicative, Monad, MonadTrans)
 
-instance PrimMonad m => PrimMonad (StateT s m) where
+instance (PrimMonad m, Total m) => PrimMonad (StateT s m) where
   type PrimState (StateT s m) = PrimState m
   primitive ~a = lift (primitive a) ; {-# INLINE primitive #-}

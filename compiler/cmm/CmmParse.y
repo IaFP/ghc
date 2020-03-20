@@ -199,6 +199,10 @@ necessary to the stack to accommodate it (e.g. 2).
 
 {
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module CmmParse ( parseCmmFile ) where
 

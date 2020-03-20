@@ -8,6 +8,9 @@ The @Inst@ type: dictionaries or method instances
 
 {-# LANGUAGE CPP, MultiWayIf, TupleSections #-}
 {-# LANGUAGE FlexibleContexts #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module Inst (
        deeplySkolemise,

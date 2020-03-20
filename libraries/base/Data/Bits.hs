@@ -1,6 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE CPP, NoImplicitPrelude, BangPatterns, MagicHash #-}
-
+{-# LANGUAGE PartialTypeConstructors #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Bits

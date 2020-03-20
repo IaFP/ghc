@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- | Handy functions for creating much Core syntax
 module MkCore (
@@ -80,9 +83,14 @@ import BasicTypes
 import Util
 import DynFlags
 import Data.List
+-- import qualified GHC.LanguageExtensions as LangExt
 
 import Data.Char        ( ord )
 import Control.Monad.Fail as MonadFail ( MonadFail )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@), Total)
+import TyCon (TyCon)
+#endif
 
 infixl 4 `mkCoreApp`, `mkCoreApps`
 
@@ -261,12 +269,20 @@ mkWordExprWord :: DynFlags -> Word -> CoreExpr
 mkWordExprWord dflags w = mkCoreConApps wordDataCon [mkWordLitWord dflags w]
 
 -- | Create a 'CoreExpr' which will evaluate to the given @Integer@
-mkIntegerExpr  :: MonadThings m => Integer -> m CoreExpr  -- Result :: Integer
+mkIntegerExpr  :: (MonadThings m
+#if MIN_VERSION_base(4,14,0)
+                 , m @@ TyCon
+#endif
+                  ) => Integer -> m CoreExpr  -- Result :: Integer
 mkIntegerExpr i = do t <- lookupTyCon integerTyConName
                      return (Lit (mkLitInteger i (mkTyConTy t)))
 
 -- | Create a 'CoreExpr' which will evaluate to the given @Natural@
-mkNaturalExpr  :: MonadThings m => Integer -> m CoreExpr
+mkNaturalExpr  :: (MonadThings m
+#if MIN_VERSION_base(4,14,0)
+                 , m @@ TyCon
+#endif
+               ) => Integer -> m CoreExpr
 mkNaturalExpr i = do t <- lookupTyCon naturalTyConName
                      return (Lit (mkLitNatural i (mkTyConTy t)))
 
@@ -284,10 +300,18 @@ mkCharExpr     :: Char             -> CoreExpr      -- Result = C# c :: Int
 mkCharExpr c = mkCoreConApps charDataCon [mkCharLit c]
 
 -- | Create a 'CoreExpr' which will evaluate to the given @String@
-mkStringExpr   :: MonadThings m => String     -> m CoreExpr  -- Result :: String
+mkStringExpr   :: (MonadThings m
+#if MIN_VERSION_base(4,14,0)
+                 , m @@ Id
+#endif
+                  ) => String     -> m CoreExpr  -- Result :: String
 
 -- | Create a 'CoreExpr' which will evaluate to a string morally equivalent to the given @FastString@
-mkStringExprFS :: MonadThings m => FastString -> m CoreExpr  -- Result :: String
+mkStringExprFS :: (MonadThings m
+#if MIN_VERSION_base(4,14,0)
+                 , m @@ Id
+#endif
+                  ) => FastString -> m CoreExpr  -- Result :: String
 
 mkStringExpr str = mkStringExprFS (mkFastString str)
 
@@ -619,7 +643,11 @@ mkListExpr :: Type -> [CoreExpr] -> CoreExpr
 mkListExpr ty xs = foldr (mkConsExpr ty) (mkNilExpr ty) xs
 
 -- | Make a fully applied 'foldr' expression
-mkFoldrExpr :: MonadThings m
+mkFoldrExpr :: (MonadThings m
+#if MIN_VERSION_base(4,14,0)
+                 , m @@ Id
+#endif
+               )
             => Type             -- ^ Element type of the list
             -> Type             -- ^ Fold result type
             -> CoreExpr         -- ^ "Cons" function expression for the fold
@@ -635,13 +663,19 @@ mkFoldrExpr elt_ty result_ty c n list = do
            `App` list)
 
 -- | Make a 'build' expression applied to a locally-bound worker function
-mkBuildExpr :: (MonadFail.MonadFail m, MonadThings m, MonadUnique m)
+mkBuildExpr :: (MonadFail.MonadFail m, MonadThings m, MonadUnique m, HasDynFlags m
+#if MIN_VERSION_base(4,14,0)
+               , Total m
+#endif
+               )
             => Type                                     -- ^ Type of list elements to be built
             -> ((Id, Type) -> (Id, Type) -> m CoreExpr) -- ^ Function that, given information about the 'Id's
                                                         -- of the binders for the build worker function, returns
                                                         -- the body of that worker
             -> m CoreExpr
 mkBuildExpr elt_ty mk_build_inside = do
+    -- dflags <- getDynFlags
+
     [n_tyvar] <- newTyVars [alphaTyVar]
     let n_ty = mkTyVarTy n_tyvar
         c_ty = mkVisFunTys [elt_ty, n_ty] n_ty
@@ -650,7 +684,14 @@ mkBuildExpr elt_ty mk_build_inside = do
     build_inside <- mk_build_inside (c, c_ty) (n, n_ty)
 
     build_id <- lookupId buildName
+    -- cunitTyCon <- lookupTyCon (cTupleTyConName 0)
+    -- let cunitTy = mkTyConApp cunitTyCon []
+    --     pCtrs = xopt LangExt.PartialTypeConstructors dflags
+    -- if pCtrs
+    --   then
     return $ Var build_id `App` Type elt_ty `App` mkLams [n_tyvar, c, n] build_inside
+      -- else
+      -- return $ Var build_id `App` Type elt_ty `App` Type cunitTy `App` mkLams [n_tyvar, c, n] build_inside
   where
     newTyVars tyvar_tmpls = do
       uniqs <- getUniquesM

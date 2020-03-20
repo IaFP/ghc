@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE PolyKinds #-}
 module CostCentreState ( CostCentreState, newCostCentreState
                        , CostCentreIndex, unCostCentreIndex, getCCIndex
                        ) where

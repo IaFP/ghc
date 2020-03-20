@@ -1,13 +1,23 @@
 
 T10971b.hs:4:11: error:
+    • Could not deduce: t2 @@ a2 arising from a use of ‘length’
+    • In the expression: length x
+      In the expression: \ x -> length x
+      In an equation for ‘f’: f = \ x -> length x
+    • Relevant bindings include
+        x :: t2 a2 (bound at T10971b.hs:4:6)
+        f :: t2 a2 -> Int (bound at T10971b.hs:4:1)
+
+T10971b.hs:4:11: error:
     • Ambiguous type variable ‘t2’ arising from a use of ‘length’
       prevents the constraint ‘(Foldable t2)’ from being solved.
       Relevant bindings include
-        x :: t2 a (bound at T10971b.hs:4:6)
-        f :: t2 a -> Int (bound at T10971b.hs:4:1)
+        x :: t2 a2 (bound at T10971b.hs:4:6)
+        f :: t2 a2 -> Int (bound at T10971b.hs:4:1)
       Probable fix: use a type annotation to specify what ‘t2’ should be.
       These potential instances exist:
-        instance Foldable (Either a) -- Defined in ‘Data.Foldable’
+        instance (Either @@ a) => Foldable (Either a)
+          -- Defined in ‘Data.Foldable’
         instance Foldable Maybe -- Defined in ‘Data.Foldable’
         instance Foldable ((,) a) -- Defined in ‘Data.Foldable’
         ...plus one other
@@ -18,14 +28,27 @@ T10971b.hs:4:11: error:
       In an equation for ‘f’: f = \ x -> length x
 
 T10971b.hs:5:13: error:
+    • Could not deduce: (t1 @@ a1, t1 @@ b1,
+                         t1 @@ Data.Functor.Identity.Identity b1)
+        arising from a use of ‘fmapDefault’
+    • In the expression: fmapDefault f x
+      In the expression: \ f x -> fmapDefault f x
+      In an equation for ‘g’: g = \ f x -> fmapDefault f x
+    • Relevant bindings include
+        x :: t1 a1 (bound at T10971b.hs:5:8)
+        f :: a1 -> b1 (bound at T10971b.hs:5:6)
+        g :: (a1 -> b1) -> t1 a1 -> t1 b1 (bound at T10971b.hs:5:1)
+
+T10971b.hs:5:13: error:
     • Ambiguous type variable ‘t1’ arising from a use of ‘fmapDefault’
       prevents the constraint ‘(Traversable t1)’ from being solved.
       Relevant bindings include
-        x :: t1 a (bound at T10971b.hs:5:8)
-        g :: (a -> b) -> t1 a -> t1 b (bound at T10971b.hs:5:1)
+        x :: t1 a1 (bound at T10971b.hs:5:8)
+        g :: (a1 -> b1) -> t1 a1 -> t1 b1 (bound at T10971b.hs:5:1)
       Probable fix: use a type annotation to specify what ‘t1’ should be.
       These potential instances exist:
-        instance Traversable (Either a) -- Defined in ‘Data.Traversable’
+        instance (Either @@ a) => Traversable (Either a)
+          -- Defined in ‘Data.Traversable’
         instance Traversable Maybe -- Defined in ‘Data.Traversable’
         instance Traversable ((,) a) -- Defined in ‘Data.Traversable’
         ...plus one other
@@ -36,14 +59,27 @@ T10971b.hs:5:13: error:
       In an equation for ‘g’: g = \ f x -> fmapDefault f x
 
 T10971b.hs:6:14: error:
+    • Could not deduce: (t0 @@ a0, t0 @@ b0,
+                         t0 @@ Data.Functor.Identity.Identity b0)
+        arising from a use of ‘fmapDefault’
+    • In the expression: fmapDefault f x
+      In the expression: (fmapDefault f x, length x)
+      In the expression: \ f x -> (fmapDefault f x, length x)
+    • Relevant bindings include
+        x :: t0 a0 (bound at T10971b.hs:6:8)
+        f :: a0 -> b0 (bound at T10971b.hs:6:6)
+        h :: (a0 -> b0) -> t0 a0 -> (t0 b0, Int) (bound at T10971b.hs:6:1)
+
+T10971b.hs:6:14: error:
     • Ambiguous type variable ‘t0’ arising from a use of ‘fmapDefault’
       prevents the constraint ‘(Traversable t0)’ from being solved.
       Relevant bindings include
-        x :: t0 a (bound at T10971b.hs:6:8)
-        h :: (a -> b) -> t0 a -> (t0 b, Int) (bound at T10971b.hs:6:1)
+        x :: t0 a0 (bound at T10971b.hs:6:8)
+        h :: (a0 -> b0) -> t0 a0 -> (t0 b0, Int) (bound at T10971b.hs:6:1)
       Probable fix: use a type annotation to specify what ‘t0’ should be.
       These potential instances exist:
-        instance Traversable (Either a) -- Defined in ‘Data.Traversable’
+        instance (Either @@ a) => Traversable (Either a)
+          -- Defined in ‘Data.Traversable’
         instance Traversable Maybe -- Defined in ‘Data.Traversable’
         instance Traversable ((,) a) -- Defined in ‘Data.Traversable’
         ...plus one other
@@ -57,11 +93,12 @@ T10971b.hs:6:31: error:
     • Ambiguous type variable ‘t0’ arising from a use of ‘length’
       prevents the constraint ‘(Foldable t0)’ from being solved.
       Relevant bindings include
-        x :: t0 a (bound at T10971b.hs:6:8)
-        h :: (a -> b) -> t0 a -> (t0 b, Int) (bound at T10971b.hs:6:1)
+        x :: t0 a0 (bound at T10971b.hs:6:8)
+        h :: (a0 -> b0) -> t0 a0 -> (t0 b0, Int) (bound at T10971b.hs:6:1)
       Probable fix: use a type annotation to specify what ‘t0’ should be.
       These potential instances exist:
-        instance Foldable (Either a) -- Defined in ‘Data.Foldable’
+        instance (Either @@ a) => Foldable (Either a)
+          -- Defined in ‘Data.Foldable’
         instance Foldable Maybe -- Defined in ‘Data.Foldable’
         instance Foldable ((,) a) -- Defined in ‘Data.Foldable’
         ...plus one other

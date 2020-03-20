@@ -10,11 +10,17 @@ T10285.hs:8:17: error:
         at T10285.hs:8:6-13
       ‘a’ is a rigid type variable bound by
         the type signature for:
-          oops :: forall a b. Coercion (N a) (N b) -> a -> b
+          oops :: forall a b.
+                  (N @@ b, Coercion @@ N a, Coercion @@ *, Coercion (N a) @@ N b,
+                   N @@ a) =>
+                  Coercion (N a) (N b) -> a -> b
         at T10285.hs:7:1-38
       ‘b’ is a rigid type variable bound by
         the type signature for:
-          oops :: forall a b. Coercion (N a) (N b) -> a -> b
+          oops :: forall a b.
+                  (N @@ b, Coercion @@ N a, Coercion @@ *, Coercion (N a) @@ N b,
+                   N @@ a) =>
+                  Coercion (N a) (N b) -> a -> b
         at T10285.hs:7:1-38
     • In the expression: coerce
       In an equation for ‘oops’: oops Coercion = coerce

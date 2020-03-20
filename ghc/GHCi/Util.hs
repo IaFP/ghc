@@ -1,4 +1,9 @@
 {-# LANGUAGE MagicHash, UnboxedTuples #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+{-# OPTIONS -fno-enable-rewrite-rules #-}
+#endif
 
 -- | Utilities for GHCi.
 module GHCi.Util where

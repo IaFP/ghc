@@ -3,3 +3,5 @@ type T :: * -> *
 data T a where
   MkT :: T (Maybe Bool)
   	-- Defined at T17384.hs:7:1
+type instance T @@ a = () :: Constraint
+  	-- Defined at T17384.hs:7:1

@@ -7,6 +7,9 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcTypeable(mkTypeableBinds, tyConIsTypeable) where
 
@@ -47,6 +50,10 @@ import Control.Monad.Trans.State
 import Control.Monad.Trans.Class (lift)
 import Data.Maybe ( isJust )
 import Data.Word( Word64 )
+
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 {- Note [Grand plan for Typeable]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -455,6 +462,9 @@ type KindRepEnv = TypeMap (Id, Maybe (LHsExpr GhcTc))
 -- re-use them opportunistically.
 newtype KindRepM a = KindRepM { unKindRepM :: StateT KindRepEnv TcRn a }
                    deriving (Functor, Applicative, Monad)
+#if MIN_VERSION_base(4,14,0)
+instance Total KindRepM
+#endif
 
 liftTc :: TcRn a -> KindRepM a
 liftTc = KindRepM . lift

@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -O2 #-}
 {-# OPTIONS_GHC -fno-warn-missing-methods #-}
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE NoImplicitPrelude, UndecidableInstances #-}
 -- {-# OPTIONS_GHC -fno-spec-constr #-} -- Makes the problem go away.
 -- {-# OPTIONS_GHC -fspec-constr-count=1 #-} -- Makes the problem go away.
 

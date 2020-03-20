@@ -2,6 +2,7 @@
 {-# LANGUAGE CPP, NoImplicitPrelude, NondecreasingIndentation,
              RecordWildCards, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 
 module GHC.IO.Encoding.CodePage.API (
     mkCodePageEncoding

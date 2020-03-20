@@ -4,6 +4,9 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# OPTIONS_GHC -optc-DNON_POSIX_SOURCE #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 --
 --  (c) The University of Glasgow 2002-2006
 --
@@ -36,24 +39,13 @@ import FastString
 import Panic
 import Outputable
 import Util
+import ClosureEnv
 
 -- Standard libraries
 import Data.Array.Unboxed
 import Foreign.Ptr
 import GHC.Exts
 
-{-
-  Linking interpretables into something we can run
--}
-
-type ClosureEnv = NameEnv (Name, ForeignHValue)
-
-emptyClosureEnv :: ClosureEnv
-emptyClosureEnv = emptyNameEnv
-
-extendClosureEnv :: ClosureEnv -> [(Name,ForeignHValue)] -> ClosureEnv
-extendClosureEnv cl_env pairs
-  = extendNameEnvList cl_env [ (n, (n,v)) | (n,v) <- pairs]
 
 {-
   Linking interpretables into something we can run

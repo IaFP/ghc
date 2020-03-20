@@ -41,7 +41,7 @@ withIso ai k = case ai (Exchange id Identity) of
   Exchange sa bt -> k sa (runIdentity undefined bt)
 {-# INLINE withIso #-}
 
-type Iso s t a b = forall p f. (Profunctor p, Functor f) => p a (f b) -> p s (f t)
+type Iso s t a b = forall p f. (Profunctor p, Functor f, p @@ a, p a @@ f b, f @@ b, p @@ s, p s @@ (f t), f @@ t) => p a (f b) -> p s (f t)
 type Iso' s a = Iso s s a a
 type AnIso s t a b = Exchange a b a (Identity b) -> Exchange a b s (Identity t)
 

@@ -1,11 +1,13 @@
 {-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE FlexibleContexts, DatatypeContexts #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 
 module ShouldCompile where
 
 import Data.Foldable
 import Data.Traversable
+import GHC.Types (Total)
 
 data Trivial a = Trivial
    deriving (Functor,Foldable,Traversable)
@@ -29,5 +31,5 @@ data Eq a => StupidConstraint a b = Stupid a b
   deriving (Functor,Foldable,Traversable)
 
 -- requires Foldable/Traversable constraint on f and g
-data Compose f g a = Compose (f (g a))
+data Total f => Compose f g a = Compose (f (g a))
   deriving (Functor,Foldable,Traversable)

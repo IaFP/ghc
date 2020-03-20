@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 
 module Data.Semigroup.Internal where
 

@@ -6,6 +6,9 @@ Core pass to saturate constructors and PrimOps
 -}
 
 {-# LANGUAGE BangPatterns, CPP, MultiWayIf #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module CorePrep (
       corePrepPgm, corePrepExpr, cvtLitInteger, cvtLitNatural,

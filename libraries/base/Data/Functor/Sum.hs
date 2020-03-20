@@ -1,7 +1,11 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Functor.Sum
@@ -25,6 +29,7 @@ import Control.Applicative ((<|>))
 import Data.Data (Data)
 import Data.Functor.Classes
 import GHC.Generics (Generic, Generic1)
+import GHC.Types (type (@@))
 import Text.Read (Read(..), readListDefault, readListPrecDefault)
 
 -- | Lifted sum of functors.
@@ -65,19 +70,21 @@ instance (Show1 f, Show1 g) => Show1 (Sum f g) where
         showsUnaryWith (liftShowsPrec sp sl) "InR" d y
 
 -- | @since 4.9.0.0
-instance (Eq1 f, Eq1 g, Eq a) => Eq (Sum f g a) where
+instance (f @@ a, f @@ g a, g @@ a, Eq1 f, Eq1 g, Eq a) => Eq (Sum f g a) where
     (==) = eq1
+
 -- | @since 4.9.0.0
-instance (Ord1 f, Ord1 g, Ord a) => Ord (Sum f g a) where
+instance (f @@ a, f @@ g a, g @@ a, Ord1 f, Ord1 g, Ord a) => Ord (Sum f g a) where
     compare = compare1
+
 -- | @since 4.9.0.0
-instance (Read1 f, Read1 g, Read a) => Read (Sum f g a) where
+instance (f @@ a, f @@ g a, g @@ a, Read1 f, Read1 g, Read a) => Read (Sum f g a) where
     readPrec = readPrec1
 
     readListPrec = readListPrecDefault
     readList     = readListDefault
 -- | @since 4.9.0.0
-instance (Show1 f, Show1 g, Show a) => Show (Sum f g a) where
+instance (f @@ a, f @@ g a, g @@ a, Show1 f, Show1 g, Show a) => Show (Sum f g a) where
     showsPrec = showsPrec1
 
 -- | @since 4.9.0.0
@@ -93,7 +100,7 @@ instance (Foldable f, Foldable g) => Foldable (Sum f g) where
     foldMap f (InL x) = foldMap f x
     foldMap f (InR y) = foldMap f y
 
--- | @since 4.9.0.0
-instance (Traversable f, Traversable g) => Traversable (Sum f g) where
-    traverse f (InL x) = InL <$> traverse f x
-    traverse f (InR y) = InR <$> traverse f y
+-- -- | @since 4.9.0.0
+-- instance (Traversable f, Traversable g) => Traversable (Sum f g) where
+--     traverse f (InL x) = InL <$> traverse f x
+--     traverse f (InR y) = InR <$> traverse f y

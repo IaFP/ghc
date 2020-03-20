@@ -14,6 +14,11 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+{-# OPTIONS -fno-enable-rewrite-rules #-}
+#endif
 
 -- | This module provides the generated Happy parser for Haskell. It exports
 -- a number of parsers which may be used in any library that uses the GHC API.
@@ -92,6 +97,10 @@ import TysWiredIn       ( unitTyCon, unitDataCon, tupleTyCon, tupleDataCon, nilD
 -- compiler/utils
 import Util             ( looksLikePackageName, fstOf3, sndOf3, thdOf3 )
 import GhcPrelude
+
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@), Total)
+#endif
 }
 
 %expect 236 -- shift/reduce conflicts
@@ -3157,11 +3166,19 @@ alt     :: { forall b. DisambECP b => PV (LMatch GhcPs (Located b)) }
                                                   , m_grhss = snd $ unLoc $2 }))
                                       (fst $ unLoc $2)}
 
-alt_rhs :: { forall b. DisambECP b => PV (Located ([AddAnn],GRHSs GhcPs (Located b))) }
+alt_rhs :: { forall b. (DisambECP b
+#if MIN_VERSION_base(4,14,0)
+                     , Body b @@ GhcPs
+#endif
+                       ) => PV (Located ([AddAnn],GRHSs GhcPs (Located b))) }
         : ralt wherebinds           { $1 >>= \alt ->
                                       return $ sLL alt $> (fst $ unLoc $2, GRHSs noExtField (unLoc alt) (snd $ unLoc $2)) }
 
-ralt :: { forall b. DisambECP b => PV (Located [LGRHS GhcPs (Located b)]) }
+ralt :: { forall b. (DisambECP b
+#if MIN_VERSION_base(4,14,0)
+                     , Body b @@ GhcPs
+#endif
+                    ) => PV (Located [LGRHS GhcPs (Located b)]) }
         : '->' exp            { runECP_PV $2 >>= \ $2 ->
                                 ams (sLL $1 $> (unguardedRHS (comb2 $1 $2) $2))
                                     [mu AnnRarrow $1] }
@@ -3274,7 +3291,11 @@ stmt  :: { forall b. DisambECP b => PV (LStmt GhcPs (Located b)) }
                                            ams (sLL $1 $> $ mkRecStmt (snd $ unLoc $2))
                                                (mj AnnRec $1:(fst $ unLoc $2)) }
 
-qual  :: { forall b. DisambECP b => PV (LStmt GhcPs (Located b)) }
+qual  :: { forall b. (DisambECP b
+#if MIN_VERSION_base(4,14,0)
+                     , Body b @@ GhcPs
+#endif
+                     ) => PV (LStmt GhcPs (Located b)) }
     : bindpat '<-' exp                   { runECP_PV $3 >>= \ $3 ->
                                            ams (sLL $1 $> $ mkBindStmt $1 $3)
                                                [mu AnnLarrow $2] }
@@ -4060,19 +4081,31 @@ am a (b,s) = do
 -- as any annotations that may arise in the binds. This will include open
 -- and closing braces if they are used to delimit the let expressions.
 --
-ams :: (MonadP m, HasSrcSpan a) => a -> [AddAnn] -> m a
+ams :: (MonadP m, HasSrcSpan a
+#if MIN_VERSION_base(4,14,0)
+       , m @@ ()
+#endif
+       ) => a -> [AddAnn] -> m a
 ams a@(dL->L l _) bs = addAnnsAt l bs >> return a
 
 amsL :: SrcSpan -> [AddAnn] -> P ()
 amsL sp bs = addAnnsAt sp bs >> return ()
 
 -- |Add all [AddAnn] to an AST element, and wrap it in a 'Just'
-ajs :: (MonadP m, HasSrcSpan a) => a -> [AddAnn] -> m (Maybe a)
+ajs :: (MonadP m, HasSrcSpan a
+#if MIN_VERSION_base(4,14,0)
+       , m @@ (), m @@ a
+#endif
+       ) => a -> [AddAnn] -> m (Maybe a)
 ajs a bs = Just <$> ams a bs
 
 -- |Add a list of AddAnns to the given AST element, where the AST element is the
 --  result of a monadic action
-amms :: MonadP m => HasSrcSpan a => m a -> [AddAnn] -> m a
+amms :: (MonadP m
+#if MIN_VERSION_base(4,14,0)
+        , m @@ ()
+#endif
+        ) => HasSrcSpan a => m a -> [AddAnn] -> m a
 amms a bs = do { av@(dL->L l _) <- a
                ; addAnnsAt l bs
                ; return av }

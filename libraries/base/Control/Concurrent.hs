@@ -5,6 +5,7 @@
            , ScopedTypeVariables
            , RankNTypes
   #-}
+-- {-# LANGUAGE PartialTypeConstructors #-}
 {-# OPTIONS_GHC -Wno-deprecations #-}
 -- kludge for the Control.Concurrent.QSem, Control.Concurrent.QSemN
 -- and Control.Concurrent.SampleVar imports.

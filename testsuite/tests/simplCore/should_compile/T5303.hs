@@ -1,9 +1,11 @@
-{-# LANGUAGE KindSignatures, GADTs, TypeFamilies, MultiParamTypeClasses,  FlexibleContexts, ScopedTypeVariables, TypeSynonymInstances,  FlexibleInstances #-}  
+{-# LANGUAGE KindSignatures, GADTs, TypeFamilies, MultiParamTypeClasses,  FlexibleContexts, ScopedTypeVariables, TypeSynonymInstances,  FlexibleInstances #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, ExplicitNamespaces #-}
 module T5303( showContextSeries ) where
 
 import Control.Monad.State.Strict( StateT )  
 import Control.Monad.Trans ( lift )
 import Data.Kind (Type)
+import GHC.Types (Total, type (@@))
 
 data Tree (m :: Type -> Type) = Tree {}
 
@@ -22,11 +24,11 @@ class (Functor m, Monad m, ApplyMonad (ApplyMonadOver m state) state)
   type ApplyMonadOver m state :: Type -> Type
   runApplyMonad :: (ApplyMonadOver m state) x -> state m -> m (x, state m)
 
-instance (Functor m, Monad m) => ApplyMonadTrans m Tree where
+instance (Total m, Functor m, Monad m) => ApplyMonadTrans m Tree where
   type ApplyMonadOver m Tree = TreeMonad m
   runApplyMonad = virtualTreeMonad
 
-instance (Functor m, Monad m) => ApplyMonad (TreeMonad m) Tree
+instance (Total m, Functor m, Monad m) => ApplyMonad (TreeMonad m) Tree
 
 -- | Internal state of the 'TreeIO' monad. Keeps track of the current Tree
 -- content, unsync'd changes and a current working directory (of the  monad).
@@ -37,8 +39,9 @@ type TreeIO = TreeMonad IO
 virtualTreeMonad :: (Functor m, Monad m) => TreeMonad m a -> Tree m -> m  (a, Tree m)  
 virtualTreeMonad action t = undefined
 
-applyToState :: forall p m x y. (Apply p, ApplyMonadTrans m (ApplyState p))
-             => p x y -> (ApplyState p) m -> m ((ApplyState p) m)  
+applyToState :: forall p m x y. (Apply p, ApplyMonadTrans m (ApplyState p)
+                                , p @@ x, p x @@ y, m @@ ApplyState p m, ApplyState p @@ m
+                                ) => p x y -> (ApplyState p) m -> m ((ApplyState p) m)  
 applyToState _ _ = snd `fmap` runApplyMonad undefined undefined
 
 showContextSeries :: (Apply p, ApplyState p ~ Tree) => FL p x y -> TreeIO ()

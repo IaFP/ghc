@@ -2,6 +2,7 @@
 {-# LANGUAGE InterruptibleFFI #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 
 -- | File locking via the Linux open-fd locking mechanism.
 module GHC.IO.Handle.Lock.LinuxOFD where

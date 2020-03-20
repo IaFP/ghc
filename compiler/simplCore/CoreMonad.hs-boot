@@ -6,8 +6,12 @@
 -- extracted CoreToDo and CoreM into this file.
 -- I needed to write the whole definition of these types, otherwise it created
 -- a data-newtype conflict.
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE NoPartialTypeConstructors #-}
+#endif
 
-module CoreMonad ( CoreToDo, CoreM ) where
+module CoreMonad ( CoreToDo, CoreM, CoreWriter, CoreReader ) where
 
 import GhcPrelude
 

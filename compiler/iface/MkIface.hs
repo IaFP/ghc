@@ -5,6 +5,10 @@
 
 {-# LANGUAGE CPP, NondecreasingIndentation #-}
 {-# LANGUAGE MultiWayIf #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
+
 
 -- | Module for constructing @ModIface@ values (interface files),
 -- writing them to disk and comparing two versions to see if

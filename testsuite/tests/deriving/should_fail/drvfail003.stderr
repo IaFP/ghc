@@ -1,8 +1,12 @@
 
-drvfail003.hs:16:56:
-    No instance for (Show (v (v a)))
-      arising from the first field of ‘End’ (type ‘v (v a)’)
-    Possible fix:
-      use a standalone 'deriving instance' declaration,
-        so you can specify the instance context yourself
-    When deriving the instance for (Show (Square_ v w a))
+drvfail003.hs:16:56: error:
+    • Could not deduce (Show (v (v a)))
+        arising from the first field of ‘End’ (type ‘v (v a)’)
+      from the context: (v @@ a, v @@ v a, w @@ a, w @@ Pair v w a,
+                         v @@ Pair v w a)
+        bound by the deriving clause for ‘Show (Square_ v w a)’
+        at drvfail003.hs:16:56-59
+      Possible fix:
+        use a standalone 'deriving instance' declaration,
+          so you can specify the instance context yourself
+    • When deriving the instance for (Show (Square_ v w a))

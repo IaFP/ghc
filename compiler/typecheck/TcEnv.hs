@@ -6,6 +6,9 @@
 {-# LANGUAGE UndecidableInstances #-} -- Note [Pass sensitive types]
                                       -- in module GHC.Hs.PlaceHolder
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module TcEnv(
         TyThing(..), TcTyThing(..), TcId,
@@ -114,6 +117,9 @@ import Util ( HasDebugCallStack )
 import Data.IORef
 import Data.List (intercalate)
 import Control.Monad
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 {- *********************************************************************
 *                                                                      *
@@ -1018,7 +1024,11 @@ mkStableIdFromString str sig_ty loc occ_wrapper = do
 mkStableIdFromName :: Name -> Type -> SrcSpan -> (OccName -> OccName) -> TcM TcId
 mkStableIdFromName nm = mkStableIdFromString (getOccString nm)
 
-mkWrapperName :: (MonadIO m, HasDynFlags m, HasModule m)
+mkWrapperName :: (MonadIO m, HasDynFlags m, HasModule m
+#if MIN_VERSION_base(4,14,0)
+                 , m @@ DynFlags, m @@ Module, m @@ Int
+#endif
+                 )
               => String -> String -> m FastString
 mkWrapperName what nameBase
     = do dflags <- getDynFlags

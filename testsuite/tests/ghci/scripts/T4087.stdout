@@ -3,3 +3,7 @@ type Equal :: * -> * -> *
 data Equal a b where
   Equal :: Equal a a
   	-- Defined at T4087.hs:5:1
+type instance Equal a @@ b = () :: Constraint
+  	-- Defined at T4087.hs:5:1
+type instance Equal @@ a = () :: Constraint
+  	-- Defined at T4087.hs:5:1

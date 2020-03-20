@@ -3,6 +3,11 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns        #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+{-# OPTIONS -fno-enable-rewrite-rules #-}
+#endif
 
 -- | Get information on modules, expressions, and identifiers
 module GHCi.UI.Info
@@ -43,6 +48,9 @@ import           Outputable
 import           SrcLoc
 import           TcHsSyn
 import           Var
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -- | Info about a module. This information is generated every time a
 -- module is loaded.
@@ -105,7 +113,11 @@ srcSpanFilePath = unpackFS . srcSpanFile
 
 -- | Try to find the location of the given identifier at the given
 -- position in the module.
-findLoc :: GhcMonad m
+findLoc :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+           , Total m
+#endif
+           )
         => Map ModuleName ModInfo
         -> RealSrcSpan
         -> String
@@ -129,7 +141,11 @@ findLoc infos span0 string = do
         span' -> return (info,name',span')
 
 -- | Find any uses of the given identifier in the codebase.
-findNameUses :: (GhcMonad m)
+findNameUses :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+           , Total m
+#endif
+                )
              => Map ModuleName ModInfo
              -> RealSrcSpan
              -> String
@@ -156,7 +172,11 @@ stripSurrounding xs = filter (not . isRedundant) xs
 
 -- | Try to resolve the name located at the given position, or
 -- otherwise resolve based on the current module's scope.
-findName :: GhcMonad m
+findName :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+            , Total m
+#endif
+            )
          => Map ModuleName ModInfo
          -> RealSrcSpan
          -> ModInfo
@@ -182,7 +202,11 @@ findName infos span0 mi string =
       occNameFS (getOccName name)
 
 -- | Try to resolve the name from another (loaded) module's exports.
-resolveNameFromModule :: GhcMonad m
+resolveNameFromModule :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                        , Total m
+#endif
+                         )
                       => Map ModuleName ModInfo
                       -> Name
                       -> ExceptT SDoc m Name
@@ -207,7 +231,11 @@ resolveName spans' si = listToMaybe $ mapMaybe spaninfoVar $
                         reverse spans' `spaninfosWithin` si
 
 -- | Try to find the type of the given span.
-findType :: GhcMonad m
+findType :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+            , Total m
+#endif
+            )
          => Map ModuleName ModInfo
          -> RealSrcSpan
          -> String
@@ -229,7 +257,11 @@ findType infos span0 string = do
                             reverse spans' `spaninfosWithin` si
 
 -- | Guess a module name from a file path.
-guessModule :: GhcMonad m
+guessModule :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+            , Total m
+#endif
+               )
             => Map ModuleName ModInfo -> FilePath -> MaybeT m ModuleName
 guessModule infos fp = do
     target <- lift $ guessTarget fp Nothing
@@ -237,7 +269,11 @@ guessModule infos fp = do
         TargetModule mn  -> return mn
         TargetFile fp' _ -> guessModule' fp'
   where
-    guessModule' :: GhcMonad m => FilePath -> MaybeT m ModuleName
+    guessModule' :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                     , Total m
+#endif
+                    ) => FilePath -> MaybeT m ModuleName
     guessModule' fp' = case findModByFp fp' of
         Just mn -> return mn
         Nothing -> do
@@ -256,7 +292,11 @@ guessModule infos fp = do
 
 
 -- | Collect type info data for the loaded modules.
-collectInfo :: (GhcMonad m) => Map ModuleName ModInfo -> [ModuleName]
+collectInfo :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+            , Total m
+#endif
+               ) => Map ModuleName ModInfo -> [ModuleName]
                -> m (Map ModuleName ModInfo)
 collectInfo ms loaded = do
     df <- getDynFlags
@@ -300,7 +340,11 @@ srcFilePath modSum = fromMaybe obj_fp src_fp
         ms_loc = ms_location modSum
 
 -- | Get info about the module: summary, types, etc.
-getModInfo :: (GhcMonad m) => ModuleName -> m ModInfo
+getModInfo :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+            , Total m
+#endif
+              ) => ModuleName -> m ModInfo
 getModInfo name = do
     m <- getModSummary name
     p <- parseModule m
@@ -311,7 +355,11 @@ getModInfo name = do
     return (ModInfo m allTypes i ts)
 
 -- | Get ALL source spans in the module.
-processAllTypeCheckedModule :: forall m . GhcMonad m => TypecheckedModule
+processAllTypeCheckedModule :: forall m . (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                                          , Total m
+#endif
+                                          ) => TypecheckedModule
                             -> m [SpanInfo]
 processAllTypeCheckedModule tcm = do
     bts <- mapM getTypeLHsBind $ listifyAllSpans tcs

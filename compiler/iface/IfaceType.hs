@@ -11,6 +11,9 @@ This module defines interface types and binders
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE LambdaCase #-}
     -- FlexibleInstances for Binary (DefMethSpec IfaceType)
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module IfaceType (
         IfExtName, IfLclName,

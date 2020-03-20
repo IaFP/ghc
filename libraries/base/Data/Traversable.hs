@@ -5,6 +5,16 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE PartialTypeConstructors
+           , DefaultSignatures
+           , TypeFamilies
+           , QuantifiedConstraints
+           , AllowAmbiguousTypes
+           , RankNTypes
+           , ConstraintKinds #-}
+{-# LANGUAGE MultiParamTypeClasses, UndecidableInstances #-}
+
+-- {-# OPTIONS_GHC -fplugin Data.WFPlugin #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -41,6 +51,7 @@
 module Data.Traversable (
     -- * The 'Traversable' class
     Traversable(..),
+    -- PTraversable (..), PTraversableM (..),
     -- * Utility functions
     for,
     forM,
@@ -69,7 +80,12 @@ import GHC.Arr
 import GHC.Base ( Applicative(..), Monad(..), Monoid, Maybe(..), NonEmpty(..),
                   ($), (.), id, flip )
 import GHC.Generics
+import GHC.Types (type (@@), Total)
+
 import qualified GHC.List as List ( foldr )
+
+type instance (,) @@ a = ()
+type instance (,) b @@ a = ()
 
 -- | Functors representing data structures that can be traversed from
 -- left to right.
@@ -153,28 +169,33 @@ class (Functor t, Foldable t) => Traversable t where
     -- | Map each element of a structure to an action, evaluate these actions
     -- from left to right, and collect the results. For a version that ignores
     -- the results see 'Data.Foldable.traverse_'.
-    traverse :: Applicative f => (a -> f b) -> t a -> f (t b)
+    -- traverse :: (Applicative f, t @@ f b) => (a -> f b) -> t a -> f (t b)
+    traverse :: (Applicative f, t @@ f b,  Total f) => (a -> f b) -> t a -> f (t b)
     {-# INLINE traverse #-}  -- See Note [Inline default methods]
     traverse f = sequenceA . fmap f
 
     -- | Evaluate each action in the structure from left to right, and
     -- collect the results. For a version that ignores the results
     -- see 'Data.Foldable.sequenceA_'.
-    sequenceA :: Applicative f => t (f a) -> f (t a)
+    -- sequenceA :: (Applicative f) => t (f a) -> f (t a)
+    -- default
+    sequenceA :: (Applicative f, Total f) => t (f a) -> f (t a)
     {-# INLINE sequenceA #-}  -- See Note [Inline default methods]
     sequenceA = traverse id
 
     -- | Map each element of a structure to a monadic action, evaluate
     -- these actions from left to right, and collect the results. For
     -- a version that ignores the results see 'Data.Foldable.mapM_'.
-    mapM :: Monad m => (a -> m b) -> t a -> m (t b)
+    -- mapM :: (Monad m, t @@ m b{-, m @@ Maybe b, m @@ [b]-}) => (a -> m b) -> t a -> m (t b)
+    -- default
+    mapM :: (Monad m, t @@ m b, Total m) => (a -> m b) -> t a -> m (t b)
     {-# INLINE mapM #-}  -- See Note [Inline default methods]
     mapM = traverse
 
     -- | Evaluate each monadic action in the structure from left to
     -- right, and collect the results. For a version that ignores the
     -- results see 'Data.Foldable.sequence_'.
-    sequence :: Monad m => t (m a) -> m (t a)
+    sequence :: (Monad m, Total m) => t (m a) -> m (t a)
     {-# INLINE sequence #-}  -- See Note [Inline default methods]
     sequence = sequenceA
 
@@ -218,6 +239,48 @@ Solution: add an INLINE pragma on the default method:
        {-# INLINE mapM #-}     -- VERY IMPORTANT!
        mapM = traverse
 -}
+{-
+-- | Traversable class where types are partial
+
+class (Functor t, Foldable t, Applicative f) => PTraversable t f where
+    {-# MINIMAL ptraverse | psequenceA #-}
+    ptraverse :: (t @@ f b) => (a -> f b) -> t a -> f (t b)
+    {-# INLINE ptraverse #-}
+    ptraverse f = psequenceA . fmap f
+
+    psequenceA :: t (f a) -> f (t a)
+    {-# INLINE psequenceA #-}
+    psequenceA = ptraverse id
+
+class (Functor t, Foldable t, Monad m, PTraversable t m) => PTraversableM t m where
+    pmapM :: (t @@ m b) => (a -> m b) -> t a -> m (t b)
+    {-# INLINE pmapM #-}
+    pmapM = ptraverse
+
+    psequence :: t (m a) -> m (t a)
+    {-# INLINE psequence #-}
+    psequence = psequenceA
+
+instance (Applicative f) => PTraversable Maybe f where
+    ptraverse _ Nothing = pure Nothing
+    ptraverse f (Just x) = Just <$> f x
+
+instance (Monad f) => PTraversableM Maybe f
+
+instance (Applicative f) => PTraversable [] f where
+    {-# INLINE ptraverse #-} -- so that traverse can fuse
+    ptraverse f = List.foldr cons_f (pure [])
+      where cons_f x ys = liftA2 (:) (f x) ys
+
+instance (Monad f) => PTraversableM [] f
+
+instance (Applicative f, Total f) => PTraversable NonEmpty f where
+  ptraverse f ~(a :| as) = liftA2 (:|) (f a) (ptraverse f as)
+
+instance (Monad m, Total m) => PTraversableM NonEmpty m
+
+
+-}
 
 -- instances for Prelude types
 
@@ -225,6 +288,7 @@ Solution: add an INLINE pragma on the default method:
 instance Traversable Maybe where
     traverse _ Nothing = pure Nothing
     traverse f (Just x) = Just <$> f x
+
 
 -- | @since 2.01
 instance Traversable [] where
@@ -334,7 +398,7 @@ deriving instance (Traversable f, Traversable g) => Traversable (f :+: g)
 deriving instance (Traversable f, Traversable g) => Traversable (f :*: g)
 
 -- | @since 4.9.0.0
-deriving instance (Traversable f, Traversable g) => Traversable (f :.: g)
+deriving instance (Total f, Traversable f, Traversable g) => Traversable (f :.: g)
 
 -- | @since 4.9.0.0
 deriving instance Traversable UAddr
@@ -362,13 +426,15 @@ deriving instance Traversable Down
 
 -- | 'for' is 'traverse' with its arguments flipped. For a version
 -- that ignores the results see 'Data.Foldable.for_'.
-for :: (Traversable t, Applicative f) => t a -> (a -> f b) -> f (t b)
+for :: (Traversable t, Applicative f, Total f, t @@ f b)
+  => t a -> (a -> f b) -> f (t b)
 {-# INLINE for #-}
 for = flip traverse
 
 -- | 'forM' is 'mapM' with its arguments flipped. For a version that
 -- ignores the results see 'Data.Foldable.forM_'.
-forM :: (Traversable t, Monad m) => t a -> (a -> m b) -> m (t b)
+forM :: (Traversable t, Monad m, Total m, t @@ m b)
+     => t a -> (a -> m b) -> m (t b)
 {-# INLINE forM #-}
 forM = flip mapM
 
@@ -376,14 +442,14 @@ forM = flip mapM
 -- and 'Data.Foldable.foldl'; it applies a function to each element of a structure,
 -- passing an accumulating parameter from left to right, and returning
 -- a final value of this accumulator together with the new structure.
-mapAccumL :: Traversable t => (a -> b -> (a, c)) -> a -> t b -> (a, t c)
+mapAccumL :: (Traversable t, t @@ StateL a c) => (a -> b -> (a, c)) -> a -> t b -> (a, t c)
 mapAccumL f s t = runStateL (traverse (StateL . flip f) t) s
 
 -- |The 'mapAccumR' function behaves like a combination of 'fmap'
 -- and 'Data.Foldable.foldr'; it applies a function to each element of a structure,
 -- passing an accumulating parameter from right to left, and returning
 -- a final value of this accumulator together with the new structure.
-mapAccumR :: Traversable t => (a -> b -> (a, c)) -> a -> t b -> (a, t c)
+mapAccumR :: (Traversable t, t @@ StateR a c) => (a -> b -> (a, c)) -> a -> t b -> (a, t c)
 mapAccumR f s t = runStateR (traverse (StateR . flip f) t) s
 
 -- | This function may be used as a value for `fmap` in a `Functor`
@@ -394,7 +460,7 @@ mapAccumR f s t = runStateR (traverse (StateR . flip f) t) s
 -- @
 -- 'fmapDefault' f ≡ 'runIdentity' . 'traverse' ('Identity' . f)
 -- @
-fmapDefault :: forall t a b . Traversable t
+fmapDefault :: forall t a b . (Traversable t, t @@ a, t @@ b, t @@ Identity b)
             => (a -> b) -> t a -> t b
 {-# INLINE fmapDefault #-}
 -- See Note [Function coercion] in Data.Functor.Utils.
@@ -406,7 +472,7 @@ fmapDefault = coerce (traverse :: (a -> Identity b) -> t a -> Identity (t b))
 -- @
 -- 'foldMapDefault' f ≡ 'getConst' . 'traverse' ('Const' . f)
 -- @
-foldMapDefault :: forall t m a . (Traversable t, Monoid m)
+foldMapDefault :: forall t m a . (Traversable t, Monoid m, t @@ a, t @@ (), t @@ Const m ())
                => (a -> m) -> t a -> m
 {-# INLINE foldMapDefault #-}
 -- See Note [Function coercion] in Data.Functor.Utils.

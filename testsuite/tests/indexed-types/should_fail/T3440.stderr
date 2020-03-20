@@ -13,7 +13,7 @@ T3440.hs:11:22: error:
         at T3440.hs:11:9-16
       ‘a’ is a rigid type variable bound by
         the type signature for:
-          unwrap :: forall a. GADT (Fam a) -> (a, Fam a)
+          unwrap :: forall a. (GADT @@ Fam a) => GADT (Fam a) -> (a, Fam a)
         at T3440.hs:10:1-36
     • In the expression: x
       In the expression: (x, y)

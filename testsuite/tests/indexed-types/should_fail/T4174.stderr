@@ -1,10 +1,31 @@
 
 T4174.hs:44:12: error:
-    • Couldn't match type ‘b’ with ‘RtsSpinLock’
+    • Could not deduce: b ~ RtsSpinLock
+      from the context: (m @@ Field (Way (GHC6'8 minor) n t p) a b,
+                         Field (Way (GHC6'8 minor) n t p) a @@ b,
+                         Field @@ Way (GHC6'8 minor) n t p,
+                         Field (Way (GHC6'8 minor) n t p) @@ a, Way (GHC6'8 minor) n t @@ p,
+                         Way (GHC6'8 minor) @@ n, Way @@ GHC6'8 minor,
+                         Way (GHC6'8 minor) n @@ t, GHC6'8 @@ minor, Monad m)
+        bound by the type signature for:
+                   testcase :: forall (m :: * -> *) minor n t p a b.
+                               (m @@ Field (Way (GHC6'8 minor) n t p) a b,
+                                Field (Way (GHC6'8 minor) n t p) a @@ b,
+                                Field @@ Way (GHC6'8 minor) n t p,
+                                Field (Way (GHC6'8 minor) n t p) @@ a, Way (GHC6'8 minor) n t @@ p,
+                                Way (GHC6'8 minor) @@ n, Way @@ GHC6'8 minor,
+                                Way (GHC6'8 minor) n @@ t, GHC6'8 @@ minor, Monad m) =>
+                               m (Field (Way (GHC6'8 minor) n t p) a b)
+        at T4174.hs:43:1-63
       ‘b’ is a rigid type variable bound by
         the type signature for:
           testcase :: forall (m :: * -> *) minor n t p a b.
-                      Monad m =>
+                      (m @@ Field (Way (GHC6'8 minor) n t p) a b,
+                       Field (Way (GHC6'8 minor) n t p) a @@ b,
+                       Field @@ Way (GHC6'8 minor) n t p,
+                       Field (Way (GHC6'8 minor) n t p) @@ a, Way (GHC6'8 minor) n t @@ p,
+                       Way (GHC6'8 minor) @@ n, Way @@ GHC6'8 minor,
+                       Way (GHC6'8 minor) n @@ t, GHC6'8 @@ minor, Monad m) =>
                       m (Field (Way (GHC6'8 minor) n t p) a b)
         at T4174.hs:43:1-63
       Expected type: m (Field (Way (GHC6'8 minor) n t p) a b)

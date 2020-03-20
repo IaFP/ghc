@@ -1,4 +1,6 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE PartialTypeConstructors #-}
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Functor.Classes

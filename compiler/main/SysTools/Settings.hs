@@ -1,6 +1,9 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module SysTools.Settings
  ( SettingsError (..)
@@ -29,14 +32,21 @@ import Control.Monad.IO.Class
 import qualified Data.Map as Map
 import System.FilePath
 import System.Directory
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 data SettingsError
   = SettingsError_MissingData String
   | SettingsError_BadData String
 
 initSettings
-  :: forall m
-  .  MonadIO m
+  :: forall m.
+    (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+    , Total m
+#endif
+    )
   => String -- ^ TopDir path
   -> ExceptT SettingsError m Settings
 initSettings top_dir = do

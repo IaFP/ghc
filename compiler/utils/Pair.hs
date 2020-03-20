@@ -5,6 +5,9 @@ Traversable instances.
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module Pair ( Pair(..), unPair, toPair, swap, pLiftFst, pLiftSnd ) where
 
@@ -14,11 +17,17 @@ import GhcPrelude
 
 import Outputable
 import qualified Data.Semigroup as Semi
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 data Pair a = Pair { pFst :: a, pSnd :: a }
   deriving (Functor)
 -- Note that Pair is a *unary* type constructor
 -- whereas (,) is binary
+#if MIN_VERSION_base(4,14,0)
+instance Total Pair
+#endif
 
 -- The important thing about Pair is that it has a *homogeneous*
 -- Functor instance, so you can easily apply the same function

@@ -8,6 +8,9 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module RnTypes (
         -- Type related stuff
@@ -308,7 +311,7 @@ rnHsSigType ctx level (HsIB { hsib_body = hs_ty })
        ; vars <- extractFilteredRdrTyVarsDups hs_ty
        ; rnImplicitBndrs (not (isLHsForAllTy hs_ty)) vars $ \ vars ->
     do { (body', fvs) <- rnLHsTyKi (mkTyKiEnv ctx level RnTypeBody) hs_ty
-
+       ; traceRn "rnHsSigType done" (ppr hs_ty)
        ; return ( HsIB { hsib_ext = vars
                        , hsib_body = body' }
                 , fvs ) } }

@@ -1,5 +1,9 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- ----------------------------------------------------------------------------
 -- | Base LLVM Code Generation module
@@ -64,6 +68,9 @@ import Control.Monad (ap)
 import Data.Char (isDigit)
 import Data.List (intercalate)
 import qualified Data.List.NonEmpty as NE
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -- ----------------------------------------------------------------------------
 -- * Some Data Types
@@ -235,6 +242,9 @@ type LlvmEnvMap = UniqFM LlvmType
 -- | The Llvm monad. Wraps @LlvmEnv@ state as well as the @IO@ monad
 newtype LlvmM a = LlvmM { runLlvmM :: LlvmEnv -> IO (a, LlvmEnv) }
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total LlvmM
+#endif
 
 instance Applicative LlvmM where
     pure x = LlvmM $ \env -> return (x, env)

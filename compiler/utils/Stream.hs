@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 -- -----------------------------------------------------------------------------
 --
 -- (c) The University of Glasgow 2012
@@ -14,6 +18,9 @@ module Stream (
 import GhcPrelude
 
 import Control.Monad
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -- |
 -- @Stream m a b@ is a computation in some Monad @m@ that delivers a sequence
@@ -40,14 +47,26 @@ import Control.Monad
 --
 newtype Stream m a b = Stream { runStream :: m (Either b (a, Stream m a b)) }
 
-instance Monad f => Functor (Stream f a) where
+instance (Monad f
+#if MIN_VERSION_base(4,14,0)
+        , Total f
+#endif
+         ) => Functor (Stream f a) where
   fmap = liftM
 
-instance Monad m => Applicative (Stream m a) where
+instance (Monad m
+#if MIN_VERSION_base(4,14,0)
+        , Total m
+#endif
+         ) => Applicative (Stream m a) where
   pure a = Stream (return (Left a))
   (<*>) = ap
 
-instance Monad m => Monad (Stream m a) where
+instance (Monad m
+#if MIN_VERSION_base(4,14,0)
+        , Total m
+#endif
+         ) => Monad (Stream m a) where
 
   Stream m >>= k = Stream $ do
                 r <- m
@@ -55,7 +74,11 @@ instance Monad m => Monad (Stream m a) where
                   Left b        -> runStream (k b)
                   Right (a,str) -> return (Right (a, str >>= k))
 
-yield :: Monad m => a -> Stream m a ()
+yield :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+        , Total m
+#endif
+         ) => a -> Stream m a ()
 yield a = Stream (return (Right (a, return ())))
 
 liftIO :: IO a -> Stream IO b a
@@ -91,7 +114,11 @@ consume str f = do
         consume str' f
 
 -- | Turn a list into a 'Stream', by yielding each element in turn.
-fromList :: Monad m => [a] -> Stream m a ()
+fromList :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+        , Total m
+#endif
+            ) => [a] -> Stream m a ()
 fromList = mapM_ yield
 
 -- | Apply a function to each element of a 'Stream', lazily

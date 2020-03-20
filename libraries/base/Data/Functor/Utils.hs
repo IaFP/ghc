@@ -1,4 +1,5 @@
 {-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 -----------------------------------------------------------------------------
@@ -12,6 +13,7 @@ module Data.Functor.Utils where
 import Data.Coerce (Coercible, coerce)
 import GHC.Base ( Applicative(..), Functor(..), Maybe(..), Monoid(..), Ord(..)
                 , Semigroup(..), ($), otherwise )
+import GHC.Types (Total)
 
 -- We don't expose Max and Min because, as Edward Kmett pointed out to me,
 -- there are two reasonable ways to define them. One way is to use Maybe, as we
@@ -51,6 +53,8 @@ instance Ord a => Monoid (Min a) where
 -- left-to-right state-transforming monad
 newtype StateL s a = StateL { runStateL :: s -> (s, a) }
 
+instance Total (StateL s)
+
 -- | @since 4.0
 instance Functor (StateL s) where
     fmap f (StateL k) = StateL $ \ s -> let (s', v) = k s in (s', f v)
@@ -69,6 +73,8 @@ instance Applicative (StateL s) where
 
 -- right-to-left state-transforming monad
 newtype StateR s a = StateR { runStateR :: s -> (s, a) }
+
+instance Total (StateR s)
 
 -- | @since 4.0
 instance Functor (StateR s) where

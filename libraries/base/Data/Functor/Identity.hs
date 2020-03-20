@@ -4,7 +4,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE Trustworthy #-}
-
+{-# LANGUAGE PartialTypeConstructors #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Functor.Identity
@@ -51,7 +51,7 @@ import GHC.Num (Num)
 import GHC.Read (Read(..), lex, readParen)
 import GHC.Real (Fractional, Integral, Real, RealFrac)
 import GHC.Show (Show(..), showParen, showString)
-import GHC.Types (Bool(..))
+import GHC.Types (Bool(..), Total)
 
 -- | Identity functor and monad. (a non-strict monad)
 --
@@ -77,6 +77,8 @@ newtype Identity a = Identity { runIdentity :: a }
              , RealFloat  -- ^ @since 4.9.0.0
              , Storable   -- ^ @since 4.9.0.0
              )
+
+instance Total Identity
 
 -- | This instance would be equivalent to the derived instances of the
 -- 'Identity' newtype if the 'runIdentity' field were removed

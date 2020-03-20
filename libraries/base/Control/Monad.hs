@@ -1,5 +1,8 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PartialTypeConstructors
+           , TypeOperators
+           , ExplicitNamespaces #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -84,6 +87,7 @@ import Data.Traversable ( forM, mapM, traverse, sequence, sequenceA )
 import GHC.Base hiding ( mapM, sequence )
 import GHC.List ( zipWith, unzip )
 import GHC.Num  ( (-) )
+import GHC.Types (type (@@), Total)
 
 -- -----------------------------------------------------------------------------
 -- Functions mandated by the Prelude
@@ -136,7 +140,7 @@ guard False     =  empty
 -- | This generalizes the list-based 'Data.List.filter' function.
 
 {-# INLINE filterM #-}
-filterM          :: (Applicative m) => (a -> m Bool) -> [a] -> m [a]
+filterM          :: (Applicative m, m @@ ([a] -> [a])) => (a -> m Bool) -> [a] -> m [a]
 filterM p        = foldr (\ x -> liftA2 (\ flg -> if flg then (x:) else id) (p x)) (pure [])
 
 infixr 1 <=<, >=>
@@ -197,7 +201,7 @@ f >=> g     = \x -> f x >>= g
 --     echo client = 'forever' $
 --       hGetLine client >>= hPutStrLn client
 -- @
-forever     :: (Applicative f) => f a -> f b
+forever     :: (Applicative f, f @@ (b -> b)) => f a -> f b
 {-# INLINE forever #-}
 forever a   = let a' = a *> a' in a'
 -- Use explicit sharing here, as it prevents a space leak regardless of
@@ -209,21 +213,23 @@ forever a   = let a' = a *> a' in a'
 -- | The 'mapAndUnzipM' function maps its first argument over a list, returning
 -- the result as a pair of lists. This function is mainly used with complicated
 -- data structures or a state monad.
-mapAndUnzipM      :: (Applicative m) => (a -> m (b,c)) -> [a] -> m ([b], [c])
+mapAndUnzipM      :: (Applicative m, Total m)
+                  => (a -> m (b,c)) -> [a] -> m ([b], [c])
 {-# INLINE mapAndUnzipM #-}
 -- Inline so that fusion with 'unzip' and 'traverse' has a chance to fire.
 -- See Note [Inline @unzipN@ functions] in GHC/OldList.hs.
 mapAndUnzipM f xs =  unzip <$> traverse f xs
 
 -- | The 'zipWithM' function generalizes 'zipWith' to arbitrary applicative functors.
-zipWithM          :: (Applicative m) => (a -> b -> m c) -> [a] -> [b] -> m [c]
+zipWithM          :: (Applicative m, Total m)
+                  => (a -> b -> m c) -> [a] -> [b] -> m [c]
 {-# INLINE zipWithM #-}
 -- Inline so that fusion with zipWith and sequenceA have a chance to fire
 -- See Note [Fusion for zipN/zipWithN] in List.hs]
 zipWithM f xs ys  =  sequenceA (zipWith f xs ys)
 
 -- | 'zipWithM_' is the extension of 'zipWithM' which ignores the final result.
-zipWithM_         :: (Applicative m) => (a -> b -> m c) -> [a] -> [b] -> m ()
+zipWithM_         :: (Applicative m, m @@ (() -> ())) => (a -> b -> m c) -> [a] -> [b] -> m ()
 {-# INLINE zipWithM_ #-}
 -- Inline so that fusion with zipWith and sequenceA have a chance to fire
 -- See Note [Fusion for zipN/zipWithN] in List.hs]
@@ -300,7 +306,7 @@ Core: https://gitlab.haskell.org/ghc/ghc/issues/11795#note_118976
 -- @
 --
 -- Note the @Applicative@ constraint.
-replicateM        :: (Applicative m) => Int -> m a -> m [a]
+replicateM        :: (Applicative m,  m @@ ([a] -> [a])) => Int -> m a -> m [a]
 {-# INLINABLE replicateM #-}
 {-# SPECIALISE replicateM :: Int -> IO a -> IO [a] #-}
 {-# SPECIALISE replicateM :: Int -> Maybe a -> Maybe [a] #-}
@@ -312,7 +318,7 @@ replicateM cnt0 f =
         | otherwise = liftA2 (:) f (loop (cnt - 1))
 
 -- | Like 'replicateM', but discards the result.
-replicateM_       :: (Applicative m) => Int -> m a -> m ()
+replicateM_       :: (Applicative m, m @@ (() -> ())) => Int -> m a -> m ()
 {-# INLINABLE replicateM_ #-}
 {-# SPECIALISE replicateM_ :: Int -> IO a -> IO () #-}
 {-# SPECIALISE replicateM_ :: Int -> Maybe a -> Maybe () #-}

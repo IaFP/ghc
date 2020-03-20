@@ -10,6 +10,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module CoreMap(
    -- * Maps over Core expressions
@@ -55,6 +59,9 @@ import VarEnv
 import NameEnv
 import Outputable
 import Control.Monad( (>=>) )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@), Total)
+#endif
 
 {-
 This module implements TrieMaps over Core related data structures
@@ -77,23 +84,24 @@ numbered on the fly.
 
 -- The CoreMap makes heavy use of GenMap. However the CoreMap Types are not
 -- known when defining GenMap so we can only specialize them here.
+-- ANI FIX SPECIALIZE
+-- {-# SPECIALIZE lkG :: Key TypeMapX     -> TypeMapG a     -> Maybe a #-}
+-- {-# SPECIALIZE lkG :: Key CoercionMapX -> CoercionMapG a -> Maybe a #-}
+-- {-# SPECIALIZE lkG :: Key CoreMapX     -> CoreMapG a     -> Maybe a #-}
 
-{-# SPECIALIZE lkG :: Key TypeMapX     -> TypeMapG a     -> Maybe a #-}
-{-# SPECIALIZE lkG :: Key CoercionMapX -> CoercionMapG a -> Maybe a #-}
-{-# SPECIALIZE lkG :: Key CoreMapX     -> CoreMapG a     -> Maybe a #-}
+
+-- {-# SPECIALIZE xtG :: Key TypeMapX     -> XT a -> TypeMapG a -> TypeMapG a #-}
+-- {-# SPECIALIZE xtG :: Key CoercionMapX -> XT a -> CoercionMapG a -> CoercionMapG a #-}
+-- {-# SPECIALIZE xtG :: Key CoreMapX     -> XT a -> CoreMapG a -> CoreMapG a #-}
+
+-- {-# SPECIALIZE mapG :: (a -> b) -> TypeMapG a     -> TypeMapG b #-}
+-- {-# SPECIALIZE mapG :: (a -> b) -> CoercionMapG a -> CoercionMapG b #-}
+-- {-# SPECIALIZE mapG :: (a -> b) -> CoreMapG a     -> CoreMapG b #-}
 
 
-{-# SPECIALIZE xtG :: Key TypeMapX     -> XT a -> TypeMapG a -> TypeMapG a #-}
-{-# SPECIALIZE xtG :: Key CoercionMapX -> XT a -> CoercionMapG a -> CoercionMapG a #-}
-{-# SPECIALIZE xtG :: Key CoreMapX     -> XT a -> CoreMapG a -> CoreMapG a #-}
-
-{-# SPECIALIZE mapG :: (a -> b) -> TypeMapG a     -> TypeMapG b #-}
-{-# SPECIALIZE mapG :: (a -> b) -> CoercionMapG a -> CoercionMapG b #-}
-{-# SPECIALIZE mapG :: (a -> b) -> CoreMapG a     -> CoreMapG b #-}
-
-{-# SPECIALIZE fdG :: (a -> b -> b) -> TypeMapG a     -> b -> b #-}
-{-# SPECIALIZE fdG :: (a -> b -> b) -> CoercionMapG a -> b -> b #-}
-{-# SPECIALIZE fdG :: (a -> b -> b) -> CoreMapG a     -> b -> b #-}
+-- {-# SPECIALIZE fdG :: (a -> b -> b) -> TypeMapG a     -> b -> b #-}
+-- {-# SPECIALIZE fdG :: (a -> b -> b) -> CoercionMapG a -> b -> b #-}
+-- {-# SPECIALIZE fdG :: (a -> b -> b) -> CoreMapG a     -> b -> b #-}
 
 
 {-
@@ -145,6 +153,9 @@ See also Note [Empty case alternatives] in CoreSyn.
 -- | @CoreMap a@ is a map from 'CoreExpr' to @a@.  If you are a client, this
 -- is the type you want.
 newtype CoreMap a = CoreMap (CoreMapG a)
+#if MIN_VERSION_base(4,14,0)
+instance Total CoreMap 
+#endif
 
 instance TrieMap CoreMap where
     type Key CoreMap = CoreExpr
@@ -176,6 +187,10 @@ data CoreMapX a
        , cm_case  :: CoreMapG (ListMap AltMap a)
        , cm_ecase :: CoreMapG (TypeMapG a)    -- Note [Empty case alternatives]
      }
+
+#if MIN_VERSION_base(4,14,0)
+type instance CoreMapX @@ a = ()
+#endif
 
 instance Eq (DeBruijn CoreExpr) where
   D env1 e1 == D env2 e2 = go e1 e2 where
@@ -355,6 +370,9 @@ data AltMap a   -- A single alternative
   = AM { am_deflt :: CoreMapG a
        , am_data  :: DNameEnv (CoreMapG a)
        , am_lit   :: LiteralMap (CoreMapG a) }
+#if MIN_VERSION_base(4,14,0)
+type instance AltMap @@ a = ()
+#endif
 
 instance TrieMap AltMap where
    type Key AltMap = CoreAlt
@@ -476,6 +494,9 @@ data TypeMapX a
        , tm_coerce :: Maybe a
        }
     -- Note that there is no tyconapp case; see Note [Equality on AppTys] in Type
+#if MIN_VERSION_base(4,14,0)
+type instance TypeMapX @@ a = ()
+#endif
 
 -- | Squeeze out any synonyms, and change TyConApps to nested AppTys. Why the
 -- last one? See Note [Equality on AppTys] in Type
@@ -638,6 +659,9 @@ foldTyLit l m = flip (Map.foldr l) (tlm_string m)
 -- | @TypeMap a@ is a map from 'Type' to @a@.  If you are a client, this
 -- is the type you want. The keys in this map may have different kinds.
 newtype TypeMap a = TypeMap (TypeMapG (TypeMapG a))
+#if MIN_VERSION_base(4,14,0)
+instance Total TypeMap
+#endif
 
 lkTT :: DeBruijn Type -> TypeMap a -> Maybe a
 lkTT (D env ty) (TypeMap m) = lkG (D env $ typeKind ty) m

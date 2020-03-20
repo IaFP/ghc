@@ -12,6 +12,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE NoPartialTypeConstructors #-}
 
 {-|
 

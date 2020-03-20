@@ -3,6 +3,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE TypeOperators, ExplicitNamespaces, UndecidableInstances #-}
 
 -- | Auxilary definitions for 'Semigroup'
 --
@@ -27,6 +29,7 @@ import GHC.Read
 import GHC.Show
 import GHC.Generics
 import GHC.Real
+import GHC.Types (type (@@))
 
 -- | This is a valid definition of 'stimes' for an idempotent 'Semigroup'.
 --
@@ -309,10 +312,10 @@ newtype Alt f a = Alt {getAlt :: f a}
            )
 
 -- | @since 4.9.0.0
-instance Alternative f => Semigroup (Alt f a) where
+instance (f @@ a, Alternative f) => Semigroup (Alt f a) where
     (<>) = coerce ((<|>) :: f a -> f a -> f a)
     stimes = stimesMonoid
 
 -- | @since 4.8.0.0
-instance Alternative f => Monoid (Alt f a) where
+instance (f @@ a, Alternative f) => Monoid (Alt f a) where
     mempty = Alt empty

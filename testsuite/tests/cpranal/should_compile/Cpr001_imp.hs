@@ -1,5 +1,5 @@
 -- $Id: Cpr001_imp.hs,v 1.1 2001/08/22 12:21:15 simonmar Exp $
-
+{-# LANGUAGE UndecidableInstances #-}
 module Cpr001_imp where
 
 import Control.Applicative (Applicative(..))

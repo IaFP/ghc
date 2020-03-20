@@ -1,6 +1,9 @@
 {-# LANGUAGE MagicHash, NoImplicitPrelude, TypeFamilies, UnboxedTuples,
              MultiParamTypeClasses, RoleAnnotations, CPP, TypeOperators,
-             PolyKinds #-}
+             PolyKinds, UndecidableSuperClasses #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE NoPartialTypeConstructors #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  GHC.Types
@@ -32,6 +35,7 @@ module GHC.Types (
         Nat, Symbol,
         Any,
         type (~~), Coercible,
+        type (@@), Total, Total2,
         TYPE, RuntimeRep(..), Type, Constraint,
           -- The historical type * should ideally be written as
           -- `type *`, without the parentheses. But that's a true
@@ -284,6 +288,27 @@ class a ~ b
 --      @since 4.7.0.0
 class Coercible (a :: k) (b :: k)
   -- See also Note [The equality types story] in TysPrim
+
+{- *********************************************************************
+*                                                                      *
+                    (@@) and TyAt (Wellformed)
+
+*                                                                      *
+********************************************************************* -}
+-- |    The predicate that asserts type application is sound
+--      This is an implimentation of partial type constructor
+--      Mark P. Jones, J. Garrett Morris, and Richard A. Eisenberg. 2019.
+--      Partial type constructors: or, making ad hoc datatypes less ad hoc.
+--      Proc. ACM Program. Lang. 4, POPL, Article 40 (January 2020).
+--      DOI: <https://dl.acm.org/doi/10.1145/3371108>
+
+type family (@@) (t :: k' -> k) (u :: k') :: Constraint
+
+class Total (f:: k' -> k)
+-- Total a = forall a. f @@ a
+
+class Total2 (f :: k'' -> k' -> k)
+-- Total2 a = forall a b. (f @@ a, f a @@ b)
 
 {- *********************************************************************
 *                                                                      *

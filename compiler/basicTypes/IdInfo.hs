@@ -10,6 +10,9 @@ Haskell. [WDP 94/11])
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module IdInfo (
         -- * The IdDetails type

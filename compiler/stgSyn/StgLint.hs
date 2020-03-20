@@ -31,9 +31,12 @@ Since then there were some attempts at enabling it again, as summarised in
 #14787. It's finally decided that we remove all type checking and only look for
 basic properties listed above.
 -}
-
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ScopedTypeVariables, FlexibleContexts, TypeFamilies,
   DeriveFunctor #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module StgLint ( lintStgTopBindings ) where
 
@@ -59,8 +62,18 @@ import Module           ( Module )
 import qualified ErrUtils as Err
 import Control.Applicative ((<|>))
 import Control.Monad
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types(type (@@), Total)
+#endif
 
-lintStgTopBindings :: forall a . (OutputablePass a, BinderP a ~ Id)
+lintStgTopBindings :: forall a . (OutputablePass a, BinderP a ~ Id
+#if MIN_VERSION_base(4,14,0)
+                                 , GenStgTopBinding @@ a
+                                 , GenStgRhs @@ a
+                                 , GenStgBinding @@ a
+                                 , GenStgExpr @@ a
+#endif
+                                 )
                    => DynFlags
                    -> Module -- ^ module being compiled
                    -> Bool   -- ^ have we run Unarise yet?
@@ -107,7 +120,11 @@ lintStgVar :: Id -> LintM ()
 lintStgVar id = checkInScope id
 
 lintStgBinds
-    :: (OutputablePass a, BinderP a ~ Id)
+    :: (OutputablePass a, BinderP a ~ Id
+#if MIN_VERSION_base(4,14,0)
+      , GenStgRhs @@ a, GenStgExpr @@ a
+#endif
+       )
     => TopLevelFlag -> GenStgBinding a -> LintM [Id] -- Returns the binders
 lintStgBinds top_lvl (StgNonRec binder rhs) = do
     lint_binds_help top_lvl (binder,rhs)
@@ -121,7 +138,11 @@ lintStgBinds top_lvl (StgRec pairs)
     binders = [b | (b,_) <- pairs]
 
 lint_binds_help
-    :: (OutputablePass a, BinderP a ~ Id)
+    :: (OutputablePass a, BinderP a ~ Id
+#if MIN_VERSION_base(4,14,0)
+       , GenStgBinding @@ a, GenStgExpr @@ a
+#endif
+       )
     => TopLevelFlag
     -> (Id, GenStgRhs a)
     -> LintM ()
@@ -136,7 +157,11 @@ lint_binds_help top_lvl (binder, rhs)
 -- | Top-level bindings can't inherit the cost centre stack from their
 -- (static) allocation site.
 checkNoCurrentCCS
-    :: (OutputablePass a, BinderP a ~ Id)
+    :: (OutputablePass a, BinderP a ~ Id
+#if MIN_VERSION_base(4,14,0)
+       , GenStgExpr @@ a, GenStgBinding @@ a
+#endif
+       )
     => GenStgRhs a
     -> LintM ()
 checkNoCurrentCCS rhs@(StgRhsClosure _ ccs _ _ _)
@@ -148,7 +173,11 @@ checkNoCurrentCCS rhs@(StgRhsCon ccs _ _)
 checkNoCurrentCCS _
   = return ()
 
-lintStgRhs :: (OutputablePass a, BinderP a ~ Id) => GenStgRhs a -> LintM ()
+lintStgRhs :: (OutputablePass a, BinderP a ~ Id
+#if MIN_VERSION_base(4,14,0)
+              , GenStgBinding @@ a, GenStgExpr @@ a
+#endif
+              ) => GenStgRhs a -> LintM ()
 
 lintStgRhs (StgRhsClosure _ _ _ [] expr)
   = lintStgExpr expr
@@ -165,7 +194,11 @@ lintStgRhs rhs@(StgRhsCon _ con args) = do
     mapM_ lintStgArg args
     mapM_ checkPostUnariseConArg args
 
-lintStgExpr :: (OutputablePass a, BinderP a ~ Id) => GenStgExpr a -> LintM ()
+lintStgExpr :: (OutputablePass a, BinderP a ~ Id
+#if MIN_VERSION_base(4,14,0)
+              , GenStgBinding @@ a, GenStgRhs @@ a
+#endif
+               ) => GenStgExpr a -> LintM ()
 
 lintStgExpr (StgLit _) = return ()
 
@@ -211,7 +244,11 @@ lintStgExpr (StgCase scrut bndr alts_type alts) = do
     addInScopeVars [bndr | in_scope] (mapM_ lintAlt alts)
 
 lintAlt
-    :: (OutputablePass a, BinderP a ~ Id)
+    :: (OutputablePass a, BinderP a ~ Id
+#if MIN_VERSION_base(4,14,0)
+       , GenStgRhs @@ a, GenStgBinding @@ a
+#endif
+       )
     => (AltCon, [Id], GenStgExpr a) -> LintM ()
 
 lintAlt (DEFAULT, _, rhs) =
@@ -260,6 +297,9 @@ newtype LintM a = LintM
               -> (a, Bag MsgDoc)   -- Result and error messages (if any)
     }
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total LintM
+#endif
 
 data LintFlags = LintFlags { lf_unarised :: !Bool
                              -- ^ have we run the unariser yet?
@@ -388,7 +428,11 @@ checkInScope id = LintM $ \mod _lf loc scope errs
     else
         ((), errs)
 
-mkUnliftedTyMsg :: OutputablePass a => Id -> GenStgRhs a -> SDoc
+mkUnliftedTyMsg :: (OutputablePass a
+#if MIN_VERSION_base(4,14,0)
+                  , GenStgBinding @@ a, GenStgExpr @@ a
+#endif
+                   ) => Id -> GenStgRhs a -> SDoc
 mkUnliftedTyMsg binder rhs
   = (text "Let(rec) binder" <+> quotes (ppr binder) <+>
      text "has unlifted type" <+> quotes (ppr (idType binder)))

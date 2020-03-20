@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 -- This boot file is in place to break the loop where:
 -- + TcSimplify calls 'TcErrors.reportUnsolved',
 -- + which calls 'TcHoleErrors.findValidHoleFits`

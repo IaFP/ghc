@@ -8,6 +8,9 @@ Type subsumption and unification
 
 {-# LANGUAGE CPP, DeriveFunctor, MultiWayIf, TupleSections,
     ScopedTypeVariables #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcUnify (
   -- Full-blown subsumption
@@ -71,6 +74,9 @@ import Outputable
 import Data.Maybe( isNothing )
 import Control.Monad
 import Control.Arrow ( second )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 {-
 ************************************************************************
@@ -2172,6 +2178,10 @@ data MetaTyVarUpdateResult a
   | MTVU_Bad     -- Forall, predicate, or type family
   | MTVU_Occurs
     deriving (Functor)
+
+#if MIN_VERSION_base(4,14,0)
+instance Total MetaTyVarUpdateResult
+#endif
 
 instance Applicative MetaTyVarUpdateResult where
       pure = MTVU_OK

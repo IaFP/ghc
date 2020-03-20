@@ -1,4 +1,4 @@
-{-# LANGUAGE UndecidableInstances, PatternSynonyms, GADTs #-}
+{-# LANGUAGE UndecidableInstances, PatternSynonyms, GADTs, ConstrainedClassMethods #-}
 
 module T11728 where
 

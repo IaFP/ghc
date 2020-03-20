@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP, StandaloneDeriving, GeneralizedNewtypeDeriving #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- |
 -- Types for referring to remote objects in Remote GHCi.  For more
@@ -26,6 +29,9 @@ import Data.Binary
 import Unsafe.Coerce
 import GHC.Exts
 import GHC.ForeignPtr
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@), Total)
+#endif
 
 -- -----------------------------------------------------------------------------
 -- RemotePtr
@@ -91,6 +97,10 @@ freeRemoteRef (RemoteRef w) =
 
 -- | An HValueRef with a finalizer
 newtype ForeignRef a = ForeignRef (ForeignPtr ())
+#if MIN_VERSION_base(4,14,0)
+type instance ForeignRef @@ a = ()
+instance Total ForeignRef
+#endif
 
 instance NFData (ForeignRef a) where
   rnf x = x `seq` ()

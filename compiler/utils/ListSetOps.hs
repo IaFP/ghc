@@ -6,6 +6,9 @@
 -}
 
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
 
 module ListSetOps (
         unionLists, minusList, deleteBys,

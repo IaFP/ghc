@@ -4,6 +4,9 @@
 -}
 
 {-# LANGUAGE CPP, TupleSections, ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcValidity (
   Rank, UserTypeCtxt(..), checkValidType, checkValidMonoType,
@@ -330,6 +333,7 @@ checkValidType ctxt ty
   = do { traceTc "checkValidType" (ppr ty <+> text "::" <+> ppr (tcTypeKind ty))
        ; rankn_flag  <- xoptM LangExt.RankNTypes
        ; impred_flag <- xoptM LangExt.ImpredicativeTypes
+       -- ; party_ctrs <- xoptM LangExt.PartialTypeConstructors
        ; let gen_rank :: Rank -> Rank
              gen_rank r | rankn_flag = ArbitraryRank
                         | otherwise  = r
@@ -352,6 +356,7 @@ checkValidType ctxt ty
                  KindSigCtxt    -> rank1
                  StandaloneKindSigCtxt{} -> rank1
                  TypeAppCtxt | impred_flag -> ArbitraryRank
+                             --  party_ctrs -> ArbitraryRank
                              | otherwise   -> tyConArgMonoType
                     -- Normally, ImpredicativeTypes is handled in check_arg_type,
                     -- but visible type applications don't go through there.
@@ -811,7 +816,8 @@ check_ubx_tuple (ve@ValidityEnv{ve_tidy_env = env}) ty tys
         ; checkTcM ub_tuples_allowed (ubxArgTyErr env ty)
 
         ; impred <- xoptM LangExt.ImpredicativeTypes
-        ; let rank' = if impred then ArbitraryRank else tyConArgMonoType
+        ; partyctrs <- xoptM LangExt.PartialTypeConstructors
+        ; let rank' = if impred || partyctrs then ArbitraryRank else tyConArgMonoType
                 -- c.f. check_arg_type
                 -- However, args are allowed to be unlifted, or
                 -- more unboxed tuples, so can't use check_arg_ty
@@ -843,12 +849,14 @@ check_arg_type _ _ (CoercionTy {}) = return ()
 
 check_arg_type type_syn (ve@ValidityEnv{ve_ctxt = ctxt, ve_rank = rank}) ty
   = do  { impred <- xoptM LangExt.ImpredicativeTypes
+        ; partyctrs <- xoptM LangExt.PartialTypeConstructors
         ; let rank' = case rank of          -- Predictive => must be monotype
                         -- Rank-n arguments to type synonyms are OK, provided
                         -- that LiberalTypeSynonyms is enabled.
                         _ | type_syn       -> synArgMonoType
                         MustBeMonoType     -> MustBeMonoType  -- Monotype, regardless
                         _other | impred    -> ArbitraryRank
+                               | partyctrs -> ArbitraryRank
                                | otherwise -> tyConArgMonoType
                         -- Make sure that MustBeMonoType is propagated,
                         -- so that we don't suggest -XImpredicativeTypes in
@@ -1141,19 +1149,20 @@ check_quant_pred :: TidyEnv -> DynFlags -> UserTypeCtxt
                  -> PredType -> ThetaType -> PredType -> TcM ()
 check_quant_pred env dflags _ctxt pred theta head_pred
   = addErrCtxt (text "In the quantified constraint" <+> quotes (ppr pred)) $
-    do { -- Check the instance head
-         case classifyPredType head_pred of
+    do {
+      -- partialCtrs <- xoptM LangExt.PartialTypeConstructors 
+      -- Check the instance head
+      ; case classifyPredType head_pred of
             ClassPred cls tys -> checkValidInstHead SigmaCtxt cls tys
                                  -- SigmaCtxt tells checkValidInstHead that
                                  -- this is the head of a quantified constraint
-            IrredPred {}      | hasTyVarHead head_pred
-                              -> return ()
+            IrredPred _ | hasTyVarHead head_pred -> return ()
             _                 -> failWithTcM (badQuantHeadErr env pred)
 
          -- Check for termination
        ; unless (xopt LangExt.UndecidableInstances dflags) $
          checkInstTermination theta head_pred
-    }
+       }
 
 check_tuple_pred :: Bool -> TidyEnv -> DynFlags -> UserTypeCtxt -> PredType -> [PredType] -> TcM ()
 check_tuple_pred under_syn env dflags ctxt pred ts

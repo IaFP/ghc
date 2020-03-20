@@ -1,4 +1,6 @@
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+#endif
 
 module GHC.Platform.ARM64 where
 

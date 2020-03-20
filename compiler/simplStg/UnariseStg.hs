@@ -193,6 +193,9 @@ STG programs after unarisation have these invariants:
 -}
 
 {-# LANGUAGE CPP, TupleSections #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module UnariseStg (unarise) where
 

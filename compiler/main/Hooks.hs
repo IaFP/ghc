@@ -4,6 +4,9 @@
 --     refer to *types*, rather than *code*
 
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 module Hooks ( Hooks
              , emptyHooks
              , lookupHook
@@ -46,6 +49,9 @@ import BasicTypes
 import GHC.Hs.Extension
 
 import Data.Maybe
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 {-
 ************************************************************************
@@ -97,7 +103,11 @@ data Hooks = Hooks
   , createIservProcessHook :: Maybe (CreateProcess -> IO ProcessHandle)
   }
 
-getHooked :: (Functor f, HasDynFlags f) => (Hooks -> Maybe a) -> a -> f a
+getHooked :: (Functor f, HasDynFlags f
+#if MIN_VERSION_base(4,14,0)
+             ,  f @@ DynFlags
+#endif
+             ) => (Hooks -> Maybe a) -> a -> f a
 getHooked hook def = fmap (lookupHook hook def) getDynFlags
 
 lookupHook :: (Hooks -> Maybe a) -> a -> DynFlags -> a

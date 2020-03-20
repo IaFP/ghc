@@ -3,6 +3,10 @@
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module Hoopl.Label
     ( Label
@@ -22,6 +26,9 @@ import Hoopl.Collections
 
 import Unique (Uniquable(..))
 import TrieMap
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 
 -----------------------------------------------------------------------------
@@ -76,6 +83,9 @@ instance IsSet LabelSet where
 
 newtype LabelMap v = LM (UniqueMap v)
   deriving (Eq, Ord, Show, Functor, Foldable, Traversable)
+#if MIN_VERSION_base(4,14,0)
+instance Total LabelMap
+#endif
 
 instance IsMap LabelMap where
   type KeyOf LabelMap = Label

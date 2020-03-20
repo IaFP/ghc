@@ -16,15 +16,15 @@ tc211.hs:20:8: error:
                 (head foo) foo
 
 tc211.hs:25:8: error:
-    • Couldn't match type ‘a1 -> a1’ with ‘forall a. a -> a’
+    • Couldn't match type ‘a0 -> a0’ with ‘forall a. a -> a’
       Expected type: [forall a. a -> a]
-        Actual type: [a1 -> a1]
+        Actual type: [a0 -> a0]
     • In the expression: (head foo) : (tail foo)
       In an equation for ‘barr’: barr = (head foo) : (tail foo)
 
 tc211.hs:25:20: error:
-    • Couldn't match type ‘forall a. a -> a’ with ‘a1 -> a1’
-      Expected type: [a1 -> a1]
+    • Couldn't match type ‘forall a. a -> a’ with ‘a0 -> a0’
+      Expected type: [a0 -> a0]
         Actual type: [forall a. a -> a]
     • In the second argument of ‘(:)’, namely ‘(tail foo)’
       In the expression: (head foo) : (tail foo)
@@ -52,7 +52,7 @@ tc211.hs:62:18: error:
 
 tc211.hs:68:8: error:
     • Couldn't match expected type ‘forall a. a -> a’
-                  with actual type ‘a0 -> a0’
+                  with actual type ‘a5 -> a5’
     • In the expression:
           Cons ::
             ((forall a. a -> a)

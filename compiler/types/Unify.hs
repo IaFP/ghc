@@ -3,6 +3,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module Unify (
         tcMatchTy, tcMatchTyKi,
@@ -49,6 +52,9 @@ import Control.Monad
 import qualified Control.Monad.Fail as MonadFail
 import Control.Applicative hiding ( empty )
 import qualified Control.Applicative
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 {-
 
@@ -1238,6 +1244,9 @@ data UMState = UMState
 
 newtype UM a = UM { unUM :: UMState -> UnifyResultM (UMState, a) }
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total UM
+#endif
 
 instance Applicative UM where
       pure a = UM (\s -> pure (s, a))

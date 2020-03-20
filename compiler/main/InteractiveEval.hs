@@ -1,5 +1,8 @@
 {-# LANGUAGE CPP, MagicHash, NondecreasingIndentation,
     RecordWildCards, BangPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- -----------------------------------------------------------------------------
 --
@@ -119,11 +122,18 @@ import TcEvidence
 import Data.Bifunctor (second)
 
 import TcSMonad (runTcS)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@), Total)
+#endif
 
 -- -----------------------------------------------------------------------------
 -- running a statement interactively
 
-getResumeContext :: GhcMonad m => m [Resume]
+getResumeContext :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                    , m @@ HscEnv
+#endif
+                    ) => m [Resume]
 getResumeContext = withSession (return . ic_resume . hsc_IC)
 
 mkHistory :: HscEnv -> ForeignHValue -> BreakInfo -> History
@@ -159,7 +169,11 @@ findEnclosingDecls hsc_env (BreakInfo modl ix) =
    in modBreaks_decls mb ! ix
 
 -- | Update fixity environment in the current interactive context.
-updateFixityEnv :: GhcMonad m => FixityEnv -> m ()
+updateFixityEnv :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                   , m @@ HscEnv
+#endif
+                   ) => FixityEnv -> m ()
 updateFixityEnv fix_env = do
   hsc_env <- getSession
   let ic = hsc_IC hsc_env
@@ -179,7 +193,11 @@ execOptions = ExecOptions
 
 -- | Run a statement in the current interactive context.
 execStmt
-  :: GhcMonad m
+  :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+     , Total m
+#endif
+     )
   => String             -- ^ a statement (bind or expression)
   -> ExecOptions
   -> m ExecResult
@@ -199,7 +217,11 @@ execStmt input exec_opts@ExecOptions{..} = do
 -- | Like `execStmt`, but takes a parsed statement as argument. Useful when
 -- doing preprocessing on the AST before execution, e.g. in GHCi (see
 -- GHCi.UI.runStmt).
-execStmt' :: GhcMonad m => GhciLStmt GhcPs -> String -> ExecOptions -> m ExecResult
+execStmt' :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+             , Total m
+#endif
+             ) => GhciLStmt GhcPs -> String -> ExecOptions -> m ExecResult
 execStmt' stmt stmt_text ExecOptions{..} = do
     hsc_env <- getSession
 
@@ -233,12 +255,21 @@ execStmt' stmt stmt_text ExecOptions{..} = do
         handleRunStatus execSingleStep stmt_text bindings ids
                         status (emptyHistory size)
 
-runDecls :: GhcMonad m => String -> m [Name]
+runDecls :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+            , m @@ HscEnv, m @@ [LHsDecl GhcPs], m @@ ([TyThing], InteractiveContext), m @@ ()
+#endif
+            ) => String -> m [Name]
 runDecls = runDeclsWithLocation "<interactive>" 1
 
 -- | Run some declarations and return any user-visible names that were brought
 -- into scope.
-runDeclsWithLocation :: GhcMonad m => String -> Int -> String -> m [Name]
+runDeclsWithLocation :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                        , m @@ [LHsDecl GhcPs],  m @@ HscEnv
+                        , m @@ (), m @@ ([TyThing], InteractiveContext)
+#endif
+                        ) => String -> Int -> String -> m [Name]
 runDeclsWithLocation source line_num input = do
     hsc_env <- getSession
     decls <- liftIO (hscParseDeclsWithLocation hsc_env source line_num input)
@@ -247,7 +278,12 @@ runDeclsWithLocation source line_num input = do
 -- | Like `runDeclsWithLocation`, but takes parsed declarations as argument.
 -- Useful when doing preprocessing on the AST before execution, e.g. in GHCi
 -- (see GHCi.UI.runStmt).
-runParsedDecls :: GhcMonad m => [LHsDecl GhcPs] -> m [Name]
+runParsedDecls :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                  , m @@ [LHsDecl GhcPs],  m @@ HscEnv, m @@ ([TyThing], InteractiveContext)
+                  , m @@ ()
+#endif
+                  ) => [LHsDecl GhcPs] -> m [Name]
 runParsedDecls decls = do
     hsc_env <- getSession
     (tyThings, ic) <- liftIO (hscParsedDecls hsc_env decls)
@@ -270,7 +306,11 @@ them. The relevant predicate is OccName.isDerivedOccName.
 See #11051 for more background and examples.
 -}
 
-withVirtualCWD :: GhcMonad m => m a -> m a
+withVirtualCWD :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                  ,  m @@ HscEnv, m @@ FilePath, m @@ ()
+#endif
+                  ) => m a -> m a
 withVirtualCWD m = do
   hsc_env <- getSession
 
@@ -295,13 +335,23 @@ withVirtualCWD m = do
 
   gbracket set_cwd reset_cwd $ \_ -> m
 
-parseImportDecl :: GhcMonad m => String -> m (ImportDecl GhcPs)
+parseImportDecl :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                   , m @@ HscEnv
+#endif
+                   ) => String -> m (ImportDecl GhcPs)
 parseImportDecl expr = withSession $ \hsc_env -> liftIO $ hscImport hsc_env expr
 
 emptyHistory :: Int -> BoundedList History
 emptyHistory size = nilBL size
 
-handleRunStatus :: GhcMonad m
+handleRunStatus :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                   , m @@ Bool, m @@ EvalStatus_ [ForeignHValue] [HValueRef], m @@ HscEnv
+                   , m @@ ForeignRef HValue, m @@ (HscEnv, [Name], SrcSpan, String), m @@ ()
+                   , m @@ ForeignRef (ResumeContext [HValueRef])
+#endif
+                   )
                 => SingleStep -> String-> ([TyThing],GlobalRdrEnv) -> [Id]
                 -> EvalStatus_ [ForeignHValue] [HValueRef]
                 -> BoundedList History
@@ -389,7 +439,14 @@ handleRunStatus step expr bindings final_ids status history
     = panic "not_tracing" -- actually exhaustive, but GHC can't tell
 
 
-resumeExec :: GhcMonad m => (SrcSpan->Bool) -> SingleStep -> m ExecResult
+resumeExec :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+             , m @@ HscEnv, m @@ (), m @@ EvalStatus_ [ForeignHValue] [HValueRef]
+             , m @@ FilePath, m @@ (HscEnv, [Name], SrcSpan, String)
+             , m @@ ForeignRef HValue, m @@ Bool
+             , m @@ ForeignRef (ResumeContext [HValueRef])
+#endif
+              ) => (SrcSpan->Bool) -> SingleStep -> m ExecResult
 resumeExec canLogSpan step
  = do
    hsc_env <- getSession
@@ -435,13 +492,26 @@ resumeExec canLogSpan step
                                                         fromListBL 50 hist
                 handleRunStatus step expr bindings final_ids status hist'
 
-back :: GhcMonad m => Int -> m ([Name], Int, SrcSpan, String)
+back :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+        , m @@ (HscEnv, [Name], SrcSpan, String), m @@ (), m @@ HscEnv
+#endif
+        ) => Int -> m ([Name], Int, SrcSpan, String)
 back n = moveHist (+n)
 
-forward :: GhcMonad m => Int -> m ([Name], Int, SrcSpan, String)
+forward :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+        , m @@ (HscEnv, [Name], SrcSpan, String), m @@ (), m @@ HscEnv
+#endif
+           ) => Int -> m ([Name], Int, SrcSpan, String)
 forward n = moveHist (subtract n)
 
-moveHist :: GhcMonad m => (Int -> Int) -> m ([Name], Int, SrcSpan, String)
+moveHist :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+             , m @@ HscEnv, m @@ ()
+             , m @@ (HscEnv, [Name], SrcSpan, String)
+#endif
+            ) => (Int -> Int) -> m ([Name], Int, SrcSpan, String)
 moveHist fn = do
   hsc_env <- getSession
   case ic_resume (hsc_IC hsc_env) of
@@ -683,7 +753,11 @@ pushResume hsc_env resume = hsc_env { hsc_IC = ictxt1 }
 -- -----------------------------------------------------------------------------
 -- Abandoning a resume context
 
-abandon :: GhcMonad m => m Bool
+abandon :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+          , m @@ HscEnv, m @@ ()
+#endif
+           ) => m Bool
 abandon = do
    hsc_env <- getSession
    let ic = hsc_IC hsc_env
@@ -695,7 +769,11 @@ abandon = do
          liftIO $ abandonStmt hsc_env (resumeContext r)
          return True
 
-abandonAll :: GhcMonad m => m Bool
+abandonAll :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+          , m @@ HscEnv, m @@ ()
+#endif
+              ) => m Bool
 abandonAll = do
    hsc_env <- getSession
    let ic = hsc_IC hsc_env
@@ -743,7 +821,11 @@ fromListBL bound l = BL (length l) bound l []
 -- We retain in scope all the things defined at the prompt, and kept
 -- in ic_tythings.  (Indeed, they shadow stuff from ic_imports.)
 
-setContext :: GhcMonad m => [InteractiveImport] -> m ()
+setContext :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+             , m @@ HscEnv, m @@ Either (ModuleName, String) GlobalRdrEnv
+#endif
+              ) => [InteractiveImport] -> m ()
 setContext imports
   = do { hsc_env <- getSession
        ; let dflags = hsc_dflags hsc_env
@@ -805,13 +887,21 @@ mkTopLevEnv hpt modl
 -- | Get the interactive evaluation context, consisting of a pair of the
 -- set of modules from which we take the full top-level scope, and the set
 -- of modules from which we take just the exports respectively.
-getContext :: GhcMonad m => m [InteractiveImport]
+getContext :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+             , m @@ HscEnv
+#endif
+              ) => m [InteractiveImport]
 getContext = withSession $ \HscEnv{ hsc_IC=ic } ->
              return (ic_imports ic)
 
 -- | Returns @True@ if the specified module is interpreted, and hence has
 -- its full top-level scope available.
-moduleIsInterpreted :: GhcMonad m => Module -> m Bool
+moduleIsInterpreted :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                       , m @@ HscEnv
+#endif
+                       ) => Module -> m Bool
 moduleIsInterpreted modl = withSession $ \h ->
  if moduleUnitId modl /= thisPackage (hsc_dflags h)
         then return False
@@ -824,7 +914,11 @@ moduleIsInterpreted modl = withSession $ \h ->
 -- are in scope (qualified or otherwise).  Otherwise we list a whole lot too many!
 -- The exact choice of which ones to show, and which to hide, is a judgement call.
 --      (see #1581)
-getInfo :: GhcMonad m => Bool -> Name
+getInfo :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+           , m @@ HscEnv
+#endif
+           ) => Bool -> Name
         -> m (Maybe (TyThing,Fixity,[ClsInst],[FamInst], SDoc))
 getInfo allInfo name
   = withSession $ \hsc_env ->
@@ -855,13 +949,21 @@ getInfo allInfo name
                | otherwise              = True
 
 -- | Returns all names in scope in the current interactive context
-getNamesInScope :: GhcMonad m => m [Name]
+getNamesInScope :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                   , m @@ HscEnv
+#endif
+                   ) => m [Name]
 getNamesInScope = withSession $ \hsc_env -> do
   return (map gre_name (globalRdrEnvElts (ic_rn_gbl_env (hsc_IC hsc_env))))
 
 -- | Returns all 'RdrName's in scope in the current interactive
 -- context, excluding any that are internally-generated.
-getRdrNamesInScope :: GhcMonad m => m [RdrName]
+getRdrNamesInScope :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                   , m @@ HscEnv
+#endif
+                      ) => m [RdrName]
 getRdrNamesInScope = withSession $ \hsc_env -> do
   let
       ic = hsc_IC hsc_env
@@ -873,7 +975,11 @@ getRdrNamesInScope = withSession $ \hsc_env -> do
 
 -- | Parses a string as an identifier, and returns the list of 'Name's that
 -- the identifier can refer to in the current interactive context.
-parseName :: GhcMonad m => String -> m [Name]
+parseName :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+             , m @@ HscEnv
+#endif
+             ) => String -> m [Name]
 parseName str = withSession $ \hsc_env -> liftIO $
    do { lrdr_name <- hscParseIdentifier hsc_env str
       ; hscTcRnLookupRdrName hsc_env lrdr_name }
@@ -918,7 +1024,11 @@ parseThing parser dflags stmt = do
 
   Lexer.unP parser (Lexer.mkPState dflags buf loc)
 
-getDocs :: GhcMonad m
+getDocs :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+           , m @@ HscEnv, m @@ ModIface
+#endif
+           )
         => Name
         -> m (Either GetDocsFailure (Maybe HsDocString, Map Int HsDocString))
            -- TODO: What about docs for constructors etc.?
@@ -987,7 +1097,11 @@ instance Outputable GetDocsFailure where
 
 -- | Get the type of an expression
 -- Returns the type as described by 'TcRnExprMode'
-exprType :: GhcMonad m => TcRnExprMode -> String -> m Type
+exprType :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+           , m @@ HscEnv
+#endif
+            ) => TcRnExprMode -> String -> m Type
 exprType mode expr = withSession $ \hsc_env -> do
    ty <- liftIO $ hscTcExpr hsc_env mode expr
    return $ tidyType emptyTidyEnv ty
@@ -996,7 +1110,11 @@ exprType mode expr = withSession $ \hsc_env -> do
 -- Getting the kind of a type
 
 -- | Get the kind of a  type
-typeKind  :: GhcMonad m => Bool -> String -> m (Type, Kind)
+typeKind  :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+           , m @@ HscEnv
+#endif
+             ) => Bool -> String -> m (Type, Kind)
 typeKind normalise str = withSession $ \hsc_env -> do
    liftIO $ hscKcType hsc_env normalise str
 
@@ -1047,7 +1165,11 @@ typeKind normalise str = withSession $ \hsc_env -> do
 -}
 
 -- Find all instances that match a provided type
-getInstancesForType :: GhcMonad m => Type -> m [ClsInst]
+getInstancesForType :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                       , m @@ HscEnv
+#endif
+                       ) => Type -> m [ClsInst]
 getInstancesForType ty = withSession $ \hsc_env -> do
   liftIO $ runInteractiveHsc hsc_env $ do
     ioMsgMaybe $ runTcInteractive hsc_env $ do
@@ -1057,7 +1179,11 @@ getInstancesForType ty = withSession $ \hsc_env -> do
       fmap catMaybes . forM matches $ uncurry checkForExistence
 
 -- Parse a type string and turn any holes into skolems
-parseInstanceHead :: GhcMonad m => String -> m Type
+parseInstanceHead :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                       , m @@ HscEnv, m @@ (Type, Kind)
+#endif
+                     ) => String -> m Type
 parseInstanceHead str = withSession $ \hsc_env0 -> do
   (ty, _) <- liftIO $ runInteractiveHsc hsc_env0 $ do
     hsc_env <- getHscEnv
@@ -1162,25 +1288,45 @@ findMatchingInstances ty = do
 
 -- | Parse an expression, the parsed expression can be further processed and
 -- passed to compileParsedExpr.
-parseExpr :: GhcMonad m => String -> m (LHsExpr GhcPs)
+parseExpr :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+             , m @@ HscEnv
+#endif
+             ) => String -> m (LHsExpr GhcPs)
 parseExpr expr = withSession $ \hsc_env -> do
   liftIO $ runInteractiveHsc hsc_env $ hscParseExpr expr
 
 -- | Compile an expression, run it, and deliver the resulting HValue.
-compileExpr :: GhcMonad m => String -> m HValue
+compileExpr :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+               , m @@ LHsExpr GhcPs, m @@ HscEnv, m @@ DynFlags, m @@ ForeignHValue
+               , m @@ EvalStatus_ [ForeignHValue] [HValueRef]
+               , m @@ Maybe ([Id], ForeignHValue, FixityEnv), m @@ ()
+#endif
+               ) => String -> m HValue
 compileExpr expr = do
   parsed_expr <- parseExpr expr
   compileParsedExpr parsed_expr
 
 -- | Compile an expression, run it, and deliver the resulting HValue.
-compileExprRemote :: GhcMonad m => String -> m ForeignHValue
+compileExprRemote :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                    , m @@ LHsExpr GhcPs, m @@ HscEnv, m @@ EvalStatus_ [ForeignHValue] [HValueRef]
+                    , m @@ (), m @@ Maybe ([Id], ForeignHValue, FixityEnv)
+#endif
+                     ) => String -> m ForeignHValue
 compileExprRemote expr = do
   parsed_expr <- parseExpr expr
   compileParsedExprRemote parsed_expr
 
 -- | Compile a parsed expression (before renaming), run it, and deliver
 -- the resulting HValue.
-compileParsedExprRemote :: GhcMonad m => LHsExpr GhcPs -> m ForeignHValue
+compileParsedExprRemote :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                          , m @@ HscEnv, m @@ Maybe ([Id], ForeignHValue, FixityEnv)
+                          , m @@ (), m @@ EvalStatus_ [ForeignHValue] [HValueRef]
+#endif
+                           ) => LHsExpr GhcPs -> m ForeignHValue
 compileParsedExprRemote expr@(L loc _) = withSession $ \hsc_env -> do
   -- > let _compileParsedExpr = expr
   -- Create let stmt from expr to make hscParsedStmt happy.
@@ -1205,14 +1351,27 @@ compileParsedExprRemote expr@(L loc _) = withSession $ \hsc_env -> do
       liftIO $ throwIO (fromSerializableException e)
     _ -> panic "compileParsedExpr"
 
-compileParsedExpr :: GhcMonad m => LHsExpr GhcPs -> m HValue
+compileParsedExpr :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                     , m @@ ForeignHValue, m @@ DynFlags
+                     , m @@ (), m @@ Maybe ([Id], ForeignHValue, FixityEnv), m @@ HscEnv
+                     , m @@ EvalStatus_ [ForeignHValue] [HValueRef]
+#endif
+                     ) => LHsExpr GhcPs -> m HValue
 compileParsedExpr expr = do
    fhv <- compileParsedExprRemote expr
    dflags <- getDynFlags
    liftIO $ wormhole dflags fhv
 
 -- | Compile an expression, run it and return the result as a Dynamic.
-dynCompileExpr :: GhcMonad m => String -> m Dynamic
+dynCompileExpr :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                  , m @@ LHsExpr GhcPs, m @@ HValue, m @@ HscEnv
+                  , m @@ DynFlags, m @@ ForeignHValue
+                  , m @@ EvalStatus_ [ForeignHValue] [HValueRef]
+                  , m @@ Maybe ([Id], ForeignHValue, FixityEnv), m @@ ()
+#endif
+                  ) => String -> m Dynamic
 dynCompileExpr expr = do
   parsed_expr <- parseExpr expr
   -- > Data.Dynamic.toDyn expr
@@ -1225,14 +1384,22 @@ dynCompileExpr expr = do
 -----------------------------------------------------------------------------
 -- show a module and it's source/object filenames
 
-showModule :: GhcMonad m => ModSummary -> m String
+showModule :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+              , m @@ HscEnv, m @@ Bool
+#endif
+              ) => ModSummary -> m String
 showModule mod_summary =
     withSession $ \hsc_env -> do
         interpreted <- moduleIsBootOrNotObjectLinkable mod_summary
         let dflags = hsc_dflags hsc_env
         return (showModMsg dflags (hscTarget dflags) interpreted mod_summary)
 
-moduleIsBootOrNotObjectLinkable :: GhcMonad m => ModSummary -> m Bool
+moduleIsBootOrNotObjectLinkable :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                                   , m @@ Bool, m @@ HscEnv
+#endif
+                                   ) => ModSummary -> m Bool
 moduleIsBootOrNotObjectLinkable mod_summary = withSession $ \hsc_env ->
   case lookupHpt (hsc_HPT hsc_env) (ms_mod_name mod_summary) of
         Nothing       -> panic "missing linkable"

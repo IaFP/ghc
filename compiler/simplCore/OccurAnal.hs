@@ -12,6 +12,9 @@ core expression with (hopefully) improved usage information.
 -}
 
 {-# LANGUAGE CPP, BangPatterns, MultiWayIf, ViewPatterns  #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module OccurAnal (
         occurAnalysePgm, occurAnalyseExpr, occurAnalyseExpr_NoBinderSwap

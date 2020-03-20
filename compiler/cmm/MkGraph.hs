@@ -1,4 +1,8 @@
 {-# LANGUAGE BangPatterns, GADTs #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module MkGraph
   ( CmmAGraph, CmmAGraphScoped, CgStmt(..)

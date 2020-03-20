@@ -9,13 +9,14 @@
 module Main (main) where
 
 import Data.Typeable
+import GHC.Types (Total)
 
 class Sat a where
     dict :: a
 
 
 class ( Sat (ctx a)) => Data ctx a where
-    gunfold :: Proxy ctx
+    gunfold :: (Total c) => Proxy ctx
             -> (forall b r. Data ctx b => c (b -> r) -> c r)
             -> (forall r. r -> c r)
             -> Constr
@@ -23,8 +24,9 @@ class ( Sat (ctx a)) => Data ctx a where
     dataTypeOf :: Proxy ctx -> a -> DataType
 
 newtype ID x = ID { unID :: x }
+instance Total  ID
 
-fromConstrB :: Data ctx a
+fromConstrB :: (Data ctx a, Total (Data ctx))
             => Proxy ctx
             -> (forall b. Data ctx b => b)
             -> Constr
@@ -123,7 +125,8 @@ defaultDefaultValue = res
                         error "defaultDefaultValue: Bad DataRep"
 
 data DefaultD a = DefaultD { defaultValueD :: a }
-
+instance Total DefaultD
+instance Total (Data DefaultD)
 defaultProxy :: Proxy DefaultD
 defaultProxy = error "defaultProxy"
 

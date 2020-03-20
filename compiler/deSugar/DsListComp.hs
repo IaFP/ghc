@@ -9,6 +9,9 @@ Desugaring list comprehensions, monad comprehensions and array comprehensions
 {-# LANGUAGE CPP, NamedFieldPuns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module DsListComp ( dsListComp, dsMonadComp ) where
 
@@ -56,7 +59,7 @@ dsListComp lquals res_ty = do
         elt_ty = case tcTyConAppArgs res_ty of
                    [elt_ty] -> elt_ty
                    _ -> pprPanic "dsListComp" (ppr res_ty $$ ppr lquals)
-
+    -- deListComp quals (mkNilExpr elt_ty)
     if not (gopt Opt_EnableRewriteRules dflags) || gopt Opt_IgnoreInterfacePragmas dflags
        -- Either rules are switched off, or we are ignoring what there are;
        -- Either way foldr/build won't happen, so use the more efficient

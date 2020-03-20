@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+#endif
+
 module HpcShowTix (showtix_plugin) where
 
 import Trace.Hpc.Mix

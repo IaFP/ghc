@@ -1,4 +1,5 @@
 {-# LANGUAGE StaticPointers     #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 
 module StaticPointersFail03 where
 

@@ -1,1 +1,2 @@
 (Maybe Int) :: *
+(Maybe (forall a. a -> a)) :: *

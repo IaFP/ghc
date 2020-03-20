@@ -5,6 +5,8 @@ valid_hole_fits_interactions.hs:15:5: warning: [-Wtyped-holes (in -Wdefault)]
       In an equation for ‘f’: f = _
     • Relevant bindings include
         f :: SBool 'True (bound at valid_hole_fits_interactions.hs:15:1)
+      Constraints include
+        SBool @@ 'True (from valid_hole_fits_interactions.hs:14:1-16)
       Valid hole fits include
         f :: SBool 'True (bound at valid_hole_fits_interactions.hs:15:1)
         STrue :: SBool 'True

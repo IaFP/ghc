@@ -23,6 +23,7 @@
              TypeFamilies, KindSignatures, FlexibleContexts,
              FlexibleInstances, OverlappingInstances, UndecidableInstances
  #-}
+{-# LANGUAGE PartialTypeConstructors, TypeFamilies, TypeOperators #-}
 
 {-   Somewhere we get:
 
@@ -45,8 +46,9 @@
 module A where
 
 import Control.Monad (liftM, liftM2, when, ap)
+import GHC.Base (Applicative (..))
 -- import Control.Monad.Identity
-
+import GHC.Types(Total, type (@@))
 import Debug.Trace (trace)
 
 
@@ -69,14 +71,15 @@ instance ( Functor a
 
 -------------
 newtype Identity a = Identity { runIdentity :: a }
-
+instance Total Identity
 instance Functor Identity where
     fmap = liftM
 
 instance Applicative Identity where
     pure  = return
     (<*>) = ap
-
+    liftA2 f (Identity a) (Identity b) = Identity (f a b)
+      
 instance Monad Identity where
     return a = Identity a
     m >>= k  = k (runIdentity m)
@@ -85,7 +88,20 @@ instance MonadFail Identity where
     fail = error "Identity(fail)"
 
 newtype Trampoline m s r = Trampoline {bounce :: m (TrampolineState m s r)}
+
+type instance Trampoline @@ m = ()
+type instance Trampoline m @@ s = ()
+type instance Trampoline m s @@ r = (m @@ TrampolineState m s r)
+
+instance Total (Trampoline m s)
+
 data TrampolineState m s r = Done r | Suspend !(s (Trampoline m s r))
+instance Total (TrampolineState m s)
+type instance TrampolineState @@ m = ()
+type instance TrampolineState m @@ s = ()
+type instance TrampolineState m s @@ r = ()
+
+
 
 instance (Monad m, Functor s) => Functor (Trampoline m s) where
   fmap = liftM

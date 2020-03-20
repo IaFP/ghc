@@ -1,8 +1,10 @@
 module T17722A (Validation(..)) where
-
+import GHC.Types (Total)
 data Validation e a
   = Failure e
   | Success a
+
+instance Total (Validation e)
 
 instance Functor (Validation e) where
    fmap _ (Failure e) = Failure e

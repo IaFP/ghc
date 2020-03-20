@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP, MagicHash, ScopedTypeVariables #-}
+#if __GLASGOW_HASKELL__ >= 810
+-- {-# LANGUAGE PartialTypeConstructors #-}
+#endif
 
 -- Get definitions for the structs, constants & config etc.
 #include "Rts.h"

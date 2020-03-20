@@ -6,6 +6,9 @@ Author: George Karachalias <george.karachalias@cs.kuleuven.be>
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TupleSections #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- | Types used through-out pattern match checking. This module is mostly there
 -- to be imported from "TcRnTypes". The exposed API is that of
@@ -64,6 +67,9 @@ import Numeric (fromRat)
 import Data.Foldable (find)
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Ratio
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -- | Literals (simple and overloaded ones) for pattern match checking.
 --
@@ -312,6 +318,11 @@ coreExprAsPmLit e = case collectArgs e of
     -- NB: Calls coreExprAsPmLit and then overloadPmLit, so that we return PmLitOverStrings
     -> coreExprAsPmLit s >>= overloadPmLit (exprType e)
   -- These last two cases handle String literals
+  (Var x, [Type _ty, _dict, _, s]) -- we might have [] @@ Char becuase of elaboration that we want to ignore
+    | idName x == fromStringName   -- Q: Does this case get triggered now that we are not elaborating [] ?
+    -- NB: Calls coreExprAsPmLit and then overloadPmLit, so that we return PmLitOverStrings
+    -> coreExprAsPmLit s >>= overloadPmLit (exprType e)
+  -- These last two cases handle String literals
   (Var x, [Type ty])
     | Just dc <- isDataConWorkId_maybe x
     , dc == nilDataCon
@@ -424,7 +435,11 @@ setEntrySDIE :: SharedDIdEnv a -> Id -> a -> SharedDIdEnv a
 setEntrySDIE sdie@(SDIE env) x a =
   SDIE $ extendDVarEnv env (fst (lookupReprAndEntrySDIE sdie x)) (Entry a)
 
-traverseSDIE :: Applicative f => (a -> f b) -> SharedDIdEnv a -> f (SharedDIdEnv b)
+traverseSDIE :: (Applicative f
+#if MIN_VERSION_base(4,14,0)
+                , Total f
+#endif
+                ) => (a -> f b) -> SharedDIdEnv a -> f (SharedDIdEnv b)
 traverseSDIE f = fmap (SDIE . listToUDFM) . traverse g . udfmToList . unSDIE
   where
     g (u, Indirect y) = pure (u,Indirect y)

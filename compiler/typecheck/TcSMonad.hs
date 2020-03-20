@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP, DeriveFunctor, TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- Type definitions for the constraint solver
 module TcSMonad (
@@ -178,6 +181,9 @@ import qualified Control.Monad.Fail as MonadFail
 import MonadUtils
 import Data.IORef
 import Data.List ( partition, mapAccumL )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 #if defined(DEBUG)
 import Digraph
@@ -2644,6 +2650,9 @@ data TcSEnv
 
 ---------------
 newtype TcS a = TcS { unTcS :: TcSEnv -> TcM a } deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total TcS
+#endif
 
 instance Applicative TcS where
   pure x = TcS (\_ -> return x)
@@ -3562,6 +3571,8 @@ matchFamTcM tycon args
        ; TcM.traceTc "matchFamTcM" $
          vcat [ text "Matching:" <+> ppr (mkTyConApp tycon args)
               , ppr_res match_fam_result ]
+              -- , ppr (lookupFamInstEnv fam_envs tycon args)
+              -- , ppr (lookupFamInstEnvByTyCon fam_envs tycon) ]
        ; return match_fam_result }
   where
     ppr_res Nothing        = text "Match failed"

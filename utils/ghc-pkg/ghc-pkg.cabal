@@ -34,6 +34,9 @@ Executable ghc-pkg
                    binary,
                    ghc-boot,
                    bytestring
+    if impl(ghc>=8.10)
+       Build-Depends: ghc-prim >= 0.6.1
+                          
     if !os(windows) && flag(terminfo)
         Build-Depends: terminfo
         Cpp-Options: -DWITH_TERMINFO

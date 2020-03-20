@@ -1,7 +1,10 @@
 
 T13324_fail2.hs:7:1: error:
-    • No instance for (Eq (f (f a)))
+    • Could not deduce (Eq (f (f a)))
         arising from a 'deriving' declaration
+      from the context: (f @@ a, f @@ f a)
+        bound by the deriving clause for ‘Eq (Foo f a)’
+        at T13324_fail2.hs:7:1-35
       Possible fix: fill in the wildcard constraint yourself
     • When deriving the instance for (Eq (Foo f a))
 

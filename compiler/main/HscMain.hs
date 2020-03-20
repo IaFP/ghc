@@ -1,5 +1,8 @@
 {-# LANGUAGE BangPatterns, CPP, MagicHash, NondecreasingIndentation #-}
 {-# OPTIONS_GHC -fprof-auto-top #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -------------------------------------------------------------------------------
 --

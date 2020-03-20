@@ -14,6 +14,7 @@
 -- which otherwise would bias GHC to conclude that any code using
 -- the static form would fail.
 {-# OPTIONS_GHC -fomit-interface-pragmas #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 module GHC.StaticPtr.Internal (makeStatic) where
 
 import GHC.StaticPtr(StaticPtr)

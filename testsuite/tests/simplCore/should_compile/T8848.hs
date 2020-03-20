@@ -1,20 +1,22 @@
 {-# OPTIONS_GHC -fno-warn-missing-methods #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 {-# LANGUAGE KindSignatures, GADTs, DataKinds, FlexibleInstances, FlexibleContexts #-}
-
+{-# LANGUAGE TypeOperators, ExplicitNamespaces, UndecidableInstances #-}
 module T8848 where
 
 import qualified Control.Applicative as A
 import qualified Data.Functor as Fun
-
+import GHC.Types (Total)
 data Nat = S Nat  | Z
 
 data Shape (rank :: Nat) a where
     Nil  :: Shape Z a
     (:*) ::  a -> Shape r a -> Shape  (S r) a
 
-instance A.Applicative (Shape Z) where
-instance A.Applicative (Shape r)=> A.Applicative (Shape (S r)) where
+instance Total (Shape rank)
+
+instance Total (Shape 'Z) => A.Applicative (Shape Z) where
+instance (Total (Shape ('S r)), A.Applicative (Shape r) )=> A.Applicative (Shape (S r)) where
 instance Fun.Functor (Shape Z) where
 instance (Fun.Functor (Shape r)) => Fun.Functor (Shape (S r)) where
 

@@ -2,3 +2,5 @@ type role T phantom
 type T :: (Type -> Type) -> Type
 data T a
   	-- Defined at <interactive>:3:35
+type instance T @@ a = () :: Constraint
+  	-- Defined at <interactive>:3:35

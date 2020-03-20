@@ -46,6 +46,10 @@
 --
 
 {-# LANGUAGE ViewPatterns, TupleSections #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies, FlexibleInstances, FlexibleContexts #-}
+#endif
 module StaticPtrTable
     ( sptCreateStaticBinds
     , sptModuleInitCode
@@ -122,7 +126,7 @@ Here is a running example:
   in upsweep after we have compiled the module (see GhcMake.upsweep').
 -}
 
-import GhcPrelude
+import GhcPrelude hiding (mapM)
 
 import CLabel
 import CoreSyn
@@ -144,8 +148,12 @@ import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.State
 import Data.List
 import Data.Maybe
+import GHC.Base (mapM)
 import GHC.Fingerprint
 import qualified GHC.LanguageExtensions as LangExt
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -- | Replaces all bindings of the form
 --
@@ -248,6 +256,9 @@ sptCreateStaticBinds hsc_env this_mod binds
 
     getError n = pprPanic "sptCreateStaticBinds.get: not found" $
       text "Couldn't find" <+> ppr n
+-- #if MIN_VERSION_base(4,14,0)
+-- instance Total (StateT Int IO)
+-- #endif
 
 -- | @sptModuleInitCode module fps@ is a C stub to insert the static entries
 -- of @module@ into the static pointer table.

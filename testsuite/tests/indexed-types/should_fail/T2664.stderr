@@ -1,10 +1,10 @@
 
 T2664.hs:31:9: error:
     • Could not deduce: Dual a ~ Dual b
-      from the context: ((a :*: b) ~ Dual c, c ~ Dual (a :*: b))
+      from the context: (c ~ Dual (a :*: b), (a :*: b) ~ Dual c)
         bound by the type signature for:
                    newPChan :: forall c.
-                               ((a :*: b) ~ Dual c, c ~ Dual (a :*: b)) =>
+                               (c ~ Dual (a :*: b), (a :*: b) ~ Dual c) =>
                                IO (PChan (a :*: b), PChan c)
         at T2664.hs:23:5-12
       Expected type: IO (PChan (a :*: b), PChan c)

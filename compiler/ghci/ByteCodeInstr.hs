@@ -1,5 +1,8 @@
 {-# LANGUAGE CPP, MagicHash #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 --
 --  (c) The University of Glasgow 2002-2006
 --
@@ -32,6 +35,9 @@ import SMRep
 
 import Data.Word
 import GHC.Stack.CCS (CostCentre)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 -- ----------------------------------------------------------------------------
 -- Bytecode instructions
@@ -49,6 +55,9 @@ data ProtoBCO a
         -- malloc'd pointers
         protoBCOFFIs       :: [FFIInfo]
    }
+#if MIN_VERSION_base(4,14,0)
+type instance ProtoBCO @@ a = ()
+#endif
 
 type LocalLabel = Word16
 

@@ -14,33 +14,41 @@ constraint_hole_fits.hs:4:5: warning: [-Wtyped-holes (in -Wdefault)]
         g :: [a] -> a
         head :: forall a. [a] -> a
         last :: forall a. [a] -> a
-        maximum :: forall (t :: * -> *) a. (Foldable t, Ord a) => t a -> a
-        minimum :: forall (t :: * -> *) a. (Foldable t, Ord a) => t a -> a
+        maximum :: forall (t :: * -> *) a.
+                   (Foldable t, Ord a, t @@ a) =>
+                   t a -> a
+        minimum :: forall (t :: * -> *) a.
+                   (Foldable t, Ord a, t @@ a) =>
+                   t a -> a
       Valid refinement hole fits include
         foldl1 (_ :: a -> a -> a)
           where foldl1 :: forall (t :: * -> *) a.
-                          Foldable t =>
+                          (Foldable t, t @@ a) =>
                           (a -> a -> a) -> t a -> a
         foldr1 (_ :: a -> a -> a)
           where foldr1 :: forall (t :: * -> *) a.
-                          Foldable t =>
+                          (Foldable t, t @@ a) =>
                           (a -> a -> a) -> t a -> a
         foldl (_ :: a -> a -> a) (_ :: a)
           where foldl :: forall (t :: * -> *) b a.
-                         Foldable t =>
+                         (Foldable t, t @@ a) =>
                          (b -> a -> b) -> b -> t a -> b
         foldr (_ :: a -> a -> a) (_ :: a)
           where foldr :: forall (t :: * -> *) a b.
-                         Foldable t =>
+                         (Foldable t, t @@ a) =>
                          (a -> b -> b) -> b -> t a -> b
         const (_ :: a)
           where const :: forall a b. a -> b -> a
         ($) (_ :: [a] -> a)
           where ($) :: forall a b. (a -> b) -> a -> b
         return (_ :: a)
-          where return :: forall (m :: * -> *) a. Monad m => a -> m a
+          where return :: forall (m :: * -> *) a.
+                          (Monad m, m @@ a) =>
+                          a -> m a
         pure (_ :: a)
-          where pure :: forall (f :: * -> *) a. Applicative f => a -> f a
+          where pure :: forall (f :: * -> *) a.
+                        (Applicative f, f @@ a) =>
+                        a -> f a
         ($!) (_ :: [a] -> a)
           where ($!) :: forall a b. (a -> b) -> a -> b
         id (_ :: [a] -> a)

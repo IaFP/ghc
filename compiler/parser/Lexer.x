@@ -46,6 +46,10 @@
 {-# LANGUAGE LambdaCase #-}
 
 {-# OPTIONS_GHC -funbox-strict-fields #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, ConstrainedClassMethods #-}
+{-# OPTIONS -fno-enable-rewrite-rules #-}
+#endif
 
 module Lexer (
    Token(..), lexer, pragState, mkPState, mkPStatePure, PState(..),
@@ -115,6 +119,10 @@ import BasicTypes     ( InlineSpec(..), RuleMatchInfo(..),
 import Ctype
 
 import ApiAnnotation
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
+
 }
 
 -- -----------------------------------------------------------------------------
@@ -2017,6 +2025,9 @@ data ALRLayout = ALRLayoutLet
 
 -- | The parsing monad, isomorphic to @StateT PState Maybe@.
 newtype P a = P { unP :: PState -> ParseResult a }
+#if MIN_VERSION_base(4,14,0)
+instance Total P
+#endif
 
 instance Functor P where
   fmap = liftM

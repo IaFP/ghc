@@ -6,6 +6,9 @@ The datatypes here are mainly used for error message generation.
 -}
 
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcOrigin (
   -- UserTypeCtxt

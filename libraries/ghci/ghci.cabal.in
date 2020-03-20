@@ -86,3 +86,5 @@ library
 
     if !os(windows)
         Build-Depends: unix >= 2.7 && < 2.9
+    if impl(ghc>=8.10.1)
+       Build-Depends: ghc-prim >= 0.6.1

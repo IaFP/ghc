@@ -2,6 +2,9 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fprof-auto-top #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 --
 --  (c) The University of Glasgow 2002-2006
 --
@@ -75,6 +78,9 @@ import qualified FiniteMap as Map
 import Data.Ord
 import GHC.Stack.CCS
 import Data.Either ( partitionEithers )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -- -----------------------------------------------------------------------------
 -- Generating byte code for a complete module
@@ -1939,6 +1945,9 @@ data BcM_State
         }
 
 newtype BcM r = BcM (BcM_State -> IO (BcM_State, r)) deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total BcM
+#endif
 
 ioToBc :: IO a -> BcM a
 ioToBc io = BcM $ \st -> do

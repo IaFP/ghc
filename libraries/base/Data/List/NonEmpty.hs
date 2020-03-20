@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE Trustworthy #-} -- can't use Safe due to IsList instance
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, ExplicitNamespaces #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -108,6 +109,7 @@ import           Data.Function       (on)
 import qualified Data.List           as List
 import           Data.Ord            (comparing)
 import           GHC.Base            (NonEmpty(..))
+import           GHC.Types           (type (@@))
 
 infixr 5 <|
 
@@ -219,7 +221,7 @@ insert  :: (Foldable f, Ord a) => a -> f a -> NonEmpty a
 insert a = fromList . List.insert a . Foldable.toList
 
 -- | @'some1' x@ sequences @x@ one or more times.
-some1 :: Alternative f => f a -> f (NonEmpty a)
+some1 :: (Alternative f, f @@ [a], f @@ ([a] -> NonEmpty a), f @@ ([a] -> [a])) => f a -> f (NonEmpty a)
 some1 x = liftA2 (:|) x (many x)
 
 -- | 'scanl' is similar to 'foldl', but returns a stream of successive

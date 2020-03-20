@@ -1,7 +1,11 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TypeOperators #-}
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Functor.Product
@@ -28,6 +32,7 @@ import Control.Monad.Zip (MonadZip(mzipWith))
 import Data.Data (Data)
 import Data.Functor.Classes
 import GHC.Generics (Generic, Generic1)
+import GHC.Types (type (@@))
 import Text.Read (Read(..), readListDefault, readListPrecDefault)
 
 -- | Lifted product of functors.
@@ -60,22 +65,22 @@ instance (Show1 f, Show1 g) => Show1 (Product f g) where
         showsBinaryWith (liftShowsPrec sp sl) (liftShowsPrec sp sl) "Pair" d x y
 
 -- | @since 4.9.0.0
-instance (Eq1 f, Eq1 g, Eq a) => Eq (Product f g a)
+instance (f @@ a, f @@ g a, g @@ a, Eq1 f, Eq1 g, Eq a) => Eq (Product f g a)
     where (==) = eq1
 
 -- | @since 4.9.0.0
-instance (Ord1 f, Ord1 g, Ord a) => Ord (Product f g a) where
+instance (f @@ a, f @@ g a, g @@ a, Ord1 f, Ord1 g, Ord a) => Ord (Product f g a) where
     compare = compare1
 
 -- | @since 4.9.0.0
-instance (Read1 f, Read1 g, Read a) => Read (Product f g a) where
+instance (f @@ a, f @@ g a, g @@ a, Read1 f, Read1 g, Read a) => Read (Product f g a) where
     readPrec = readPrec1
 
     readListPrec = readListPrecDefault
     readList     = readListDefault
 
 -- | @since 4.9.0.0
-instance (Show1 f, Show1 g, Show a) => Show (Product f g a) where
+instance (f @@ a, f @@ g a, g @@ a, Show1 f, Show1 g, Show a) => Show (Product f g a) where
     showsPrec = showsPrec1
 
 -- | @since 4.9.0.0
@@ -87,9 +92,9 @@ instance (Functor f, Functor g) => Functor (Product f g) where
 instance (Foldable f, Foldable g) => Foldable (Product f g) where
     foldMap f (Pair x y) = foldMap f x `mappend` foldMap f y
 
--- | @since 4.9.0.0
-instance (Traversable f, Traversable g) => Traversable (Product f g) where
-    traverse f (Pair x y) = liftA2 Pair (traverse f x) (traverse f y)
+-- -- | @since 4.9.0.0
+-- instance (Traversable f, Traversable g) => Traversable (Product f g) where
+--     traverse f (Pair x y) = liftA2 Pair (traverse f x) (traverse f y)
 
 -- | @since 4.9.0.0
 instance (Applicative f, Applicative g) => Applicative (Product f g) where

@@ -6,6 +6,10 @@ This module contains miscellaneous functions related to renaming.
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module RnUtils (
         checkDupRdrNames, checkShadowedRdrNames,

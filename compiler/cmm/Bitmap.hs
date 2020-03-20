@@ -1,4 +1,7 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE BangPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+#endif
 
 --
 -- (c) The University of Glasgow 2003-2006

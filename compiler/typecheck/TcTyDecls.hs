@@ -13,6 +13,9 @@ files for imported data types.
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcTyDecls(
         RolesInfo,
@@ -36,6 +39,7 @@ import TcEnv
 import TcBinds( tcValBinds )
 import TyCoRep( Type(..), Coercion(..), MCoercion(..), UnivCoProvenance(..) )
 import TcType
+-- import TcMType
 import Predicate
 import TysWiredIn( unitTy )
 import MkCore( rEC_SEL_ERROR_ID )
@@ -65,6 +69,8 @@ import Bag
 import FastString
 import FV
 import Module
+
+-- import qualified GHC.LanguageExtensions as LangExt
 
 import Control.Monad
 
@@ -759,7 +765,8 @@ addTyConsToGblEnv tyclss
     do { traceTc "tcAddTyCons" $ vcat
             [ text "tycons" <+> ppr tyclss
             , text "implicits" <+> ppr implicit_things ]
-       ; gbl_env <- tcRecSelBinds (mkRecSelBinds tyclss)
+       ; bnds <- mkRecSelBinds tyclss
+       ; gbl_env <- tcRecSelBinds bnds
        ; return gbl_env }
  where
    implicit_things = concatMap implicitTyConThings tyclss
@@ -837,84 +844,73 @@ tcRecSelBinds sel_bind_prs
                                               , let loc = getSrcSpan sel_id ]
     binds = [(NonRecursive, unitBag bind) | (_, bind) <- sel_bind_prs]
 
-mkRecSelBinds :: [TyCon] -> [(Id, LHsBind GhcRn)]
+mkRecSelBinds :: [TyCon] -> TcM [(Id, LHsBind GhcRn)]
 -- NB We produce *un-typechecked* bindings, rather like 'deriving'
 --    This makes life easier, because the later type checking will add
 --    all necessary type abstractions and applications
 mkRecSelBinds tycons
-  = map mkRecSelBind [ (tc,fld) | tc <- tycons
-                                , fld <- tyConFieldLabels tc ]
+  = mapM mkRecSelBind [ (tc,fld) | tc <- tycons
+                                 , fld <- tyConFieldLabels tc ]
 
-mkRecSelBind :: (TyCon, FieldLabel) -> (Id, LHsBind GhcRn)
+mkRecSelBind :: (TyCon, FieldLabel) -> TcM (Id, LHsBind GhcRn)
 mkRecSelBind (tycon, fl)
   = mkOneRecordSelector all_cons (RecSelData tycon) fl
   where
     all_cons = map RealDataCon (tyConDataCons tycon)
 
 mkOneRecordSelector :: [ConLike] -> RecSelParent -> FieldLabel
-                    -> (Id, LHsBind GhcRn)
+                    -> TcM (Id, LHsBind GhcRn)
 mkOneRecordSelector all_cons idDetails fl
-  = (sel_id, cL loc sel_bind)
-  where
-    loc      = getSrcSpan sel_name
-    lbl      = flLabel fl
-    sel_name = flSelector fl
+  = do
+  { -- partialCtrs <- xoptM LangExt.PartialTypeConstructors
 
-    sel_id = mkExportedLocalId rec_details sel_name sel_ty
-    rec_details = RecSelId { sel_tycon = idDetails, sel_naughty = is_naughty }
+    let loc      = getSrcSpan sel_name
+        lbl      = flLabel fl
+        sel_name = flSelector fl
 
-    -- Find a representative constructor, con1
-    cons_w_field = conLikesWithFields all_cons [lbl]
-    con1 = ASSERT( not (null cons_w_field) ) head cons_w_field
+        -- Find a representative constructor, con1
+        cons_w_field = conLikesWithFields all_cons [lbl]
+        con1 = ASSERT( not (null cons_w_field) ) head cons_w_field
 
-    -- Selector type; Note [Polymorphic selectors]
-    field_ty   = conLikeFieldType con1 lbl
-    data_tvs   = tyCoVarsOfTypesWellScoped inst_tys
-    data_tv_set= mkVarSet data_tvs
-    is_naughty = not (tyCoVarsOfType field_ty `subVarSet` data_tv_set)
-    (field_tvs, field_theta, field_tau) = tcSplitSigmaTy field_ty
-    sel_ty | is_naughty = unitTy  -- See Note [Naughty record selectors]
-           | otherwise  = mkSpecForAllTys data_tvs          $
-                          mkPhiTy (conLikeStupidTheta con1) $   -- Urgh!
-                          mkVisFunTy data_ty                $
-                          mkSpecForAllTys field_tvs         $
-                          mkPhiTy field_theta               $
-                          -- req_theta is empty for normal DataCon
-                          mkPhiTy req_theta                 $
-                          field_tau
+        -- Selector type; Note [Polymorphic selectors]
+        field_ty   = conLikeFieldType con1 lbl
 
-    -- Make the binding: sel (C2 { fld = x }) = x
-    --                   sel (C7 { fld = x }) = x
-    --    where cons_w_field = [C2,C7]
-    sel_bind = mkTopFunBind Generated sel_lname alts
-      where
-        alts | is_naughty = [mkSimpleMatch (mkPrefixFunRhs sel_lname)
-                                           [] unit_rhs]
-             | otherwise =  map mk_match cons_w_field ++ deflt
-    mk_match con = mkSimpleMatch (mkPrefixFunRhs sel_lname)
-                                 [cL loc (mk_sel_pat con)]
-                                 (cL loc (HsVar noExtField (cL loc field_var)))
-    mk_sel_pat con = ConPatIn (cL loc (getName con)) (RecCon rec_fields)
-    rec_fields = HsRecFields { rec_flds = [rec_field], rec_dotdot = Nothing }
-    rec_field  = noLoc (HsRecField
-                        { hsRecFieldLbl
-                           = cL loc (FieldOcc sel_name
-                                     (cL loc $ mkVarUnqual lbl))
-                        , hsRecFieldArg
-                           = cL loc (VarPat noExtField (cL loc field_var))
-                        , hsRecPun = False })
-    sel_lname = cL loc sel_name
-    field_var = mkInternalName (mkBuiltinUnique 1) (getOccName sel_name) loc
+        rec_details = RecSelId { sel_tycon = idDetails, sel_naughty = is_naughty }
+        data_tvs   = tyCoVarsOfTypesWellScoped inst_tys
+        data_tv_set= mkVarSet data_tvs
+        is_naughty = not (tyCoVarsOfType field_ty `subVarSet` data_tv_set)
+        (field_tvs, field_theta, field_tau) = tcSplitSigmaTy field_ty
+  
+        -- Make the binding: sel (C2 { fld = x }) = x
+        --                   sel (C7 { fld = x }) = x
+        --    where cons_w_field = [C2,C7]
+        sel_bind = mkTopFunBind Generated sel_lname alts
+          where
+            alts | is_naughty = [mkSimpleMatch (mkPrefixFunRhs sel_lname)
+                                  [] unit_rhs]
+                 | otherwise =  map mk_match cons_w_field ++ deflt
+        mk_match con = mkSimpleMatch (mkPrefixFunRhs sel_lname)
+                       [cL loc (mk_sel_pat con)]
+                       (cL loc (HsVar noExtField (cL loc field_var)))
+        mk_sel_pat con = ConPatIn (cL loc (getName con)) (RecCon rec_fields)
+        rec_fields = HsRecFields { rec_flds = [rec_field], rec_dotdot = Nothing }
+        rec_field  = noLoc (HsRecField
+                            { hsRecFieldLbl = cL loc (FieldOcc sel_name
+                                                      (cL loc $ mkVarUnqual lbl))
+                            , hsRecFieldArg = cL loc (VarPat noExtField (cL loc field_var))
+                            , hsRecPun = False })
+        sel_lname = cL loc sel_name
+        field_var = mkInternalName (mkBuiltinUnique 1) (getOccName sel_name) loc
 
-    -- Add catch-all default case unless the case is exhaustive
-    -- We do this explicitly so that we get a nice error message that
-    -- mentions this particular record selector
-    deflt | all dealt_with all_cons = []
-          | otherwise = [mkSimpleMatch CaseAlt
-                            [cL loc (WildPat noExtField)]
-                            (mkHsApp (cL loc (HsVar noExtField
-                                         (cL loc (getName rEC_SEL_ERROR_ID))))
-                                     (cL loc (HsLit noExtField msg_lit)))]
+        -- Add catch-all default case unless the case is exhaustive
+        -- We do this explicitly so that we get a nice error message that
+        -- mentions this particular record selector
+        deflt | all dealt_with all_cons = []
+              | otherwise = [mkSimpleMatch CaseAlt
+                             [cL loc (WildPat noExtField)]
+                             (mkHsApp (cL loc (HsVar noExtField
+                                               (cL loc (getName rEC_SEL_ERROR_ID))))
+                               (cL loc (HsLit noExtField msg_lit)))]
 
         -- Do not add a default case unless there are unmatched
         -- constructors.  We must take account of GADTs, else we
@@ -925,18 +921,33 @@ mkOneRecordSelector all_cons idDetails fl
         --              data instance T Int a where
         --                 A :: { fld :: Int } -> T Int Bool
         --                 B :: { fld :: Int } -> T Int Char
-    dealt_with :: ConLike -> Bool
-    dealt_with (PatSynCon _) = False -- We can't predict overlap
-    dealt_with con@(RealDataCon dc) =
-      con `elem` cons_w_field || dataConCannotMatch inst_tys dc
+        dealt_with :: ConLike -> Bool
+        dealt_with (PatSynCon _) = False -- We can't predict overlap
+        dealt_with con@(RealDataCon dc) =
+          con `elem` cons_w_field || dataConCannotMatch inst_tys dc
 
-    (univ_tvs, _, eq_spec, _, req_theta, _, data_ty) = conLikeFullSig con1
+        (univ_tvs, _, eq_spec, _, req_theta, _, data_ty) = conLikeFullSig con1
+  
+        eq_subst = mkTvSubstPrs (map eqSpecPair eq_spec)
+        inst_tys = substTyVars eq_subst univ_tvs
 
-    eq_subst = mkTvSubstPrs (map eqSpecPair eq_spec)
-    inst_tys = substTyVars eq_subst univ_tvs
+        unit_rhs = mkLHsTupleExpr []
+        msg_lit = HsStringPrim NoSourceText (bytesFS lbl)
+  -- ; atatcs <- if partialCtrs then do {(_, cs) <- genAtAtConstraints field_tau; return cs} else return []
+  ; let sel_ty | is_naughty = unitTy  -- See Note [Naughty record selectors]
+               | otherwise = mkSpecForAllTys data_tvs          $
+                             mkPhiTy (conLikeStupidTheta con1) $   -- Urgh!
+                             mkVisFunTy data_ty                $
+                             mkSpecForAllTys field_tvs         $
+                             mkPhiTy (field_theta) $
+                             -- req_theta is empty for normal DataCon
+                             mkPhiTy (req_theta)     $
+                             field_tau
+        sel_id = mkExportedLocalId rec_details sel_name sel_ty
 
-    unit_rhs = mkLHsTupleExpr []
-    msg_lit = HsStringPrim NoSourceText (bytesFS lbl)
+  ; return (sel_id, cL loc sel_bind)
+  }
+
 
 {-
 Note [Polymorphic selectors]

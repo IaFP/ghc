@@ -1,6 +1,10 @@
 
 NoMatchErr.hs:19:7: error:
-    • Couldn't match type ‘Memo d0’ with ‘Memo d’
+    • Could not deduce: Memo d0 ~ Memo d
+      from the context: (Memo d @@ a, Fun d)
+        bound by the type signature for:
+                   f :: forall d a. (Memo d @@ a, Fun d) => Memo d a -> Memo d a
+        at NoMatchErr.hs:19:7-37
       Expected type: Memo d a -> Memo d a
         Actual type: Memo d0 a -> Memo d0 a
       NB: ‘Memo’ is a non-injective type family

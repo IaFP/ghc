@@ -6,6 +6,9 @@
 {-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE BangPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- | CoreSyn holds all the main data types for use by for the Glasgow Haskell Compiler midsection
 module CoreSyn (
@@ -121,6 +124,9 @@ import Binary
 import Data.Data hiding (TyCon)
 import Data.Int
 import Data.Word
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 infixl 4 `mkApps`, `mkTyApps`, `mkVarApps`, `App`, `mkCoApps`
 -- Left associative, so that we can say (f `mkTyApps` xs `mkVarApps` ys)
@@ -264,6 +270,9 @@ data Expr b
   | Type  Type
   | Coercion Coercion
   deriving Data
+#if MIN_VERSION_base(4,14,0)
+type instance Expr @@ a = ()
+#endif
 
 -- | Type synonym for expressions that occur in function argument positions.
 -- Only 'Arg' should contain a 'Type' at top level, general 'Expr' should not
@@ -314,6 +323,9 @@ instance Ord AltCon where
 data Bind b = NonRec b (Expr b)
             | Rec [(b, (Expr b))]
   deriving Data
+#if MIN_VERSION_base(4,14,0)
+type instance Bind @@ a = ()
+#endif
 
 {-
 Note [Shadowing]
@@ -2276,6 +2288,10 @@ data AnnExpr' bndr annot
   | AnnTick     (Tickish Id) (AnnExpr bndr annot)
   | AnnType     Type
   | AnnCoercion Coercion
+#if MIN_VERSION_base(4,14,0)
+type instance AnnExpr' @@ a = ()
+type instance AnnExpr' a @@ b = ()
+#endif
 
 -- | A clone of the 'Alt' type but allowing annotation at every tree node
 type AnnAlt bndr annot = (AltCon, [bndr], AnnExpr bndr annot)
@@ -2284,6 +2300,10 @@ type AnnAlt bndr annot = (AltCon, [bndr], AnnExpr bndr annot)
 data AnnBind bndr annot
   = AnnNonRec bndr (AnnExpr bndr annot)
   | AnnRec    [(bndr, AnnExpr bndr annot)]
+#if MIN_VERSION_base(4,14,0)
+type instance AnnBind @@ a = ()
+type instance AnnBind a @@ b = ()
+#endif
 
 -- | Takes a nested application expression and returns the function
 -- being applied and the arguments to which it is applied

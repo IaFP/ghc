@@ -1,9 +1,11 @@
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 
 module T12490 where
 
 import Prelude (Int, String, Functor(..), ($), undefined, (+))
+import GHC.Types (Total)
 
 join :: Monad f => f (f a) -> f a
 join = undefined
@@ -17,13 +19,13 @@ class Applicative f => Monad f where
     (>>=) :: f a -> (a -> f b) -> f b
     fail :: String -> f a
 
-f_app :: Applicative f => f Int -> f Int -> f Int
+f_app :: (Total f, Applicative f) => f Int -> f Int -> f Int
 f_app a b = do
     a' <- a
     b' <- b
     pure (a' + b')
 
-f_monad :: Monad f => f Int -> f Int -> f Int
+f_monad :: (Total f, Monad f) => f Int -> f Int -> f Int
 f_monad a b = do
     a' <- a
     b' <- b

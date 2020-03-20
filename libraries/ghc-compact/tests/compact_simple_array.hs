@@ -10,6 +10,7 @@ import Data.Array.ST
 import qualified Data.Array.Unboxed as U
 
 import GHC.Compact
+import GHC.Types (type (@@))
 
 assertFail :: String -> IO ()
 assertFail msg = throwIO $ AssertionFailed msg
@@ -20,7 +21,7 @@ assertEquals expected actual =
   else assertFail $ "expected " ++ (show expected)
        ++ ", got " ++ (show actual)
 
-arrTest :: (Monad m, MArray a e m, Num e) => m (a Int e)
+arrTest :: (Monad m, MArray a e m, Num e, m @@ (), m @@ (Int, Int), m @@ Int) => m (a Int e)
 arrTest = do
   arr <- newArray (1, 10) 0
   forM_ [1..10] $ \j -> do

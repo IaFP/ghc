@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP, DeriveFunctor #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 --
 -- (c) The GRASP/AQUA Project, Glasgow University, 1993-1998
@@ -51,6 +54,9 @@ import SrcLoc           ( mkGeneralSrcSpan )
 import Data.List.NonEmpty (nonEmpty, toList)
 import Data.Maybe    (fromMaybe)
 import Control.Monad (ap)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -- Note [Live vs free]
 -- ~~~~~~~~~~~~~~~~~~~
@@ -817,6 +823,9 @@ newtype CtsM a = CtsM
              -> a
     }
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total CtsM
+#endif
 
 data HowBound
   = ImportBound         -- Used only as a response to lookupBinding; never

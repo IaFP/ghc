@@ -8,6 +8,7 @@ module Main where
 import Control.Applicative (Applicative (..))
 import Data.Monoid (Sum (..))
 import qualified Data.Array as A
+import GHC.Types (Total)
 
 data Tree a = Leaf a a | Node (Tree a) (Tree a)
   deriving (Functor, Foldable, Traversable)
@@ -23,6 +24,8 @@ data Nat = Z | S Nat
 data Vec n a where
   Nil :: Vec 'Z a
   Cons :: a -> !(Vec n a) -> Vec ('S n) a
+
+instance Total (Vec n)
 
 deriving instance Functor (Vec n)
 deriving instance Foldable (Vec n)

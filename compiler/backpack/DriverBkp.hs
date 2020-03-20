@@ -2,6 +2,9 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- | This is the driver for the 'ghc --backpack' mode, which
 -- is a reimplementation of the "package manager" bits of
@@ -64,6 +67,9 @@ import Data.Version
 import Data.IORef
 import Data.Map (Map)
 import qualified Data.Map as Map
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 -- | Entry point to compile a Backpack file.
 doBackpack :: [FilePath] -> Ghc ()
@@ -213,7 +219,7 @@ getSource cid = do
         Nothing -> pprPanic "missing needed dependency" (ppr cid)
         Just lunit -> return lunit
 
-typecheckUnit :: ComponentId -> [(ModuleName, Module)] -> BkpM ()
+typecheckUnit ::  ComponentId -> [(ModuleName, Module)] -> BkpM ()
 typecheckUnit cid insts = do
     lunit <- getSource cid
     buildUnit TcSession cid insts lunit
@@ -375,7 +381,11 @@ compileExe lunit = do
         ok <- load' LoadAllTargets (Just msg) mod_graph
         when (failed ok) (liftIO $ exitWith (ExitFailure 1))
 
-addPackage :: GhcMonad m => PackageConfig -> m ()
+addPackage :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+              , m @@ DynFlags,  m @@ HscEnv,  m @@ [InstalledUnitId], m @@ (DynFlags, [InstalledUnitId])
+#endif
+              ) => PackageConfig -> m ()
 addPackage pkg = do
     dflags0 <- GHC.getSessionDynFlags
     case pkgDatabase dflags0 of
@@ -391,7 +401,7 @@ addPackage pkg = do
                         return ()
 
 -- Precondition: UnitId is NOT InstalledUnitId
-compileInclude :: Int -> (Int, UnitId) -> BkpM ()
+compileInclude ::  Int -> (Int, UnitId) -> BkpM ()
 compileInclude n (i, uid) = do
     hsc_env <- getSession
     let dflags = hsc_dflags hsc_env
@@ -412,6 +422,10 @@ compileInclude n (i, uid) = do
 -- | Backpack monad is a 'GhcMonad' which also maintains a little extra state
 -- beyond the 'Session', c.f. 'BkpEnv'.
 type BkpM = IOEnv BkpEnv
+#if MIN_VERSION_base(4,14,0)
+type instance IOEnv BkpEnv @@ IORef = ()
+#endif
+
 
 -- | Backpack environment.  NB: this has a 'Session' and not an 'HscEnv',
 -- because we are going to update the 'HscEnv' as we go.
@@ -462,13 +476,21 @@ innerBkpM do_this = do
     updEnv (\env -> env { bkp_level = bkp_level env + 1 }) do_this
 
 -- | Update the EPS from a 'GhcMonad'. TODO move to appropriate library spot.
-updateEpsGhc_ :: GhcMonad m => (ExternalPackageState -> ExternalPackageState) -> m ()
+updateEpsGhc_ :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                 , m @@ HscEnv
+#endif
+                 ) => (ExternalPackageState -> ExternalPackageState) -> m ()
 updateEpsGhc_ f = do
     hsc_env <- getSession
     liftIO $ atomicModifyIORef' (hsc_EPS hsc_env) (\x -> (f x, ()))
 
 -- | Get the EPS from a 'GhcMonad'.
-getEpsGhc :: GhcMonad m => m ExternalPackageState
+getEpsGhc :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                 , m @@ HscEnv
+#endif
+             ) => m ExternalPackageState
 getEpsGhc = do
     hsc_env <- getSession
     liftIO $ readIORef (hsc_EPS hsc_env)

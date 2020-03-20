@@ -7,6 +7,7 @@
 module ShouldCompile where
 
 import Control.Monad.State
+import GHC.Base (Applicative (..))
 
 newtype L m r = L (StateT Int m r)
 
@@ -16,6 +17,7 @@ instance Functor (L m) where
 instance Applicative (L m) where
   pure  = undefined
   (<*>) = undefined
+  liftA2 = undefined
 
 instance Monad m => Monad (L m) where
   (>>=)  = undefined

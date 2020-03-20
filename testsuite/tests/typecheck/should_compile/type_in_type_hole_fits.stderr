@@ -9,6 +9,13 @@ type_in_type_hole_fits.hs:79:11: warning: [-Wtyped-holes (in -Wdefault)]
     • Relevant bindings include
         mySortA :: Sorted (O (N ^. 2)) (O N) 'True Integer
           (bound at type_in_type_hole_fits.hs:79:1)
+      Constraints include
+        Sorted (O (N ^. 2)) (O N)
+        @@ 'True (from type_in_type_hole_fits.hs:78:1-47)
+        Sorted @@ O (N ^. 2) (from type_in_type_hole_fits.hs:78:1-47)
+        Sorted (O (N ^. 2)) @@ O N (from type_in_type_hole_fits.hs:78:1-47)
+        Sorted (O (N ^. 2)) (O N) 'True
+        @@ Integer (from type_in_type_hole_fits.hs:78:1-47)
       Valid hole fits include
         Sorted :: forall (cpu :: AsympPoly) (mem :: AsympPoly)
                          (stable :: Bool) a.
@@ -17,13 +24,15 @@ type_in_type_hole_fits.hs:79:11: warning: [-Wtyped-holes (in -Wdefault)]
           (defined at type_in_type_hole_fits.hs:54:18)
         mergeSort :: forall a (n :: AsympPoly) (m :: AsympPoly)
                             (s :: Bool).
-                     (Ord a, n >=. O (N *. LogN), m >=. O N, IsStable s) =>
+                     (Sorted n m s @@ a, Sorted n @@ m, Sorted @@ n, Sorted n m @@ s,
+                      IsStable s, m >=. O N, n >=. O (N *. LogN), Ord a) =>
                      [a] -> Sorted n m s a
           with mergeSort @Integer @(O ('NLogN 2 0)) @(O N) @'True
           (defined at type_in_type_hole_fits.hs:61:1)
         insertionSort :: forall a (n :: AsympPoly) (m :: AsympPoly)
                                 (s :: Bool).
-                         (Ord a, n >=. O (N ^. 2), m >=. O One, IsStable s) =>
+                         (Sorted n m s @@ a, Sorted n @@ m, Sorted @@ n, Sorted n m @@ s,
+                          IsStable s, m >=. O One, n >=. O (N ^. 2), Ord a) =>
                          [a] -> Sorted n m s a
           with insertionSort @Integer @(O ('NLogN 2 0)) @(O N) @'True
           (defined at type_in_type_hole_fits.hs:65:1)
@@ -38,14 +47,24 @@ type_in_type_hole_fits.hs:82:11: warning: [-Wtyped-holes (in -Wdefault)]
     • Relevant bindings include
         mySortB :: Sorted (O (N *. LogN)) (O N) 'False Integer
           (bound at type_in_type_hole_fits.hs:82:1)
+      Constraints include
+        Sorted (O (N *. LogN)) (O N)
+        @@ 'False (from type_in_type_hole_fits.hs:81:1-51)
+        Sorted @@ O (N *. LogN) (from type_in_type_hole_fits.hs:81:1-51)
+        Sorted (O (N *. LogN))
+        @@ O N (from type_in_type_hole_fits.hs:81:1-51)
+        Sorted (O (N *. LogN)) (O N) 'False
+        @@ Integer (from type_in_type_hole_fits.hs:81:1-51)
       Valid hole fits include
         quickSort :: forall a (n :: AsympPoly) (m :: AsympPoly).
-                     (Ord a, n >=. O (N *. LogN), m >=. O N) =>
+                     (Sorted n m 'False @@ a, Sorted n @@ m, Sorted @@ n,
+                      Sorted n m @@ 'False, m >=. O N, n >=. O (N *. LogN), Ord a) =>
                      [a] -> Sorted n m 'False a
           with quickSort @Integer @(O ('NLogN 1 1)) @(O N)
           (defined at type_in_type_hole_fits.hs:71:1)
         heapSort :: forall a (n :: AsympPoly) (m :: AsympPoly).
-                    (Ord a, n >=. O (N *. LogN), m >=. O One) =>
+                    (Sorted n m 'False @@ a, Sorted n @@ m, Sorted @@ n,
+                     Sorted n m @@ 'False, m >=. O One, n >=. O (N *. LogN), Ord a) =>
                     [a] -> Sorted n m 'False a
           with heapSort @Integer @(O ('NLogN 1 1)) @(O N)
           (defined at type_in_type_hole_fits.hs:74:1)
@@ -56,7 +75,8 @@ type_in_type_hole_fits.hs:82:11: warning: [-Wtyped-holes (in -Wdefault)]
           (defined at type_in_type_hole_fits.hs:54:18)
         mergeSort :: forall a (n :: AsympPoly) (m :: AsympPoly)
                             (s :: Bool).
-                     (Ord a, n >=. O (N *. LogN), m >=. O N, IsStable s) =>
+                     (Sorted n m s @@ a, Sorted n @@ m, Sorted @@ n, Sorted n m @@ s,
+                      IsStable s, m >=. O N, n >=. O (N *. LogN), Ord a) =>
                      [a] -> Sorted n m s a
           with mergeSort @Integer @(O ('NLogN 1 1)) @(O N) @'False
           (defined at type_in_type_hole_fits.hs:61:1)
@@ -71,9 +91,18 @@ type_in_type_hole_fits.hs:85:11: warning: [-Wtyped-holes (in -Wdefault)]
     • Relevant bindings include
         mySortC :: Sorted (O (N *. LogN)) (O One) 'False Integer
           (bound at type_in_type_hole_fits.hs:85:1)
+      Constraints include
+        Sorted (O (N *. LogN)) (O One)
+        @@ 'False (from type_in_type_hole_fits.hs:84:1-53)
+        Sorted @@ O (N *. LogN) (from type_in_type_hole_fits.hs:84:1-53)
+        Sorted (O (N *. LogN))
+        @@ O One (from type_in_type_hole_fits.hs:84:1-53)
+        Sorted (O (N *. LogN)) (O One) 'False
+        @@ Integer (from type_in_type_hole_fits.hs:84:1-53)
       Valid hole fits include
         heapSort :: forall a (n :: AsympPoly) (m :: AsympPoly).
-                    (Ord a, n >=. O (N *. LogN), m >=. O One) =>
+                    (Sorted n m 'False @@ a, Sorted n @@ m, Sorted @@ n,
+                     Sorted n m @@ 'False, m >=. O One, n >=. O (N *. LogN), Ord a) =>
                     [a] -> Sorted n m 'False a
           with heapSort @Integer @(O ('NLogN 1 1)) @(O One)
           (defined at type_in_type_hole_fits.hs:74:1)

@@ -4,6 +4,9 @@
 
 {-# LANGUAGE CPP, GADTs, ScopedTypeVariables, BangPatterns, TupleSections,
     DeriveFunctor #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module FamInstEnv (
         FamInst(..), FamFlavor(..), famInstAxiom, famInstTyCon, famInstRHS,
@@ -64,6 +67,9 @@ import FastString
 import Control.Monad
 import Data.List( mapAccumL )
 import Data.Array( Array, assocs )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 {-
 ************************************************************************
@@ -1511,6 +1517,9 @@ normalise_var_bndr tcvar
 newtype NormM a = NormM { runNormM ::
                             FamInstEnvs -> LiftingContext -> Role -> a }
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total NormM
+#endif
 
 initNormM :: FamInstEnvs -> Role
           -> TyCoVarSet   -- the in-scope variables

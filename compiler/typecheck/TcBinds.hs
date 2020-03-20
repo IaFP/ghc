@@ -9,6 +9,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcBinds ( tcLocalBinds, tcTopBinds, tcValBinds,
                  tcHsBootSigs, tcPolyCheck,

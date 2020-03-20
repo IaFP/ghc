@@ -1,4 +1,7 @@
 {-# LANGUAGE BangPatterns, CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- | Carries interesting info for debugging / profiling of the
 --   graph coloring register allocator.

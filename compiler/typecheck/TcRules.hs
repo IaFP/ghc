@@ -8,6 +8,10 @@ TcRules: Typechecking transformation rules
 
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcRules ( tcRules ) where
 
@@ -83,7 +87,7 @@ tcRule (HsRule { rd_ext  = ext
                , rd_lhs  = lhs
                , rd_rhs  = rhs })
   = addErrCtxt (ruleCtxt name)  $
-    do { traceTc "---- Rule ------" (pprFullRuleName rname)
+    do { traceTc "---- Rule ------ { start " (pprFullRuleName rname)
 
         -- Note [Typechecking rules]
        ; (tc_lvl, stuff) <- pushTcLevelM $
@@ -138,6 +142,7 @@ tcRule (HsRule { rd_ext  = ext
                                          lhs_evs rhs_wanted
 
        ; emitImplications (lhs_implic `unionBags` rhs_implic)
+       ; traceTc "---- Rule ------ end }" empty
        ; return $ HsRule { rd_ext = ext
                          , rd_name = rname
                          , rd_act = act

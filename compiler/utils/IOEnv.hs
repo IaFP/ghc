@@ -1,5 +1,8 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 --
 -- (c) The University of Glasgow 2002-2006
 --
@@ -46,6 +49,9 @@ import Control.Monad
 import qualified Control.Monad.Fail as MonadFail
 import MonadUtils
 import Control.Applicative (Alternative(..))
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 ----------------------------------------------------------------------
 -- Defining the monad type
@@ -53,6 +59,9 @@ import Control.Applicative (Alternative(..))
 
 
 newtype IOEnv env a = IOEnv (env -> IO a) deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total (IOEnv env)
+#endif
 
 unIOEnv :: IOEnv env a -> (env -> IO a)
 unIOEnv (IOEnv m) = m

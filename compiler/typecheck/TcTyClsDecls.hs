@@ -9,6 +9,10 @@ TcTyClsDecls: Typecheck type and class declarations
 {-# LANGUAGE CPP, TupleSections, MultiWayIf #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcTyClsDecls (
         tcTyAndClassDecls,
@@ -36,7 +40,7 @@ import TcHsSyn
 import TcTyDecls
 import TcClassDcl
 import {-# SOURCE #-} TcInstDcls( tcInstDecls1 )
-import TcDeriv (DerivInfo(..))
+import TcDeriv (DerivInfo(..), mk_atat_fam)
 import TcUnify ( unifyKind )
 import TcHsType
 import ClsInst( AssocInstInfo(..) )
@@ -186,10 +190,28 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
 
        ; traceTc "---- end tcTyClGroup ---- }" empty
 
-           -- Step 3: Add the implicit things;
-           -- we want them in the environment because
-           -- they may be mentioned in interface files
-       ; gbl_env <- addTyConsToGblEnv tyclss
+         -- Step 3: Add the implicit things;
+         -- we want them in the environment because
+         -- they may be mentioned in interface files
+
+       ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
+       ; gbl_env <- if enblPCtrs && (length tyclds == 1)
+                     then do { let locs = map getLoc tyclds
+                             ; let locsAndTcs = zip locs tyclss
+                             ; fam_insts_list <- mapM (\(l, tc) -> mk_atat_fam l tc) locsAndTcs
+                             ; let fam_insts = concat fam_insts_list
+                             ; traceTc "adding generated @@ fam instances" (vcat (map ppr fam_insts))
+                             ; tcExtendLocalFamInstEnv (fam_insts) $ addTyConsToGblEnv tyclss }
+                     -- else
+                     --  if enblPCtrs && (length tyclds > 1)
+                     --  then do { let locs = map getLoc tyclds
+                     --          ; let tycls_and_others = fmap (\e -> (e, filter (/= e) tyclss)) tyclss
+                     --          ; let locsAndTcs = zip locs (tycls_and_others)
+                     --          ; fam_insts_list <- mapM (\(l, (tc, ntcs)) -> mk_atat_fam_except l tc ntcs) locsAndTcs
+                     --          ; let fam_insts = concat fam_insts_list
+                     --          ; traceTc "adding generated @@ fam instances" (vcat (map ppr fam_insts))
+                     --          ; tcExtendLocalFamInstEnv (fam_insts) $ addTyConsToGblEnv tyclss }
+                      else addTyConsToGblEnv tyclss
 
            -- Step 4: check instance declarations
        ; (gbl_env', inst_info, datafam_deriv_info) <-
@@ -223,7 +245,7 @@ tcTyClDecls tyclds kisig_env role_annots
             -- NB: We have to be careful here to NOT eagerly unfold
             -- type synonyms, as we have not tested for type synonym
             -- loops yet and could fall into a black hole.
-       ; fixM $ \ ~(rec_tyclss, _) -> do
+       ; (tcs, derivs) <- fixM $ \ ~(rec_tyclss, _) -> do
            { tcg_env <- getGblEnv
            ; let roles = inferRoles (tcg_src tcg_env) role_annots rec_tyclss
 
@@ -242,8 +264,11 @@ tcTyClDecls tyclds kisig_env role_annots
 
                  -- Kind and type check declarations for this group
                mapAndUnzipM (tcTyClDecl roles) tyclds
+
            ; return (tycons, concat data_deriv_infos)
-           } }
+           }
+       ; return (tcs, derivs)
+       }
   where
     ppr_tc_tycon tc = parens (sep [ ppr (tyConName tc) <> comma
                                   , ppr (tyConBinders tc) <> comma
@@ -1817,7 +1842,7 @@ tcClassDecl1 roles_info class_name hs_ctxt meths fundeps sigs ats at_defs
                   = Just (ctxt, at_stuff, sig_stuff, mindef)
 
        ; clas <- buildClass class_name binders roles fds body
-       ; traceTc "tcClassDecl" (ppr fundeps $$ ppr binders $$
+       ; traceTc "tcClassDecl 1" (ppr fundeps $$ ppr binders $$
                                 ppr fds)
        ; return clas }
   where
@@ -2233,10 +2258,9 @@ tcDataDefn err_ctxt
        ; stupid_theta    <- zonkTcTypesToTypes stupid_tc_theta
        ; kind_signatures <- xoptM LangExt.KindSignatures
 
-             -- Check that we don't use kind signatures without Glasgow extensions
+         -- Check that we don't use kind signatures without Glasgow extensions
        ; when (isJust mb_ksig) $
          checkTc (kind_signatures) (badSigTyDecl tc_name)
-
        ; tycon <- fixM $ \ tycon -> do
              { let final_bndrs = tycon_binders `chkAppend` extra_bndrs
                    res_ty      = mkTyConApp tycon (mkTyVarTys (binderVars final_bndrs))
@@ -2619,11 +2643,12 @@ dataDeclChecks :: Name -> NewOrData
 dataDeclChecks tc_name new_or_data (L _ stupid_theta) cons
   = do {   -- Check that we don't use GADT syntax in H98 world
          gadtSyntax_ok <- xoptM LangExt.GADTSyntax
+       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
        ; let gadt_syntax = consUseGadtSyntax cons
        ; checkTc (gadtSyntax_ok || not gadt_syntax) (badGadtDecl tc_name)
-
+       ; let gadt_ctx_okay = if partyCtrs then True else null stupid_theta
            -- Check that the stupid theta is empty for a GADT-style declaration
-       ; checkTc (null stupid_theta || not gadt_syntax) (badStupidTheta tc_name)
+       ; checkTc (gadt_ctx_okay || not gadt_syntax) (badStupidTheta tc_name)
 
          -- Check that a newtype has exactly one constructor
          -- Do this before checking for empty data decls, so that
@@ -2657,11 +2682,11 @@ tcConDecls rep_tycon new_or_data tmpl_bndrs res_kind res_tmpl
     -- It's important that we pay for tag allocation here, once per TyCon,
     -- See Note [Constructor tag allocation], fixes #14657
 
-tcConDecl :: KnotTied TyCon          -- Representation tycon. Knot-tied!
+tcConDecl :: KnotTied TyCon            -- Representation tycon. Knot-tied!
           -> NameEnv ConTag
-          -> [TyConBinder] -> TcKind   -- tycon binders and result kind
-          -> KnotTied Type
-                 -- Return type template (T tys), where T is the family TyCon
+          -> [TyConBinder]             -- template binders 
+          -> TcKind                    -- tycon binders and result kind
+          -> KnotTied Type             -- Return type template (T tys), where T is the family TyCon
           -> NewOrData
           -> ConDecl GhcRn
           -> TcM [DataCon]
@@ -2680,8 +2705,10 @@ tcConDecl rep_tycon tag_map tmpl_bndrs res_kind res_tmpl new_or_data
          --      hs_qvars = HsQTvs { hsq_implicit = {k}
          --                        , hsq_explicit = {f,b} }
 
-       ; traceTc "tcConDecl 1" (vcat [ ppr name, ppr explicit_tkv_nms ])
-
+       ; traceTc "tcConDecl 1" (vcat [ text "name" <> dcolon <> ppr name
+                                     , text "explit tkv" <> dcolon <> ppr explicit_tkv_nms
+                                     , text "context" <> dcolon <> ppr hs_ctxt
+                                     , text "tmpl_binders" <> dcolon <> ppr tmpl_bndrs ])
        ; (exp_tvs, (ctxt, arg_tys, field_lbls, stricts))
            <- pushTcLevelM_                             $
               solveEqualities                           $
@@ -2734,10 +2761,10 @@ tcConDecl rep_tycon tag_map tmpl_bndrs res_kind res_tmpl new_or_data
            -- the universals followed by the existentials.
            -- See Note [DataCon user type variable binders] in DataCon.
            user_tvbs = univ_tvbs ++ ex_tvbs
+           buildOneDataCon :: Located Name -> TcM DataCon
            buildOneDataCon (dL->L _ name) = do
              { is_infix <- tcConIsInfixH98 name hs_args
              ; rep_nm   <- newTyConRepName name
-
              ; buildDataCon fam_envs name is_infix rep_nm
                             stricts Nothing field_lbls
                             univ_tvs ex_tvs user_tvbs
@@ -2763,7 +2790,6 @@ tcConDecl rep_tycon tag_map tmpl_bndrs _res_kind res_tmpl new_or_data
   = addErrCtxt (dataConCtxtName names) $
     do { traceTc "tcConDecl 1 gadt" (ppr names)
        ; let ((dL->L _ name) : _) = names
-
        ; (imp_tvs, (exp_tvs, (ctxt, arg_tys, res_ty, field_lbls, stricts)))
            <- pushTcLevelM_    $  -- We are going to generalise
               solveEqualities  $  -- We won't get another crack, and we don't
@@ -3495,6 +3521,19 @@ checkValidDataCon dflags existential_ok tc con
           let tc_tvs      = tyConTyVars tc
               res_ty_tmpl = mkFamilyTyConApp tc (mkTyVarTys tc_tvs)
               orig_res_ty = dataConOrigResTy con
+        -- ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
+        -- ; res_ty_tmpl <- if enblPCtrs then
+        --                    do { elab_ty <- elabWithAtAtConstraints res_ty_tmpl
+        --                       ; traceTc "elab dc_res_ty" (ppr elab_ty)
+        --                       ; return elab_ty
+        --                       }
+        --                  else return res_ty_tmpl
+        -- ; orig_res_ty <- if enblPCtrs then
+        --                    do { elab_ty <- elabWithAtAtConstraints orig_res_ty
+        --                       ; traceTc "elab dc_res_ty" (ppr elab_ty)
+        --                       ; return elab_ty
+        --                       }
+        --                  else return orig_res_ty
         ; traceTc "checkValidDataCon" (vcat
               [ ppr con, ppr tc, ppr tc_tvs
               , ppr res_ty_tmpl <+> dcolon <+> ppr (tcTypeKind res_ty_tmpl)
@@ -3681,7 +3720,7 @@ checkValidClass cls
     cls_arity = length (tyConVisibleTyVars (classTyCon cls))
        -- Ignore invisible variables
     cls_tv_set = mkVarSet tyvars
-
+    check_op :: Bool -> (Id, DefMethInfo) -> TcRn ()
     check_op constrained_class_methods (sel_id, dm)
       = setSrcSpan (getSrcSpan sel_id) $
         addErrCtxt (classOpCtxt sel_id op_ty) $ do
@@ -4097,6 +4136,7 @@ checkValidRoles tc
         ex_roles   = mkVarEnv (map (, Nominal) ex_tvs)
         role_env   = univ_roles `plusVarEnv` ex_roles
 
+    -- check_ty_roles :: Role -> Role -> Type -> TcM ()
     check_ty_roles env role ty
       | Just ty' <- coreView ty -- #14101
       = check_ty_roles env role ty'

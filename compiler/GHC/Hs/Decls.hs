@@ -12,6 +12,10 @@
                                       -- in module GHC.Hs.PlaceHolder
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, DataKinds #-}
+#endif
 
 -- | Abstract syntax of global declarations.
 --
@@ -115,6 +119,10 @@ import Type
 import Bag
 import Maybes
 import Data.Data        hiding (TyCon,Fixity, Infix)
+#if MIN_VERSION_base(4,14,0)
+import  {-# SOURCE #-} GHC.Hs.Pat (Pat)
+import GHC.Types(type (@@))
+#endif
 
 {-
 ************************************************************************
@@ -275,7 +283,11 @@ appendGroups
         hs_docs   = docs1  ++ docs2 }
 appendGroups _ _ = panic "appendGroups"
 
-instance (OutputableBndrId p) => Outputable (HsDecl (GhcPass p)) where
+instance (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+         , Pat @@ GhcPass p
+#endif
+         ) => Outputable (HsDecl (GhcPass p)) where
     ppr (TyClD _ dcl)             = ppr dcl
     ppr (ValD _ binds)            = ppr binds
     ppr (DefD _ def)              = ppr def
@@ -292,7 +304,11 @@ instance (OutputableBndrId p) => Outputable (HsDecl (GhcPass p)) where
     ppr (RoleAnnotD _ ra)         = ppr ra
     ppr (XHsDecl x)               = ppr x
 
-instance (OutputableBndrId p) => Outputable (HsGroup (GhcPass p)) where
+instance (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+         , Pat @@ GhcPass p
+#endif
+         ) => Outputable (HsGroup (GhcPass p)) where
     ppr (HsGroup { hs_valds  = val_decls,
                    hs_tyclds = tycl_decls,
                    hs_derivds = deriv_decls,
@@ -708,7 +724,11 @@ hsDeclHasCusk (XTyClDecl nec) = noExtCon nec
 -- Pretty-printing TyClDecl
 -- ~~~~~~~~~~~~~~~~~~~~~~~~
 
-instance (OutputableBndrId p) => Outputable (TyClDecl (GhcPass p)) where
+instance (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+         , Pat @@ GhcPass p
+#endif
+         ) => Outputable (TyClDecl (GhcPass p)) where
 
     ppr (FamDecl { tcdFam = decl }) = ppr decl
     ppr (SynDecl { tcdLName = ltycon, tcdTyVars = tyvars, tcdFixity = fixity
@@ -741,8 +761,11 @@ instance (OutputableBndrId p) => Outputable (TyClDecl (GhcPass p)) where
 
     ppr (XTyClDecl x) = ppr x
 
-instance OutputableBndrId p
-       => Outputable (TyClGroup (GhcPass p)) where
+instance (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+         , Pat @@ GhcPass p
+#endif
+         ) => Outputable (TyClGroup (GhcPass p)) where
   ppr (TyClGroup { group_tyclds = tyclds
                  , group_roles = roles
                  , group_kisigs = kisigs
@@ -1813,7 +1836,11 @@ pprHsFamInstLHS thing bndrs typats fixity mb_ctxt
      pp_pats pats = hsep [ pprPrefixOcc thing
                          , hsep (map ppr pats)]
 
-instance OutputableBndrId p
+instance (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+         , Pat @@ GhcPass p
+#endif
+         )
        => Outputable (ClsInstDecl (GhcPass p)) where
     ppr (ClsInstDecl { cid_poly_ty = inst_ty, cid_binds = binds
                      , cid_sigs = sigs, cid_tyfam_insts = ats
@@ -1853,8 +1880,11 @@ ppOverlapPragma mb =
     maybe_stext NoSourceText     alt = text alt
     maybe_stext (SourceText src) _   = text src <+> text "#-}"
 
-
-instance (OutputableBndrId p) => Outputable (InstDecl (GhcPass p)) where
+instance (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+         , Pat @@ GhcPass p
+#endif
+         ) => Outputable (InstDecl (GhcPass p)) where
     ppr (ClsInstD     { cid_inst  = decl }) = ppr decl
     ppr (TyFamInstD   { tfid_inst = decl }) = ppr decl
     ppr (DataFamInstD { dfid_inst = decl }) = ppr decl

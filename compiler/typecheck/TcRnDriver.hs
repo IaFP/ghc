@@ -16,6 +16,9 @@ https://gitlab.haskell.org/ghc/ghc/wikis/commentary/compiler/type-checker
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcRnDriver (
         tcRnStmt, tcRnExpr, TcRnExprMode(..), tcRnType,
@@ -184,7 +187,7 @@ tcRnModule hsc_env mod_sum save_rn_syntax
 
     this_pkg = thisPackage (hsc_dflags hsc_env)
 
-    pair :: (Module, SrcSpan)
+    -- pair :: (Module, SrcSpan)
     pair@(this_mod,_)
       | Just (dL->L mod_loc mod) <- hsmodName this_module
       = (mkModule this_pkg mod, mod_loc)
@@ -2451,7 +2454,8 @@ tcRnType hsc_env flexi normalise rdr_type
                        solveEqualities       $
                        tcNamedWildCardBinders wcs $ \ wcs' ->
                        do { emitNamedWildCardHoleConstraints wcs'
-                          ; tcLHsTypeUnsaturated rn_type }
+                          ; tcLHsTypeUnsaturated rn_type
+                          }
 
        -- Do kind generalisation; see Note [Kind-generalise in tcRnType]
        ; kvs <- kindGeneralizeAll kind

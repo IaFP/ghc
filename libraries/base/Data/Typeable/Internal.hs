@@ -19,6 +19,8 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
+{-# LANGUAGE PartialTypeConstructors #-}
+-- {-# LANGUAGE ConstrainedClassMethods #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -83,7 +85,7 @@ module Data.Typeable.Internal (
 
 import GHC.Base
 import qualified GHC.Arr as A
-import GHC.Types ( TYPE )
+import GHC.Types ( TYPE, Total, type (@@))
 import Data.Type.Equality
 import GHC.List ( splitAt, foldl', elem )
 import GHC.Word
@@ -222,6 +224,9 @@ data TypeRep a where
                , trFunRes :: !(TypeRep b) }
             -> TypeRep (a -> b)
 
+instance Total TypeRep
+type instance TypeRep @@ k = ()
+
 {- Note [TypeRep fingerprints]
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 We store a Fingerprint of each TypeRep in its constructor. This allows
@@ -309,6 +314,7 @@ instance Ord (TypeRep a) where
 -- | A non-indexed type representation.
 data SomeTypeRep where
     SomeTypeRep :: forall k (a :: k). !(TypeRep a) -> SomeTypeRep
+instance Total SomeTypeRep
 
 instance Eq SomeTypeRep where
   SomeTypeRep a == SomeTypeRep b =

@@ -6,15 +6,17 @@
 -- binding of 'rght' to check that it is marked strict
 -- something like this:
 --         rght [Dmd=Just S] :: EvalTest.AList a
-
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, ExplicitNamespaces #-}
 module EvalTest where
 
 import GHC.Conc
 
 import Control.Applicative (Applicative(..))
 import Control.Monad (liftM, ap)
+import GHC.Types (Total)
 
 data Eval a = Done a
+instance Total Eval
 
 instance Functor Eval where
     fmap = liftM
@@ -22,6 +24,7 @@ instance Functor Eval where
 instance Applicative Eval where
     pure = return
     (<*>) = ap
+    liftA2 f (Done a) (Done b) = Done (f a b)
 
 instance Monad Eval where
   return x = Done x

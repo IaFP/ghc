@@ -1,3 +1,6 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+#endif
 ---------------------------------------------------------
 -- The main program for the hpc-report tool, part of HPC.
 -- Colin Runciman and Andy Gill, June 2006

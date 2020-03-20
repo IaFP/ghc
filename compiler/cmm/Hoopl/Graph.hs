@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -5,6 +6,9 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, ConstrainedClassMethods, UndecidableInstances #-}
+#endif
 module Hoopl.Graph
     ( Body
     , Graph
@@ -26,6 +30,9 @@ import Util
 import Hoopl.Label
 import Hoopl.Block
 import Hoopl.Collections
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 -- | A (possibly empty) collection of closed/closed blocks
 type Body n = LabelMap (Block n C C)
@@ -40,7 +47,11 @@ class NonLocal thing where
   entryLabel :: thing C x -> Label   -- ^ The label of a first node or block
   successors :: thing e C -> [Label] -- ^ Gives control-flow successors
 
-instance NonLocal n => NonLocal (Block n) where
+instance (NonLocal n
+#if MIN_VERSION_base(4,14,0)
+         , n @@ C, n C @@ O, n @@ O, n O @@ C
+#endif
+         ) => NonLocal (Block n) where
   entryLabel (BlockCO f _)   = entryLabel f
   entryLabel (BlockCC f _ _) = entryLabel f
 
@@ -99,18 +110,20 @@ mapGraph f = mapGraphBlocks (mapBlock f)
 mapGraphBlocks :: forall block n block' n' e x .
                   (forall e x . block n e x -> block' n' e x)
                -> (Graph' block n e x -> Graph' block' n' e x)
-
 mapGraphBlocks f = map
   where map :: Graph' block n e x -> Graph' block' n' e x
-        map GNil = GNil
+        map (GNil) = GNil
         map (GUnit b) = GUnit (f b)
         map (GMany e b x) = GMany (fmap f e) (mapMap f b) (fmap f x)
 
 -- -----------------------------------------------------------------------------
 -- Extracting Labels from graphs
 
-labelsDefined :: forall block n e x . NonLocal (block n) => Graph' block n e x
-              -> LabelSet
+labelsDefined :: forall block n e x . (NonLocal (block n)
+#if MIN_VERSION_base(4,14,0)
+                                      , block n C @@ O, block n @@ C, block @@ n
+#endif
+                                      ) => Graph' block n e x -> LabelSet
 labelsDefined GNil      = setEmpty
 labelsDefined (GUnit{}) = setEmpty
 labelsDefined (GMany _ body x) = mapFoldlWithKey addEntry (exitLabel x) body
@@ -146,8 +159,11 @@ labelsDefined (GMany _ body x) = mapFoldlWithKey addEntry (exitLabel x) body
 -- This matters for, e.g., forward analysis, because we want to analyze *both*
 -- B and C before we analyze D.
 revPostorderFrom
-  :: forall block.  (NonLocal block)
-  => LabelMap (block C C) -> Label -> [block C C]
+  :: forall block.  (NonLocal block
+#if MIN_VERSION_base(4,14,0)
+                    , block @@ C, block C @@ C
+#endif
+                    )  => LabelMap (block C C) -> Label -> [block C C]
 revPostorderFrom graph start = go start_worklist setEmpty []
   where
     start_worklist = lookup_for_descend start Nil

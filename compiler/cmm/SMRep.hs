@@ -4,6 +4,9 @@
 -- Storage manager representation of closures
 
 {-# LANGUAGE CPP,GeneralizedNewtypeDeriving #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module SMRep (
         -- * Words and bytes

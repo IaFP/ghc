@@ -1,4 +1,9 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveGeneric #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
+
 module GHC.ForeignSrcLang.Type
   ( ForeignSrcLang(..)
   ) where
@@ -15,3 +20,4 @@ data ForeignSrcLang
   | LangAsm    -- ^ Assembly language (.s)
   | RawObject  -- ^ Object (.o)
   deriving (Eq, Show, Generic)
+

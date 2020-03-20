@@ -16,6 +16,9 @@ TcSplice: Template Haskell splices
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies, UndecidableInstances #-}
+#endif
 
 module TcSplice(
      tcSpliceExpr, tcTypedBracket, tcUntypedBracket,

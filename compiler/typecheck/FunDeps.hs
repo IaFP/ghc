@@ -9,6 +9,9 @@ It's better to read it as: "if we know these, then we're going to know these"
 -}
 
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module FunDeps (
         FunDepEqn(..), pprEquation,

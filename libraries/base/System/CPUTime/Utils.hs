@@ -1,3 +1,4 @@
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 module System.CPUTime.Utils
     ( -- * Integer conversions
       -- | These types have no 'Integral' instances in the Haskell report

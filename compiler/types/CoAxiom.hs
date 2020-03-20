@@ -2,6 +2,9 @@
 
 {-# LANGUAGE CPP, DataKinds, DeriveDataTypeable, GADTs, KindSignatures,
              ScopedTypeVariables, StandaloneDeriving, RoleAnnotations #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 -- | Module for coercion axioms, used to represent type family instances
 -- and newtypes

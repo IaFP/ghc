@@ -8,6 +8,7 @@
            , StandaloneDeriving
            , RankNTypes
   #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 {-# OPTIONS_HADDOCK not-home #-}
 

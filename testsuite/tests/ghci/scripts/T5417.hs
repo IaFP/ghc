@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies, UndecidableInstances #-}
 module T5417 where
   import qualified T5417a as C
 

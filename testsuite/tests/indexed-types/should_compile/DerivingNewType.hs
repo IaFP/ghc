@@ -14,3 +14,4 @@ data family S2 a b
 newtype instance S2 Int b = S2 (IO b)
                           deriving (Functor, Applicative, Monad)
 
+

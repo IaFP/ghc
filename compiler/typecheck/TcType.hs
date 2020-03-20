@@ -16,6 +16,9 @@ is the principal client.
 -}
 
 {-# LANGUAGE CPP, ScopedTypeVariables, MultiWayIf, FlexibleContexts #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcType (
   --------------------------------
@@ -80,7 +83,7 @@ module TcType (
   isIntegerTy, isBoolTy, isUnitTy, isCharTy, isCallStackTy, isCallStackPred,
   hasIPPred, isTauTy, isTauTyCon, tcIsTyVarTy, tcIsForAllTy,
   isPredTy, isTyVarClassPred, isTyVarHead, isInsolubleOccursCheck,
-  checkValidClsArgs, hasTyVarHead,
+  checkValidClsArgs, hasTyVarHead, isForallWithAtAt,
   isRigidTy, isAlmostFunctionFree,
 
   ---------------------------------
@@ -143,6 +146,7 @@ module TcType (
   tcSplitDFunTy, tcSplitDFunHead, tcSplitMethodTy,
   isRuntimeRepVar, isKindLevPoly,
   isVisibleBinder, isInvisibleBinder,
+  isAtAtPred,
 
   -- Type substitutions
   TCvSubst(..),         -- Representation visible to a few friends
@@ -216,7 +220,7 @@ import NameSet
 import VarEnv
 import PrelNames
 import TysWiredIn( coercibleClass, eqClass, heqClass, unitTyCon, unitTyConKey
-                 , listTyCon, constraintKind )
+                 , listTyCon, constraintKind, atTyTyCon )
 import BasicTypes
 import Util
 import Maybes
@@ -225,6 +229,7 @@ import Outputable
 import FastString
 import ErrUtils( Validity(..), MsgDoc, isValid )
 import qualified GHC.LanguageExtensions as LangExt
+
 
 import Data.List  ( mapAccumL )
 -- import Data.Functor.Identity( Identity(..) )
@@ -1608,6 +1613,16 @@ hasTyVarHead ty                 -- Haskell 98 allows predicates of form
   = case tcSplitAppTy_maybe ty of
        Just (ty, _) -> hasTyVarHead ty
        Nothing      -> False
+ 
+isForallWithAtAt :: Type -> Bool
+-- Returns true if the type is forall t. f @@ t
+isForallWithAtAt ty = isAtAtPred ty'
+  where (_, ty') = tcSplitForAllTys ty
+  
+isAtAtPred :: Type -> Bool
+isAtAtPred ty
+      | TyConApp tc _ <- ty = tc == atTyTyCon
+      | otherwise = False
 
 evVarPred :: EvVar -> PredType
 evVarPred var = varType var

@@ -2,6 +2,10 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, ImplicitParams #-}
 {-# LANGUAGE RankNTypes, PolyKinds, DataKinds #-}
 {-# OPTIONS_HADDOCK not-home #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -----------------------------------------------------------------------------
 -- |
@@ -36,8 +40,7 @@ import {-# SOURCE #-} GHC.Exception
   , errorCallException )
 
 -- | 'error' stops execution and displays an error message.
-error :: forall (r :: RuntimeRep). forall (a :: TYPE r).
-         HasCallStack => [Char] -> a
+error :: forall (r :: RuntimeRep). forall (a :: TYPE r). (HasCallStack) => [Char] -> a
 error s = raise# (errorCallWithCallStackException s ?callStack)
           -- Bleh, we should be using 'GHC.Stack.callStack' instead of
           -- '?callStack' here, but 'GHC.Stack.callStack' depends on
@@ -47,8 +50,7 @@ error s = raise# (errorCallWithCallStackException s ?callStack)
 -- | A variant of 'error' that does not produce a stack trace.
 --
 -- @since 4.9.0.0
-errorWithoutStackTrace :: forall (r :: RuntimeRep). forall (a :: TYPE r).
-                          [Char] -> a
+errorWithoutStackTrace :: forall (r :: RuntimeRep). forall (a :: TYPE r). [Char] -> a
 errorWithoutStackTrace s = raise# (errorCallException s)
 
 
@@ -75,7 +77,7 @@ errorWithoutStackTrace s = raise# (errorCallException s)
 -- messages which are more appropriate to the context in which 'undefined'
 -- appears.
 undefined :: forall (r :: RuntimeRep). forall (a :: TYPE r).
-             HasCallStack => a
+             (HasCallStack)=> a
 undefined =  error "Prelude.undefined"
 
 -- | Used for compiler-generated error message;

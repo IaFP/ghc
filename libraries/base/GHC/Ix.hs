@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude, MagicHash, UnboxedTuples #-}
+{-# LANGUAGE PartialTypeConstructors, ConstrainedClassMethods #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 -----------------------------------------------------------------------------

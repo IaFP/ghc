@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- | (Mostly) textbook instance of the lambda lifting transformation,
 -- selecting which bindings to lambda lift by consulting 'goodToLift'.
@@ -22,6 +25,8 @@ import Util
 import VarSet
 import Control.Monad ( when )
 import Data.Maybe ( isNothing )
+#if MIN_VERSION_base(4,14,0)
+#endif
 
 -- | Lambda lifts bindings to top-level deemed worth lifting (see 'goodToLift').
 stgLiftLams :: DynFlags -> UniqSupply -> [InStgTopBinding] -> [OutStgTopBinding]

@@ -2,6 +2,9 @@
 
 {-# LANGUAGE CPP, ScopedTypeVariables, ViewPatterns #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module Digraph(
         Graph, graphFromEdgedVerticesOrd, graphFromEdgedVerticesUniq,

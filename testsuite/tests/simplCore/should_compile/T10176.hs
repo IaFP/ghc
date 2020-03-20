@@ -1,4 +1,4 @@
-
+{-# LANGUAGE UndecidableInstances #-}
 module T10176(buggy) where
 
 {-# NOINLINE error2Args #-}

@@ -1,6 +1,9 @@
 {-# LANGUAGE GADTs, RecordWildCards, MagicHash, ScopedTypeVariables, CPP,
     UnboxedTuples #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+#if __GLASGOW_HASKELL__ >= 810
+-- {-# LANGUAGE PartialTypeConstructors #-}
+#endif
 
 -- |
 -- Execute GHCi messages.

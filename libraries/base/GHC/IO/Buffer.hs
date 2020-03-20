@@ -1,5 +1,6 @@
 {-# LANGUAGE Trustworthy, BangPatterns #-}
 {-# LANGUAGE CPP, NoImplicitPrelude #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 
 -----------------------------------------------------------------------------

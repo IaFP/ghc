@@ -10,6 +10,9 @@ mutable type variables.
 -}
 
 {-# LANGUAGE CPP, TupleSections, MultiWayIf #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcMType (
   TcTyVar, TcKind, TcType, TcTauType, TcThetaType, TcTyVarSet,
@@ -85,7 +88,8 @@ module TcMType (
 
   ------------------------------
   -- Levity polymorphism
-  ensureNotLevPoly, checkForLevPoly, checkForLevPolyX, formatLevPolyErr
+  ensureNotLevPoly, checkForLevPoly, checkForLevPolyX, formatLevPolyErr,
+
   ) where
 
 #include "HsVersions.h"
@@ -128,7 +132,7 @@ import BasicTypes ( TypeOrKind(..) )
 
 import Control.Monad
 import Maybes
-import Data.List        ( mapAccumL )
+import Data.List        ( mapAccumL, {-partition-} )
 import Control.Arrow    ( second )
 import qualified Data.Semigroup as Semi
 
@@ -2351,3 +2355,4 @@ formatLevPolyErr ty
   where
     (tidy_env, tidy_ty) = tidyOpenType emptyTidyEnv ty
     tidy_ki             = tidyType tidy_env (tcTypeKind ty)
+

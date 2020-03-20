@@ -14,6 +14,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE DataKinds #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, ConstrainedClassMethods, UndecidableSuperClasses #-}
+#endif
 
 -- | Types for the per-module compiler
 module HscTypes (
@@ -224,6 +227,9 @@ import System.FilePath
 import Control.Concurrent
 import System.Process   ( ProcessHandle )
 import Control.DeepSeq
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@), Total)
+#endif
 
 -- -----------------------------------------------------------------------------
 -- Compilation state
@@ -266,6 +272,9 @@ data HscStatus
 
 newtype Hsc a = Hsc (HscEnv -> WarningMessages -> IO (a, WarningMessages))
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total Hsc
+#endif
 
 instance Applicative Hsc where
     pure a = Hsc $ \_ w -> return (a, w)
@@ -2310,7 +2319,11 @@ tyThingId other                       = pprPanic "tyThingId" (ppr other)
 -- to lookup a 'TyThing' in the monadic environment by 'Name'. Provides
 -- a number of related convenience functions for accessing particular
 -- kinds of 'TyThing'
-class Monad m => MonadThings m where
+class (Monad m
+#if MIN_VERSION_base(4,14,0)
+      , m @@ TyThing
+#endif
+      ) => MonadThings m where
         lookupThing :: Name -> m TyThing
 
         lookupId :: Name -> m Id

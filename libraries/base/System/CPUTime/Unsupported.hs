@@ -1,3 +1,4 @@
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 module System.CPUTime.Unsupported
     ( getCPUTime
     , getCpuTimePrecision

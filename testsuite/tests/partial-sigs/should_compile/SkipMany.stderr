@@ -2,11 +2,21 @@ TYPE SIGNATURES
   skipMany ::
     forall tok st a. GenParser tok st a -> GenParser tok st ()
   skipMany' ::
-    forall tok st a. GenParser tok st a -> GenParser tok st ()
+    forall tok st a.
+    (GenParser tok st @@ a, GenParser tok @@ st, GenParser @@ tok,
+     GenParser tok st @@ ()) =>
+    GenParser tok st a -> GenParser tok st ()
 TYPE CONSTRUCTORS
   data type GenParser{3} :: * -> * -> * -> *
 DATA CONSTRUCTORS
   GenParser :: forall tok st a. tok -> st -> a -> GenParser tok st a
+FAMILY INSTANCES
+  type instance GenParser @@ tok = () :: Constraint
+                  -- Defined at SkipMany.hs:4:1
+  type instance GenParser tok @@ st = () :: Constraint
+                  -- Defined at SkipMany.hs:4:1
+  type instance GenParser tok st @@ a = () :: Constraint
+                  -- Defined at SkipMany.hs:4:1
 Dependent modules: []
-Dependent packages: [base-4.13.0.0, ghc-prim-0.6.1,
-                     integer-gmp-1.0.2.0]
+Dependent packages: [base-4.14.0.0, ghc-prim-0.6.1,
+                     integer-gmp-1.0.3.0]

@@ -1,4 +1,52 @@
 
+T4093b.hs:25:21: error:
+    • Could not deduce: EitherCO
+                          x (EitherCO e (A C C n) (A O C n)) (A e O n)
+                        ~ (MaybeC e (n C O), MaybeC x (n O C))
+      from the context: (EitherCO e (A C O n) (A O O n) ~ A e O n,
+                         EitherCO x (A C C n) (A C O n) ~ A C x n)
+        bound by the type signature for:
+                   blockToNodeList :: forall (n :: * -> * -> *) e x.
+                                      (EitherCO e (A C O n) (A O O n) ~ A e O n,
+                                       EitherCO x (A C C n) (A C O n) ~ A C x n) =>
+                                      Block n e x -> A e x n
+        at T4093b.hs:(19,1)-(22,26)
+      Expected type: A e x n
+        Actual type: EitherCO
+                       x (EitherCO e (A C C n) (A O C n)) (A e O n)
+    • In the expression: foldBlockNodesF (f, l) b z
+      In an equation for ‘blockToNodeList’:
+          blockToNodeList b
+            = foldBlockNodesF (f, l) b z
+            where
+                z ::
+                  EitherCO e (EitherCO e (A C O n) (A O O n)) (EitherCO e (A C O n) (A O O n))
+                z = undefined
+                f ::
+                  n C O
+                  -> EitherCO e (A C O n) (A O O n) -> EitherCO e (A C O n) (A O O n)
+                f n _ = (JustC n, NothingC)
+                ....
+    • Relevant bindings include
+        z :: (MaybeC @@ O, MaybeC O @@ n O C, n @@ O, n O @@ C, n C @@ O,
+              n @@ C, MaybeC O @@ n C O, MaybeC @@ C, MaybeC C @@ n C O) =>
+             EitherCO
+               e (EitherCO e (A C O n) (A O O n)) (EitherCO e (A C O n) (A O O n))
+          (bound at T4093b.hs:28:5)
+        f :: (MaybeC C @@ n C O, MaybeC @@ C, MaybeC O @@ n C O, n @@ C,
+              n C @@ O, n O @@ C, n @@ O, MaybeC O @@ n O C, MaybeC @@ O) =>
+             n C O
+             -> EitherCO e (A C O n) (A O O n) -> EitherCO e (A C O n) (A O O n)
+          (bound at T4093b.hs:31:5)
+        l :: (MaybeC C @@ n C O, MaybeC @@ O, MaybeC O @@ n C O, n @@ C,
+              n C @@ O, n O @@ C, n @@ O, MaybeC C @@ n O C, MaybeC @@ C,
+              MaybeC O @@ n O C) =>
+             n O C
+             -> EitherCO e (A C O n) (A O O n) -> EitherCO e (A C C n) (A O C n)
+          (bound at T4093b.hs:34:5)
+        b :: Block n e x (bound at T4093b.hs:25:17)
+        blockToNodeList :: Block n e x -> A e x n (bound at T4093b.hs:25:1)
+
 T4093b.hs:31:13: error:
     • Could not deduce: e ~ C
       from the context: (EitherCO e (A C O n) (A O O n) ~ A e O n,
@@ -9,6 +57,14 @@ T4093b.hs:31:13: error:
                                        EitherCO x (A C C n) (A C O n) ~ A C x n) =>
                                       Block n e x -> A e x n
         at T4093b.hs:(19,1)-(22,26)
+      or from: (MaybeC C @@ n C O, MaybeC @@ C, MaybeC O @@ n C O,
+                n @@ C, n C @@ O, n O @@ C, n @@ O, MaybeC O @@ n O C, MaybeC @@ O)
+        bound by the type signature for:
+                   f :: (MaybeC C @@ n C O, MaybeC @@ C, MaybeC O @@ n C O, n @@ C,
+                         n C @@ O, n O @@ C, n @@ O, MaybeC O @@ n O C, MaybeC @@ O) =>
+                        n C O
+                        -> EitherCO e (A C O n) (A O O n) -> EitherCO e (A C O n) (A O O n)
+        at T4093b.hs:30:5-82
       ‘e’ is a rigid type variable bound by
         the type signature for:
           blockToNodeList :: forall (n :: * -> * -> *) e x.
@@ -36,7 +92,10 @@ T4093b.hs:31:13: error:
         f :: n C O
              -> EitherCO e (A C O n) (A O O n) -> EitherCO e (A C O n) (A O O n)
           (bound at T4093b.hs:31:5)
-        l :: n O C
+        l :: (MaybeC C @@ n C O, MaybeC @@ O, MaybeC O @@ n C O, n @@ C,
+              n C @@ O, n O @@ C, n @@ O, MaybeC C @@ n O C, MaybeC @@ C,
+              MaybeC O @@ n O C) =>
+             n O C
              -> EitherCO e (A C O n) (A O O n) -> EitherCO e (A C C n) (A O C n)
           (bound at T4093b.hs:34:5)
         b :: Block n e x (bound at T4093b.hs:25:17)

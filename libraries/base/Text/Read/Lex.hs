@@ -1,6 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-
+{-# LANGUAGE PartialTypeConstructors #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Text.Read.Lex

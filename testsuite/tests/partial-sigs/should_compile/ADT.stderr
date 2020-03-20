@@ -4,6 +4,12 @@ TYPE CONSTRUCTORS
   data type Foo{3} :: * -> * -> * -> *
 DATA CONSTRUCTORS
   Foo :: forall x y z. x -> y -> z -> Foo x y z
+FAMILY INSTANCES
+  type instance Foo @@ x = () :: Constraint -- Defined at ADT.hs:4:1
+  type instance Foo x @@ y = () :: Constraint
+                  -- Defined at ADT.hs:4:1
+  type instance Foo x y @@ z = () :: Constraint
+                  -- Defined at ADT.hs:4:1
 Dependent modules: []
-Dependent packages: [base-4.13.0.0, ghc-prim-0.6.1,
-                     integer-gmp-1.0.2.0]
+Dependent packages: [base-4.14.0.0, ghc-prim-0.6.1,
+                     integer-gmp-1.0.3.0]

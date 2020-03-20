@@ -11,7 +11,7 @@ import Control.Monad        (MonadPlus)
 import Control.Monad.Trans  (MonadTrans(lift), MonadIO(liftIO))
 import T4809_XMLGenerator (XMLGenT(..), EmbedAsChild(..), Name)
 import qualified T4809_XMLGenerator as HSX
-
+import GHC.Types (Total)
 data XML
   = Element Name [Int] [XML] | CDATA Bool String
     deriving Show
@@ -20,9 +20,10 @@ data XML
 
 newtype IdentityT m a = IdentityT { runIdentityT :: m a }
     deriving (Functor, Monad, MonadIO, MonadPlus)
+instance Total (IdentityT m)
 
-instance Monad m => Applicative (IdentityT m) where
-instance Monad m => Alternative (IdentityT m) where
+instance (Total m, Monad m) => Applicative (IdentityT m) where
+instance (Total m, Monad m) => Alternative (IdentityT m) where
 
 instance MonadTrans IdentityT where
     lift = IdentityT
@@ -32,14 +33,14 @@ evalIdentityT = runIdentityT . HSX.unXMLGenT
 
 -- * HSX.XMLGenerator for IdentityT
 
-instance (Functor m, Monad m) => HSX.XMLGen (IdentityT m) where
+instance (Total m, Functor m, Monad m) => HSX.XMLGen (IdentityT m) where
     type XML (IdentityT m) = XML
     newtype Child (IdentityT m) = IChild { unIChild :: XML }
     genElement n _attrs children = HSX.XMLGenT $ 
                                   do children' <- HSX.unXMLGenT (fmap (map unIChild . concat) (sequence children))
                                      return (Element n [] children')
 
-instance (Monad m, MonadIO m, Functor m) => EmbedAsChild (IdentityT m) String where
+instance (Total m, Monad m, MonadIO m, Functor m) => EmbedAsChild (IdentityT m) String where
     asChild s = 
         do liftIO $ putStrLn "EmbedAsChild (IdentityT m) String"
            XMLGenT . return . (:[]) . IChild . CDATA True $ s

@@ -1,5 +1,9 @@
 -- Cmm representations using Hoopl's Graph CmmNode e x.
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE GADTs #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module Cmm (
      -- * Cmm top-level datatypes

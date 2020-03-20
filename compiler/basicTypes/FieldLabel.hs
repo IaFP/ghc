@@ -61,6 +61,10 @@ Of course, datatypes with no constructors cannot have any fields.
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module FieldLabel ( FieldLabelString
                   , FieldLabelEnv

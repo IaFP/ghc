@@ -5,6 +5,10 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 --
 -- Copyright (c) 2010, João Dias, Simon Marlow, Simon Peyton Jones,
@@ -48,6 +52,9 @@ import Hoopl.Block
 import Hoopl.Graph
 import Hoopl.Collections
 import Hoopl.Label
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 type family   Fact (x :: Extensibility) f :: *
 type instance Fact C f = FactBase f
@@ -268,8 +275,11 @@ we'll propagate (x=4) to L4, and nuke the otherwise-good rewriting of L4.
 -- postorder for a forward analysis. For the backward one, we simply reverse
 -- that (see Note [Backward vs forward analysis]).
 sortBlocks
-    :: NonLocal n
-    => Direction -> Label -> LabelMap (Block n C C) -> [Block n C C]
+    :: (NonLocal n
+#if MIN_VERSION_base(4,14,0)
+       , n @@ C, n C @@ O, n @@ O, n O @@ C
+#endif
+      )  => Direction -> Label -> LabelMap (Block n C C) -> [Block n C C]
 sortBlocks direction entry blockmap =
     case direction of
         Fwd -> fwd
@@ -431,7 +441,11 @@ foldRewriteNodesBwdOO rewriteOO initBlock initFacts = go initBlock initFacts
     {-# INLINE comp #-}
 {-# INLINABLE foldRewriteNodesBwdOO #-}
 
-joinBlocksOO :: Block n O O -> Block n O O -> Block n O O
+joinBlocksOO ::
+#if MIN_VERSION_base(4,14,0)
+         (n @@ O, n O @@ O) => 
+#endif
+  Block n O O -> Block n O O -> Block n O O
 joinBlocksOO BNil b = b
 joinBlocksOO b BNil = b
 joinBlocksOO (BMiddle n) b = blockCons n b

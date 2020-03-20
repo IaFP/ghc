@@ -6,6 +6,8 @@
 -}
 
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+#endif
 
 -- | This module defines TyCons that can't be expressed in Haskell.
 --   They are all, therefore, wired-in TyCons.  C.f module TysWiredIn
@@ -681,6 +683,7 @@ GHC sports a veritable menagerie of equality types:
 
 ~R#        T        U      hetero   repr      eqReprPrimTy     GHC.Prim
 Coercible  C        L      homo     repr      coercibleTyCon   GHC.Types
+AtTy       C        L      homo     repr      atTyTyCon        GHC.Types
 Coercion   T        L      homo     repr      (not built-in)   Data.Type.Coercion
 ~P#        T        U      hetero   phantom   eqPhantPrimTyCon GHC.Prim
 
@@ -801,7 +804,6 @@ I just got rid of HCoercible, as I'm not sure who would use it, anyway.
 
 Within GHC, Coercible is called coercibleTyCon, and it is defined in
 TysWiredIn.
-
 
     --------------------------
     Coercion :: forall k. k -> k -> *

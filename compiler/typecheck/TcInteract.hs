@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcInteract (
      solveSimpleGivens,   -- Solves [Ct]
@@ -15,6 +18,7 @@ import TcFlatten
 import TcUnify( canSolveByUnification )
 import VarSet
 import Type
+import TyCoRep
 import InstEnv( DFunInstType )
 import CoAxiom( sfInteractTop, sfInteractInert )
 
@@ -57,6 +61,10 @@ import qualified GHC.LanguageExtensions as LangExt
 
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Maybe
+
+-- import TcPluginM (TcPluginM)
+import qualified TcPluginM as TcPluginM
+import TysWiredIn (atTyTyCon, totalTyCon)
 
 {-
 **********************************************************************
@@ -264,7 +272,10 @@ runTcPluginsWanted wc@(WC { wc_simple = simples1, wc_impl = implics1 })
   | isEmptyBag simples1
   = return (False, wc)
   | otherwise
-  = do { plugins <- getTcPlugins
+  = do { plugins' <- getTcPlugins
+       ; dflags <- getDynFlags
+       ; let pctrs = xopt LangExt.PartialTypeConstructors dflags
+       ; let plugins = if pctrs then solveWF:plugins' else plugins'
        ; if null plugins then return (False, wc) else
 
     do { given <- getInertGivens
@@ -2680,3 +2691,80 @@ matchLocalInst pred loc
         qtv_set = mkVarSet qtvs
         this_unif = mightMatchLater qpred (ctEvLoc ev) pred loc
         (matches, unif) = match_local_inst qcis
+
+
+---- code for well formed plugin
+solveWF :: TcPluginSolver
+solveWF _ _ [] = return (TcPluginOk [] [])
+solveWF givens deriveds wanteds =
+  do
+     -- Get all the given constraints of the form Total f
+    total_givens <- filterTotalCts givens
+
+    -- Get all the wanted constraints of the form f @@ a
+    atat_wanteds <- filterAtAts wanteds
+    
+    -- filter all the wanted constraints f @@ a where f is in total_givens
+    atat_solved <- solvableAtAts total_givens atat_wanteds 
+
+    -- generate (evTerm, ct) for each atat_solved cts
+    evTerms <- gen_ev_terms atat_solved
+    
+    TcPluginM.tcPluginTrace "WFPlugin" (vcat [ text "givens:" <+> ppr givens
+                                    , text "deriveds:" <+> ppr deriveds
+                                    , text "wanteds:" <+> ppr wanteds
+                                    , text "total_givens:" <+> ppr total_givens
+                                    , text "atat_wanteds:" <+> ppr atat_wanteds
+                                    , text "atat_solvable:" <+> ppr atat_solved
+                                    , text "evTerms:" <+> ppr (fmap fst evTerms)])
+     
+    return (TcPluginOk evTerms [])
+
+filterTotalCts :: [Ct] -> TcPluginM [Ct]
+filterTotalCts = filterM is_total
+  where
+    is_total :: Ct -> TcPluginM Bool
+    is_total (CDictCan _ tycls _ _) =
+      do  return (totalTyCon == classTyCon tycls)
+
+    is_total _ = return False
+
+         
+filterAtAts :: [Ct] -> TcPluginM [Ct]
+filterAtAts = filterM is_atat
+  where
+    is_atat :: Ct -> TcPluginM Bool
+    is_atat (CIrredCan ev _) =
+      do let p = ctEvPred ev
+         case p of
+            TyConApp tc _ -> return $ atTyTyCon == tc
+            _  -> return False
+    is_atat _ = return False
+
+solvableAtAts :: [Ct] -> [Ct] -> TcPluginM [Ct]
+solvableAtAts []  _ = return []
+solvableAtAts _  [] = return []
+solvableAtAts givens wanteds =
+  do let fs = map TyVarTy $ concatMap tyCoVarsOfCtList givens
+         (totals, _) = partition (is_atat_total fs) wanteds
+     return $ totals
+  where
+     is_atat_total :: [Type] -> Ct -> Bool
+     is_atat_total fs (CIrredCan ev _) =
+       case (ctEvPred ev) of
+         TyConApp _ [f, _] -> is_total f fs
+         TyConApp _ [_, _, f, _] -> is_total f fs
+         _ -> False
+     is_atat_total _ _ = False
+     is_total f fs = any (eqType f) fs
+     
+
+gen_ev_terms :: [Ct] -> TcPluginM [(EvTerm, Ct)]
+gen_ev_terms = mapM gen_ev_term
+  where  gen_ev_term :: Ct -> TcPluginM (EvTerm, Ct)
+         gen_ev_term ct = do
+           let i = ctEvId ct
+               ev = EvExpr $ (Var i)
+           TcPluginM.tcPluginTrace "gen_ev_term" (text "Ignoring" <+> ppr ct <+> text "with" <+> ppr ev)
+           return (ev, ct)
+

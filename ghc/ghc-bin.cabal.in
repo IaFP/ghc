@@ -42,6 +42,8 @@ Executable ghc
                    transformers == 0.5.*,
                    ghc-boot   == @ProjectVersionMunged@,
                    ghc        == @ProjectVersionMunged@
+    if impl(ghc>=8.10)
+        Build-Depends: ghc-prim >= 0.6.1
 
     if os(windows)
         Build-Depends: Win32  >= 2.3 && < 2.7

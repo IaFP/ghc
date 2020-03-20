@@ -8,6 +8,7 @@
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE Trustworthy                #-}
 {-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE PartialTypeConstructors    #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -118,7 +119,7 @@ import           Data.Bitraversable
 import           Data.Coerce
 import           Data.Data
 import           GHC.Generics
-
+                               
 -- | A generalization of 'Data.List.cycle' to an arbitrary 'Semigroup'.
 -- May fail to terminate for some values in some semigroups.
 cycle1 :: Semigroup m => m -> m

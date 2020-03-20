@@ -7,6 +7,9 @@ Desugaring foreign calls
 -}
 
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 module DsCCall
         ( dsCCall
         , mkFCall

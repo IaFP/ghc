@@ -8,6 +8,7 @@ import GHC.ST
 import GHC.Word
 import Control.Monad
 import System.Mem
+import GHC.Types (type (@@))
 
 data MutableByteArray s = MutableByteArray (MutableByteArray# s)
 
@@ -68,18 +69,24 @@ unsafeFreezeArrayArray (MutableArrayArray marrs#)
            (# s'#, arrs# #)  -> (# s'#, ArrayArray arrs# #)
 
 unsafeDeepFreezeArrayArray :: forall s e
-                           .  MutableArrayArray s (MutableByteArray s) 
+                           .  (MutableArrayArray @@ s, MutableArrayArray s @@ (MutableByteArray s)
+                              , MutableByteArray @@ s, ST @@ s, ST s @@ (ArrayArray (ByteArray e))
+                              , ArrayArray @@ (ByteArray e), ByteArray @@ e
+                              ) =>
+                           MutableArrayArray s (MutableByteArray s) 
                            -> ST s (ArrayArray (ByteArray e))
 unsafeDeepFreezeArrayArray marrs@(MutableArrayArray marrs#)
   = do { let n = I# (sizeofMutableArrayArray# marrs#)
-             marrs_halfFrozen = MutableArrayArray marrs#  -- :: MutableArrayArray s (ByteArray e)
+             (marrs_halfFrozen :: MutableArrayArray s (ByteArray e))
+               = MutableArrayArray marrs#
        ; mapM_ (freezeSubArray marrs_halfFrozen) [0..n - 1]
        ; unsafeFreezeArrayArray marrs_halfFrozen
        }
   where
+    -- freezeSubArray :: MutableArrayArray s (ByteArray s) -> Int -> ST s ()
     freezeSubArray marrs_halfFrozen i
-      = do { mba <- readArrayArray marrs i
-           ; ba  <- unsafeFreezeByteArray mba
+      = do { (mba::MutableByteArray s) <- readArrayArray marrs i
+           ; (ba::ByteArray s)  <- unsafeFreezeByteArray mba
            ; writeArrayArray marrs_halfFrozen i ba
            }
 

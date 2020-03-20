@@ -9,6 +9,9 @@
 {-# LANGUAGE CPP, TupleSections, ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcExpr ( tcPolyExpr, tcMonoExpr, tcMonoExprNC,
                 tcInferSigma, tcInferSigmaNC, tcInferRho, tcInferRhoNC,
@@ -614,9 +617,13 @@ tcExpr (HsStatic fvs expr) res_ty
                                              [p_ty]
         ; let wrap = mkWpTyApps [expr_ty]
         ; loc <- getSrcSpanM
-        ; return $ mkHsWrapCo co $ HsApp noExtField
-                                         (L loc $ mkHsWrap wrap fromStaticPtr)
-                                         (L loc (HsStatic fvs expr'))
+        -- ; undefId <- tcLookupId undefinedName
+        -- ; let dummyArg =  HsVar noExtField (noLoc undefId)
+        -- ; let (lam :: HsExpr GhcTcId)  = (HsApp noExtField
+        --               (L loc $ mkHsWrap wrap fromStaticPtr)
+        --               (L loc $ dummyArg)) -- dummpy argument 
+        ; return $ mkHsWrapCo co $ HsApp noExtField (L loc $ mkHsWrap wrap fromStaticPtr)
+                                                    (L loc (HsStatic fvs expr'))
         }
 
 {-
@@ -1741,8 +1748,15 @@ tcInferId id_name
 
   | otherwise
   = do { (expr, ty) <- tc_infer_id (nameRdrName id_name) id_name
+       -- ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
+       -- ; ty' <- if enblPCtrs
+       --          then do { elab_ty <- elabWithAtAtConstraints ty
+       --                  ; traceTc "TcExpr.tcInferId elaborating signature: " (ppr elab_ty)
+       --                  ; return elab_ty }
+       --   else return ty
        ; traceTc "tcInferId" (ppr id_name <+> dcolon <+> ppr ty)
-       ; return (expr, ty) }
+       ; return (expr, ty)
+       }
 
 tc_infer_assert :: Name -> TcM (HsExpr GhcTcId, TcSigmaType)
 -- Deal with an occurrence of 'assert'
@@ -1786,7 +1800,16 @@ tc_infer_id lbl id_name
 
       | otherwise
        -- See Note [Instantiating stupid theta]
-      = do { let (tvs, theta, rho) = tcSplitSigmaTy con_ty
+      = do { -- traceTc "inferId" (vcat [ text "TyCon=" <> ppr con
+           --                           , text "TyConTy=" <> ppr con_ty
+           --                           , text "TyConTheta=" <> ppr stupid_theta ])
+           -- ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
+           -- ; con_ty' <- if enblPCtrs
+           --              then do { elab_ty <- elabWithAtAtConstraints con_ty
+           --                      ; traceTc "TcExpr ty_con elaborating signature: " (ppr elab_ty)
+           --                      ; return elab_ty }
+           --              else return con_ty
+           ; let (tvs, theta, rho) = tcSplitSigmaTy con_ty
            ; (subst, tvs') <- newMetaTyVars tvs
            ; let tys'   = mkTyVarTys tvs'
                  theta' = substTheta subst theta

@@ -2,6 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE PartialTypeConstructors, StandaloneDeriving, DeriveDataTypeable #-}
 
 -----------------------------------------------------------------------------
 -- |

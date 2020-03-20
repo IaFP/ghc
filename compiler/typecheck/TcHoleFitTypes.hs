@@ -1,4 +1,9 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
+
 module TcHoleFitTypes (
   TypedHole (..), HoleFit (..), HoleFitCandidate (..),
   CandPlugin, FitPlugin, HoleFitPlugin (..), HoleFitPluginR (..),

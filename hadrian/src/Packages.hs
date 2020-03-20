@@ -34,7 +34,8 @@ ghcPackages =
     [ array, base, binary, bytestring, cabal, checkPpr, checkApiAnnotations
     , compareSizes, compiler, containers, deepseq, deriveConstants, directory
     , exceptions, filepath, genapply, genprimopcode, ghc, ghcBoot, ghcBootTh
-    , ghcCompact, ghcHeap, ghci, ghcPkg, ghcPrim, haddock, haskeline, hsc2hs
+    , ghcCompact, ghcHeap, ghci, ghcPkg, ghcPrim, haddock, haskeline,
+      hsc2hs
     , hp2ps, hpc, hpcBin, integerGmp, integerSimple, iserv, libffi, libiserv, mtl
     , parsec, pretty, process, rts, runGhc, stm, templateHaskell
     , terminfo, text, time, touchy, transformers, unlit, unix, win32, xhtml

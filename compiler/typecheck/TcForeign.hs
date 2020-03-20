@@ -14,6 +14,9 @@ module checks to see if a foreign declaration has got a legal type.
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcForeign
         ( tcForeignImports
@@ -54,6 +57,7 @@ import RdrName
 import DataCon
 import TyCon
 import TcType
+-- import TcMType
 import PrelNames
 import DynFlags
 import Outputable
@@ -245,26 +249,42 @@ tcFImport :: LForeignDecl GhcRn
 tcFImport (L dloc fo@(ForeignImport { fd_name = L nloc nm, fd_sig_ty = hs_ty
                                     , fd_fi = imp_decl }))
   = setSrcSpan dloc $ addErrCtxt (foreignDeclCtxt fo)  $
-    do { sig_ty <- tcHsSigType (ForSigCtxt nm) hs_ty
+    do { --  cUnitTyCon <- tcLookupTyCon (cTupleTyConName 0)
+         -- ; let cUnitTy = mkTyConApp cUnitTyCon []
+         sig_ty <- tcHsSigType (ForSigCtxt nm) hs_ty
+       -- ; sig_ty <- unelabAtAtConstraintsM sig_ty'
        ; (norm_co, norm_sig_ty, gres) <- normaliseFfiType sig_ty
        ; let
            -- Drop the foralls before inspecting the
            -- structure of the foreign type.
              (arg_tys, res_ty) = tcSplitFunTys (dropForAlls norm_sig_ty)
-             id                = mkLocalId nm sig_ty
-                 -- Use a LocalId to obey the invariant that locally-defined
-                 -- things are LocalIds.  However, it does not need zonking,
-                 -- (so TcHsSyn.zonkForeignExports ignores it).
-
+       -- ; let arg_tys = filterHeadEmptyConstraints cUnitTy arg_tys_c
        ; imp_decl' <- tcCheckFIType arg_tys res_ty imp_decl
           -- Can't use sig_ty here because sig_ty :: Type and
           -- we need HsType Id hence the undefined
-       ; let fi_decl = ForeignImport { fd_name = L nloc id
+       -- ; let (tvs, preds, tau) = tcSplitSigmaTy sig_ty
+       ; let id     = mkLocalId nm sig_ty
+             -- Use a LocalId to obey the invariant that locally-defined
+             -- things are LocalIds.  However, it does not need zonking,
+             -- (so TcHsSyn.zonkForeignExports ignores it).
+                      
+             fi_decl = ForeignImport { fd_name = L nloc id
                                      , fd_sig_ty = undefined
                                      , fd_i_ext = mkSymCo norm_co
                                      , fd_fi = imp_decl' }
+       ; traceTc "tcFImport" (vcat [text "coercions: " <+> ppr norm_co
+                                   , text "norm_sig_ty" <+> ppr norm_sig_ty
+                                   , text "arg_tys" <+> ppr arg_tys ])
        ; return (id, L dloc fi_decl, gres) }
+    -- where
+    --     filterHeadEmptyConstraints cUnitTy ty
+    --       | [] <- ty = []
+    --       | (t:tys) <- ty = if eqType cUnitTy t
+    --                         then filterHeadEmptyConstraints cUnitTy tys
+    --                         else (t:tys)
+
 tcFImport d = pprPanic "tcFImport" (ppr d)
+          
 
 -- ------------ Checking types for foreign import ----------------------
 

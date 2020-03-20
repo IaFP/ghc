@@ -2,6 +2,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -----------------------------------------------------------------------------
 --
@@ -60,6 +64,9 @@ import State
 import Data.List
 import Data.Maybe
 import Data.IntSet              (IntSet)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -----------------------------------------------------------------------------
 type RegSet = UniqSet Reg
@@ -251,7 +258,11 @@ mapBlockTop f cmm
 -- | map a function across all the basic blocks in this code (monadic version)
 --
 mapBlockTopM
-        :: Monad m
+        :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+           , Total m
+#endif
+           )
         => (LiveBasicBlock instr -> m (LiveBasicBlock instr))
         -> LiveCmmDecl statics instr -> m (LiveCmmDecl statics instr)
 
@@ -262,7 +273,11 @@ mapBlockTopM f (CmmProc header label live sccs)
  = do   sccs'   <- mapM (mapSCCM f) sccs
         return  $ CmmProc header label live sccs'
 
-mapSCCM :: Monad m => (a -> m b) -> SCC a -> m (SCC b)
+mapSCCM :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+           , Total m
+#endif
+           ) => (a -> m b) -> SCC a -> m (SCC b)
 mapSCCM f (AcyclicSCC x)
  = do   x'      <- f x
         return  $ AcyclicSCC x'
@@ -283,7 +298,11 @@ mapGenBlockTop f cmm
 
 -- | map a function across all the basic blocks in this code (monadic version)
 mapGenBlockTopM
-        :: Monad m
+        :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+           , Total m
+#endif
+           )
         => (GenBasicBlock            i  -> m (GenBasicBlock            i))
         -> (GenCmmDecl d h (ListGraph i) -> m (GenCmmDecl d h (ListGraph i)))
 

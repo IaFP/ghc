@@ -8,6 +8,7 @@ import Control.Monad
 import Text.Printf
 import Data.Time.Clock
 import Control.DeepSeq
+import GHC.Types (Total)
 
 main = do
   [n,q,t] <- fmap (fmap read) getArgs
@@ -45,6 +46,7 @@ x `using` strat = runEval (strat x)
 type Strategy a = a -> Eval a
 
 newtype Eval a = Eval (State# RealWorld -> (# State# RealWorld, a #))
+instance Total Eval
 
 runEval :: Eval a -> a
 runEval (Eval x) = case x realWorld# of (# _, a #) -> a

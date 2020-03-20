@@ -23,6 +23,7 @@
              TypeFamilies, KindSignatures, FlexibleContexts, NoMonadFailDesugaring,
              FlexibleInstances, OverlappingInstances, UndecidableInstances
  #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
 
 {-   Somewhere we get:
 
@@ -47,7 +48,7 @@ import Data.Kind (Type)
 import Control.Monad (liftM, liftM2, when, ap)
 import Control.Monad.Fail (MonadFail(fail))
 -- import Control.Monad.Identity
-
+import GHC.Types (type (@@))
 import Debug.Trace (trace)
 
 
@@ -82,8 +83,17 @@ instance Monad Identity where
     return a = Identity a
     m >>= k  = k (runIdentity m)
 
-newtype Trampoline m s r = Trampoline {bounce :: m (TrampolineState m s r)}
-data TrampolineState m s r = Done r | Suspend !(s (Trampoline m s r))
+newtype Monad m => Trampoline m s r = Trampoline {bounce :: m (TrampolineState m s r)}
+data Monad m => TrampolineState m s r = Done r | Suspend !(s (Trampoline m s r))
+
+type instance Trampoline @@ m = (Monad m, TrampolineState @@ m)
+type instance Trampoline m @@ s = TrampolineState m @@ s
+type instance Trampoline m s @@ r = (TrampolineState m s @@ r, m @@ TrampolineState m s r)
+
+type instance TrampolineState @@ m = Monad m
+type instance TrampolineState m @@ s = ()
+type instance TrampolineState m s @@ r = ()
+
 
 instance (Monad m, Functor s) => Functor (Trampoline m s) where
   fmap = liftM
@@ -162,19 +172,27 @@ coupleNestedFinite t1 t2 =
                       (Suspend (LeftF s1), Suspend (RightF s2)) -> suspend (fmap (flip coupleNestedFinite (suspend $ RightF s2)) s1)
                       (Suspend (RightF s1), Suspend (LeftF s2)) -> suspend (fmap (coupleNestedFinite (suspend $ RightF s1)) s2)
 
-local :: forall m l r x. (Monad m, Functor r) => Trampoline m r x -> Trampoline m (EitherFunctor l r) x
+local :: forall m l r x. (Monad m, Functor r, Trampoline @@ m, Trampoline m @@ r
+                         , Trampoline m r @@ x, Trampoline m @@ (EitherFunctor l r)
+                         , Trampoline m (EitherFunctor l r) @@ x, EitherFunctor @@ l, EitherFunctor l @@ r
+                         ) => Trampoline m r x -> Trampoline m (EitherFunctor l r) x
 local (Trampoline mr) = Trampoline (liftM inject mr)
    where inject :: TrampolineState m r x -> TrampolineState m (EitherFunctor l r) x
          inject (Done x) = Done x
          inject (Suspend r) = Suspend (RightF $ fmap local r)
 
-out :: forall m l r x. (Monad m, Functor l) => Trampoline m l x -> Trampoline m (EitherFunctor l r) x
+out :: forall m l r x. (Monad m, Functor l, Trampoline @@ m, Trampoline m @@ l
+                         , Trampoline m l @@ x, Trampoline m @@ (EitherFunctor l r)
+                         , Trampoline m (EitherFunctor l r) @@ x, EitherFunctor @@ l, EitherFunctor l @@ r
+                         ) => Trampoline m l x -> Trampoline m (EitherFunctor l r) x
 out (Trampoline ml) = Trampoline (liftM inject ml)
    where inject :: TrampolineState m l x -> TrampolineState m (EitherFunctor l r) x
          inject (Done x) = Done x
          inject (Suspend l) = Suspend (LeftF $ fmap out l)
 
-liftOut :: forall m a d x. (Monad m, Functor a, AncestorFunctor a d) => Trampoline m a x -> Trampoline m d x
+liftOut :: forall m a d x. (Monad m, Functor a, AncestorFunctor a d
+                           , Trampoline @@ m, Trampoline m @@ a, Trampoline m a @@ x
+                           , Trampoline m @@ d, Trampoline m d @@ x) => Trampoline m a x -> Trampoline m d x
 liftOut (Trampoline ma) = trace "liftOut" $ Trampoline (liftM inject ma)
    where inject :: TrampolineState m a x -> TrampolineState m d x
          inject (Done x) = Done x

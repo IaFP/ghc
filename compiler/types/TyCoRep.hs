@@ -939,7 +939,7 @@ mkForAllTy tv vis ty = ForAllTy (Bndr tv vis) ty
 mkForAllTys :: [TyCoVarBinder] -> Type -> Type
 mkForAllTys tyvars ty = foldr ForAllTy ty tyvars
 
-mkPiTy:: TyCoBinder -> Type -> Type
+mkPiTy :: TyCoBinder -> Type -> Type
 mkPiTy (Anon af ty1) ty2        = FunTy { ft_af = af, ft_arg = ty1, ft_res = ty2 }
 mkPiTy (Named (Bndr tv vis)) ty = mkForAllTy tv vis ty
 

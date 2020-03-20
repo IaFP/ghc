@@ -7,6 +7,9 @@ The @TyCon@ datatype
 -}
 
 {-# LANGUAGE CPP, FlexibleInstances #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module TyCon(
         -- * Main TyCon data types
@@ -85,6 +88,7 @@ module TyCon(
         tyConSingleAlgDataCon_maybe,
         tyConFamilySize,
         tyConStupidTheta,
+        getTyConTyVars,
         tyConArity,
         tyConRoles,
         tyConFlavour,
@@ -2446,6 +2450,12 @@ tyConStupidTheta :: TyCon -> [PredType]
 tyConStupidTheta (AlgTyCon {algTcStupidTheta = stupid}) = stupid
 tyConStupidTheta (FunTyCon {}) = []
 tyConStupidTheta tycon = pprPanic "tyConStupidTheta" (ppr tycon)
+
+
+-- | Find the type variables of the constructor
+getTyConTyVars :: TyCon -> [TyVar]
+getTyConTyVars (AlgTyCon {tyConTyVars = vars}) = vars
+getTyConTyVars _ = []
 
 -- | Extract the 'TyVar's bound by a vanilla type synonym
 -- and the corresponding (unsubstituted) right hand side.

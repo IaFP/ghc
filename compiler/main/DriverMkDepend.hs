@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -----------------------------------------------------------------------------
 --
@@ -42,6 +45,9 @@ import System.IO.Error  ( isEOFError )
 import Control.Monad    ( when )
 import Data.Maybe       ( isJust )
 import Data.IORef
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -----------------------------------------------------------------
 --
@@ -49,7 +55,11 @@ import Data.IORef
 --
 -----------------------------------------------------------------
 
-doMkDependHS :: GhcMonad m => [FilePath] -> m ()
+doMkDependHS :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                , Total m
+#endif
+                ) => [FilePath] -> m ()
 doMkDependHS srcs = do
     -- Initialisation
     dflags0 <- GHC.getSessionDynFlags

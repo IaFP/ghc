@@ -20,6 +20,7 @@ import Data.IORef
 import System.Environment
 import System.Exit
 import Text.Printf
+import GHC.Base (eqString)
 
 dieWithUsage :: IO a
 dieWithUsage = do
@@ -44,7 +45,7 @@ main = do
         _ -> dieWithUsage
 
   verbose <- case rest of
-    ["-v"] -> return True
+    [x] ->  if eqString x "-v" then return True else dieWithUsage
     []     -> return False
     _      -> dieWithUsage
   when verbose $

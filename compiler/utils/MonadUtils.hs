@@ -1,5 +1,9 @@
 -- | Utilities related to Monad and Applicative classes
 --   Mostly for backwards compatibility.
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, UndecidableSuperClasses #-}
+#endif
 
 module MonadUtils
         ( Applicative(..)
@@ -34,6 +38,9 @@ import Control.Monad.Fix
 import Control.Monad.IO.Class
 import Data.Foldable (sequenceA_, foldlM, foldrM)
 import Data.List (unzip4, unzip5, zipWith4)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -------------------------------------------------------------------------------
 -- Common functions
@@ -66,19 +73,31 @@ functions below as well.
 
 -}
 
-zipWith3M :: Monad m => (a -> b -> c -> m d) -> [a] -> [b] -> [c] -> m [d]
+zipWith3M :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+             , Total m
+#endif
+             ) => (a -> b -> c -> m d) -> [a] -> [b] -> [c] -> m [d]
 {-# INLINE zipWith3M #-}
 -- Inline so that fusion with 'zipWith3' and 'sequenceA' has a chance to fire.
 -- See Note [Inline @zipWithNM@ functions] above.
 zipWith3M f xs ys zs = sequenceA (zipWith3 f xs ys zs)
 
-zipWith3M_ :: Monad m => (a -> b -> c -> m d) -> [a] -> [b] -> [c] -> m ()
+zipWith3M_ :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+              , Total m
+#endif
+              ) => (a -> b -> c -> m d) -> [a] -> [b] -> [c] -> m ()
 {-# INLINE zipWith3M_ #-}
 -- Inline so that fusion with 'zipWith4' and 'sequenceA' has a chance to fire.
 -- See  Note [Inline @zipWithNM@ functions] above.
 zipWith3M_ f xs ys zs = sequenceA_ (zipWith3 f xs ys zs)
 
-zipWith4M :: Monad m => (a -> b -> c -> d -> m e)
+zipWith4M :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+             , Total m
+#endif
+             ) => (a -> b -> c -> d -> m e)
           -> [a] -> [b] -> [c] -> [d] -> m [e]
 {-# INLINE zipWith4M #-}
 -- Inline so that fusion with 'zipWith5' and 'sequenceA' has a chance to fire.
@@ -120,19 +139,31 @@ pragma should be replicated in the @mapAndUnzipNM@ functions below as well.
 -}
 
 -- | mapAndUnzipM for triples
-mapAndUnzip3M :: Monad m => (a -> m (b,c,d)) -> [a] -> m ([b],[c],[d])
+mapAndUnzip3M :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+                 , Total m
+#endif
+                 ) => (a -> m (b,c,d)) -> [a] -> m ([b],[c],[d])
 {-# INLINE mapAndUnzip3M #-}
 -- Inline so that fusion with 'unzip3' and 'traverse' has a chance to fire.
 -- See Note [Inline @mapAndUnzipNM@ functions] above.
 mapAndUnzip3M f xs =  unzip3 <$> traverse f xs
 
-mapAndUnzip4M :: Monad m => (a -> m (b,c,d,e)) -> [a] -> m ([b],[c],[d],[e])
+mapAndUnzip4M :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+                 , Total m
+#endif
+                 ) => (a -> m (b,c,d,e)) -> [a] -> m ([b],[c],[d],[e])
 {-# INLINE mapAndUnzip4M #-}
 -- Inline so that fusion with 'unzip4' and 'traverse' has a chance to fire.
 -- See Note [Inline @mapAndUnzipNM@ functions] above.
 mapAndUnzip4M f xs =  unzip4 <$> traverse f xs
 
-mapAndUnzip5M :: Monad m => (a -> m (b,c,d,e,f)) -> [a] -> m ([b],[c],[d],[e],[f])
+mapAndUnzip5M :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+                 , Total m
+#endif
+                 ) => (a -> m (b,c,d,e,f)) -> [a] -> m ([b],[c],[d],[e],[f])
 {-# INLINE mapAndUnzip5M #-}
 -- Inline so that fusion with 'unzip5' and 'traverse' has a chance to fire.
 -- See Note [Inline @mapAndUnzipNM@ functions] above.
@@ -156,7 +187,11 @@ mapSndM _ []         = return []
 mapSndM f ((a,b):xs) = do { c <- f b; rs <- mapSndM f xs; return ((a,c):rs) }
 
 -- | Monadic version of concatMap
-concatMapM :: Monad m => (a -> m [b]) -> [a] -> m [b]
+concatMapM :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+              , Total m
+#endif
+              ) => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs = liftM concat (mapM f xs)
 
 -- | Applicative version of mapMaybe

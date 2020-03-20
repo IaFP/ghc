@@ -1,4 +1,8 @@
 {-# LANGUAGE LambdaCase, ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
 
 -- | A description of the platform we're compiling for.
 --

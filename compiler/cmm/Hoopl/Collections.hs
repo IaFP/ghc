@@ -3,6 +3,10 @@
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, ConstrainedClassMethods  #-}
+#endif
 
 module Hoopl.Collections
     ( IsSet(..)

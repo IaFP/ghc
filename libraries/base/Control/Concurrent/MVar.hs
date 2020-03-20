@@ -1,4 +1,5 @@
 {-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 {-# LANGUAGE NoImplicitPrelude, UnboxedTuples, MagicHash #-}
 
 -----------------------------------------------------------------------------

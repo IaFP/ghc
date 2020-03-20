@@ -1,6 +1,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE CPP, NoImplicitPrelude, ScopedTypeVariables,
              MagicHash, BangPatterns #-}
+{-# LANGUAGE PartialTypeConstructors    #-}
 
 -----------------------------------------------------------------------------
 -- |

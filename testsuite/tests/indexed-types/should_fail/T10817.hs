@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies, NoUndecidableInstances #-}
 
 module T10817 where
 

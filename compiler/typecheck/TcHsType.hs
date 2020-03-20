@@ -10,6 +10,9 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcHsType (
         -- Type signatures
@@ -29,7 +32,7 @@ module TcHsType (
             bindExplicitTKBndrs_Q_Tv, bindExplicitTKBndrs_Q_Skol,
         ContextKind(..),
 
-                -- Type checking type and class decls
+        -- Type checking type and class decls
         kcLookupTcTyCon, bindTyClTyVars,
         etaExpandAlgTyCon, tcbVisibilities,
 
@@ -86,6 +89,7 @@ import TyCoRep
 import TyCoPpr
 import TcErrors ( reportAllUnsolved )
 import TcType
+import TcTyWF (elabWithAtAtConstraintsTcM)
 import Inst   ( tcInstInvisibleTyBinders, tcInstInvisibleTyBinder )
 import Type
 import TysPrim
@@ -211,7 +215,7 @@ tcClassSigType :: SkolemInfo -> [Located Name] -> LHsSigType GhcRn -> TcM Type
 -- Does not do validity checking
 tcClassSigType skol_info names sig_ty
   = addSigCtxt (funsSigCtxt names) (hsSigType sig_ty) $
-    snd <$> tc_hs_sig_type skol_info sig_ty (TheKind liftedTypeKind)
+    snd <$> tc_hs_sig_type False skol_info sig_ty (TheKind liftedTypeKind)
        -- Do not zonk-to-Type, nor perform a validity check
        -- We are in a knot with the class and associated types
        -- Zonking and validity checking is done by tcClassDecl
@@ -229,27 +233,42 @@ tcClassSigType skol_info names sig_ty
        -- painfully delicate.
 
 tcHsSigType :: UserTypeCtxt -> LHsSigType GhcRn -> TcM Type
+-- First argument is if the function type is a foreign
 -- Does validity checking
 -- See Note [Recipe for checking a signature]
-tcHsSigType ctxt sig_ty
+tcHsSigType ctxt@(ForSigCtxt _ ) sig_ty
   = addSigCtxt ctxt (hsSigType sig_ty) $
     do { traceTc "tcHsSigType {" (ppr sig_ty)
-
           -- Generalise here: see Note [Kind generalisation]
-       ; (insol, ty) <- tc_hs_sig_type skol_info sig_ty
-                                       (expectedKindInCtxt ctxt)
+       ; (insol, ty) <- tc_hs_sig_type True skol_info sig_ty
+                        (expectedKindInCtxt ctxt)
        ; ty <- zonkTcType ty
-
        ; when insol failM
        -- See Note [Fail fast if there are insoluble kind equalities] in TcSimplify
-
        ; checkValidType ctxt ty
+
        ; traceTc "end tcHsSigType }" (ppr ty)
        ; return ty }
   where
     skol_info = SigTypeSkol ctxt
 
--- Does validity checking and zonking.
+tcHsSigType ctxt sig_ty
+  = addSigCtxt ctxt (hsSigType sig_ty) $
+    do { traceTc "tcHsSigType {" (ppr sig_ty)
+          -- Generalise here: see Note [Kind generalisation]
+       ; (insol, ty) <- tc_hs_sig_type False skol_info sig_ty
+                        (expectedKindInCtxt ctxt)
+       ; ty <- zonkTcType ty
+       ; when insol failM
+       -- See Note [Fail fast if there are insoluble kind equalities] in TcSimplify
+       ; checkValidType ctxt ty
+
+       ; traceTc "end tcHsSigType }" (ppr ty)
+       ; return ty }
+  where
+    skol_info = SigTypeSkol ctxt
+
+                
 tcStandaloneKindSig :: LStandaloneKindSig GhcRn -> TcM (Name, Kind)
 tcStandaloneKindSig (L _ kisig) = case kisig of
   StandaloneKindSig _ (L _ name) ksig ->
@@ -260,7 +279,7 @@ tcStandaloneKindSig (L _ kisig) = case kisig of
        ; return (name, kind) }
   XStandaloneKindSig nec -> noExtCon nec
 
-tc_hs_sig_type :: SkolemInfo -> LHsSigType GhcRn
+tc_hs_sig_type :: Bool -> SkolemInfo -> LHsSigType GhcRn
                -> ContextKind -> TcM (Bool, TcType)
 -- Kind-checks/desugars an 'LHsSigType',
 --   solve equalities,
@@ -269,34 +288,42 @@ tc_hs_sig_type :: SkolemInfo -> LHsSigType GhcRn
 -- No validity checking or zonking
 -- Returns also a Bool indicating whether the type induced an insoluble constraint;
 -- True <=> constraint is insoluble
-tc_hs_sig_type skol_info hs_sig_type ctxt_kind
+tc_hs_sig_type isF skol_info hs_sig_type ctxt_kind
   | HsIB { hsib_ext = sig_vars, hsib_body = hs_ty } <- hs_sig_type
   = do { (tc_lvl, (wanted, (spec_tkvs, ty)))
               <- pushTcLevelM                           $
                  solveLocalEqualitiesX "tc_hs_sig_type" $
                  bindImplicitTKBndrs_Skol sig_vars      $
                  do { kind <- newExpectedKind ctxt_kind
-                    ; tc_lhs_type typeLevelMode hs_ty kind }
+                    ; raw_ty <- tc_lhs_type typeLevelMode hs_ty kind
+                    ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
+                    ; if enblPCtrs && not isF
+                      then do { elab_ty <- elabWithAtAtConstraintsTcM raw_ty
+                              ; traceTc "tc_hs_sig_type elaborating signature: " (ppr elab_ty)
+                              ; return elab_ty }
+                      else return raw_ty }
+
        -- Any remaining variables (unsolved in the solveLocalEqualities)
        -- should be in the global tyvars, and therefore won't be quantified
-
        ; spec_tkvs <- zonkAndScopedSort spec_tkvs
-       ; let ty1 = mkSpecForAllTys spec_tkvs ty
 
+       ; let ty1 = mkSpecForAllTys spec_tkvs ty
+       
        -- This bit is very much like decideMonoTyVars in TcSimplify,
        -- but constraints are so much simpler in kinds, it is much
        -- easier here. (In particular, we never quantify over a
        -- constraint in a type.)
        ; constrained <- zonkTyCoVarsAndFV (tyCoVarsOfWC wanted)
        ; let should_gen = not . (`elemVarSet` constrained)
-
+       
        ; kvs <- kindGeneralizeSome should_gen ty1
        ; emitResidualTvConstraint skol_info Nothing (kvs ++ spec_tkvs)
                                   tc_lvl wanted
 
        ; return (insolubleWC wanted, mkInvForAllTys kvs ty1) }
 
-tc_hs_sig_type _ (XHsImplicitBndrs nec) _ = noExtCon nec
+tc_hs_sig_type _ _ (XHsImplicitBndrs nec) _ = noExtCon nec
+
 
 tcTopLHsType :: TcTyMode -> LHsSigType GhcRn -> ContextKind -> TcM Type
 -- tcTopLHsType is used for kind-checking top-level HsType where
@@ -312,7 +339,14 @@ tcTopLHsType mode hs_sig_type ctxt_kind
                  solveEqualities                   $
                  bindImplicitTKBndrs_Skol sig_vars $
                  do { kind <- newExpectedKind ctxt_kind
-                    ; tc_lhs_type mode hs_ty kind }
+                    ; raw_ty <- tc_lhs_type mode hs_ty kind
+                    ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
+                    ; if enblPCtrs
+                      then do { elab_ty <- elabWithAtAtConstraintsTcM raw_ty
+                              ; traceTc "tcTopLHsType elaborating signature: " (ppr elab_ty)
+                              ; return elab_ty }
+                      else return raw_ty
+                    }
 
        ; spec_tkvs <- zonkAndScopedSort spec_tkvs
        ; let ty1 = mkSpecForAllTys spec_tkvs ty
@@ -661,8 +695,7 @@ tc_infer_hs_type mode other_ty
 ------------------------------------------
 tc_lhs_type :: TcTyMode -> LHsType GhcRn -> TcKind -> TcM TcType
 tc_lhs_type mode (L span ty) exp_kind
-  = setSrcSpan span $
-    tc_hs_type mode ty exp_kind
+  = setSrcSpan span $ tc_hs_type mode ty exp_kind
 
 tc_hs_type :: TcTyMode -> HsType GhcRn -> TcKind -> TcM TcType
 -- See Note [Bidirectional type checking]
@@ -1951,6 +1984,7 @@ kcCheckDeclHeader_cusk name flav
 
        ; traceTc "kcCheckDeclHeader_cusk " $
          vcat [ text "name" <+> ppr name
+              , text "flavour" <+> ppr flav
               , text "kv_ns" <+> ppr kv_ns
               , text "hs_tvs" <+> ppr hs_tvs
               , text "scoped_kvs" <+> ppr scoped_kvs
@@ -2017,9 +2051,12 @@ kcInferDeclHeader name flav
                                flav
 
        ; traceTc "kcInferDeclHeader: not-cusk" $
-         vcat [ ppr name, ppr kv_ns, ppr hs_tvs
-              , ppr scoped_kvs
-              , ppr tc_tvs, ppr (mkTyConKind tc_binders res_kind) ]
+         vcat [ text "name:" <+> ppr name
+              , text "kind vars:" <+> ppr kv_ns
+              , text "hs tvs:" <+> ppr hs_tvs
+              , text "scoped kvs:" <+> ppr scoped_kvs
+              , text "tc tvs:" <+> ppr tc_tvs
+              , text "cls kind:" <+> ppr (mkTyConKind tc_binders res_kind) ]
        ; return tycon }
   where
     ctxt_kind | tcFlavourIsOpen flav = TheKind liftedTypeKind

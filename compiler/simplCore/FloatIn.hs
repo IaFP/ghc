@@ -14,6 +14,9 @@ then discover that they aren't needed in the chosen branch.
 
 {-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fprof-auto #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module FloatIn ( floatInwards ) where
 

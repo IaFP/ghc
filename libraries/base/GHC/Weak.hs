@@ -5,6 +5,7 @@
            , UnboxedTuples
            , StandaloneDeriving
   #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 -----------------------------------------------------------------------------

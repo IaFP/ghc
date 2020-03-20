@@ -1,4 +1,5 @@
 {-# language ApplicativeDo #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 
 import GHC.Exts
 

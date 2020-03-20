@@ -1,4 +1,9 @@
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
+{-# LANGUAGE CPP                 #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, ConstrainedClassMethods  #-}
+#endif
+
 module Exception
     (
     module Control.Exception,

@@ -50,6 +50,10 @@
 -}
 
 {-# LANGUAGE CPP, MultiWayIf #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
+
 module SetLevels (
         setLevels,
 

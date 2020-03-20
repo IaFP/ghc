@@ -1,4 +1,9 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE MagicHash, NoImplicitPrelude, BangPatterns #-}
+-- #if __GLASGOW_HASKELL__ >= 810
+-- {-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+-- #endif
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  GHC.CString

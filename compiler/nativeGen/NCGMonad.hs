@@ -1,6 +1,9 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE BangPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- -----------------------------------------------------------------------------
 --
@@ -67,6 +70,9 @@ import Instruction
 import Outputable (SDoc, pprPanic, ppr)
 import Cmm (RawCmmDecl, CmmStatics)
 import CFG
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 data NcgImpl statics instr jumpDest = NcgImpl {
     cmmTopCodeGen             :: RawCmmDecl -> NatM [NatCmmDecl statics instr],
@@ -116,6 +122,9 @@ type DwarfFiles = UniqFM (FastString, Int)
 
 newtype NatM result = NatM (NatM_State -> (result, NatM_State))
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total NatM
+#endif
 
 unNat :: NatM a -> NatM_State -> (a, NatM_State)
 unNat (NatM a) = a

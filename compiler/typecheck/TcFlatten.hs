@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP, DeriveFunctor, ViewPatterns, BangPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcFlatten(
    FlattenMode(..),
@@ -36,6 +39,9 @@ import MonadUtils    ( zipWith3M )
 import Data.Foldable ( foldrM )
 
 import Control.Arrow ( first )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 {-
 Note [The flattening story]
@@ -492,6 +498,9 @@ eqFlattenMode _  _ = False
 newtype FlatM a
   = FlatM { runFlatM :: FlattenEnv -> TcS a }
   deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total FlatM
+#endif
 
 instance Monad FlatM where
   m >>= k  = FlatM $ \env ->

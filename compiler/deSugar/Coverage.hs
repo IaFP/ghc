@@ -7,6 +7,10 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module Coverage (addTicksToBinds, hpcInitCode) where
 
@@ -53,6 +57,9 @@ import Trace.Hpc.Util
 import qualified Data.ByteString as BS
 import Data.Map (Map)
 import qualified Data.Map as Map
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 {-
 ************************************************************************
@@ -1076,6 +1083,9 @@ newtype TM a = TM { unTM :: TickTransEnv -> TickTransState -> (a,FreeVars,TickTr
     deriving (Functor)
         -- a combination of a state monad (TickTransState) and a writer
         -- monad (FreeVars).
+#if MIN_VERSION_base(4,14,0)
+instance Total TM
+#endif
 
 instance Applicative TM where
     pure a = TM $ \ _env st -> (a,noFVs,st)

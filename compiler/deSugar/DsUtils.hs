@@ -12,6 +12,9 @@ This module exports some utility functions of no great interest.
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- | Utility functions for constructing Core syntax, principally for desugaring
 module DsUtils (

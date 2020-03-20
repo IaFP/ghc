@@ -1,14 +1,37 @@
 
+T4485.hs:35:10: error:
+    • Could not deduce: m @@ (b -> c)
+        arising from a use of ‘GHC.Base.$dmliftA2’
+      from the context: IdentityT @@ m
+        bound by the instance declaration at T4485.hs:35:10-34
+      or from: (IdentityT m @@ b, IdentityT m @@ c, IdentityT m @@ a)
+        bound by the type signature for:
+                   GHC.Base.liftA2 :: forall a b c.
+                                      (IdentityT m @@ b, IdentityT m @@ c, IdentityT m @@ a) =>
+                                      (a -> b -> c)
+                                      -> IdentityT m a -> IdentityT m b -> IdentityT m c
+        at T4485.hs:35:10-34
+    • In the expression: GHC.Base.$dmliftA2 @(IdentityT m)
+      In an equation for ‘GHC.Base.liftA2’:
+          GHC.Base.liftA2 = GHC.Base.$dmliftA2 @(IdentityT m)
+      In the instance declaration for ‘Applicative (IdentityT m)’
+    • Relevant bindings include
+        liftA2 :: (a -> b -> c)
+                  -> IdentityT m a -> IdentityT m b -> IdentityT m c
+          (bound at T4485.hs:35:10)
+
 T4485.hs:50:15: error:
     • Overlapping instances for EmbedAsChild
                                   (IdentityT IO) (XMLGenT m0 (XML m0))
         arising from a use of ‘asChild’
       Matching instances:
-        instance [overlapping] (EmbedAsChild m c, m1 ~ m) =>
+        instance [overlapping] (XMLGenT m1 @@ c, XMLGenT @@ m1, m1 ~ m,
+                                EmbedAsChild m c) =>
                                EmbedAsChild m (XMLGenT m1 c)
           -- Defined at T4485.hs:28:30
-        instance [overlapping] EmbedAsChild
-                                 (IdentityT IO) (XMLGenT Identity ())
+        instance [overlapping] (IdentityT @@ IO, XMLGenT Identity @@ (),
+                                XMLGenT @@ Identity) =>
+                               EmbedAsChild (IdentityT IO) (XMLGenT Identity ())
           -- Defined at T4485.hs:45:30
       (The choice depends on the instantiation of ‘m0’
        To pick the first instance above, use IncoherentInstances
@@ -20,11 +43,36 @@ T4485.hs:50:15: error:
         ‘EmbedAsChild (IdentityT IO) FooBar’
 
 T4485.hs:50:26: error:
-    • Ambiguous type variable ‘m0’ arising from a use of ‘genElement’
-      prevents the constraint ‘(XMLGen m0)’ from being solved.
-      Probable fix: use a type annotation to specify what ‘m0’ should be.
+    • Could not deduce: m0 @@ XML m0 arising from a use of ‘genElement’
+      from the context: IdentityT @@ IO
+        bound by the instance declaration at T4485.hs:49:30-63
+      or from: (XMLGenT (IdentityT IO) @@ [Child (IdentityT IO)],
+                XMLGenT @@ IdentityT IO)
+        bound by the type signature for:
+                   asChild :: (XMLGenT (IdentityT IO) @@ [Child (IdentityT IO)],
+                               XMLGenT @@ IdentityT IO) =>
+                              FooBar -> XMLGenT (IdentityT IO) [Child (IdentityT IO)]
+        at T4485.hs:50:3-9
+    • In the second argument of ‘($)’, namely ‘(genElement "foo")’
+      In the expression: asChild $ (genElement "foo")
+      In an equation for ‘asChild’:
+          asChild b = asChild $ (genElement "foo")
+
+T4485.hs:50:26: error:
+    • Could not deduce (XMLGen m0) arising from a use of ‘genElement’
+      from the context: IdentityT @@ IO
+        bound by the instance declaration at T4485.hs:49:30-63
+      or from: (XMLGenT (IdentityT IO) @@ [Child (IdentityT IO)],
+                XMLGenT @@ IdentityT IO)
+        bound by the type signature for:
+                   asChild :: (XMLGenT (IdentityT IO) @@ [Child (IdentityT IO)],
+                               XMLGenT @@ IdentityT IO) =>
+                              FooBar -> XMLGenT (IdentityT IO) [Child (IdentityT IO)]
+        at T4485.hs:50:3-9
+      The type variable ‘m0’ is ambiguous
       These potential instance exist:
-        instance XMLGen (IdentityT m) -- Defined at T4485.hs:37:10
+        instance (IdentityT @@ m) => XMLGen (IdentityT m)
+          -- Defined at T4485.hs:37:10
     • In the second argument of ‘($)’, namely ‘(genElement "foo")’
       In the expression: asChild $ (genElement "foo")
       In an equation for ‘asChild’:

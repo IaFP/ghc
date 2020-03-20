@@ -1,5 +1,9 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, ConstrainedClassMethods #-}
+#endif
 
 -------------------------------------------------------------------------------
 --
@@ -323,6 +327,9 @@ import qualified GHC.LanguageExtensions as LangExt
 #if GHC_STAGE >= 2
 -- used by SHARED_GLOBAL_VAR
 import Foreign (Ptr)
+#endif
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
 #endif
 
 -- Note [Updating flag description in the User's Guide]
@@ -897,6 +904,7 @@ data WarningFlag =
    | Opt_WarnInlineRuleShadowing
    | Opt_WarnTypedHoles
    | Opt_WarnPartialTypeSignatures
+   | Opt_WarnPartialTypeConstructors   
    | Opt_WarnMissingExportedSignatures
    | Opt_WarnUntickedPromotedConstructors
    | Opt_WarnDerivingTypeable
@@ -1366,16 +1374,32 @@ instance definition. However, that definition would overlap with the
 `HasDynFlags (GhcT m)` instance. Instead we define instances for a
 couple of common Monad transformers explicitly. -}
 
-instance (Monoid a, Monad m, HasDynFlags m) => HasDynFlags (WriterT a m) where
+instance (Monoid a, Monad m, HasDynFlags m
+#if MIN_VERSION_base(4,14,0)
+            , Total m
+#endif
+         ) => HasDynFlags (WriterT a m) where
     getDynFlags = lift getDynFlags
 
-instance (Monad m, HasDynFlags m) => HasDynFlags (ReaderT a m) where
+instance (Monad m, HasDynFlags m
+#if MIN_VERSION_base(4,14,0)
+            , Total m
+#endif
+         ) => HasDynFlags (ReaderT a m) where
     getDynFlags = lift getDynFlags
 
-instance (Monad m, HasDynFlags m) => HasDynFlags (MaybeT m) where
+instance (Monad m, HasDynFlags m
+#if MIN_VERSION_base(4,14,0)
+            , Total m
+#endif
+         ) => HasDynFlags (MaybeT m) where
     getDynFlags = lift getDynFlags
 
-instance (Monad m, HasDynFlags m) => HasDynFlags (ExceptT e m) where
+instance (Monad m, HasDynFlags m
+#if MIN_VERSION_base(4,14,0)
+            , Total m
+#endif
+         ) => HasDynFlags (ExceptT e m) where
     getDynFlags = lift getDynFlags
 
 class ContainsDynFlags t where
@@ -1834,21 +1858,41 @@ wayOptP _ WayDyn      = []
 wayOptP _ WayProf     = ["-DPROFILING"]
 wayOptP _ WayEventLog = ["-DTRACING"]
 
-whenGeneratingDynamicToo :: MonadIO m => DynFlags -> m () -> m ()
+whenGeneratingDynamicToo :: (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+                         , Total m
+#endif
+                            ) => DynFlags -> m () -> m ()
 whenGeneratingDynamicToo dflags f = ifGeneratingDynamicToo dflags f (return ())
 
-ifGeneratingDynamicToo :: MonadIO m => DynFlags -> m a -> m a -> m a
+ifGeneratingDynamicToo :: (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+                         , Total m
+#endif
+                          ) => DynFlags -> m a -> m a -> m a
 ifGeneratingDynamicToo dflags f g = generateDynamicTooConditional dflags f g g
 
-whenCannotGenerateDynamicToo :: MonadIO m => DynFlags -> m () -> m ()
+whenCannotGenerateDynamicToo :: (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+                                , Total m
+#endif
+                                ) => DynFlags -> m () -> m ()
 whenCannotGenerateDynamicToo dflags f
     = ifCannotGenerateDynamicToo dflags f (return ())
 
-ifCannotGenerateDynamicToo :: MonadIO m => DynFlags -> m a -> m a -> m a
+ifCannotGenerateDynamicToo :: (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+                               , Total m
+#endif
+                              ) => DynFlags -> m a -> m a -> m a
 ifCannotGenerateDynamicToo dflags f g
     = generateDynamicTooConditional dflags g f g
 
-generateDynamicTooConditional :: MonadIO m
+generateDynamicTooConditional :: (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+                         , Total m
+#endif
+                                 )
                               => DynFlags -> m a -> m a -> m a -> m a
 generateDynamicTooConditional dflags canGen cannotGen notTryingToGen
     = if gopt Opt_BuildDynamicToo dflags
@@ -2307,11 +2351,11 @@ languageExtensions :: Maybe Language -> [LangExt.Extension]
 languageExtensions Nothing
     -- Nothing => the default case
     = LangExt.NondecreasingIndentation -- This has been on by default for some time
-    : delete LangExt.DatatypeContexts  -- The Haskell' committee decided to
+    -- : delete LangExt.DatatypeContexts  -- The Haskell' committee decided to
                                        -- remove datatype contexts from the
                                        -- language:
    -- http://www.haskell.org/pipermail/haskell-prime/2011-January/003335.html
-      (languageExtensions (Just Haskell2010))
+    : (languageExtensions (Just Haskell2010))
 
    -- NB: MonoPatBinds is no longer the default
 
@@ -2778,7 +2822,11 @@ updOptLevel n dfs
 -- the parsed 'DynFlags', the left-over arguments, and a list of warnings.
 -- Throws a 'UsageError' if errors occurred during parsing (such as unknown
 -- flags or missing arguments).
-parseDynamicFlagsCmdLine :: MonadIO m => DynFlags -> [Located String]
+parseDynamicFlagsCmdLine :: (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+                               , Total m
+#endif
+                            ) => DynFlags -> [Located String]
                          -> m (DynFlags, [Located String], [Warn])
                             -- ^ Updated 'DynFlags', left-over arguments, and
                             -- list of warnings.
@@ -2788,7 +2836,11 @@ parseDynamicFlagsCmdLine = parseDynamicFlagsFull flagsAll True
 -- | Like 'parseDynamicFlagsCmdLine' but does not allow the package flags
 -- (-package, -hide-package, -ignore-package, -hide-all-packages, -package-db).
 -- Used to parse flags set in a modules pragma.
-parseDynamicFilePragma :: MonadIO m => DynFlags -> [Located String]
+parseDynamicFilePragma :: (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+                               , Total m
+#endif
+                          ) => DynFlags -> [Located String]
                        -> m (DynFlags, [Located String], [Warn])
                           -- ^ Updated 'DynFlags', left-over arguments, and
                           -- list of warnings.
@@ -2799,7 +2851,11 @@ parseDynamicFilePragma = parseDynamicFlagsFull flagsDynamic False
 -- the dynamic flag parser that the other methods simply wrap. It allows
 -- saying which flags are valid flags and indicating if we are parsing
 -- arguments from the command line or from a file pragma.
-parseDynamicFlagsFull :: MonadIO m
+parseDynamicFlagsFull :: (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+                         , Total m
+#endif
+                         )
                   => [Flag (CmdLineP DynFlags)]    -- ^ valid flags to match against
                   -> Bool                          -- ^ are the arguments from the command line?
                   -> DynFlags                      -- ^ current dynamic flags
@@ -4433,10 +4489,11 @@ xFlagsDeps = [
   flagSpec "ConstrainedClassMethods"          LangExt.ConstrainedClassMethods,
   flagSpec "ConstraintKinds"                  LangExt.ConstraintKinds,
   flagSpec "DataKinds"                        LangExt.DataKinds,
-  depFlagSpecCond "DatatypeContexts"          LangExt.DatatypeContexts
-    id
-         ("It was widely considered a misfeature, " ++
-                     "and has been removed from the Haskell language."),
+  flagSpec "DatatypeContexts"                 LangExt.DatatypeContexts,
+  -- depFlagSpecCond "DatatypeContexts"          LangExt.DatatypeContexts
+  --   id
+  --        ("It was widely considered a misfeature, " ++
+  --                    "and has been removed from the Haskell language."),
   flagSpec "DefaultSignatures"                LangExt.DefaultSignatures,
   flagSpec "DeriveAnyClass"                   LangExt.DeriveAnyClass,
   flagSpec "DeriveDataTypeable"               LangExt.DeriveDataTypeable,
@@ -4516,6 +4573,7 @@ xFlagsDeps = [
   flagSpec "ParallelArrays"                   LangExt.ParallelArrays,
   flagSpec "ParallelListComp"                 LangExt.ParallelListComp,
   flagSpec "PartialTypeSignatures"            LangExt.PartialTypeSignatures,
+  flagSpec "PartialTypeConstructors"          LangExt.PartialTypeConstructors,  
   flagSpec "PatternGuards"                    LangExt.PatternGuards,
   depFlagSpec' "PatternSignatures"            LangExt.ScopedTypeVariables
     (deprecatedForExtension "ScopedTypeVariables"),

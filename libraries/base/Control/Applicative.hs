@@ -1,6 +1,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 -----------------------------------------------------------------------------
@@ -47,10 +48,10 @@ module Control.Applicative (
     optional,
     ) where
 
-import Control.Category hiding ((.), id)
-import Control.Arrow
+-- import Control.Category hiding ((.), id)
+-- import Control.Arrow
 import Data.Maybe
-import Data.Tuple
+-- import Data.Tuple
 import Data.Eq
 import Data.Ord
 import Data.Foldable (Foldable(..))
@@ -88,9 +89,9 @@ newtype WrappedArrow a b c = WrapArrow { unwrapArrow :: a b c }
                            deriving ( Generic  -- ^ @since 4.7.0.0
                                     , Generic1 -- ^ @since 4.7.0.0
                                     )
-
+{-
 -- | @since 2.01
-instance Arrow a => Functor (WrappedArrow a b) where
+instance (Total a, Arrow a) => Functor (WrappedArrow a b) where
     fmap f (WrapArrow a) = WrapArrow (a >>> arr f)
 
 -- | @since 2.01
@@ -103,7 +104,7 @@ instance Arrow a => Applicative (WrappedArrow a b) where
 instance (ArrowZero a, ArrowPlus a) => Alternative (WrappedArrow a b) where
     empty = WrapArrow zeroArrow
     WrapArrow u <|> WrapArrow v = WrapArrow (u <+> v)
-
+-}
 -- | Lists, but with an 'Applicative' functor based on zipping.
 newtype ZipList a = ZipList { getZipList :: [a] }
                   deriving ( Show     -- ^ @since 4.7.0.0

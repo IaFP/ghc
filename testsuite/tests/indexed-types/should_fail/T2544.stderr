@@ -1,11 +1,31 @@
 
 T2544.hs:19:18: error:
-    • Couldn't match type ‘IxMap i0’ with ‘IxMap l’
+    • Could not deduce: IxMap i0 ~ IxMap l
+      from the context: IxMap (l :|: r) @@ [Int]
+        bound by the type signature for:
+                   empty :: (IxMap (l :|: r) @@ [Int]) => IxMap (l :|: r) [Int]
+        at T2544.hs:19:4-8
       Expected type: IxMap l [Int]
         Actual type: IxMap i0 [Int]
       NB: ‘IxMap’ is a non-injective type family
       The type variable ‘i0’ is ambiguous
     • In the first argument of ‘BiApp’, namely ‘empty’
+      In the expression: BiApp empty empty
+      In an equation for ‘empty’: empty = BiApp empty empty
+    • Relevant bindings include
+        empty :: IxMap (l :|: r) [Int] (bound at T2544.hs:19:4)
+
+T2544.hs:19:24: error:
+    • Could not deduce: IxMap i1 ~ IxMap r
+      from the context: IxMap (l :|: r) @@ [Int]
+        bound by the type signature for:
+                   empty :: (IxMap (l :|: r) @@ [Int]) => IxMap (l :|: r) [Int]
+        at T2544.hs:19:4-8
+      Expected type: IxMap r [Int]
+        Actual type: IxMap i1 [Int]
+      NB: ‘IxMap’ is a non-injective type family
+      The type variable ‘i1’ is ambiguous
+    • In the second argument of ‘BiApp’, namely ‘empty’
       In the expression: BiApp empty empty
       In an equation for ‘empty’: empty = BiApp empty empty
     • Relevant bindings include

@@ -9,6 +9,9 @@ some unnecessary loops in the module dependency graph.
 -}
 
 {-# LANGUAGE CPP, ScopedTypeVariables, LambdaCase #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module Panic (
      GhcException(..), showGhcException,
@@ -50,6 +53,9 @@ import GHC.ConsoleHandler as S
 #endif
 
 import System.Mem.Weak  ( deRefWeak )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -- | GHC's own exception type
 --   error messages all take the form:
@@ -197,7 +203,11 @@ signalHandlersRefCount = unsafePerformIO $ newMVar (0,Nothing)
 
 -- | Temporarily install standard signal handlers for catching ^C, which just
 -- throw an exception in the current thread.
-withSignalHandlers :: (ExceptionMonad m, MonadIO m) => m a -> m a
+withSignalHandlers :: (ExceptionMonad m, MonadIO m
+#if MIN_VERSION_base(4,14,0)
+                      , Total m
+#endif
+                      ) => m a -> m a
 withSignalHandlers act = do
   main_thread <- liftIO myThreadId
   wtid <- liftIO (mkWeakThreadId main_thread)

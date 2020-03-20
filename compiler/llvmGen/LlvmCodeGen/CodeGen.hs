@@ -1,5 +1,8 @@
 {-# LANGUAGE CPP, GADTs #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 -- ----------------------------------------------------------------------------
 -- | Handle conversion of CmmProc to LLVM code.
 --

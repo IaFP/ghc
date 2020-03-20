@@ -25,15 +25,17 @@ subsumption_sort_hole_fits.hs:2:5: warning: [-Wtyped-holes (in -Wdefault)]
           with mempty @([Char] -> [String])
           (imported from ‘Prelude’ at subsumption_sort_hole_fits.hs:1:1
            (and originally defined in ‘GHC.Base’))
-        fail :: forall (m :: * -> *) a. MonadFail m => String -> m a
+        fail :: forall (m :: * -> *) a.
+                (MonadFail m, m @@ a) =>
+                String -> m a
           with fail @[] @String
           (imported from ‘Prelude’ at subsumption_sort_hole_fits.hs:1:1
            (and originally defined in ‘Control.Monad.Fail’))
-        return :: forall (m :: * -> *) a. Monad m => a -> m a
+        return :: forall (m :: * -> *) a. (Monad m, m @@ a) => a -> m a
           with return @[] @String
           (imported from ‘Prelude’ at subsumption_sort_hole_fits.hs:1:1
            (and originally defined in ‘GHC.Base’))
-        pure :: forall (f :: * -> *) a. Applicative f => a -> f a
+        pure :: forall (f :: * -> *) a. (Applicative f, f @@ a) => a -> f a
           with pure @[] @String
           (imported from ‘Prelude’ at subsumption_sort_hole_fits.hs:1:1
            (and originally defined in ‘GHC.Base’))

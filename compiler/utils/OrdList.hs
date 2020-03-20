@@ -8,9 +8,12 @@ This is useful, general stuff for the Native Code Generator.
 Provide trees (of instructions), so that lists of instructions
 can be appended in linear time.
 -}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
-
 {-# LANGUAGE BangPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module OrdList (
         OrdList,

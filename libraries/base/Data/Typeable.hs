@@ -6,6 +6,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -101,9 +102,11 @@ import Data.Proxy
 import GHC.Fingerprint.Type
 import GHC.Show
 import GHC.Base
+-- import GHC.Types (type (@@))
 
 -- | A quantified type representation.
 type TypeRep = I.SomeTypeRep
+-- type instance TypeRep @@ a = ()
 
 -- | Observe a type representation for the type of a value.
 typeOf :: forall a. Typeable a => a -> TypeRep
@@ -113,7 +116,7 @@ typeOf _ = I.someTypeRep (Proxy :: Proxy a)
 -- of that type.
 --
 -- @since 4.7.0.0
-typeRep :: forall proxy a. Typeable a => proxy a -> TypeRep
+typeRep :: forall proxy a. (Typeable a{-, proxy @@ a-}) => proxy a -> TypeRep
 typeRep = I.someTypeRep
 
 -- | Show a type representation
@@ -141,16 +144,16 @@ eqT
     tb = I.typeRep :: I.TypeRep b
 
 -- | A flexible variation parameterised in a type constructor
-gcast :: forall a b c. (Typeable a, Typeable b) => c a -> Maybe (c b)
+gcast :: forall a b c. (Typeable a, Typeable b{-, c @@ a-}) => c a -> Maybe (c b)
 gcast x = fmap (\Refl -> x) (eqT :: Maybe (a :~: b))
 
 -- | Cast over @k1 -> k2@
-gcast1 :: forall c t t' a. (Typeable t, Typeable t')
+gcast1 :: forall c t t' a. (Typeable t, Typeable t'{-, c @@ t a, t @@ a, c @@ t' a, t' @@ a-})
        => c (t a) -> Maybe (c (t' a))
 gcast1 x = fmap (\Refl -> x) (eqT :: Maybe (t :~: t'))
 
 -- | Cast over @k1 -> k2 -> k3@
-gcast2 :: forall c t t' a b. (Typeable t, Typeable t')
+gcast2 :: forall c t t' a b. (Typeable t, Typeable t'{-, c @@ t a b, t @@ a b, a @@ b, c @@ t' a b, t' @@ a b-})
        => c (t a b) -> Maybe (c (t' a b))
 gcast2 x = fmap (\Refl -> x) (eqT :: Maybe (t :~: t'))
 
@@ -202,30 +205,34 @@ rnfTypeRep = I.rnfSomeTypeRep
 
 
 -- Keeping backwards-compatibility
-typeOf1 :: forall t (a :: Type). Typeable t => t a -> TypeRep
+typeOf1 :: forall t (a :: Type). (Typeable t{-, t @@ a-}) => t a -> TypeRep
 typeOf1 _ = I.someTypeRep (Proxy :: Proxy t)
 
-typeOf2 :: forall t (a :: Type) (b :: Type). Typeable t => t a b -> TypeRep
+typeOf2 :: forall t (a :: Type) (b :: Type). (Typeable t{-, t @@ a, t a @@ b-}) => t a b -> TypeRep
 typeOf2 _ = I.someTypeRep (Proxy :: Proxy t)
 
 typeOf3 :: forall t (a :: Type) (b :: Type) (c :: Type).
-           Typeable t => t a b c -> TypeRep
+           (Typeable t{-, t @@ a, t a @@ b, t a b @@ c-}) => t a b c -> TypeRep
 typeOf3 _ = I.someTypeRep (Proxy :: Proxy t)
 
 typeOf4 :: forall t (a :: Type) (b :: Type) (c :: Type) (d :: Type).
-           Typeable t => t a b c d -> TypeRep
+           (Typeable t{-, t @@ a, t a @@ b, t a b @@ c, t a b c @@ d-})
+        => t a b c d -> TypeRep
 typeOf4 _ = I.someTypeRep (Proxy :: Proxy t)
 
 typeOf5 :: forall t (a :: Type) (b :: Type) (c :: Type) (d :: Type) (e :: Type).
-           Typeable t => t a b c d e -> TypeRep
+           (Typeable t{-, t @@ a, t a @@ b, t a b @@ c, t a b c @@ d, t a b c d @@ e-})
+        => t a b c d e -> TypeRep
 typeOf5 _ = I.someTypeRep (Proxy :: Proxy t)
 
 typeOf6 :: forall t (a :: Type) (b :: Type) (c :: Type)
                     (d :: Type) (e :: Type) (f :: Type).
-           Typeable t => t a b c d e f -> TypeRep
+           (Typeable t{-, t @@ a, t a @@ b, t a b @@ c,
+            t a b c @@ d, t a b c d @@ e,  t a b c d e @@ f-}) => t a b c d e f -> TypeRep
 typeOf6 _ = I.someTypeRep (Proxy :: Proxy t)
 
 typeOf7 :: forall t (a :: Type) (b :: Type) (c :: Type)
                     (d :: Type) (e :: Type) (f :: Type) (g :: Type).
-           Typeable t => t a b c d e f g -> TypeRep
+           (Typeable t{-, t @@ a, t a @@ b, t a b @@ c,
+            t a b c @@ d, t a b c d @@ e, t a b c d e @@ f, t a b c d e f @@ g-}) => t a b c d e f g -> TypeRep
 typeOf7 _ = I.someTypeRep (Proxy :: Proxy t)

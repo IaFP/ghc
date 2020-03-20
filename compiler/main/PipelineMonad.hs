@@ -1,5 +1,9 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 -- | The CompPipeline monad and associated ops
 --
 -- Defined in separate module so that it can safely be imported from Hooks
@@ -22,9 +26,15 @@ import Module
 import FileCleanup (TempFileLifetime)
 
 import Control.Monad
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 newtype CompPipeline a = P { unP :: PipeEnv -> PipeState -> IO (PipeState, a) }
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total CompPipeline
+#endif
 
 evalP :: CompPipeline a -> PipeEnv -> PipeState -> IO (PipeState, a)
 evalP (P f) env st = f env st

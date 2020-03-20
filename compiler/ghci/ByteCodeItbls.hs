@@ -1,5 +1,8 @@
 {-# LANGUAGE CPP, MagicHash, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -optc-DNON_POSIX_SOURCE #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 --
 --  (c) The University of Glasgow 2002-2006
 --

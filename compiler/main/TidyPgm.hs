@@ -5,6 +5,9 @@
 -}
 
 {-# LANGUAGE CPP, DeriveFunctor, ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TidyPgm (
        mkBootModDetailsTc, tidyProgram

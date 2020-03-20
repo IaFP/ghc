@@ -5,10 +5,13 @@
 
 @DsMonad@: monadery used in desugaring
 -}
-
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances, FlexibleContexts #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}  -- instance MonadThings is necessarily an orphan
 {-# LANGUAGE ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module DsMonad (
         DsM, mapM, mapAndUnzipM,
@@ -85,6 +88,9 @@ import FastString
 import UniqFM ( lookupWithDefaultUFM )
 import Literal ( mkLitString )
 import CostCentreState
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 import Data.IORef
 
@@ -186,7 +192,11 @@ initDs hsc_env tcg_env thing_inside
        }
 
 -- | Build a set of desugarer environments derived from a 'TcGblEnv'.
-mkDsEnvsFromTcGbl :: MonadIO m
+mkDsEnvsFromTcGbl :: (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+                     ,  m @@ IORef CostCentreState
+#endif
+                     )
                   => HscEnv -> IORef Messages -> TcGblEnv
                   -> m (DsGblEnv, DsLclEnv)
 mkDsEnvsFromTcGbl hsc_env msg_var tcg_env

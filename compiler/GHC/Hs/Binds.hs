@@ -17,6 +17,10 @@ Datatype for: @BindGroup@, @Bind@, @Sig@, @Bind@.
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, DataKinds #-}
+#endif
 
 module GHC.Hs.Binds where
 
@@ -45,6 +49,19 @@ import DynFlags
 import Data.Data hiding ( Fixity )
 import Data.List hiding ( foldr )
 import Data.Ord
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type(@@), Total)
+import {-# SOURCE #-} GHC.Hs.Expr ( HsSplice, HsExpr )
+import  {-# SOURCE #-} GHC.Hs.Pat (Pat)
+#endif
+
+
+#if MIN_VERSION_base(4,14,0)
+type instance HsSplice @@ a = ()
+type instance HsExpr @@ a = ()
+type instance MatchGroup @@ p = ()
+type instance MatchGroup p @@ body = ()
+#endif
 
 {-
 ************************************************************************
@@ -332,6 +349,10 @@ type instance XAbsBinds   (GhcPass pL) (GhcPass pR) = NoExtField
 type instance XPatSynBind (GhcPass pL) (GhcPass pR) = NoExtField
 type instance XXHsBindsLR (GhcPass pL) (GhcPass pR) = NoExtCon
 
+#if MIN_VERSION_base(4,14,0)
+type instance HsBindLR @@ idL = ()
+type instance HsBindLR idL @@ idR = ()
+#endif
 
         -- Consider (AbsBinds tvs ds [(ftvs, poly_f, mono_f) binds]
         --
@@ -618,14 +639,22 @@ Specifically,
     it's just an error thunk
 -}
 
-instance (OutputableBndrId pl, OutputableBndrId pr)
+instance (OutputableBndrId pl, OutputableBndrId pr
+#if MIN_VERSION_base(4,14,0)
+         , Pat @@ GhcPass pr, Pat @@ GhcPass pl
+#endif
+         )
         => Outputable (HsLocalBindsLR (GhcPass pl) (GhcPass pr)) where
   ppr (HsValBinds _ bs)   = ppr bs
   ppr (HsIPBinds _ bs)    = ppr bs
   ppr (EmptyLocalBinds _) = empty
   ppr (XHsLocalBindsLR x) = ppr x
 
-instance (OutputableBndrId pl, OutputableBndrId pr)
+instance (OutputableBndrId pl, OutputableBndrId pr
+#if MIN_VERSION_base(4,14,0)
+         , Pat @@ GhcPass pr, Pat @@ GhcPass pl
+#endif
+         )
         => Outputable (HsValBindsLR (GhcPass pl) (GhcPass pr)) where
   ppr (ValBinds _ binds sigs)
    = pprDeclList (pprLHsBindsForUser binds sigs)
@@ -641,7 +670,11 @@ instance (OutputableBndrId pl, OutputableBndrId pr)
      pp_rec Recursive    = text "rec"
      pp_rec NonRecursive = text "nonrec"
 
-pprLHsBinds :: (OutputableBndrId idL, OutputableBndrId idR)
+pprLHsBinds :: (OutputableBndrId idL, OutputableBndrId idR
+#if MIN_VERSION_base(4,14,0)
+               , Pat @@ GhcPass idR, Pat @@ GhcPass idL
+#endif
+               )
             => LHsBindsLR (GhcPass idL) (GhcPass idR) -> SDoc
 pprLHsBinds binds
   | isEmptyLHsBinds binds = empty
@@ -649,7 +682,12 @@ pprLHsBinds binds
 
 pprLHsBindsForUser :: (OutputableBndrId idL,
                        OutputableBndrId idR,
-                       OutputableBndrId id2)
+                       OutputableBndrId id2
+#if MIN_VERSION_base(4,14,0)
+                      , HsBindLR (GhcPass idL) @@ GhcPass idL
+                      , Pat @@ GhcPass idR, Pat @@ GhcPass idL
+#endif
+                      )
      => LHsBindsLR (GhcPass idL) (GhcPass idR) -> [LSig (GhcPass id2)] -> [SDoc]
 --  pprLHsBindsForUser is different to pprLHsBinds because
 --  a) No braces: 'let' and 'where' include a list of HsBindGroups
@@ -724,11 +762,19 @@ plusHsValBinds (XValBindsLR (NValBinds ds1 sigs1))
 plusHsValBinds _ _
   = panic "HsBinds.plusHsValBinds"
 
-instance (OutputableBndrId pl, OutputableBndrId pr)
+instance (OutputableBndrId pl, OutputableBndrId pr
+#if MIN_VERSION_base(4,14,0)
+         , Pat @@ GhcPass pr, Pat @@ GhcPass pl
+#endif
+         )
          => Outputable (HsBindLR (GhcPass pl) (GhcPass pr)) where
     ppr mbind = ppr_monobind mbind
 
-ppr_monobind :: (OutputableBndrId idL, OutputableBndrId idR)
+ppr_monobind :: (OutputableBndrId idL, OutputableBndrId idR
+#if MIN_VERSION_base(4,14,0)
+                , Pat @@ GhcPass idL, Pat @@ GhcPass idR
+#endif
+                )
              => HsBindLR (GhcPass idL) (GhcPass idR) -> SDoc
 
 ppr_monobind (PatBind { pat_lhs = pat, pat_rhs = grhss })
@@ -772,7 +818,12 @@ instance OutputableBndrId p => Outputable (ABExport (GhcPass p)) where
   ppr (XABExport x) = ppr x
 
 instance (OutputableBndrId l, OutputableBndrId r,
-         Outputable (XXPatSynBind (GhcPass l) (GhcPass r)))
+         Outputable (XXPatSynBind (GhcPass l) (GhcPass r))
+#if MIN_VERSION_base(4,14,0)
+         , Pat @@ GhcPass r
+#endif
+
+         )
           => Outputable (PatSynBind (GhcPass l) (GhcPass r)) where
   ppr (PSB{ psb_id = (L _ psyn), psb_args = details, psb_def = pat,
             psb_dir = dir })
@@ -829,6 +880,7 @@ type instance XIPBinds       GhcTc = TcEvBinds -- binds uses of the
 
 type instance XXHsIPBinds    (GhcPass p) = NoExtCon
 
+
 isEmptyIPBindsPR :: HsIPBinds (GhcPass p) -> Bool
 isEmptyIPBindsPR (IPBinds _ is) = null is
 isEmptyIPBindsPR (XHsIPBinds _) = True
@@ -864,13 +916,15 @@ data IPBind id
 type instance XCIPBind    (GhcPass p) = NoExtField
 type instance XXIPBind    (GhcPass p) = NoExtCon
 
-instance OutputableBndrId p
+instance (OutputableBndrId p
+         )
        => Outputable (HsIPBinds (GhcPass p)) where
   ppr (IPBinds ds bs) = pprDeeperList vcat (map ppr bs)
                         $$ whenPprDebug (ppr ds)
   ppr (XHsIPBinds x) = ppr x
 
-instance OutputableBndrId p => Outputable (IPBind (GhcPass p)) where
+instance (OutputableBndrId p
+         ) => Outputable (IPBind (GhcPass p)) where
   ppr (IPBind _ lr rhs) = name <+> equals <+> pprExpr (unLoc rhs)
     where name = case lr of
                    Left (L _ ip) -> pprBndr LetBind ip
@@ -1168,10 +1222,12 @@ signatures. Since some of the signatures contain a list of names, testing for
 equality is not enough -- we have to check if they overlap.
 -}
 
-instance OutputableBndrId p => Outputable (Sig (GhcPass p)) where
+instance (OutputableBndrId p
+         ) => Outputable (Sig (GhcPass p)) where
     ppr sig = ppr_sig sig
 
-ppr_sig :: (OutputableBndrId p) => Sig (GhcPass p) -> SDoc
+ppr_sig :: (OutputableBndrId p
+           ) => Sig (GhcPass p) -> SDoc
 ppr_sig (TypeSig _ vars ty)  = pprVarSig (map unLoc vars) (ppr ty)
 ppr_sig (ClassOpSig _ is_deflt vars ty)
   | is_deflt                 = text "default" <+> pprVarSig (map unLoc vars) (ppr ty)
@@ -1263,6 +1319,9 @@ data RecordPatSynField a
       -- Filled in by renamer, the name used internally
       -- by the pattern
       } deriving (Data, Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total RecordPatSynField
+#endif
 
 
 

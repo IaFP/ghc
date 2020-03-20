@@ -5,6 +5,8 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE TypeOperators, UndecidableInstances, ExplicitNamespaces #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -67,6 +69,7 @@ import GHC.Arr  ( Array(..), elems, numElements,
 import GHC.Base hiding ( foldr )
 import GHC.Generics
 import GHC.Num  ( Num(..) )
+import GHC.Types (type (@@)) 
 
 infix  4 `elem`, `notElem`
 
@@ -268,14 +271,14 @@ class Foldable t where
     -- | The largest element of a non-empty structure.
     --
     -- @since 4.8.0.0
-    maximum :: forall a . Ord a => t a -> a
+    maximum :: forall a . (t @@ a, Ord a) => t a -> a
     maximum = fromMaybe (errorWithoutStackTrace "maximum: empty structure") .
        getMax . foldMap (Max #. (Just :: a -> Maybe a))
 
     -- | The least element of a non-empty structure.
     --
     -- @since 4.8.0.0
-    minimum :: forall a . Ord a => t a -> a
+    minimum :: forall a . (t @@ a, Ord a) => t a -> a
     minimum = fromMaybe (errorWithoutStackTrace "minimum: empty structure") .
        getMin . foldMap (Min #. (Just :: a -> Maybe a))
 
@@ -554,7 +557,7 @@ foldlM f z0 xs = foldr c return xs z0
 -- | Map each element of a structure to an action, evaluate these
 -- actions from left to right, and ignore the results. For a version
 -- that doesn't ignore the results see 'Data.Traversable.traverse'.
-traverse_ :: (Foldable t, Applicative f) => (a -> f b) -> t a -> f ()
+traverse_ :: (Foldable t, Applicative f, f @@ (() -> ())) => (a -> f b) -> t a -> f ()
 traverse_ f = foldr c (pure ())
   -- See Note [List fusion and continuations in 'c']
   where c x k = f x *> k
@@ -568,7 +571,7 @@ traverse_ f = foldr c (pure ())
 -- 2
 -- 3
 -- 4
-for_ :: (Foldable t, Applicative f) => t a -> (a -> f b) -> f ()
+for_ :: (Foldable t, Applicative f, f @@ (() -> ())) => t a -> (a -> f b) -> f ()
 {-# INLINE for_ #-}
 for_ = flip traverse_
 
@@ -596,7 +599,7 @@ forM_ = flip mapM_
 -- | Evaluate each action in the structure from left to right, and
 -- ignore the results. For a version that doesn't ignore the results
 -- see 'Data.Traversable.sequenceA'.
-sequenceA_ :: (Foldable t, Applicative f) => t (f a) -> f ()
+sequenceA_ :: (Foldable t, Applicative f, f @@ (() -> ())) => t (f a) -> f ()
 sequenceA_ = foldr c (pure ())
   -- See Note [List fusion and continuations in 'c']
   where c m k = m *> k

@@ -11,6 +11,10 @@
 #if !defined(GHC_LOADED_INTO_GHCI)
 {-# LANGUAGE UnboxedTuples #-}
 #endif
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators
+            , ConstrainedClassMethods, DefaultSignatures #-}
+#endif
 
 module UniqSupply (
         -- * Main data type
@@ -45,6 +49,9 @@ import Control.Monad
 import Data.Bits
 import Data.Char
 import Control.Monad.Fail as Fail
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@), Total)
+#endif
 
 #include "Unique.h"
 
@@ -143,6 +150,9 @@ data UniqResult result = UniqResult !result {-# UNPACK #-} !UniqSupply
 -- | A monad which just gives the ability to obtain 'Unique's
 newtype UniqSM result = USM { unUSM :: UniqSupply -> UniqResult result }
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total UniqSM
+#endif
 
 instance Monad UniqSM where
   (>>=) = thenUs
@@ -195,7 +205,7 @@ getUs :: UniqSM UniqSupply
 getUs = USM (\us0 -> case splitUniqSupply us0 of (us1,us2) -> UniqResult us1 us2)
 
 -- | A monad for generating unique identifiers
-class Monad m => MonadUnique m where
+class (Monad m) => MonadUnique m where
     -- | Get a new UniqueSupply
     getUniqueSupplyM :: m UniqSupply
     -- | Get a new unique identifier
@@ -207,7 +217,13 @@ class Monad m => MonadUnique m where
     -- efficient as it could be since it needlessly generates and throws away
     -- an extra Unique. For your instances consider providing an explicit
     -- definition for 'getUniqueM' which uses 'takeUniqFromSupply' directly.
+#if MIN_VERSION_base(4,14,0)
+    default getUniqueM  :: m @@ UniqSupply => m Unique
+#endif
     getUniqueM  = liftM uniqFromSupply  getUniqueSupplyM
+#if MIN_VERSION_base(4,14,0)
+    default getUniquesM  :: m @@ UniqSupply => m [Unique]
+#endif
     getUniquesM = liftM uniqsFromSupply getUniqueSupplyM
 
 instance MonadUnique UniqSM where

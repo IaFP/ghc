@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 -----------------------------------------------------------------------------
 --
 -- Types for the Dynamic Linker
@@ -24,11 +28,7 @@ import ByteCodeTypes           ( ItblEnv, CompiledByteCode )
 import Outputable
 import Var                     ( Id )
 import GHC.Fingerprint.Type    ( Fingerprint )
-import NameEnv                 ( NameEnv )
-import Name                    ( Name )
-import GHCi.RemoteTypes        ( ForeignHValue )
-
-type ClosureEnv = NameEnv (Name, ForeignHValue)
+import ClosureEnv
 
 newtype DynLinker =
   DynLinker { dl_mpls :: MVar (Maybe PersistentLinkerState) }

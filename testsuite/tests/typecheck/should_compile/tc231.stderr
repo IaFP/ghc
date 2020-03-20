@@ -3,17 +3,35 @@ TYPE SIGNATURES
     forall s b chain.
     Zork s (Z [Char]) b =>
     Q s (Z [Char]) chain -> ST s ()
-  huh :: forall s a b chain. Zork s a b => Q s a chain -> ST s ()
-  s :: forall t t1. Q t (Z [Char]) t1 -> Q t (Z [Char]) t1
+  huh ::
+    forall s a b chain.
+    (Zork s a b, Q s @@ a, Q @@ s, Q s a @@ chain, ST s @@ (),
+     ST @@ s) =>
+    Q s a chain -> ST s ()
+  s ::
+    forall t t1.
+    (Q t @@ Z [Char], Q @@ t, Q t (Z [Char]) @@ t1, Z @@ [Char]) =>
+    Q t (Z [Char]) t1 -> Q t (Z [Char]) t1
 TYPE CONSTRUCTORS
   data type Q{3} :: * -> * -> * -> *
   data type Z{1} :: * -> *
   class Zork{3} :: * -> * -> * -> Constraint
 COERCION AXIOMS
-  axiom N:Zork :: Zork s a b = forall chain. Q s a chain -> ST s ()
+  axiom N:Zork ::
+      Zork s a b
+        = forall chain.
+          (Q s @@ a, Q @@ s, Q s a @@ chain, ST s @@ (), ST @@ s) =>
+          Q s a chain -> ST s ()
 DATA CONSTRUCTORS
   Z :: forall a. a -> Z a
   Node :: forall s a chain. s -> a -> chain -> Q s a chain
+FAMILY INSTANCES
+  type instance Z @@ a = () :: Constraint -- Defined at tc231.hs:20:1
+  type instance Q @@ s = () :: Constraint -- Defined at tc231.hs:18:1
+  type instance Q s @@ a = () :: Constraint
+                  -- Defined at tc231.hs:18:1
+  type instance Q s a @@ chain = () :: Constraint
+                  -- Defined at tc231.hs:18:1
 Dependent modules: []
-Dependent packages: [base-4.13.0.0, ghc-prim-0.6.1,
-                     integer-gmp-1.0.2.0]
+Dependent packages: [base-4.14.0.0, ghc-prim-0.6.1,
+                     integer-gmp-1.0.3.0]

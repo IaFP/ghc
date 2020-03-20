@@ -32,11 +32,21 @@ test-hole-plugin.hs:14:5: warning: [-Wtyped-holes (in -Wdefault)]
     • Relevant bindings include
         i :: [Int] -> Int (bound at test-hole-plugin.hs:14:1)
       Valid hole fits include
-        sum :: forall (t :: * -> *) a. (Foldable t, Num a) => t a -> a
-        product :: forall (t :: * -> *) a. (Foldable t, Num a) => t a -> a
-        minimum :: forall (t :: * -> *) a. (Foldable t, Ord a) => t a -> a
-        maximum :: forall (t :: * -> *) a. (Foldable t, Ord a) => t a -> a
-        length :: forall (t :: * -> *) a. Foldable t => t a -> Int
+        sum :: forall (t :: * -> *) a.
+               (Foldable t, t @@ a, Num a) =>
+               t a -> a
+        product :: forall (t :: * -> *) a.
+                   (Foldable t, t @@ a, Num a) =>
+                   t a -> a
+        minimum :: forall (t :: * -> *) a.
+                   (Foldable t, Ord a, t @@ a) =>
+                   t a -> a
+        maximum :: forall (t :: * -> *) a.
+                   (Foldable t, Ord a, t @@ a) =>
+                   t a -> a
+        length :: forall (t :: * -> *) a.
+                  (Foldable t, t @@ a) =>
+                  t a -> Int
         last :: forall a. [a] -> a
         (Some hole fits suppressed; use -fmax-valid-hole-fits=N or -fno-max-valid-hole-fits)
 
@@ -59,8 +69,18 @@ test-hole-plugin.hs:16:5: warning: [-Wtyped-holes (in -Wdefault)]
     • Relevant bindings include
         h :: [Int] -> Int (bound at test-hole-plugin.hs:16:1)
       Valid hole fits include
-        length :: forall (t :: * -> *) a. Foldable t => t a -> Int
-        maximum :: forall (t :: * -> *) a. (Foldable t, Ord a) => t a -> a
-        minimum :: forall (t :: * -> *) a. (Foldable t, Ord a) => t a -> a
-        product :: forall (t :: * -> *) a. (Foldable t, Num a) => t a -> a
-        sum :: forall (t :: * -> *) a. (Foldable t, Num a) => t a -> a
+        length :: forall (t :: * -> *) a.
+                  (Foldable t, t @@ a) =>
+                  t a -> Int
+        maximum :: forall (t :: * -> *) a.
+                   (Foldable t, Ord a, t @@ a) =>
+                   t a -> a
+        minimum :: forall (t :: * -> *) a.
+                   (Foldable t, Ord a, t @@ a) =>
+                   t a -> a
+        product :: forall (t :: * -> *) a.
+                   (Foldable t, t @@ a, Num a) =>
+                   t a -> a
+        sum :: forall (t :: * -> *) a.
+               (Foldable t, t @@ a, Num a) =>
+               t a -> a

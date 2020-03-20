@@ -1,8 +1,9 @@
 {-# LANGUAGE GADTs, ScopedTypeVariables #-}
-
+{-# LANGUAGE TypeFamilies #-}
 -- Supplied by Henrik Nilsson, showed up a bug in GADTs
 
 module Nilsson where
+import GHC.Types (type (@@))
 
 data Event a = NoEvent | Event a
 
@@ -31,6 +32,9 @@ data SF' a b where
 -- function) and the output at the present time step.
 
 type Transition a b = (SF' a b, b)
+
+type instance SF' @@ a = ()
+type instance SF' a @@ b = ()
 
 
 sfTF' :: SF' a b -> (DTime -> a -> Transition a b)

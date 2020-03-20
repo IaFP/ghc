@@ -7,6 +7,10 @@ Typecheck arrow notation
 
 {-# LANGUAGE RankNTypes, TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcArrows ( tcProc ) where
 

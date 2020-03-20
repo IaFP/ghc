@@ -7,6 +7,9 @@ Bag: an unordered collection with duplicates
 -}
 
 {-# LANGUAGE ScopedTypeVariables, CPP, DeriveFunctor #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module Bag (
         Bag, -- abstract type
@@ -36,6 +39,9 @@ import Data.Data
 import Data.Maybe( mapMaybe )
 import Data.List ( partition, mapAccumL )
 import qualified Data.Foldable as Foldable
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types(type(@@), Total)
+#endif
 
 infixr 3 `consBag`
 infixl 3 `snocBag`
@@ -99,7 +105,11 @@ filterBag pred (TwoBags b1 b2) = sat1 `unionBags` sat2
           sat2 = filterBag pred b2
 filterBag pred (ListBag vs)    = listToBag (filter pred vs)
 
-filterBagM :: Monad m => (a -> m Bool) -> Bag a -> m (Bag a)
+filterBagM :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+              , m @@ [a], m @@ ([a] -> [a])
+#endif
+              ) => (a -> m Bool) -> Bag a -> m (Bag a)
 filterBagM _    EmptyBag = return EmptyBag
 filterBagM pred b@(UnitBag val) = do
   flag <- pred val
@@ -221,7 +231,11 @@ mapMaybeBag f (UnitBag x)     = case f x of
 mapMaybeBag f (TwoBags b1 b2) = unionBags (mapMaybeBag f b1) (mapMaybeBag f b2)
 mapMaybeBag f (ListBag xs)    = ListBag (mapMaybe f xs)
 
-mapBagM :: Monad m => (a -> m b) -> Bag a -> m (Bag b)
+mapBagM :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+           , Total m
+#endif
+           ) => (a -> m b) -> Bag a -> m (Bag b)
 mapBagM _ EmptyBag        = return EmptyBag
 mapBagM f (UnitBag x)     = do r <- f x
                                return (UnitBag r)
@@ -258,7 +272,11 @@ flatMapBagPairM f (ListBag    xs) = foldrM k (EmptyBag, EmptyBag) xs
     k x (r2,s2) = do { (r1,s1) <- f x
                      ; return (r1 `unionBags` r2, s1 `unionBags` s2) }
 
-mapAndUnzipBagM :: Monad m => (a -> m (b,c)) -> Bag a -> m (Bag b, Bag c)
+mapAndUnzipBagM :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+                   , Total m
+#endif
+                   ) => (a -> m (b,c)) -> Bag a -> m (Bag b, Bag c)
 mapAndUnzipBagM _ EmptyBag        = return (EmptyBag, EmptyBag)
 mapAndUnzipBagM f (UnitBag x)     = do (r,s) <- f x
                                        return (UnitBag r, UnitBag s)
@@ -269,7 +287,7 @@ mapAndUnzipBagM f (ListBag xs)    = do ts <- mapM f xs
                                        let (rs,ss) = unzip ts
                                        return (ListBag rs, ListBag ss)
 
-mapAccumBagL ::(acc -> x -> (acc, y)) -- ^ combining function
+mapAccumBagL ::  (acc -> x -> (acc, y)) -- ^ combining function
             -> acc                    -- ^ initial state
             -> Bag x                  -- ^ inputs
             -> (acc, Bag y)           -- ^ final state, outputs
@@ -281,7 +299,11 @@ mapAccumBagL f s (TwoBags b1 b2) = let (s1, b1') = mapAccumBagL f s  b1
 mapAccumBagL f s (ListBag xs)    = let (s', xs') = mapAccumL f s xs
                                    in (s', ListBag xs')
 
-mapAccumBagLM :: Monad m
+mapAccumBagLM :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+                 , m @@ (acc, [y])
+#endif
+                 )
             => (acc -> x -> m (acc, y)) -- ^ combining function
             -> acc                      -- ^ initial state
             -> Bag x                    -- ^ inputs

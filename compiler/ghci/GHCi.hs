@@ -1,4 +1,7 @@
 {-# LANGUAGE RecordWildCards, ScopedTypeVariables, BangPatterns, CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 --
 -- | Interacting with the interpreter, whether it is running on an
@@ -93,6 +96,9 @@ import System.Posix as Posix
 import System.Directory
 import System.Process
 import GHC.Conc (getNumProcessors, pseq, par)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 {- Note [Remote GHCi]
 
@@ -193,7 +199,11 @@ iservCmd hsc_env@HscEnv{..} msg
 -- | Grab a lock on the 'IServ' and do something with it.
 -- Overloaded because this is used from TcM as well as IO.
 withIServ
-  :: (MonadIO m, ExceptionMonad m)
+  :: (MonadIO m, ExceptionMonad m
+#if MIN_VERSION_base(4,14,0)
+     , m @@ Maybe IServ, m @@ IServ, m @@ ()
+#endif
+     )
   => HscEnv -> (IServ -> m a) -> m a
 withIServ HscEnv{..} action =
   gmask $ \restore -> do

@@ -1,6 +1,7 @@
 {-# LANGUAGE Unsafe #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE MagicHash, UnboxedTuples, RankNTypes #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 -----------------------------------------------------------------------------
@@ -45,7 +46,7 @@ import qualified Control.Monad.ST.Unsafe as ST
 import qualified GHC.ST as GHC.ST
 import GHC.Base
 import qualified Control.Monad.Fail as Fail
-
+import GHC.Types (Total)
 -- | The lazy @'ST' monad.
 -- The ST monad allows for destructive updates, but is escapable (unlike IO).
 -- A computation of type @'ST' s a@ returns a value of type @a@, and
@@ -62,6 +63,8 @@ import qualified Control.Monad.Fail as Fail
 --
 -- @'runST' (writeSTRef _|_ v >>= readSTRef _|_ >> return 2) = 2@
 newtype ST s a = ST { unST :: State s -> (a, State s) }
+
+instance Total (ST s)
 
 -- A lifted state token. This can be imagined as a moment in the timeline
 -- of a lazy state thread. Forcing the token forces all delayed actions in

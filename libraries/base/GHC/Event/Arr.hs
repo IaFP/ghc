@@ -1,4 +1,5 @@
 {-# LANGUAGE MagicHash, NoImplicitPrelude, UnboxedTuples #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 
 module GHC.Event.Arr
     (

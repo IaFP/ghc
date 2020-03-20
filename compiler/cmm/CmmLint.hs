@@ -7,6 +7,10 @@
 -----------------------------------------------------------------------------
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 module CmmLint (
     cmmLint, cmmLintGraph
   ) where
@@ -26,6 +30,9 @@ import Outputable
 import DynFlags
 
 import Control.Monad (ap)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -- Things to check:
 --     - invariant on CmmBlock in CmmExpr (see comment there)
@@ -214,6 +221,9 @@ checkCond _ expr
 
 newtype CmmLint a = CmmLint { unCL :: DynFlags -> Either SDoc a }
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total CmmLint
+#endif
 
 instance Applicative CmmLint where
       pure a = CmmLint (\_ -> Right a)

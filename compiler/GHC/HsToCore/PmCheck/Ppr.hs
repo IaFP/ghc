@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP, ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies, FlexibleInstances #-}
+#endif
 
 -- | Provides factilities for pretty-printing 'Delta's in a way appropriate for
 -- user facing pattern match warnings.
@@ -25,6 +28,10 @@ import Data.List.NonEmpty (NonEmpty, nonEmpty, toList)
 
 import GHC.HsToCore.PmCheck.Types
 import GHC.HsToCore.PmCheck.Oracle
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+import Data.Functor.Identity (Identity)
+#endif
 
 -- | Pretty-print the guts of an uncovered value vector abstraction, i.e., its
 -- components and refutable shapes associated to any mentioned variables.
@@ -53,6 +60,9 @@ pprUncovered delta vas
     ppr_action       = mapM (pprPmVar init_prec) vas
     (vec, renamings) = runPmPpr delta ppr_action
     refuts           = prettifyRefuts delta renamings
+#if MIN_VERSION_base(4,14,0)
+instance Total (RWST Delta () (DIdEnv SDoc, [SDoc]) Identity)
+#endif
 
 -- | Output refutable shapes of a variable in the form of @var is not one of {2,
 -- Nothing, 3}@. Will never print more than 3 refutable shapes, the tail is

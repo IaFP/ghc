@@ -1,9 +1,16 @@
 
 T9017.hs:8:7: error:
-    • Couldn't match kind ‘k1’ with ‘*’
+    • Could not deduce: k1 ~ *
+      from the context: (a b @@ m b, m @@ b, a @@ b)
+        bound by the type signature for:
+                   foo :: forall k k1 (a :: k -> k1 -> *) (b :: k) (m :: k -> k1).
+                          (a b @@ m b, m @@ b, a @@ b) =>
+                          a b (m b)
+        at T9017.hs:7:1-16
       ‘k1’ is a rigid type variable bound by
         the type signature for:
           foo :: forall k k1 (a :: k -> k1 -> *) (b :: k) (m :: k -> k1).
+                 (a b @@ m b, m @@ b, a @@ b) =>
                  a b (m b)
         at T9017.hs:7:1-16
       When matching types

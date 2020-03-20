@@ -12,6 +12,9 @@
 #if !defined(GHC_LOADED_INTO_GHCI)
 {-# LANGUAGE UnboxedTuples #-}
 #endif
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module AsmCodeGen (
                     -- * Module entry point
@@ -95,6 +98,9 @@ import ErrUtils
 import Module
 import Stream (Stream)
 import qualified Stream
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -- DEBUGGING ONLY
 --import OrdList
@@ -1063,6 +1069,9 @@ data OptMResult a = OptMResult !a ![CLabel] deriving (Functor)
 
 newtype CmmOptM a = CmmOptM (DynFlags -> Module -> [CLabel] -> OptMResult a)
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total CmmOptM
+#endif
 
 instance Applicative CmmOptM where
     pure x = CmmOptM $ \_ _ imports -> OptMResult x imports

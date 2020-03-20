@@ -1,5 +1,5 @@
 {-# LANGUAGE UndecidableInstances, OverlappingInstances, Rank2Types,
-    KindSignatures, EmptyDataDecls, MultiParamTypeClasses, CPP #-}
+    KindSignatures, EmptyDataDecls, MultiParamTypeClasses, CPP, QuantifiedConstraints #-}
 
 {-
 
@@ -20,7 +20,7 @@ module T1735_Help.Basics (
 
 import Data.Typeable
 import T1735_Help.Context
-
+import GHC.Types (Total, type (@@))
 
 ------------------------------------------------------------------------------
 -- The ingenious Data class
@@ -29,7 +29,7 @@ class (Typeable a, Sat (ctx a)) => Data ctx a
 
    where
 
-     gfoldl :: Proxy ctx
+     gfoldl :: Total w => Proxy ctx
             -> (forall b c. Data ctx b => w (b -> c) -> b -> w c)
             -> (forall g. g -> w g)
             -> a -> w a
@@ -39,7 +39,7 @@ class (Typeable a, Sat (ctx a)) => Data ctx a
      --
      gfoldl _ _ z = z
 
-     gunfold :: Proxy ctx
+     gunfold :: Total c => Proxy ctx
              -> (forall b r. Data ctx b => c (b -> r) -> c r)
              -> (forall r. r -> c r)
              -> Constr
@@ -56,14 +56,14 @@ class (Typeable a, Sat (ctx a)) => Data ctx a
      dataTypeOf _ _ = undefined
 
      -- | Mediate types and unary type constructors
-     dataCast1 :: Typeable t
+     dataCast1 :: (Typeable t, Total w)
                => Proxy ctx
                -> (forall b. Data ctx b => w (t b))
                -> Maybe (w a)
      dataCast1 _ _ = Nothing
 
      -- | Mediate types and binary type constructors
-     dataCast2 :: Typeable t
+     dataCast2 :: (Typeable t, Total w)
                => Proxy ctx
                -> (forall b c. (Data ctx b, Data ctx c) => w (t b c))
                -> Maybe (w a)
@@ -80,31 +80,34 @@ type GenericT ctx = forall a. Data ctx a => a -> a
 
 -- Generic map for transformations
 
-gmapT :: Proxy ctx -> GenericT ctx -> GenericT ctx
+gmapT :: (forall b. (Data ctx b)) => Proxy ctx -> GenericT ctx -> GenericT ctx
 
 gmapT ctx f x = unID (gfoldl ctx k ID x)
   where
+    k :: ID (b -> c) -> b -> ID c
     k (ID g) y = ID (g (f y))
 
 
 -- The identity type constructor
 
 newtype ID x = ID { unID :: x }
-
+instance Total ID
 
 ------------------------------------------------------------------------------
 
 -- Generic monadic transformations
 
-type GenericM m ctx = forall a. Data ctx a => a -> m a
+type GenericM m ctx = forall a. (Total m, Data ctx a, m @@ a) => a -> m a
 
 -- Generic map for monadic transformations
 
-gmapM :: Monad m => Proxy ctx -> GenericM m ctx -> GenericM m ctx
+gmapM :: (Total m, Monad m, forall b. (Data ctx b)) => Proxy ctx -> GenericM m ctx -> GenericM m ctx
 gmapM ctx f = gfoldl ctx k return
-    where k c x = do c' <- c
-                     x' <- f x
-                     return (c' x')
+    where
+      k :: m (b -> c) -> b -> m c
+      k c x = do c' <- c
+                 x' <- f x
+                 return (c' x')
 
 
 ------------------------------------------------------------------------------
@@ -128,11 +131,12 @@ gmapQr :: Data ctx a
        -> r
 gmapQr ctx o r f x = unQr (gfoldl ctx k (const (Qr id)) x) r
   where
+    k :: Qr r (b -> c) -> b -> Qr r c
     k (Qr g) y = Qr (\s -> g (f y `o` s))
 
 -- The type constructor used in definition of gmapQr
 newtype Qr r a = Qr { unQr  :: r -> r }
-
+instance Total (Qr r)
 
 
 ------------------------------------------------------------------------------
@@ -161,7 +165,7 @@ fromConstrB ctx f = unID . gunfold ctx k z
 
 
 -- | Monadic variation on \"fromConstrB\"
-fromConstrM :: (Monad m, Data ctx a)
+fromConstrM :: (Total m, Monad m, Data ctx a)
             => Proxy ctx
             -> (forall b. Data ctx b => m b)
             -> Constr

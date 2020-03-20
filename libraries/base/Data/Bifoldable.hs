@@ -1,5 +1,7 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE TypeOperators, ExplicitNamespaces #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -54,6 +56,7 @@ import Data.Functor.Utils (Max(..), Min(..), (#.))
 import Data.Maybe (fromMaybe)
 import Data.Monoid
 import GHC.Generics (K1(..))
+import GHC.Types (type (@@))
 
 -- | 'Bifoldable' identifies foldable structures with two different varieties
 -- of elements (as opposed to 'Foldable', which has one variety of element).
@@ -245,7 +248,7 @@ bifoldlM f g z0 xs = bifoldr f' g' return xs z0 where
 -- doesn't ignore the results, see 'Data.Bitraversable.bitraverse'.
 --
 -- @since 4.10.0.0
-bitraverse_ :: (Bifoldable t, Applicative f)
+bitraverse_ :: (Bifoldable t, Applicative f, f @@ (() -> ()))
             => (a -> f c) -> (b -> f d) -> t a b -> f ()
 bitraverse_ f g = bifoldr ((*>) . f) ((*>) . g) (pure ())
 
@@ -257,28 +260,28 @@ bitraverse_ f g = bifoldr ((*>) . f) ((*>) . g) (pure ())
 -- "cb"
 --
 -- @since 4.10.0.0
-bifor_ :: (Bifoldable t, Applicative f)
+bifor_ :: (Bifoldable t, Applicative f, f @@ (() -> ()))
        => t a b -> (a -> f c) -> (b -> f d) -> f ()
 bifor_ t f g = bitraverse_ f g t
 
 -- | Alias for 'bitraverse_'.
 --
 -- @since 4.10.0.0
-bimapM_ :: (Bifoldable t, Applicative f)
+bimapM_ :: (Bifoldable t, Applicative f, f @@ (() -> ()))
         => (a -> f c) -> (b -> f d) -> t a b -> f ()
 bimapM_ = bitraverse_
 
 -- | Alias for 'bifor_'.
 --
 -- @since 4.10.0.0
-biforM_ :: (Bifoldable t, Applicative f)
+biforM_ :: (Bifoldable t, Applicative f, f @@ (() -> ()))
         => t a b ->  (a -> f c) -> (b -> f d) -> f ()
 biforM_ = bifor_
 
 -- | Alias for 'bisequence_'.
 --
 -- @since 4.10.0.0
-bisequenceA_ :: (Bifoldable t, Applicative f) => t (f a) (f b) -> f ()
+bisequenceA_ :: (Bifoldable t, Applicative f, f @@ (() -> ())) => t (f a) (f b) -> f ()
 bisequenceA_ = bisequence_
 
 -- | Evaluate each action in the structure from left to right, and ignore the
@@ -286,7 +289,7 @@ bisequenceA_ = bisequence_
 -- 'Data.Bitraversable.bisequence'.
 --
 -- @since 4.10.0.0
-bisequence_ :: (Bifoldable t, Applicative f) => t (f a) (f b) -> f ()
+bisequence_ :: (Bifoldable t, Applicative f, f @@ (() -> ())) => t (f a) (f b) -> f ()
 bisequence_ = bifoldr (*>) (*>) (pure ())
 
 -- | The sum of a collection of actions, generalizing 'biconcat'.
@@ -334,7 +337,7 @@ biconcat = bifold
 -- | The largest element of a non-empty structure.
 --
 -- @since 4.10.0.0
-bimaximum :: forall t a. (Bifoldable t, Ord a) => t a a -> a
+bimaximum :: forall t a. (Bifoldable t, Ord a, t @@ a, t a @@ a) => t a a -> a
 bimaximum = fromMaybe (error "bimaximum: empty structure") .
     getMax . bifoldMap mj mj
   where mj = Max #. (Just :: a -> Maybe a)
@@ -342,7 +345,7 @@ bimaximum = fromMaybe (error "bimaximum: empty structure") .
 -- | The least element of a non-empty structure.
 --
 -- @since 4.10.0.0
-biminimum :: forall t a. (Bifoldable t, Ord a) => t a a -> a
+biminimum :: forall t a. (Bifoldable t, Ord a, t @@ a, t a @@ a) => t a a -> a
 biminimum = fromMaybe (error "biminimum: empty structure") .
     getMin . bifoldMap mj mj
   where mj = Min #. (Just :: a -> Maybe a)

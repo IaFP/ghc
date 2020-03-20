@@ -10,7 +10,6 @@ being one that happens to be ideally suited to spineless tagless code
 generation.
 -}
 
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -18,6 +17,10 @@ generation.
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module StgSyn (
         StgArg(..),
@@ -85,6 +88,9 @@ import RepType     ( typePrimRep1 )
 import Util
 
 import Data.List.NonEmpty ( NonEmpty, toList )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 {-
 ************************************************************************
@@ -103,10 +109,20 @@ data GenStgTopBinding pass
 -- See Note [CoreSyn top-level string literals]
   = StgTopLifted (GenStgBinding pass)
   | StgTopStringLit Id ByteString
+#if MIN_VERSION_base(4,14,0)
+type instance GenStgTopBinding @@ pass = ()
+-- type instance GenStgTopBinding @@ 'Vanilla = ()
+#endif
 
 data GenStgBinding pass
   = StgNonRec (BinderP pass) (GenStgRhs pass)
   | StgRec    [(BinderP pass, GenStgRhs pass)]
+#if MIN_VERSION_base(4,14,0)
+type instance GenStgBinding @@ pass = ()
+type instance GenStgBinding @@ 'Vanilla = ()
+type instance GenStgBinding @@ 'CodeGen = ()
+type instance GenStgBinding @@ 'LiftLams = ()
+#endif
 
 {-
 ************************************************************************
@@ -215,6 +231,12 @@ first.)
 
 There is no constructor for a lone variable; it would appear as @StgApp var []@.
 -}
+#if MIN_VERSION_base(4,14,0)
+type instance GenStgExpr @@ a = ()
+type instance GenStgExpr @@ 'Vanilla = ()
+type instance GenStgExpr @@ 'CodeGen = ()
+type instance GenStgExpr @@ 'LiftLams = ()
+#endif
 
 data GenStgExpr pass
   = StgApp
@@ -391,6 +413,12 @@ STG right-hand sides
 Here's the rest of the interesting stuff for @StgLet@s; the first flavour is for
 closures:
 -}
+#if MIN_VERSION_base(4,14,0)
+type instance GenStgRhs @@ pass = ()
+type instance GenStgRhs @@ 'Vanilla = ()
+type instance GenStgRhs @@ 'CodeGen = ()
+type instance GenStgRhs @@ 'LiftLams = ()
+#endif
 
 data GenStgRhs pass
   = StgRhsClosure
@@ -488,7 +516,11 @@ stgRhsArity (StgRhsCon _ _ _) = 0
 -- is that `TidyPgm` computed the CAF info on the `Id` but some transformations
 -- have taken place since then.
 
-topStgBindHasCafRefs :: GenStgTopBinding pass -> Bool
+topStgBindHasCafRefs ::
+#if MIN_VERSION_base(4,14,0)
+  (GenStgRhs @@ pass, GenStgExpr @@ pass) => 
+#endif
+  GenStgTopBinding pass -> Bool
 topStgBindHasCafRefs (StgTopLifted (StgNonRec _ rhs))
   = topRhsHasCafRefs rhs
 topStgBindHasCafRefs (StgTopLifted (StgRec binds))
@@ -496,14 +528,22 @@ topStgBindHasCafRefs (StgTopLifted (StgRec binds))
 topStgBindHasCafRefs StgTopStringLit{}
   = False
 
-topRhsHasCafRefs :: GenStgRhs pass -> Bool
+topRhsHasCafRefs ::
+#if MIN_VERSION_base(4,14,0)
+   (GenStgExpr @@ pass, GenStgBinding @@ pass, GenStgExpr @@ 'Vanilla) =>
+#endif
+  GenStgRhs pass -> Bool
 topRhsHasCafRefs (StgRhsClosure _ _ upd _ body)
   = -- See Note [CAF consistency]
     isUpdatable upd || exprHasCafRefs body
 topRhsHasCafRefs (StgRhsCon _ _ args)
   = any stgArgHasCafRefs args
 
-exprHasCafRefs :: GenStgExpr pass -> Bool
+exprHasCafRefs ::
+#if MIN_VERSION_base(4,14,0)
+  (GenStgExpr @@ 'Vanilla, GenStgBinding @@ pass, GenStgBinding @@ 'Vanilla, GenStgRhs @@ pass) => 
+#endif
+  GenStgExpr pass -> Bool
 exprHasCafRefs (StgApp f args)
   = stgIdHasCafRefs f || any stgArgHasCafRefs args
 exprHasCafRefs StgLit{}
@@ -523,19 +563,31 @@ exprHasCafRefs (StgLetNoEscape _ bind body)
 exprHasCafRefs (StgTick _ expr)
   = exprHasCafRefs expr
 
-bindHasCafRefs :: GenStgBinding pass -> Bool
+bindHasCafRefs ::
+#if MIN_VERSION_base(4,14,0)
+  (GenStgRhs @@ pass, GenStgExpr @@ pass, GenStgBinding @@ pass) => 
+#endif
+  GenStgBinding pass -> Bool
 bindHasCafRefs (StgNonRec _ rhs)
   = rhsHasCafRefs rhs
 bindHasCafRefs (StgRec binds)
   = any rhsHasCafRefs (map snd binds)
 
-rhsHasCafRefs :: GenStgRhs pass -> Bool
+rhsHasCafRefs ::
+#if MIN_VERSION_base(4,14,0)
+  (GenStgBinding @@ pass, GenStgExpr @@ pass, GenStgRhs @@ pass) =>
+#endif
+  GenStgRhs pass -> Bool
 rhsHasCafRefs (StgRhsClosure _ _ _ _ body)
   = exprHasCafRefs body
 rhsHasCafRefs (StgRhsCon _ _ args)
   = any stgArgHasCafRefs args
 
-altHasCafRefs :: GenStgAlt pass -> Bool
+altHasCafRefs ::
+#if MIN_VERSION_base(4,14,0)
+  (GenStgRhs @@ pass, GenStgExpr @@ pass, GenStgBinding @@ pass, GenStgExpr @@ 'Vanilla) => 
+#endif
+  GenStgAlt pass -> Bool
 altHasCafRefs (_, _, rhs) = exprHasCafRefs rhs
 
 stgArgHasCafRefs :: StgArg -> Bool
@@ -697,16 +749,22 @@ type OutputablePass pass =
   , OutputableBndr (BinderP pass)
   )
 
-pprGenStgTopBinding
-  :: OutputablePass pass => GenStgTopBinding pass -> SDoc
+pprGenStgTopBinding :: (OutputablePass pass
+#if MIN_VERSION_base(4,14,0)
+                       , GenStgRhs @@ pass, GenStgExpr @@ pass, GenStgBinding @@ pass
+#endif
+                       ) => GenStgTopBinding pass -> SDoc
 pprGenStgTopBinding (StgTopStringLit bndr str)
   = hang (hsep [pprBndr LetBind bndr, equals])
         4 (pprHsBytes str <> semi)
 pprGenStgTopBinding (StgTopLifted bind)
   = pprGenStgBinding bind
 
-pprGenStgBinding
-  :: OutputablePass pass => GenStgBinding pass -> SDoc
+pprGenStgBinding  :: (OutputablePass pass
+#if MIN_VERSION_base(4,14,0)
+                     , GenStgRhs @@ pass, GenStgExpr @@ pass, GenStgBinding @@ pass
+#endif
+                     ) => GenStgBinding pass -> SDoc
 
 pprGenStgBinding (StgNonRec bndr rhs)
   = hang (hsep [pprBndr LetBind bndr, equals])
@@ -721,8 +779,11 @@ pprGenStgBinding (StgRec pairs)
       = hang (hsep [pprBndr LetBind bndr, equals])
              4 (ppr expr <> semi)
 
-pprGenStgTopBindings
-  :: (OutputablePass pass) => [GenStgTopBinding pass] -> SDoc
+pprGenStgTopBindings ::
+#if MIN_VERSION_base(4,14,0)
+      (GenStgRhs @@ pass, GenStgExpr @@ pass, GenStgBinding @@ pass) => 
+#endif
+     (OutputablePass pass) => [GenStgTopBinding pass] -> SDoc
 pprGenStgTopBindings binds
   = vcat $ intersperse blankLine (map pprGenStgTopBinding binds)
 
@@ -735,23 +796,43 @@ pprStgTopBindings = pprGenStgTopBindings
 instance Outputable StgArg where
     ppr = pprStgArg
 
-instance OutputablePass pass => Outputable (GenStgTopBinding pass) where
+instance (OutputablePass pass
+#if MIN_VERSION_base(4,14,0)
+         , GenStgRhs @@ pass, GenStgExpr @@ pass, GenStgBinding @@ pass 
+#endif
+         ) => Outputable (GenStgTopBinding pass) where
     ppr = pprGenStgTopBinding
 
-instance OutputablePass pass => Outputable (GenStgBinding pass) where
+instance (OutputablePass pass
+#if MIN_VERSION_base(4,14,0)
+         , GenStgRhs @@ pass, GenStgExpr @@ pass, GenStgBinding @@ pass
+#endif
+         ) => Outputable (GenStgBinding pass) where
     ppr = pprGenStgBinding
 
-instance OutputablePass pass => Outputable (GenStgExpr pass) where
+instance (OutputablePass pass
+#if MIN_VERSION_base(4,14,0)
+         , GenStgExpr @@ pass, GenStgBinding @@ pass, GenStgTopBinding @@ pass, GenStgRhs @@ pass
+#endif
+         ) => Outputable (GenStgExpr pass) where
     ppr = pprStgExpr
 
-instance OutputablePass pass => Outputable (GenStgRhs pass) where
+instance (OutputablePass pass
+#if MIN_VERSION_base(4,14,0)
+             , GenStgRhs @@ pass, GenStgExpr @@ pass, GenStgBinding @@ pass 
+#endif
+         ) => Outputable (GenStgRhs pass) where
     ppr rhs = pprStgRhs rhs
 
 pprStgArg :: StgArg -> SDoc
 pprStgArg (StgVarArg var) = ppr var
 pprStgArg (StgLitArg con) = ppr con
 
-pprStgExpr :: OutputablePass pass => GenStgExpr pass -> SDoc
+pprStgExpr :: (OutputablePass pass
+#if MIN_VERSION_base(4,14,0)
+             , GenStgRhs @@ pass, GenStgExpr @@ pass, GenStgBinding @@ pass 
+#endif
+              ) => GenStgExpr pass -> SDoc
 -- special case
 pprStgExpr (StgLit lit)     = ppr lit
 
@@ -837,7 +918,11 @@ pprStgExpr (StgCase expr bndr alt_type alts)
            char '}']
 
 
-pprStgAlt :: OutputablePass pass => Bool -> GenStgAlt pass -> SDoc
+pprStgAlt :: (OutputablePass pass
+#if MIN_VERSION_base(4,14,0)
+             , GenStgRhs @@ pass, GenStgExpr @@ pass, GenStgBinding @@ pass 
+#endif
+             ) => Bool -> GenStgAlt pass -> SDoc
 pprStgAlt indent (con, params, expr)
   | indent    = hang altPattern 4 (ppr expr <> semi)
   | otherwise = sep [altPattern, ppr expr <> semi]
@@ -856,7 +941,11 @@ instance Outputable AltType where
   ppr (AlgAlt tc)     = text "Alg"    <+> ppr tc
   ppr (PrimAlt tc)    = text "Prim"   <+> ppr tc
 
-pprStgRhs :: OutputablePass pass => GenStgRhs pass -> SDoc
+pprStgRhs :: (OutputablePass pass
+#if MIN_VERSION_base(4,14,0)
+             , GenStgRhs @@ pass, GenStgExpr @@ pass, GenStgBinding @@ pass 
+#endif
+             ) => GenStgRhs pass -> SDoc
 
 pprStgRhs (StgRhsClosure ext cc upd_flag args body)
   = sdocWithDynFlags $ \dflags ->

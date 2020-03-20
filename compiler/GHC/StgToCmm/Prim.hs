@@ -6,6 +6,10 @@
 -- emitPrimOp is quite large
 {-# OPTIONS_GHC -fmax-pmcheck-iterations=4000000 #-}
 #endif
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 ----------------------------------------------------------------------------
 --

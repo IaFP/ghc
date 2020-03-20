@@ -3,6 +3,9 @@
 {-# LANGUAGE BangPatterns, CPP, MagicHash, UnboxedTuples,
     GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -O2 -funbox-strict-fields #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 -- We always optimise this, otherwise performance of a non-optimised
 -- compiler is severely affected
 

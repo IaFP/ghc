@@ -9,7 +9,7 @@ module T3831(setAttributes)  where
 import Data.Monoid
 import Control.Applicative (Applicative(..), Alternative(empty, (<|>)))
 import Control.Monad
-
+import GHC.Types (Total)
 class (Monoid s, OutputCap s) => TermStr s
 
 class OutputCap f where
@@ -48,6 +48,7 @@ instance MonadPlus Capability where
             _ -> return mx
 
 newtype Capability a = Capability (() -> IO (Maybe a))
+instance Total Capability
 
 tiGetOutput1 :: forall f . OutputCap f => String -> Capability f
 {-# NOINLINE tiGetOutput1 #-}

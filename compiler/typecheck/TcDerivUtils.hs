@@ -7,6 +7,10 @@ Error-checking and other utilities for @deriving@ clauses or declarations.
 -}
 
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcDerivUtils (
         DerivM, DerivEnv(..),

@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE PartialTypeConstructors, TypeFamilies, TypeOperators #-}
 {-# OPTIONS_GHC -Wno-inline-rule-shadowing #-}
     -- The RULES for the methods of class Category may never fire
     -- e.g. identity/left, identity/right, association;  see #10528
@@ -24,6 +25,7 @@ import qualified GHC.Base (id,(.))
 import Data.Type.Coercion
 import Data.Type.Equality
 import Data.Coerce (coerce)
+import GHC.Types (type (@@), RuntimeRep( LiftedRep ))
 
 infixr 9 .
 infixr 1 >>>, <<<
@@ -46,9 +48,11 @@ class Category cat where
                 id . p = p
 "identity/right"        forall p .
                 p . id = p
-"association"   forall p q r .
-                (p . q) . r = p . (q . r)
+-- "association"   forall p q r .
+--                 (p . q) . r = p . (q . r)
  #-}
+
+type instance (->) @@ 'LiftedRep = ()
 
 -- | @since 3.0
 instance Category (->) where

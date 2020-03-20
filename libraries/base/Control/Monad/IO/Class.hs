@@ -1,4 +1,7 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE PartialTypeConstructors, ConstrainedClassMethods #-}
+
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.IO.Class
@@ -17,6 +20,7 @@ module Control.Monad.IO.Class (
     MonadIO(..)
   ) where
 
+
 -- | Monads in which 'IO' computations may be embedded.
 -- Any monad built by applying a sequence of monad transformers to the
 -- 'IO' monad will be an instance of this class.
@@ -28,7 +32,8 @@ module Control.Monad.IO.Class (
 --
 -- * @'liftIO' (m >>= f) = 'liftIO' m >>= ('liftIO' . f)@
 
-class (Monad m) => MonadIO m where
+
+class Monad m => MonadIO m where
     -- | Lift a computation from the 'IO' monad.
     liftIO :: IO a -> m a
 

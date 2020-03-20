@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies, ConstrainedClassMethods #-}
+#endif
 {-
   This module handles generation of position independent code and
   dynamic-linking related issues for the native code generator.
@@ -78,7 +82,9 @@ import Outputable
 import DynFlags
 import FastString
 
-
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 --------------------------------------------------------------------------------
 -- It gets called by the cmmToCmm pass for every CmmLabel in the Cmm
@@ -99,7 +105,7 @@ data ReferenceKind
         | JumpReference
         deriving(Eq)
 
-class Monad m => CmmMakeDynamicReferenceM m where
+class (Monad m) => CmmMakeDynamicReferenceM m where
     addImport :: CLabel -> m ()
     getThisModule :: m Module
 
@@ -108,7 +114,11 @@ instance CmmMakeDynamicReferenceM NatM where
     getThisModule = getThisModuleNat
 
 cmmMakeDynamicReference
-  :: CmmMakeDynamicReferenceM m
+  :: (CmmMakeDynamicReferenceM m
+#if MIN_VERSION_base(4,14,0)
+     , m @@ Module, m @@ ()
+#endif
+     )
   => DynFlags
   -> ReferenceKind     -- whether this is the target of a jump
   -> CLabel            -- the label

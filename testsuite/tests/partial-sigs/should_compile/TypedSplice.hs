@@ -1,6 +1,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NamedWildCards #-}
 {-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE NoPartialTypeConstructors #-}
+
 module TypedSplice where
 
 import Language.Haskell.TH

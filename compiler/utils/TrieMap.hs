@@ -9,6 +9,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 module TrieMap(
    -- * Maps over 'Maybe' values
    MaybeMap,
@@ -39,6 +43,9 @@ import qualified Data.Map    as Map
 import qualified Data.IntMap as IntMap
 import Outputable
 import Control.Monad( (>=>) )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 {-
 This module implements TrieMaps, which are finite mappings
@@ -67,8 +74,16 @@ type XT a = Maybe a -> Maybe a  -- How to alter a non-existent elt (Nothing)
 class TrieMap m where
    type Key m :: *
    emptyTM  :: m a
-   lookupTM :: forall b. Key m -> m b -> Maybe b
-   alterTM  :: forall b. Key m -> XT b -> m b -> m b
+   lookupTM :: forall b.
+#if MIN_VERSION_base(4,14,0)
+               (m @@ b) => 
+#endif
+               Key m -> m b -> Maybe b
+   alterTM  :: forall b.
+#if MIN_VERSION_base(4,14,0)
+               (m @@ b) => 
+#endif
+               Key m -> XT b -> m b -> m b
    mapTM    :: (a->b) -> m a -> m b
 
    foldTM   :: (a -> b -> b) -> m a -> b -> b
@@ -234,12 +249,20 @@ mapMb :: TrieMap m => (a->b) -> MaybeMap m a -> MaybeMap m b
 mapMb f (MM { mm_nothing = mn, mm_just = mj })
   = MM { mm_nothing = fmap f mn, mm_just = mapTM f mj }
 
-lkMaybe :: (forall b. k -> m b -> Maybe b)
+lkMaybe :: (forall b.
+#if MIN_VERSION_base(4,14,0)
+               (m @@ b) => 
+#endif
+            k -> m b -> Maybe b)
         -> Maybe k -> MaybeMap m a -> Maybe a
 lkMaybe _  Nothing  = mm_nothing
 lkMaybe lk (Just x) = mm_just >.> lk x
 
-xtMaybe :: (forall b. k -> XT b -> m b -> m b)
+xtMaybe :: (forall b.
+#if MIN_VERSION_base(4,14,0)
+               (m @@ b) =>
+#endif
+                k -> XT b -> m b -> m b)
         -> Maybe k -> XT a -> MaybeMap m a -> MaybeMap m a
 xtMaybe _  Nothing  f m = m { mm_nothing  = f (mm_nothing m) }
 xtMaybe tr (Just x) f m = m { mm_just = mm_just m |> tr x f }
@@ -268,25 +291,40 @@ instance TrieMap m => TrieMap (ListMap m) where
    foldTM   = fdList
    mapTM    = mapList
 
-instance (TrieMap m, Outputable a) => Outputable (ListMap m a) where
+instance (TrieMap m, Outputable a
+#if MIN_VERSION_base(4,14,0)
+         , m @@ ListMap m a
+#endif
+         ) => Outputable (ListMap m a) where
   ppr m = text "List elts" <+> ppr (foldTM (:) m [])
 
 mapList :: TrieMap m => (a->b) -> ListMap m a -> ListMap m b
 mapList f (LM { lm_nil = mnil, lm_cons = mcons })
   = LM { lm_nil = fmap f mnil, lm_cons = mapTM (mapTM f) mcons }
 
-lkList :: TrieMap m => (forall b. k -> m b -> Maybe b)
+lkList :: TrieMap m => (forall b.
+#if MIN_VERSION_base(4,14,0)
+                       (m @@ b) => 
+#endif
+                        k -> m b -> Maybe b)
         -> [k] -> ListMap m a -> Maybe a
 lkList _  []     = lm_nil
 lkList lk (x:xs) = lm_cons >.> lk x >=> lkList lk xs
 
-xtList :: TrieMap m => (forall b. k -> XT b -> m b -> m b)
+xtList :: TrieMap m => (forall b.
+#if MIN_VERSION_base(4,14,0)
+                       (m @@ b) => 
+#endif
+                        k -> XT b -> m b -> m b)
         -> [k] -> XT a -> ListMap m a -> ListMap m a
 xtList _  []     f m = m { lm_nil  = f (lm_nil m) }
 xtList tr (x:xs) f m = m { lm_cons = lm_cons m |> tr x |>> xtList tr xs f }
 
-fdList :: forall m a b. TrieMap m
-       => (a -> b -> b) -> ListMap m a -> b -> b
+fdList :: forall m a b. (TrieMap m
+#if MIN_VERSION_base(4,14,0)
+                        , m @@ ListMap m a
+#endif
+       ) => (a -> b -> b) -> ListMap m a -> b -> b
 fdList k m = foldMaybe k          (lm_nil m)
            . foldTM    (fdList k) (lm_cons m)
 

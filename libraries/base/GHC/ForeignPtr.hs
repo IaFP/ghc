@@ -4,6 +4,7 @@
            , MagicHash
            , UnboxedTuples
   #-}
+{-# LANGUAGE PartialTypeConstructors, UndecidableInstances #-}
 {-# OPTIONS_HADDOCK not-home #-}
 {-# LANGUAGE StandaloneDeriving #-}
 

@@ -7,6 +7,9 @@ Utility functions on @Core@ syntax
 -}
 
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- | Commonly useful utilites for manipulating the Core language
 module CoreUtils (

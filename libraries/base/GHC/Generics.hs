@@ -18,6 +18,7 @@
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE TypeSynonymInstances       #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE PartialTypeConstructors    #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -872,10 +873,10 @@ instance Monad f => Monad (Rec1 f) where
 deriving instance MonadPlus f => MonadPlus (Rec1 f)
 
 -- | @since 4.12.0.0
-deriving instance Semigroup (f p) => Semigroup (Rec1 f p)
+deriving instance (Semigroup (f p)) => Semigroup (Rec1 f p)
 
 -- | @since 4.12.0.0
-deriving instance Monoid (f p) => Monoid (Rec1 f p)
+deriving instance (Monoid (f p)) => Monoid (Rec1 f p)
 
 -- | Constants, additional parameters and recursion of kind @*@
 newtype K1 (i :: Type) c (p :: k) = K1 { unK1 :: c }
@@ -913,10 +914,10 @@ deriving instance Monad f => Monad (M1 i c f)
 deriving instance MonadPlus f => MonadPlus (M1 i c f)
 
 -- | @since 4.12.0.0
-deriving instance Semigroup (f p) => Semigroup (M1 i c f p)
+deriving instance (Semigroup (f p)) => Semigroup (M1 i c f p)
 
 -- | @since 4.12.0.0
-deriving instance Monoid (f p) => Monoid (M1 i c f p)
+deriving instance (Monoid (f p)) => Monoid (M1 i c f p)
 
 -- | Meta-information (constructor names, etc.)
 newtype M1 (i :: Type) (c :: Meta) (f :: k -> Type) (p :: k) =
@@ -929,6 +930,7 @@ newtype M1 (i :: Type) (c :: Meta) (f :: k -> Type) (p :: k) =
            , Generic  -- ^ @since 4.7.0.0
            , Generic1 -- ^ @since 4.9.0.0
            )
+instance Total (M1 i c f)
 
 -- | Sums: encode choice between constructors
 infixr 5 :+:
@@ -985,7 +987,7 @@ instance (Monoid (f p), Monoid (g p)) => Monoid ((f :*: g) p) where
 
 -- | Composition of functors
 infixr 7 :.:
-newtype (:.:) (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) =
+newtype {-Total f => -} (:.:) (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) =
     Comp1 { unComp1 :: f (g p) }
   deriving ( Eq       -- ^ @since 4.7.0.0
            , Ord      -- ^ @since 4.7.0.0
@@ -993,7 +995,7 @@ newtype (:.:) (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) =
            , Show     -- ^ @since 4.7.0.0
            , Functor  -- ^ @since 4.9.0.0
            , Generic  -- ^ @since 4.7.0.0
-           , Generic1 -- ^ @since 4.9.0.0
+           -- , Generic1 -- ^ @since 4.9.0.0
            )
 
 -- | @since 4.9.0.0
@@ -1006,13 +1008,13 @@ instance (Applicative f, Applicative g) => Applicative (f :.: g) where
 instance (Alternative f, Applicative g) => Alternative (f :.: g) where
   empty = Comp1 empty
   (<|>) = coerce ((<|>) :: f (g a) -> f (g a) -> f (g a)) ::
-    forall a . (f :.: g) a -> (f :.: g) a -> (f :.: g) a
+    forall a . (f @@ g a, g @@ a) => (f :.: g) a -> (f :.: g) a -> (f :.: g) a
 
 -- | @since 4.12.0.0
-deriving instance Semigroup (f (g p)) => Semigroup ((f :.: g) p)
+deriving instance (Semigroup (f (g p))) => Semigroup ((f :.: g) p)
 
 -- | @since 4.12.0.0
-deriving instance Monoid (f (g p)) => Monoid ((f :.: g) p)
+deriving instance (Monoid (f (g p))) => Monoid ((f :.: g) p)
 
 -- | Constants of unlifted kinds
 --

@@ -12,6 +12,10 @@ Main functions for .hie file generation
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies, ConstrainedClassMethods #-}
+#endif
 module HieAst ( mkHieFile ) where
 
 import GhcPrelude
@@ -52,6 +56,9 @@ import Data.List                  ( foldl1' )
 import Data.Maybe                 ( listToMaybe )
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Class  ( lift )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 {- Note [Updating HieAst for changes in the GHC AST]
 
@@ -181,6 +188,10 @@ call and just recurse directly in to the subexpressions.
 
 -}
 
+#if MIN_VERSION_base(4,14,0)
+instance Total (ReaderT HieState Hsc)
+#endif
+
 -- These synonyms match those defined in main/GHC.hs
 type RenamedSource     = ( HsGroup GhcRn, [LImportDecl GhcRn]
                          , Maybe [(LIE GhcRn, Avails)]
@@ -300,7 +311,11 @@ bindingsOnly (C c n : xs) = case nameSrcSpan n of
           info = mempty{identInfo = S.singleton c}
   _ -> bindingsOnly xs
 
-concatM :: Monad m => [m [a]] -> m [a]
+concatM :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+           , Total m
+#endif
+           ) => [m [a]] -> m [a]
 concatM xs = concat <$> sequence xs
 
 {- Note [Capturing Scopes and other non local information]

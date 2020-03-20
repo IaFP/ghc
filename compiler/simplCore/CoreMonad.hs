@@ -6,6 +6,9 @@
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module CoreMonad (
     -- * Configuration of the core-to-core passes
@@ -45,6 +48,8 @@ module CoreMonad (
     fatalErrorMsg, fatalErrorMsgS,
     debugTraceMsg, debugTraceMsgS,
     dumpIfSet_dyn
+   , CoreReader, CoreWriter
+    
   ) where
 
 import GhcPrelude hiding ( read )
@@ -79,6 +84,9 @@ import Data.Word
 import Control.Monad
 import Control.Applicative ( Alternative(..) )
 import Panic (throwGhcException, GhcException(..))
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 {-
 ************************************************************************
@@ -580,6 +588,9 @@ type CoreIOEnv = IOEnv CoreReader
 --  Also used to have common state (in the form of UniqueSupply) for generating Uniques.
 newtype CoreM a = CoreM { unCoreM :: CoreIOEnv (a, CoreWriter) }
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total CoreM
+#endif
 
 instance Monad CoreM where
     mx >>= f = CoreM $ do

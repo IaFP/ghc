@@ -6,6 +6,9 @@ as used in the type-checker and constraint solver.
 -}
 
 {-# LANGUAGE CPP, GeneralizedNewtypeDeriving #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module Constraint (
         -- QCInst
@@ -30,7 +33,7 @@ module Constraint (
         tyCoVarsOfCtList, tyCoVarsOfCtsList,
 
         WantedConstraints(..), insolubleWC, emptyWC, isEmptyWC,
-        isSolvedWC, andWC, unionsWC, mkSimpleWC, mkImplicWC,
+        isSolvedWC, andWC, unionsWC, mkSimpleWC, mkDictWC, mkImplicWC,
         addInsols, insolublesOnly, addSimples, addImplics,
         tyCoVarsOfWC, dropDerivedWC, dropDerivedSimples,
         tyCoVarsOfWCList, insolubleCt, insolubleEqCt,
@@ -899,6 +902,10 @@ mkSimpleWC :: [CtEvidence] -> WantedConstraints
 mkSimpleWC cts
   = WC { wc_simple = listToBag (map mkNonCanonical cts)
        , wc_impl = emptyBag }
+
+mkDictWC :: [Ct] -> WantedConstraints
+mkDictWC cts = WC { wc_simple = listToBag cts
+                  , wc_impl = emptyBag }
 
 mkImplicWC :: Bag Implication -> WantedConstraints
 mkImplicWC implic

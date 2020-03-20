@@ -8,12 +8,18 @@ Functions for inferring (and simplifying) the context for derived instances.
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies, FlexibleInstances #-}
+#endif
 
 module TcDerivInfer (inferConstraints, simplifyInstanceContexts) where
 
 #include "HsVersions.h"
 
-import GhcPrelude
+import GhcPrelude hiding (mapM)
+import GHC.Base (mapM)
+import DynFlags
 
 import Bag
 import BasicTypes
@@ -35,6 +41,7 @@ import TcOrigin
 import Constraint
 import Predicate
 import TcType
+import TcTyWF (genAtAtConstraints)
 import TyCon
 import TyCoPpr (pprTyVars)
 import Type
@@ -46,8 +53,9 @@ import Unify (tcUnifyTy)
 import Util
 import Var
 import VarSet
+import qualified GHC.LanguageExtensions as LangExt
 
-import Control.Monad
+import Control.Monad hiding (mapM)
 import Control.Monad.Trans.Class  (lift)
 import Control.Monad.Trans.Reader (ask)
 import Data.List                  (sortBy)
@@ -119,7 +127,8 @@ inferConstraints mechanism
 
        ; (inferred_constraints, tvs', inst_tys') <- infer_constraints
        ; lift $ traceTc "inferConstraints" $ vcat
-              [ ppr main_cls <+> ppr inst_tys'
+              [ text "mechanism" <+> ppr mechanism
+              , ppr main_cls <+> ppr inst_tys'
               , ppr inferred_constraints
               ]
        ; return ( sc_constraints ++ inferred_constraints
@@ -159,50 +168,16 @@ inferConstraintsStock (DerivInstTys { dit_cls_tys     = cls_tys
                 , denv_cls      = main_cls
                 , denv_inst_tys = inst_tys } <- ask
        wildcard <- isStandaloneWildcardDeriv
-
-       let inst_ty    = mkTyConApp tc tc_args
+       dflags <- getDynFlags
+       
+       let partialCtrs = xopt LangExt.PartialTypeConstructors dflags
+           inst_ty    = mkTyConApp tc tc_args
            tc_binders = tyConBinders rep_tc
            choose_level bndr
              | isNamedTyConBinder bndr = KindLevel
              | otherwise               = TypeLevel
            t_or_ks = map choose_level tc_binders ++ repeat TypeLevel
               -- want to report *kind* errors when possible
-
-              -- Constraints arising from the arguments of each constructor
-           con_arg_constraints
-             :: (CtOrigin -> TypeOrKind
-                          -> Type
-                          -> [([PredOrigin], Maybe TCvSubst)])
-             -> ([ThetaOrigin], [TyVar], [TcType])
-           con_arg_constraints get_arg_constraints
-             = let (predss, mbSubsts) = unzip
-                     [ preds_and_mbSubst
-                     | data_con <- tyConDataCons rep_tc
-                     , (arg_n, arg_t_or_k, arg_ty)
-                         <- zip3 [1..] t_or_ks $
-                            dataConInstOrigArgTys data_con all_rep_tc_args
-                       -- No constraints for unlifted types
-                       -- See Note [Deriving and unboxed types]
-                     , not (isUnliftedType arg_ty)
-                     , let orig = DerivOriginDC data_con arg_n wildcard
-                     , preds_and_mbSubst
-                         <- get_arg_constraints orig arg_t_or_k arg_ty
-                     ]
-                   preds = concat predss
-                   -- If the constraints require a subtype to be of kind
-                   -- (* -> *) (which is the case for functor-like
-                   -- constraints), then we explicitly unify the subtype's
-                   -- kinds with (* -> *).
-                   -- See Note [Inferring the instance context]
-                   subst        = foldl' composeTCvSubst
-                                         emptyTCvSubst (catMaybes mbSubsts)
-                   unmapped_tvs = filter (\v -> v `notElemTCvSubst` subst
-                                             && not (v `isInScope` subst)) tvs
-                   (subst', _)  = substTyVarBndrs subst unmapped_tvs
-                   preds'       = map (substPredOrigin subst') preds
-                   inst_tys'    = substTys subst' inst_tys
-                   tvs'         = tyCoVarsOfTypesWellScoped inst_tys'
-               in ([mkThetaOriginFromPreds preds'], tvs', inst_tys')
 
            is_generic  = main_cls `hasKey` genClassKey
            is_generic1 = main_cls `hasKey` gen1ClassKey
@@ -211,42 +186,21 @@ inferConstraintsStock (DerivInstTys { dit_cls_tys     = cls_tys
                           || is_generic1
 
            get_gen1_constraints :: Class -> CtOrigin -> TypeOrKind -> Type
-                                -> [([PredOrigin], Maybe TCvSubst)]
+                                -> DerivM [([PredOrigin], Maybe TCvSubst)]
            get_gen1_constraints functor_cls orig t_or_k ty
-              = mk_functor_like_constraints orig t_or_k functor_cls $
+              = mk_functor_like_constraints orig t_or_k functor_cls mk_cls_pred $
                 get_gen1_constrained_tys last_tv ty
 
            get_std_constrained_tys :: CtOrigin -> TypeOrKind -> Type
-                                   -> [([PredOrigin], Maybe TCvSubst)]
+                                   -> DerivM [([PredOrigin], Maybe TCvSubst)]
            get_std_constrained_tys orig t_or_k ty
                | is_functor_like
-               = mk_functor_like_constraints orig t_or_k main_cls $
+               = mk_functor_like_constraints orig t_or_k main_cls mk_cls_pred $
                  deepSubtypesContaining last_tv ty
                | otherwise
-               = [( [mk_cls_pred orig t_or_k main_cls ty]
-                  , Nothing )]
-
-           mk_functor_like_constraints :: CtOrigin -> TypeOrKind
-                                       -> Class -> [Type]
-                                       -> [([PredOrigin], Maybe TCvSubst)]
-           -- 'cls' is usually main_cls (Functor or Traversable etc), but if
-           -- main_cls = Generic1, then 'cls' can be Functor; see
-           -- get_gen1_constraints
-           --
-           -- For each type, generate two constraints,
-           -- [cls ty, kind(ty) ~ (*->*)], and a kind substitution that results
-           -- from unifying  kind(ty) with * -> *. If the unification is
-           -- successful, it will ensure that the resulting instance is well
-           -- kinded. If not, the second constraint will result in an error
-           -- message which points out the kind mismatch.
-           -- See Note [Inferring the instance context]
-           mk_functor_like_constraints orig t_or_k cls
-              = map $ \ty -> let ki = tcTypeKind ty in
-                             ( [ mk_cls_pred orig t_or_k cls ty
-                               , mkPredOrigin orig KindLevel
-                                   (mkPrimEqPred ki typeToTypeKind) ]
-                             , tcUnifyTy ki typeToTypeKind
-                             )
+               = do { atat_constraints <- if partialCtrs then do {(_, cs) <- genAtAtConstraints ty; return cs} else return []
+                    ; return [( [mk_cls_pred orig t_or_k main_cls ty] ++ fmap (mkPredOrigin orig TypeLevel) atat_constraints
+                              , Nothing )] }
 
            rep_tc_tvs      = tyConTyVars rep_tc
            last_tv         = last rep_tc_tvs
@@ -288,13 +242,13 @@ inferConstraintsStock (DerivInstTys { dit_cls_tys     = cls_tys
                  | otherwise
                  = []
 
+           mk_cls_pred :: CtOrigin -> TypeOrKind -> Class -> Type -> PredOrigin
            mk_cls_pred orig t_or_k cls ty
                 -- Don't forget to apply to cls_tys' too
               = mkPredOrigin orig t_or_k (mkClassPred cls (cls_tys' ++ [ty]))
            cls_tys' | is_generic1 = []
                       -- In the awkward Generic1 case, cls_tys' should be
                       -- empty, since we are applying the class Functor.
-
                     | otherwise   = cls_tys
 
            deriv_origin = mkDerivOrigin wildcard
@@ -310,7 +264,7 @@ inferConstraintsStock (DerivInstTys { dit_cls_tys     = cls_tys
               -- Generic1 has a single kind variable
               ASSERT( cls_tys `lengthIs` 1 )
               do { functorClass <- lift $ tcLookupClass functorClassName
-                 ; pure $ con_arg_constraints
+                 ; con_arg_constraints rep_tc inst_tys tvs all_rep_tc_args t_or_ks
                         $ get_gen1_constraints functorClass }
 
              -- The others are a bit more complicated
@@ -320,15 +274,91 @@ inferConstraintsStock (DerivInstTys { dit_cls_tys     = cls_tys
               ASSERT2( equalLength rep_tc_tvs all_rep_tc_args
                      , ppr main_cls <+> ppr rep_tc
                        $$ ppr rep_tc_tvs $$ ppr all_rep_tc_args )
-                do { let (arg_constraints, tvs', inst_tys')
-                           = con_arg_constraints get_std_constrained_tys
+                do { (arg_constraints, tvs', inst_tys')
+                           <- con_arg_constraints rep_tc inst_tys tvs all_rep_tc_args t_or_ks get_std_constrained_tys
                    ; lift $ traceTc "inferConstraintsStock" $ vcat
                           [ ppr main_cls <+> ppr inst_tys'
-                          , ppr arg_constraints
+                          , ppr arg_constraints, ppr stupid_constraints
                           ]
                    ; return ( stupid_constraints ++ extra_constraints
                                                  ++ arg_constraints
                             , tvs', inst_tys') }
+
+
+
+-- 'cls' is usually main_cls (Functor or Traversable etc), but if
+-- main_cls = Generic1, then 'cls' can be Functor; see
+-- get_gen1_constraints
+--
+-- For each type, generate two constraints,
+-- [cls ty, kind(ty) ~ (*->*)], and a kind substitution that results
+-- from unifying  kind(ty) with * -> *. If the unification is
+-- successful, it will ensure that the resulting instance is well
+-- kinded. If not, the second constraint will result in an error
+-- message which points out the kind mismatch.
+-- See Note [Inferring the instance context]
+mk_functor_like_constraints :: CtOrigin -> TypeOrKind
+                            -> Class -> (CtOrigin -> TypeOrKind -> Class -> Type -> PredOrigin)
+                            -> [Type]
+                            -> DerivM [([PredOrigin], Maybe TCvSubst)]
+mk_functor_like_constraints orig t_or_k cls mk_cls_pred tys
+  = do { mapM mk_functor_constraints_aux tys }
+  where
+    mk_functor_constraints_aux :: Type -> DerivM ([PredOrigin], Maybe TCvSubst)
+    mk_functor_constraints_aux ty
+          = do { dflags <- getDynFlags
+               ; let partialCtrs = xopt LangExt.PartialTypeConstructors dflags 
+
+                     ki = tcTypeKind ty
+               ; atat_constraints <-
+                 if partialCtrs then do
+                   { (_, cs) <- genAtAtConstraints ty
+                   ; return cs }
+                 else return []
+               ; return $ ([ mk_cls_pred orig t_or_k cls ty
+                           , mkPredOrigin orig KindLevel
+                             (mkPrimEqPred ki typeToTypeKind) ] ++ fmap (mkPredOrigin orig TypeLevel) atat_constraints
+                          , tcUnifyTy ki typeToTypeKind
+                          )
+               }
+
+-- Constraints arising from the arguments of each constructor
+con_arg_constraints :: TyCon -> [Type] -> [Var] -> [Type] -> [TypeOrKind]
+                    -> (CtOrigin -> TypeOrKind
+                                 -> Type
+                                 -> DerivM [([PredOrigin], Maybe TCvSubst)])
+                    -> DerivM ([ThetaOrigin], [TyVar], [TcType])
+con_arg_constraints rep_tc inst_tys tvs all_rep_tc_args t_or_ks get_arg_constraints
+  = do { wildcard <- isStandaloneWildcardDeriv
+       ; let input :: [(CtOrigin, TypeOrKind, Type)]
+                   = [ (orig, arg_t_or_k, arg_ty) -- preds_and_mbSubst
+                     | data_con <- tyConDataCons rep_tc
+                     , (arg_n, arg_t_or_k, arg_ty) <- zip3 [1..] t_or_ks $
+                                                      dataConInstOrigArgTys data_con all_rep_tc_args
+                       -- No constraints for unlifted types
+                       -- See Note [Deriving and unboxed types]
+                     , not (isUnliftedType arg_ty)
+                     , let orig = DerivOriginDC data_con arg_n wildcard
+                     -- , preds_and_mbSubst <- get_arg_constraints orig arg_t_or_k arg_ty
+                     ]
+       ; preds_and_mbSubst <- mapM (\(o, t_o_k, ty) -> get_arg_constraints o t_o_k ty) input
+       ; let (predss, mbSubsts) = unzip $ concat preds_and_mbSubst
+             preds = concat predss
+             -- If the constraints require a subtype to be of kind
+             -- (* -> *) (which is the case for functor-like
+             -- constraints), then we explicitly unify the subtype's
+             -- kinds with (* -> *).
+             -- See Note [Inferring the instance context]
+             subst        = foldl' composeTCvSubst
+                            emptyTCvSubst (catMaybes mbSubsts)
+             unmapped_tvs = filter (\v -> v `notElemTCvSubst` subst
+                                          && not (v `isInScope` subst)) tvs
+             (subst', _)  = substTyVarBndrs subst unmapped_tvs
+             preds'       = map (substPredOrigin subst') preds
+             inst_tys'    = substTys subst' inst_tys
+             tvs'         = tyCoVarsOfTypesWellScoped inst_tys'
+       ; return ([mkThetaOriginFromPreds preds'], tvs', inst_tys') }
+
 
 -- | Like 'inferConstraints', but used only in the case of @DeriveAnyClass@,
 -- which gathers its constraints based on the type signatures of the class's
@@ -342,7 +372,8 @@ inferConstraintsAnyclass
   = do { DerivEnv { denv_cls      = cls
                   , denv_inst_tys = inst_tys } <- ask
        ; wildcard <- isStandaloneWildcardDeriv
-
+       ; dflags <- getDynFlags
+       ; let partialCtrs = xopt LangExt.PartialTypeConstructors dflags
        ; let gen_dms = [ (sel_id, dm_ty)
                        | (sel_id, Just (_, GenericDM dm_ty)) <- classOpItems cls ]
 
@@ -356,13 +387,15 @@ inferConstraintsAnyclass
                = do { let (sel_tvs, _cls_pred, meth_ty)
                                    = tcSplitMethodTy (varType sel_id)
                           meth_ty' = substTyWith sel_tvs inst_tys meth_ty
-                          (meth_tvs, meth_theta, meth_tau)
+                          
+                          (meth_tvs, meth_theta', meth_tau)
                                    = tcSplitNestedSigmaTys meth_ty'
-
-                          gen_dm_ty' = substTyWith cls_tvs inst_tys gen_dm_ty
-                          (dm_tvs, dm_theta, dm_tau)
+                    ; atat_theta <- if partialCtrs then do {(_, cs) <- genAtAtConstraints meth_tau; return cs} else return []
+                    ; let meth_theta = meth_theta' ++ atat_theta
+                    ; let gen_dm_ty' = substTyWith cls_tvs inst_tys gen_dm_ty
+                    ; let (dm_tvs, dm_theta, dm_tau)
                                      = tcSplitNestedSigmaTys gen_dm_ty'
-                          tau_eq     = mkPrimEqPred meth_tau dm_tau
+                    ; let tau_eq     = mkPrimEqPred meth_tau dm_tau
                     ; return (mkThetaOrigin (mkDerivOrigin wildcard) TypeLevel
                                 meth_tvs dm_tvs meth_theta (tau_eq:dm_theta)) }
 
@@ -381,44 +414,49 @@ inferConstraintsAnyclass
 -- > (Num Int, Coercible Age Int)
 inferConstraintsCoerceBased :: [Type] -> Type
                             -> DerivM [ThetaOrigin]
-inferConstraintsCoerceBased cls_tys rep_ty = do
-  DerivEnv { denv_tvs      = tvs
+inferConstraintsCoerceBased cls_tys rep_ty = do {
+  ; DerivEnv { denv_tvs      = tvs
            , denv_cls      = cls
            , denv_inst_tys = inst_tys } <- ask
-  sa_wildcard <- isStandaloneWildcardDeriv
-  let -- The following functions are polymorphic over the representation
-      -- type, since we might either give it the underlying type of a
-      -- newtype (for GeneralizedNewtypeDeriving) or a @via@ type
-      -- (for DerivingVia).
-      rep_tys ty  = cls_tys ++ [ty]
-      rep_pred ty = mkClassPred cls (rep_tys ty)
-      rep_pred_o ty = mkPredOrigin deriv_origin TypeLevel (rep_pred ty)
+  ; sa_wildcard <- isStandaloneWildcardDeriv
+  ; dflags <- getDynFlags
+  ; let partialCtrs = xopt LangExt.PartialTypeConstructors dflags
+  ; let -- The following functions are polymorphic over the representation
+        -- type, since we might either give it the underlying type of a
+        -- newtype (for GeneralizedNewtypeDeriving) or a @via@ type
+        -- (for DerivingVia).
+        rep_tys ty  = cls_tys ++ [ty]
+        rep_pred ty = mkClassPred cls (rep_tys ty)
+
+        rep_pred_o ty = mkPredOrigin deriv_origin TypeLevel (rep_pred ty)
               -- rep_pred is the representation dictionary, from where
               -- we are going to get all the methods for the final
               -- dictionary
-      deriv_origin = mkDerivOrigin sa_wildcard
+        deriv_origin = mkDerivOrigin sa_wildcard
 
-      -- Next we collect constraints for the class methods
-      -- If there are no methods, we don't need any constraints
-      -- Otherwise we need (C rep_ty), for the representation methods,
-      -- and constraints to coerce each individual method
-      meth_preds :: Type -> [PredOrigin]
-      meth_preds ty
-        | null meths = [] -- No methods => no constraints
+  ; atatPreds <- if partialCtrs then do {(_, cs) <- genAtAtConstraints rep_ty; return cs} else return []
+  ; let atatPredOs = fmap (mkPredOrigin deriv_origin TypeLevel) atatPreds
+
+        -- Next we collect constraints for the class methods
+        -- If there are no methods, we don't need any constraints
+        -- Otherwise we need (C rep_ty), for the representation methods,
+        -- and constraints to coerce each individual method
+  ; let meth_preds :: Type -> [PredOrigin]
+        meth_preds ty
+          | null meths = [] -- No methods => no constraints
                           -- (#12814)
-        | otherwise = rep_pred_o ty : coercible_constraints ty
-      meths = classMethods cls
-      coercible_constraints ty
-        = [ mkPredOrigin (DerivOriginCoerce meth t1 t2 sa_wildcard)
-                         TypeLevel (mkReprPrimEqPred t1 t2)
-          | meth <- meths
-          , let (Pair t1 t2) = mkCoerceClassMethEqn cls tvs
-                                       inst_tys ty meth ]
+          | otherwise = rep_pred_o ty : coercible_constraints ty
+        meths = classMethods cls
+        coercible_constraints ty
+          = [ mkPredOrigin (DerivOriginCoerce meth t1 t2 sa_wildcard)
+              TypeLevel (mkReprPrimEqPred t1 t2)
+            | meth <- meths
+            , let (Pair t1 t2) = mkCoerceClassMethEqn cls tvs
+                                 inst_tys ty meth ]
 
-      all_thetas :: Type -> [ThetaOrigin]
-      all_thetas ty = [mkThetaOriginFromPreds $ meth_preds ty]
-
-  pure (all_thetas rep_ty)
+        all_thetas :: Type -> [ThetaOrigin]
+        all_thetas ty = [mkThetaOriginFromPreds $ atatPredOs ++ meth_preds ty]
+  ; pure (all_thetas rep_ty) }
 
 {- Note [Inferring the instance context]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

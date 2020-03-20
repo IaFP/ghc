@@ -1,5 +1,10 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ScopedTypeVariables, StandaloneDeriving, DeriveGeneric,
     TupleSections, RecordWildCards, InstanceSigs, CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
+
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 -- |
@@ -115,6 +120,9 @@ import GHC.Desugar
 import qualified Language.Haskell.TH        as TH
 import qualified Language.Haskell.TH.Syntax as TH
 import Unsafe.Coerce
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -- | Create a new instance of 'QState'
 initQState :: Pipe -> QState
@@ -122,6 +130,9 @@ initQState p = QState M.empty Nothing p
 
 -- | The monad in which we run TH computations on the server
 newtype GHCiQ a = GHCiQ { runGHCiQ :: QState -> IO (a, QState) }
+#if MIN_VERSION_base(4,14,0)
+instance Total GHCiQ
+#endif
 
 -- | The exception thrown by "fail" in the GHCiQ monad
 data GHCiQException = GHCiQException QState String

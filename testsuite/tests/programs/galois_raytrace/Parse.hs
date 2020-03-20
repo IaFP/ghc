@@ -97,6 +97,7 @@ brackets p = between (symbol "[") (symbol "]") p
 
 symbol name = lexeme (string name)
 
+lexeme :: Parser b -> Parser b
 lexeme p = do{ x <- p; whiteSpace; return x  }
 
 whiteSpace  = skipMany (simpleSpace <|> oneLineComment <?> "")

@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 -- | Hard wired things related to registers.
 --      This is module is preventing the native code generator being able to
 --      emit code for non-host architectures.

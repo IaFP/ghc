@@ -5,6 +5,7 @@
            , NondecreasingIndentation
   #-}
 {-# OPTIONS_GHC -Wno-unused-matches #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 
 -----------------------------------------------------------------------------
 -- |

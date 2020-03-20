@@ -1,5 +1,5 @@
 -- (c) The University of Glasgow, 1992-2006
-
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DeriveFunctor      #-}
@@ -11,6 +11,9 @@
 {-# LANGUAGE ViewPatterns       #-}
 {-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE PatternSynonyms    #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, ConstrainedClassMethods #-}
+#endif
 
 
 -- | This module contains types that relate to the positions of things

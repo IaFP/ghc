@@ -86,7 +86,14 @@ Other Prelude modules are much easier with fewer complex dependencies.
            , KindSignatures
            , PolyKinds
            , DataKinds
+           , DefaultSignatures
+           , PartialTypeConstructors
+           , TypeFamilies
+           , TypeOperators
+           , ConstrainedClassMethods
+           , UndecidableInstances
   #-}
+
 -- -Wno-orphans is needed for things like:
 -- Orphan rule: "x# -# x#" ALWAYS forall x# :: Int# -# x# x# = 0
 {-# OPTIONS_GHC -Wno-orphans #-}
@@ -155,6 +162,72 @@ infixl 4 <*>, <*, *>, <**>
 
 default ()              -- Double isn't available yet
 
+type instance [] @@ a = ()
+instance Total []
+
+type instance IO @@ a = ()
+instance Total IO
+
+type instance Maybe @@ a = ()
+instance Total Maybe
+
+type instance (,) @@ a = ()
+instance Total ((,) a)
+
+type instance (,) b @@ a = ()
+
+type instance (,,) @@ a = ()
+type instance (,,) b @@ a = ()
+type instance (,,) c b @@ a = ()
+
+type instance (,,,) @@ a = ()
+type instance (,,,) b @@ a = ()
+type instance (,,,) c b @@ a = ()
+type instance (,,,) d c b @@ a = ()
+
+type instance (,,,,) @@ a = ()
+type instance (,,,,) b @@ a = ()
+type instance (,,,,) c b @@ a = ()
+type instance (,,,,) d c b @@ a = ()
+type instance (,,,,) e d c b @@ a = ()
+
+type instance (,,,,,) @@ a = ()
+type instance (,,,,,) b @@ a = ()
+type instance (,,,,,) c b @@ a = ()
+type instance (,,,,,) d c b @@ a = ()
+type instance (,,,,,) e d c b @@ a = ()
+type instance (,,,,,) f e d c b @@ a = ()
+
+type instance (,,,,,,) @@ a = ()
+type instance (,,,,,,) b @@ a = ()
+type instance (,,,,,,) c b @@ a = ()
+type instance (,,,,,,) d c b @@ a = ()
+type instance (,,,,,,) e d c b @@ a = ()
+type instance (,,,,,,) f e d c b @@ a = ()
+type instance (,,,,,,) g f e d c b @@ a = ()
+
+type instance (,,,,,,,) @@ a = ()
+type instance (,,,,,,,) b @@ a = ()
+type instance (,,,,,,,) c b @@ a = ()
+type instance (,,,,,,,) d c b @@ a = ()
+type instance (,,,,,,,) e d c b @@ a = ()
+type instance (,,,,,,,) f e d c b @@ a = ()
+type instance (,,,,,,,) g f e d c b @@ a = ()
+type instance (,,,,,,,) h g f e d c b @@ a = ()
+
+type instance (,,,,,,,,) @@ a = ()
+type instance (,,,,,,,,) b @@ a = ()
+type instance (,,,,,,,,) c b @@ a = ()
+type instance (,,,,,,,,) d c b @@ a = ()
+type instance (,,,,,,,,) e d c b @@ a = ()
+type instance (,,,,,,,,) f e d c b @@ a = ()
+type instance (,,,,,,,,) g f e d c b @@ a = ()
+type instance (,,,,,,,,) h g f e d c b @@ a = ()
+type instance (,,,,,,,,) i h g f e d c b @@ a = ()
+
+type instance (->) @@ a = ()
+type instance (->) b @@ a = ()
+instance Total ((->) a)
 {-
 Note [Depend on GHC.Integer]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -313,8 +386,8 @@ instance Semigroup [a] where
 instance Monoid [a] where
         {-# INLINE mempty #-}
         mempty  = []
-        {-# INLINE mconcat #-}
-        mconcat xss = [x | xs <- xss, x <- xs]
+        -- {-# INLINE mconcat #-}
+        -- mconcat xss = [x | xs <- xss, x <- xs]
 -- See Note: [List comprehensions and inlining]
 
 {-
@@ -608,6 +681,7 @@ class Functor f => Applicative f where
     --    pure (f a)
     -- @
     (<*>) :: f (a -> b) -> f a -> f b
+    default (<*>) :: (f @@ (a -> b)) => f (a -> b) -> f a -> f b
     (<*>) = liftA2 id
 
     -- | Lift a binary function to actions.
@@ -630,6 +704,7 @@ class Functor f => Applicative f where
     -- @
 
     liftA2 :: (a -> b -> c) -> f a -> f b -> f c
+    default liftA2 :: (f @@ (b -> c)) => (a -> b -> c) -> f a -> f b -> f c
     liftA2 f x = (<*>) (fmap f x)
 
     -- | Sequence actions, discarding the value of the first argument.
@@ -650,7 +725,10 @@ class Functor f => Applicative f where
     --    b <- bs
     --    pure b
     -- @
-    (*>) :: f a -> f b -> f b
+
+    -- (*>) :: f a -> f b -> f b
+    -- default
+    (*>) :: (f @@ (b -> b)) => f a -> f b -> f b    
     a1 *> a2 = (id <$ a1) <*> a2
     -- This is essentially the same as liftA2 (flip const), but if the
     -- Functor instance has an optimized (<$), it may be better to use
@@ -671,7 +749,10 @@ class Functor f => Applicative f where
     --    bs
     --    pure a
     -- @
-    (<*) :: f a -> f b -> f a
+
+    -- (<*) :: f a -> f b -> f a
+    -- default
+    (<*) :: (f @@ (b -> a)) => f a -> f b -> f a
     (<*) = liftA2 const
 
 -- | A variant of '<*>' with the arguments reversed.
@@ -684,7 +765,7 @@ class Functor f => Applicative f where
 --    f <- fs
 --    pure (f a)
 -- @
-(<**>) :: Applicative f => f a -> f (a -> b) -> f b
+(<**>) :: (Applicative f) => f a -> f (a -> b) -> f b
 (<**>) = liftA2 (\a f -> f a)
 -- Don't use $ here, see the note at the top of the page
 
@@ -701,7 +782,7 @@ class Functor f => Applicative f where
 -- @
 --
 -- with an inferred @Functor@ constraint, weaker than @Applicative@.
-liftA :: Applicative f => (a -> b) -> f a -> f b
+liftA :: (Applicative f, f @@ (a -> b)) => (a -> b) -> f a -> f b
 liftA f a = pure f <*> a
 -- Caution: since this may be used for `fmap`, we can't use the obvious
 -- definition of liftA = fmap.
@@ -717,7 +798,7 @@ liftA f a = pure f <*> a
 --    c <- cs
 --    pure (f a b c)
 -- @
-liftA3 :: Applicative f => (a -> b -> c -> d) -> f a -> f b -> f c -> f d
+liftA3 :: (Applicative f, f @@ (b -> c -> d), f @@ (c -> d)) => (a -> b -> c -> d) -> f a -> f b -> f c -> f d
 liftA3 f a b c = liftA2 f a b <*> c
 
 
@@ -808,7 +889,7 @@ class Applicative m => Monad m where
     -- do a <- as
     --    bs a
     -- @
-    (>>=)       :: forall a b. m a -> (a -> m b) -> m b
+    (>>=)       :: forall a b. (m @@ a, m @@ b) =>  m a -> (a -> m b) -> m b
 
     -- | Sequentially compose two actions, discarding any value produced
     -- by the first, like sequencing operators (such as the semicolon)
@@ -820,7 +901,7 @@ class Applicative m => Monad m where
     -- do as
     --    bs
     -- @
-    (>>)        :: forall a b. m a -> m b -> m b
+    (>>)        :: forall a b. (m @@ a, m @@ b) => m a -> m b -> m b
     m >> k = m >>= \_ -> k -- See Note [Recursive bindings for Applicative/Monad]
     {-# INLINE (>>) #-}
 
@@ -1028,14 +1109,14 @@ class Applicative f => Alternative f where
     (<|>) :: f a -> f a -> f a
 
     -- | One or more.
-    some :: f a -> f [a]
+    some :: f @@ ([a] -> [a]) => f a -> f [a]
     some v = some_v
       where
         many_v = some_v <|> pure []
         some_v = liftA2 (:) v many_v
 
     -- | Zero or more.
-    many :: f a -> f [a]
+    many :: f @@ ([a] -> [a]) => f a -> f [a]
     many v = many_v
       where
         many_v = some_v <|> pure []
@@ -1130,9 +1211,9 @@ instance Applicative [] where
 
 -- See Note: [List comprehensions and inlining]
 -- | @since 2.01
-instance Monad []  where
+instance Monad [] where
     {-# INLINE (>>=) #-}
-    xs >>= f             = [y | x <- xs, y <- f x]
+    xs >>= f =  [y | x <- xs, y <- f x]
     {-# INLINE (>>) #-}
     (>>) = (*>)
 

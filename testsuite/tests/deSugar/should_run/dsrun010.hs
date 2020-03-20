@@ -5,8 +5,9 @@
 import Control.Monad
 import Control.Monad.Fail
 import Data.Maybe
+import GHC.Types (type (@@))
 
-test :: (MonadPlus m, MonadFail m) => [a] -> m Bool
+test :: (MonadPlus m, MonadFail m, m @@ [a]) => [a] -> m Bool
 test xs
   =   do
         (_:_) <- return xs

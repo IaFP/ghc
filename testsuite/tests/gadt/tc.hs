@@ -13,6 +13,7 @@
 -- wrapped, of course, in an existential.
 
 module Main where
+import GHC.Types (Total)
 
 -- Untyped world --------------------------------------------
 data UTerm = UVar String
@@ -65,8 +66,10 @@ lookupVar v (Cons s ty e)
 -- Comparing types
 newtype C1 c a2 d = C1 { unC1 :: c (d -> a2) }
 newtype C2 c b1 d = C2 { unC2 :: c (b1 -> d) }
+instance Total (C1 c a2)
+instance Total (C2 c b1)
 
-cast2 :: Ty a -> Ty b -> (c a -> c b)
+cast2 :: Total c => Ty a -> Ty b -> (c a -> c b)
 cast2 Bool Bool x = x
 cast2 (Arr a1 a2) (Arr b1 b2) f
   = let   C1 x = cast2 a1 b1 (C1 f)

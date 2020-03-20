@@ -31,7 +31,10 @@
 --
 -- A useful example pass over Cmm is in nativeGen/MachCodeGen.hs
 --
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module PprCmmDecl
     ( writeCmms, pprCmms, pprCmmGroup, pprSection, pprStatic

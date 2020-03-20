@@ -5,6 +5,7 @@
            , MagicHash
   #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 
 -----------------------------------------------------------------------------
 -- |

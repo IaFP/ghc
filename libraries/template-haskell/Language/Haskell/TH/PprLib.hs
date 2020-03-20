@@ -1,4 +1,10 @@
-{-# LANGUAGE FlexibleInstances, Safe #-}
+{-# LANGUAGE FlexibleInstances, CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE Trustworthy #-}
+#else
+{-# LANGUAGE Safe #-}
+#endif
 
 -- | Monadic front-end to Text.PrettyPrint
 
@@ -42,6 +48,9 @@ import Control.Monad (liftM, liftM2, ap)
 import Language.Haskell.TH.Lib.Map ( Map )
 import qualified Language.Haskell.TH.Lib.Map as Map ( lookup, insert, empty )
 import Prelude hiding ((<>))
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 infixl 6 <>
 infixl 6 <+>
@@ -119,6 +128,9 @@ punctuate :: Doc -> [Doc] -> [Doc]
 
 type State = (Map Name Name, Uniq)
 data PprM a = PprM { runPprM :: State -> (a, State) }
+#if MIN_VERSION_base(4,14,0)
+instance Total PprM
+#endif
 
 pprName :: Name -> Doc
 pprName = pprName' Alone

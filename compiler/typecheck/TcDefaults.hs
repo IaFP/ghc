@@ -5,6 +5,10 @@
 \section[TcDefaults]{Typechecking \tr{default} declarations}
 -}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcDefaults ( tcDefaults ) where
 

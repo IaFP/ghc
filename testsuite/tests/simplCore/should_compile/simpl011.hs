@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP, RankNTypes, ScopedTypeVariables, KindSignatures,
              MultiParamTypeClasses, FunctionalDependencies #-}
-
+{-# LANGUAGE TypeOperators, ExplicitNamespaces #-}
 -- This one triggered a bug in the indirection-shorting 
 -- machinery, which gave a core-lint error
 
@@ -12,6 +12,7 @@ import Control.Monad.ST     (ST)
 import Data.STRef           (STRef)
 import Data.Array.ST        (STArray)
 import Data.Array.MArray    (writeArray)
+import GHC.Types (type (@@))
 
 class Monad m => MutHash arr ref m | arr -> m, ref -> m
                                    , arr -> ref, ref -> arr where
@@ -39,7 +40,16 @@ newtype HashTable key val arr ref m = HashTable (ref (HT key val arr ref m))
 data HT key val arr (ref :: Type -> Type) (m :: Type -> Type) =
   HT { dir :: (arr Int32 (arr Int32 [(key,val)])) }
 
-new :: forall arr ref m key val. (MutHash arr ref m) => m (HashTable key val arr ref m)
+new :: forall arr ref m key val. (MutHash arr ref m
+                                 , m @@ (HashTable key val arr ref m)
+                                 , HashTable @@ key
+                                 , HashTable key @@ val
+                                 , HashTable key val @@ arr
+                                 , HashTable key val arr @@ ref
+                                 , HashTable key val arr ref @@ m
+                                 , m @@ arr Int32 (arr Int32 [(key, val)])
+                                 , m @@ arr Int32 [(key, val)]
+                                 ) => m (HashTable key val arr ref m)
 new = do
   (dir::arr Int32 (arr Int32 [(key,val)]))  <- newMHArray (0,0) undefined
   (segment::arr Int32 [(key,val)])          <- return undefined

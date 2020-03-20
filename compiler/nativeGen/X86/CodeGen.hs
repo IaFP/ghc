@@ -8,6 +8,9 @@
 -- in this module.
 {-# OPTIONS_GHC -fmax-pmcheck-iterations=10000000 #-}
 #endif
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -----------------------------------------------------------------------------
 --

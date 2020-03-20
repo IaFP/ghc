@@ -8,6 +8,9 @@ Pattern-matching literal patterns
 
 {-# LANGUAGE CPP, ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module MatchLit ( dsLit, dsOverLit, hsLitKey
                 , tidyLitPat, tidyNPat

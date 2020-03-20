@@ -18,6 +18,9 @@ of the stack mechanism), you should use a TcRef (= IORef) to store them.
 
 {-# LANGUAGE CPP, DeriveFunctor, ExistentialQuantification, GeneralizedNewtypeDeriving,
              ViewPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcRnTypes(
         TcRnIf, TcRn, TcM, RnM, IfM, IfL, IfG, -- The monad is opaque outside this module
@@ -139,6 +142,9 @@ import GHCi.RemoteTypes
 import {-# SOURCE #-} TcHoleFitTypes ( HoleFitPlugin )
 
 import qualified Language.Haskell.TH as TH
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@), Total)
+#endif
 
 -- | A 'NameShape' is a substitution on 'Name's that can be used
 -- to refine the identities of a hole while we are renaming interfaces
@@ -1637,9 +1643,13 @@ type TcPluginSolver = [Ct]    -- given
                    -> [Ct]    -- wanted
                    -> TcPluginM TcPluginResult
 
-newtype TcPluginM a = TcPluginM (EvBindsVar -> TcM a) deriving (Functor)
+newtype TcPluginM a = TcPluginM {runTcPluginM :: EvBindsVar -> TcM a} deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total TcPluginM
+type instance TcPluginM @@ a = ()
+#endif
 
-instance Applicative TcPluginM where
+instance  Applicative TcPluginM where
   pure x = TcPluginM (const $ pure x)
   (<*>) = ap
 
@@ -1654,8 +1664,8 @@ instance Monad TcPluginM where
 instance MonadFail.MonadFail TcPluginM where
   fail x   = TcPluginM (const $ fail x)
 
-runTcPluginM :: TcPluginM a -> EvBindsVar -> TcM a
-runTcPluginM (TcPluginM m) = m
+-- runTcPluginM :: TcPluginM a -> EvBindsVar -> TcM a
+-- runTcPluginM (TcPluginM m) = m
 
 -- | This function provides an escape for direct access to
 -- the 'TcM` monad.  It should not be used lightly, and

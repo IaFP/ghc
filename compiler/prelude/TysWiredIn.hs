@@ -6,6 +6,8 @@
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
+#if __GLASGOW_HASKELL__ >= 810
+#endif
 
 -- | This module is about types that can be defined in Haskell, but which
 --   must be wired into the compiler nonetheless.  C.f module TysPrim
@@ -102,6 +104,9 @@ module TysWiredIn (
         eqTyCon, eqTyConName, eqClass, eqDataCon, eqTyCon_RDR,
         coercibleTyCon, coercibleTyConName, coercibleDataCon, coercibleClass,
 
+        -- * Well formed or @@ predicates
+        atTyTyCon, atTyTyConName, totalTyCon, totalTyConName, totalClass, total2TyCon, total2TyConName, total2Class,
+        
         -- * RuntimeRep and friends
         runtimeRepTyCon, vecCountTyCon, vecElemTyCon,
 
@@ -235,6 +240,8 @@ wiredInTyCons = [ -- Units are not treated like other tuples, because they
                 , vecElemTyCon
                 , constraintKindTyCon
                 , liftedTypeKindTyCon
+                , atTyTyCon
+                , totalTyCon
                 ]
 
 mkWiredInTyConName :: BuiltInSyntax -> Module -> FastString -> Unique -> TyCon -> Name
@@ -399,6 +406,86 @@ anyTy = mkTyConTy anyTyCon
 
 anyTypeOfKind :: Kind -> Type
 anyTypeOfKind kind = mkTyConApp anyTyCon [kind]
+
+{- Wired in representation of @@ type family instance -}
+atTyTyConName :: Name
+atTyTyConName =
+    mkWiredInTyConName BuiltInSyntax gHC_TYPES (fsLit "@@") atTyTyConKey atTyTyCon
+
+atTyTyCon :: TyCon
+atTyTyCon = mkFamilyTyCon atTyTyConName binders constraintKind (Just atTyTyConName)
+            (OpenSynFamilyTyCon)
+            Nothing
+            NotInjective
+  where
+    binders = mkTemplateTyConBinders [liftedTypeKind, liftedTypeKind] id
+
+
+totalTyConName :: Name
+totalTyConName = mkWiredInTyConName BuiltInSyntax gHC_TYPES (fsLit "Total") totalTyConKey totalTyCon
+
+totalDataConName :: Name
+totalDataConName = mkWiredInDataConName UserSyntax gHC_TYPES (fsLit "MkTotal") totalDataConKey totalDataCon
+
+-- class Total (f :: k' -> k)
+-- forall k' k f :: k' -> k. Total f
+totalTyCon :: TyCon
+totalClass :: Class
+totalDataCon :: DataCon
+(totalTyCon, totalClass, totalDataCon)
+  = (tycon, klass, datacon)
+  where
+    tycon     = mkClassTyCon totalTyConName binders roles
+                             rhs klass
+                             (mkPrelTyConRepName totalTyConName)
+    klass     = mk_class tycon sc_pred sc_sel_id
+
+    -- Kind: forall k. k1 -> k2 -> Constraint
+    datacon   = pcDataCon totalDataConName tvs [sc_pred] tycon
+
+    binders   = mkTemplateTyConBinders [liftedTypeKind] id
+    roles     = [Nominal, Nominal, Nominal]
+    rhs       = mkDataTyConRhs [datacon]
+
+    tvs         = binderVars binders
+    sc_pred     = mkTyConApp tycon (mkTyVarTys tvs)
+    sc_sel_id   = mkDictSelId totalSCSelIdName klass
+
+    totalSCSelIdName = mkWiredInIdName gHC_TYPES (fsLit "total_sel") totalSCSelIdKey sc_sel_id
+
+total2TyConName :: Name
+total2TyConName = mkWiredInTyConName BuiltInSyntax gHC_TYPES (fsLit "Total2") total2TyConKey total2TyCon
+
+total2DataConName :: Name
+total2DataConName = mkWiredInDataConName UserSyntax gHC_TYPES (fsLit "MkTotal2") total2DataConKey total2DataCon
+
+
+-- class Total2 (f :: k'' -> k' -> k)
+-- forall k'' k' k f :: k'' -> k' -> k. Total2 f
+total2TyCon :: TyCon
+total2Class :: Class
+total2DataCon :: DataCon
+(total2TyCon, total2Class, total2DataCon)
+  = (tycon, klass, datacon)
+  where
+    tycon     = mkClassTyCon total2TyConName binders roles
+                             rhs klass
+                             (mkPrelTyConRepName total2TyConName)
+    klass     = mk_class tycon sc_pred sc_sel_id
+
+    -- Kind: forall k. k1 -> k2 -> Constraint
+    datacon   = pcDataCon total2DataConName tvs [sc_pred] tycon
+
+    binders   = mkTemplateTyConBinders [liftedTypeKind, liftedTypeKind] id
+    roles     = [Nominal, Nominal, Nominal]
+    rhs       = mkDataTyConRhs [datacon]
+
+    tvs         = binderVars binders
+    sc_pred     = mkTyConApp tycon (mkTyVarTys tvs)
+    sc_sel_id   = mkDictSelId total2SCSelIdName klass
+
+    total2SCSelIdName = mkWiredInIdName gHC_TYPES (fsLit "total2_sel") totalSCSelIdKey sc_sel_id
+
 
 -- | Make a fake, recovery 'TyCon' from an existing one.
 -- Used when recovering from errors in type declarations
@@ -729,6 +816,12 @@ isBuiltInOcc_maybe occ =
 
       -- function tycon
       "->"   -> Just funTyConName
+
+      -- @@ tycon
+      "@@"   -> Just atTyTyConName
+
+      -- Total tycon
+      "Total"   -> Just totalTyConName
 
       -- boxed tuple data/tycon
       "()"    -> Just $ tup_name Boxed 0
@@ -1069,10 +1162,10 @@ mk_sum arity = (tycon, sum_cons)
 -- necessary because the functional-dependency coverage check looks
 -- through superclasses, and (~#) is handled in that check.
 
-eqTyCon,   heqTyCon,   coercibleTyCon   :: TyCon
-eqClass,   heqClass,   coercibleClass   :: Class
-eqDataCon, heqDataCon, coercibleDataCon :: DataCon
-eqSCSelId, heqSCSelId, coercibleSCSelId :: Id
+eqTyCon,   heqTyCon,   coercibleTyCon    :: TyCon
+eqClass,   heqClass,   coercibleClass    :: Class
+eqDataCon, heqDataCon, coercibleDataCon  :: DataCon
+eqSCSelId, heqSCSelId, coercibleSCSelId  :: Id
 
 (eqTyCon, eqClass, eqDataCon, eqSCSelId)
   = (tycon, klass, datacon, sc_sel_id)

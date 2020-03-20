@@ -1,5 +1,6 @@
 {-# LANGUAGE Unsafe #-}
 {-# LANGUAGE NoImplicitPrelude, MagicHash, UnboxedTuples, RankNTypes #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 -----------------------------------------------------------------------------
@@ -26,6 +27,7 @@ module GHC.ST (
 
 import GHC.Base
 import GHC.Show
+import GHC.Types (Total)
 import qualified Control.Monad.Fail as Fail
 
 default ()
@@ -51,6 +53,8 @@ default ()
 --
 -- @'runST' (writeSTRef _|_ v >>= f) = _|_@
 newtype ST s a = ST (STRep s a)
+instance Total (ST s)
+
 type STRep s a = State# s -> (# State# s, a #)
 
 -- | @since 2.01

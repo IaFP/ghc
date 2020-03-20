@@ -17,8 +17,9 @@ import Data.Bits
 import GHC.Exts
 import GHC.ST (ST(..))
 import Data.Kind
+import GHC.Types (type (@@))
 
-reverseInPlace :: PrimMonad m => UMVector (PrimState m) Bit -> m ()
+reverseInPlace :: (PrimMonad m, m @@ Word) => UMVector (PrimState m) Bit -> m ()
 reverseInPlace xs | len == 0  = pure ()
                   | otherwise = loop 0
  where
@@ -51,7 +52,7 @@ reverseInPlace xs | len == 0  = pure ()
     !j  = len - i
     !i' = i + wordSize
     !j' = j - wordSize
-{-# SPECIALIZE reverseInPlace :: UMVector s Bit -> ST s () #-}
+-- {-# SPECIALIZE reverseInPlace :: UMVector s Bit -> ST s () #-}
 
 newtype Bit = Bit { unBit :: Bool }
 
@@ -59,6 +60,8 @@ instance Unbox Bit
 
 data instance UMVector s Bit = BitMVec !Int !Int !(MutableByteArray s)
 data instance UVector    Bit = BitVec  !Int !Int !ByteArray
+type instance UMVector @@ s = ()
+type instance UMVector s @@ a = ()
 
 readWord :: PrimMonad m => UMVector (PrimState m) Bit -> Int -> m Word
 readWord !(BitMVec _ 0 _) _ = pure 0
@@ -78,10 +81,10 @@ readWord !(BitMVec off len' arr) !i' = do
         pure
           $   (loWord `unsafeShiftR` nMod)
           .|. (hiWord `unsafeShiftL` (wordSize - nMod))
-{-# SPECIALIZE readWord :: UMVector s Bit -> Int -> ST s Word #-}
+-- {-# SPECIALIZE readWord :: UMVector s Bit -> Int -> ST s Word #-}
 {-# INLINE readWord #-}
 
-writeWord :: PrimMonad m => UMVector (PrimState m) Bit -> Int -> Word -> m ()
+writeWord :: (PrimMonad m, m @@ Word) => UMVector (PrimState m) Bit -> Int -> Word -> m ()
 writeWord !(BitMVec _ 0 _) _ _ = pure ()
 writeWord !(BitMVec off len' arr@(MutableByteArray mba)) !i' !x@(W# x#) = do
   let len    = off + len'
@@ -122,7 +125,7 @@ writeWord !(BitMVec off len' arr@(MutableByteArray mba)) !i' !x@(W# x#) = do
         writeByteArray arr (loIx + 1)
           $   (hiWord .&. hiMask nMod)
           .|. (x `unsafeShiftR` (wordSize - nMod))
-{-# SPECIALIZE writeWord :: UMVector s Bit -> Int -> Word -> ST s () #-}
+-- {-# SPECIALIZE writeWord :: UMVector s Bit -> Int -> Word -> ST s () #-}
 {-# INLINE writeWord #-}
 
 instance GMVector UMVector Bit where

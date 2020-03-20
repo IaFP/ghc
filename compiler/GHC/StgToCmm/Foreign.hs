@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 -----------------------------------------------------------------------------
 --
 -- Code generation for foreign calls.
@@ -48,6 +52,10 @@ import TysPrim
 import Util (zipEqual)
 
 import Control.Monad
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+import Unique (Unique)
+#endif
 
 -----------------------------------------------------------------------------
 -- Code generation for Foreign Calls
@@ -282,7 +290,12 @@ emitSaveThreadState = do
   emit code
 
 -- | Produce code to save the current thread state to @CurrentTSO@
-saveThreadState :: MonadUnique m => DynFlags -> m CmmAGraph
+saveThreadState :: (MonadUnique m
+#if MIN_VERSION_base(4,14,0)
+                   , m @@ LocalReg
+                   , m @@ Unique, m @@ CmmReg
+#endif
+                   ) => DynFlags -> m CmmAGraph
 saveThreadState dflags = do
   tso <- newTemp (gcWord dflags)
   close_nursery <- closeNursery dflags tso
@@ -332,7 +345,11 @@ Closing the nursery corresponds to the following code:
   cn->free = Hp + WDS(1);
 @
 -}
-closeNursery :: MonadUnique m => DynFlags -> LocalReg -> m CmmAGraph
+closeNursery :: (MonadUnique m
+#if MIN_VERSION_base(4,14,0)
+                   , m @@ CmmReg, m @@ LocalReg, m @@ Unique
+#endif
+                ) => DynFlags -> LocalReg -> m CmmAGraph
 closeNursery df tso = do
   let tsoreg  = CmmLocal tso
   cnreg      <- CmmLocal <$> newTemp (bWord df)
@@ -364,7 +381,11 @@ emitLoadThreadState = do
   emit code
 
 -- | Produce code to load the current thread state from @CurrentTSO@
-loadThreadState :: MonadUnique m => DynFlags -> m CmmAGraph
+loadThreadState :: (MonadUnique m
+#if MIN_VERSION_base(4,14,0)
+                   , m @@ CmmReg, m @@ LocalReg, m @@ Unique
+#endif
+                   ) => DynFlags -> m CmmAGraph
 loadThreadState dflags = do
   tso <- newTemp (gcWord dflags)
   stack <- newTemp (gcWord dflags)
@@ -428,7 +449,11 @@ Opening the nursery corresponds to the following code:
    HpLim = bdstart + CurrentNursery->blocks*BLOCK_SIZE_W - 1;
 @
 -}
-openNursery :: MonadUnique m => DynFlags -> LocalReg -> m CmmAGraph
+openNursery :: (MonadUnique m
+#if MIN_VERSION_base(4,14,0)
+               , m @@ CmmReg, m @@ LocalReg, m @@ Unique
+#endif
+               ) => DynFlags -> LocalReg -> m CmmAGraph
 openNursery df tso = do
   let tsoreg =  CmmLocal tso
   cnreg      <- CmmLocal <$> newTemp (bWord df)

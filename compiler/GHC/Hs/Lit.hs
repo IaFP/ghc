@@ -14,6 +14,9 @@
                                       -- in module GHC.Hs.PlaceHolder
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 module GHC.Hs.Lit where
 
@@ -32,6 +35,9 @@ import GHC.Hs.Extension
 
 import Data.ByteString (ByteString)
 import Data.Data hiding ( Fixity )
+#if __GLASGOW_HASKELL__ >= 810
+import GHC.Types (type (@@))
+#endif
 
 {-
 ************************************************************************
@@ -251,8 +257,11 @@ pp_st_suffix NoSourceText         _ doc = doc
 pp_st_suffix (SourceText st) suffix _   = text st <> suffix
 
 -- in debug mode, print the expression that it's resolved to, too
-instance OutputableBndrId p
-       => Outputable (HsOverLit (GhcPass p)) where
+instance (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+         , HsExpr @@ GhcPass p
+#endif
+       ) => Outputable (HsOverLit (GhcPass p)) where
   ppr (OverLit {ol_val=val, ol_witness=witness})
         = ppr val <+> (whenPprDebug (parens (pprExpr witness)))
   ppr (XOverLit x) = ppr x

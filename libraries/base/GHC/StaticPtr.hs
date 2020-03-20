@@ -2,6 +2,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE MagicHash                 #-}
 {-# LANGUAGE UnboxedTuples             #-}
+{-# LANGUAGE NoPartialTypeConstructors   #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  GHC.StaticPtr

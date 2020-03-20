@@ -4,6 +4,8 @@
 {-# LANGUAGE PolyKinds                  #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE Trustworthy                #-}
+{-# LANGUAGE PartialTypeConstructors    #-}
+{-# LANGUAGE TypeOperators, UndecidableInstances, ExplicitNamespaces #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -85,6 +87,7 @@ import GHC.Generics
 import GHC.Num
 import GHC.Read
 import GHC.Show
+import GHC.Types (type (@@))
 
 import Control.Monad.Fail (MonadFail)
 
@@ -221,20 +224,20 @@ newtype Ap f a = Ap { getAp :: f a }
                  )
 
 -- | @since 4.12.0.0
-instance (Applicative f, Semigroup a) => Semigroup (Ap f a) where
+instance (Applicative f, Semigroup a, f @@ a, f @@ (a -> a)) => Semigroup (Ap f a) where
         (Ap x) <> (Ap y) = Ap $ liftA2 (<>) x y
 
 -- | @since 4.12.0.0
-instance (Applicative f, Monoid a) => Monoid (Ap f a) where
+instance (Applicative f, Monoid a, f @@ a, f @@ (a -> a)) => Monoid (Ap f a) where
         mempty = Ap $ pure mempty
 
 -- | @since 4.12.0.0
-instance (Applicative f, Bounded a) => Bounded (Ap f a) where
+instance (Applicative f, Bounded a, f @@ a) => Bounded (Ap f a) where
   minBound = pure minBound
   maxBound = pure maxBound
 
 -- | @since 4.12.0.0
-instance (Applicative f, Num a) => Num (Ap f a) where
+instance (Applicative f, Num a, f @@ a, f @@ (a -> a)) => Num (Ap f a) where
   (+)         = liftA2 (+)
   (*)         = liftA2 (*)
   negate      = fmap negate

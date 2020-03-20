@@ -19,13 +19,13 @@ T10999.hs:5:17: error:
 T10999.hs:8:28: error:
     • Ambiguous type variable ‘b0’ arising from a use of ‘f’
       prevents the constraint ‘(Ord b0)’ from being solved.
-      Relevant bindings include g :: [b0] (bound at T10999.hs:8:1)
       Probable fix: use a type annotation to specify what ‘b0’ should be.
       These potential instances exist:
-        instance Ord a => Ord (Set.Set a) -- Defined in ‘Data.Set.Internal’
+        instance (Set.Set @@ a, Ord a) => Ord (Set.Set a)
+          -- Defined in ‘Data.Set.Internal’
         instance Ord Ordering -- Defined in ‘GHC.Classes’
         instance Ord Integer
-          -- Defined in ‘integer-gmp-1.0.1.0:GHC.Integer.Type’
+          -- Defined in ‘integer-gmp-1.0.3.0:GHC.Integer.Type’
         ...plus 22 others
         ...plus three instances involving out-of-scope types
         (use -fprint-potential-instances to see them all)

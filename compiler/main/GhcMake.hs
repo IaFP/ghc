@@ -1,5 +1,8 @@
 {-# LANGUAGE BangPatterns, CPP, NondecreasingIndentation, ScopedTypeVariables #-}
 {-# LANGUAGE RecordWildCards, NamedFieldPuns #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- -----------------------------------------------------------------------------
 --
@@ -27,6 +30,9 @@ module GhcMake(
 
         noModError, cyclicModuleErr,
         moduleGraphNodes, SummaryNode
+#if MIN_VERSION_base(4,14,0)
+        , CompilationGraph
+#endif
     ) where
 
 #include "HsVersions.h"
@@ -94,6 +100,10 @@ import System.Directory
 import System.FilePath
 import System.IO        ( fixIO )
 import System.IO.Error  ( isDoesNotExistError )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+import GHC.Int (Int64)
+#endif
 
 import GHC.Conc ( getNumProcessors, getNumCapabilities, setNumCapabilities )
 
@@ -117,7 +127,13 @@ label_self thread_name = do
 -- changes to the 'DynFlags' to take effect you need to call this function
 -- again.
 --
-depanal :: GhcMonad m =>
+depanal :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+           , m @@ HscEnv, m @@ (ErrorMessages, ModuleGraph), m @@ ()
+           , m @@ Int64, m @@ Integer, m @@ [Either ErrorMessages ModSummary]
+           , m @@ DynFlags
+#endif
+           ) =>
            [ModuleName]  -- ^ excluded modules
         -> Bool          -- ^ allow duplicate roots
         -> m ModuleGraph
@@ -142,8 +158,12 @@ depanal excluded_mods allow_dup_roots = do
 -- Unlike 'depanal' this function will not update 'hsc_mod_graph' with the
 -- new module graph.
 depanalPartial
-    :: GhcMonad m
-    => [ModuleName]  -- ^ excluded modules
+    :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+       , m @@ HscEnv, m @@ (ErrorMessages, ModuleGraph), m @@ ()
+       , m @@ Int64, m @@ Integer, m @@ [Either ErrorMessages ModSummary]
+#endif
+       ) => [ModuleName]  -- ^ excluded modules
     -> Bool          -- ^ allow duplicate roots
     -> m (ErrorMessages, ModuleGraph)
     -- ^ possibly empty 'Bag' of errors and a module graph.
@@ -186,7 +206,11 @@ depanalPartial excluded_mods allow_dup_roots = do
 -- about module "C" not being listed in a command line.
 --
 -- The warning in enabled by `-Wmissing-home-modules`. See #13129
-warnMissingHomeModules :: GhcMonad m => HscEnv -> ModuleGraph -> m ()
+warnMissingHomeModules :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                          , m @@ HscEnv, m @@ DynFlags
+#endif
+                          ) => HscEnv -> ModuleGraph -> m ()
 warnMissingHomeModules hsc_env mod_graph =
     when (wopt Opt_WarnMissingHomeModules dflags && not (null missing)) $
         logWarnings (listToBag [warn])
@@ -264,7 +288,19 @@ data LoadHowMuch
 -- compilation starts (e.g., during dependency analysis).  All other errors
 -- are reported using the 'defaultWarnErrLogger'.
 --
-load :: GhcMonad m => LoadHowMuch -> m SuccessFlag
+load :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+        , m @@ ModuleGraph, m @@ (), m @@ (ErrorMessages, ModuleGraph), m @@ HscEnv
+        , m @@ [Either ErrorMessages ModSummary], m @@ Integer, m @@ Int64
+        , m @@ (SuccessFlag, [ModSummary]), m @@ Int, m @@ HomePackageTable
+        , m @@ DynFlags, m @@ ExternalPackageState
+        , m @@ [Maybe ModSummary], m @@ (CompilationGraph, Maybe [ModSummary])
+        , m @@ QSem, m @@ MVar HscEnv, m @@ (SuccessFlag, ModuleGraph), m @@ DynFlags
+        , m @@ IORef [IO ()], m @@ IORef HomePackageTable
+        , m @@ IORef (NameEnv TyThing), m @@ HomeModInfo
+        , m @@ Maybe HomeModInfo
+#endif
+        ) => LoadHowMuch -> m SuccessFlag
 load how_much = do
     mod_graph <- depanal [] False
     success <- load' how_much (Just batchMsg) mod_graph
@@ -278,7 +314,11 @@ load how_much = do
 -- actually loaded packages. All the packages, specified on command line,
 -- but never loaded, are probably unused dependencies.
 
-warnUnusedPackages :: GhcMonad m => m ()
+warnUnusedPackages :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                      , m @@ HscEnv, m @@ ExternalPackageState, m @@ DynFlags
+#endif
+                      ) => m ()
 warnUnusedPackages = do
     hsc_env <- getSession
     eps <- liftIO $ hscEPS hsc_env
@@ -340,7 +380,16 @@ warnUnusedPackages = do
 -- | Generalized version of 'load' which also supports a custom
 -- 'Messager' (for reporting progress) and 'ModuleGraph' (generally
 -- produced by calling 'depanal'.
-load' :: GhcMonad m => LoadHowMuch -> Maybe Messager -> ModuleGraph -> m SuccessFlag
+load' :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+         , m @@ (), m @@ HscEnv, m @@ HomePackageTable, m @@ Int, m @@ (SuccessFlag, [ModSummary])
+         , m @@ DynFlags, m @@ IORef HomePackageTable, m @@ [Maybe ModSummary]
+         , m @@ (CompilationGraph, Maybe [ModSummary]), m @@ QSem
+         , m @@ MVar HscEnv, m @@ (SuccessFlag, ModuleGraph), m @@ IORef [IO ()]
+         , m @@ IORef (NameEnv TyThing), m @@ HomeModInfo
+         , m @@ Maybe HomeModInfo
+#endif
+         ) => LoadHowMuch -> Maybe Messager -> ModuleGraph -> m SuccessFlag
 load' how_much mHscMessage mod_graph = do
     modifySession $ \hsc_env -> hsc_env { hsc_mod_graph = mod_graph }
     guessOutputFile
@@ -593,7 +642,11 @@ load' how_much mHscMessage mod_graph = do
 
 
 -- | Finish up after a load.
-loadFinish :: GhcMonad m => SuccessFlag -> SuccessFlag -> m SuccessFlag
+loadFinish :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+              ,  m @@ HscEnv,  m @@ ()
+#endif
+              ) => SuccessFlag -> SuccessFlag -> m SuccessFlag
 
 -- If the link failed, unload everything and return.
 loadFinish _all_ok Failed
@@ -638,7 +691,11 @@ discardIC hsc_env
 
 -- | If there is no -o option, guess the name of target executable
 -- by using top-level source file name as a base.
-guessOutputFile :: GhcMonad m => m ()
+guessOutputFile :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                   , m @@ HscEnv
+#endif
+                   ) => m ()
 guessOutputFile = modifySession $ \env ->
     let dflags = hsc_dflags env
         -- Force mod_graph to avoid leaking env
@@ -929,7 +986,13 @@ mkBuildModule ms = (ms_mod ms, if isBootSummary ms then IsBoot else NotBoot)
 --
 -- See also the simpler, sequential 'upsweep'.
 parUpsweep
-    :: GhcMonad m
+    :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+       , m @@ HscEnv, m @@ (), m @@ MVar HscEnv,  m @@ QSem, m @@ Int
+       , m @@ (CompilationGraph, Maybe [ModSummary]), m @@ [Maybe ModSummary]
+       , m @@ IORef HomePackageTable
+#endif
+       )
     => Int
     -- ^ The number of workers we wish to run in parallel
     -> Maybe Messager
@@ -1335,7 +1398,13 @@ parUpsweep_one mod home_mod_map comp_graph_loops lcl_dflags mHscMessage cleanup 
 --
 -- There better had not be any cyclic groups here -- we check for them.
 upsweep
-    :: GhcMonad m
+    :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+       , m @@ DynFlags, m @@ HscEnv, m @@ (SuccessFlag, ModuleGraph)
+       , m @@ (), m @@ HomeModInfo, m @@ IORef (NameEnv TyThing)
+       , m @@ Maybe HomeModInfo
+#endif
+       )
     => Maybe Messager
     -> HomePackageTable            -- ^ HPT from last time round (pruned)
     -> StableModules               -- ^ stable modules (see checkStability)
@@ -1356,7 +1425,21 @@ upsweep mHscMessage old_hpt stable_mods cleanup sccs = do
    return (res, reverse $ mgModSummaries done)
  where
   done_holes = emptyUniqSet
-
+  keep_going :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+              , m @@ (), m @@ DynFlags, m @@ HscEnv
+              , m @@ IORef (NameEnv TyThing), m @@ HomeModInfo
+              , m @@ Maybe HomeModInfo
+#endif
+                )
+             => [ModuleName] -> HomePackageTable
+             -> ModuleGraph
+             -> [SCC ModSummary]
+             -> Int
+             -> Int
+             -> [UnitId]
+             -> UniqSet ModuleName
+             -> m (SuccessFlag, ModuleGraph)
   keep_going this_mods old_hpt done mods mod_index nmods uids_to_check done_holes = do
     let sum_deps ms (AcyclicSCC mod) =
           if any (flip elem . map (unLoc . snd) $ ms_imps mod) ms
@@ -1376,16 +1459,20 @@ upsweep mHscMessage old_hpt stable_mods cleanup sccs = do
     (_, done') <- upsweep' old_hpt done mods' (mod_index+1) nmods' uids_to_check done_holes
     return (Failed, done')
 
-  upsweep'
-    :: GhcMonad m
-    => HomePackageTable
-    -> ModuleGraph
-    -> [SCC ModSummary]
-    -> Int
-    -> Int
-    -> [UnitId]
-    -> UniqSet ModuleName
-    -> m (SuccessFlag, ModuleGraph)
+  upsweep' :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+              , m @@ (), m @@ DynFlags, m @@ HscEnv, m @@ HomeModInfo
+              , m @@ IORef (NameEnv TyThing), m @@ HomeModInfo
+              , m @@ Maybe HomeModInfo
+#endif
+              ) => HomePackageTable
+              -> ModuleGraph
+              -> [SCC ModSummary]
+              -> Int
+              -> Int
+              -> [UnitId]
+              -> UniqSet ModuleName
+              -> m (SuccessFlag, ModuleGraph)
   upsweep' _old_hpt done
      [] _ _ uids_to_check _
    = do hsc_env <- getSession
@@ -2013,7 +2100,11 @@ nodeMapElts = Map.elems
 -- components in the topological sort, then those imports can
 -- definitely be replaced by ordinary non-SOURCE imports: if SOURCE
 -- were necessary, then the edge would be part of a cycle.
-warnUnnecessarySourceImports :: GhcMonad m => [SCC ModSummary] -> m ()
+warnUnnecessarySourceImports :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                                , m @@ HscEnv, m @@ DynFlags
+#endif
+                                ) => [SCC ModSummary] -> m ()
 warnUnnecessarySourceImports sccs = do
   dflags <- getDynFlags
   when (wopt Opt_WarnUnusedImports dflags)
@@ -2624,7 +2715,11 @@ getPreprocessedImports hsc_env src_fn mb_phase maybe_buf = do
 
 -- Defer and group warning, error and fatal messages so they will not get lost
 -- in the regular output.
-withDeferredDiagnostics :: GhcMonad m => m a -> m a
+withDeferredDiagnostics :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+                           , m @@ HscEnv,  m @@ (), m @@ IORef [IO ()], m @@ DynFlags
+#endif
+                           ) => m a -> m a
 withDeferredDiagnostics f = do
   dflags <- getDynFlags
   if not $ gopt Opt_DeferDiagnostics dflags

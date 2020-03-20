@@ -1,4 +1,6 @@
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+#endif
 -- | A description of the register set of the X86.
 --
 --   This isn't used directly in GHC proper.

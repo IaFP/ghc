@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- (those who have too heavy dependencies for TcEvidence)
 module TcEvTerm
@@ -19,6 +23,9 @@ import Module
 import CoreUtils
 import PrelNames
 import SrcLoc
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -- Used with Opt_DeferTypeErrors
 -- See Note [Deferring coercion errors to runtime]
@@ -32,7 +39,11 @@ evDelayedError ty msg
     litMsg  = Lit (LitString (bytesFS msg))
 
 -- Dictionary for CallStack implicit parameters
-evCallStack :: (MonadThings m, HasModule m, HasDynFlags m) =>
+evCallStack :: (MonadThings m, HasModule m, HasDynFlags m
+#if MIN_VERSION_base(4,14,0)
+              , Total m
+#endif
+               ) =>
     EvCallStack -> m EvExpr
 -- See Note [Overview of implicit CallStacks] in TcEvidence.hs
 evCallStack cs = do

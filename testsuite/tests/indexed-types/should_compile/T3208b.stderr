@@ -2,10 +2,10 @@
 T3208b.hs:15:15: error:
     • Could not deduce: OTerm o0 ~ STerm a
         arising from a use of ‘apply’
-      from the context: (OTerm a ~ STerm a, OBJECT a, SUBST a)
+      from the context: (SUBST a, OBJECT a, OTerm a ~ STerm a)
         bound by the type signature for:
                    fce' :: forall a c.
-                           (OTerm a ~ STerm a, OBJECT a, SUBST a) =>
+                           (SUBST a, OBJECT a, OTerm a ~ STerm a) =>
                            a -> c
         at T3208b.hs:14:1-56
       The type variable ‘o0’ is ambiguous

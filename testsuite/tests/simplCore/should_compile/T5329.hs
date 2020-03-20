@@ -8,15 +8,17 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE PartialTypeConstructors, ExplicitNamespaces, TypeOperators #-}
 
 module T5329 where
 
+import GHC.Types (type (@@))
 data PZero
 data PSucc p
 
-data Peano n where
+data IsPeano n ⇒ Peano n where
   PZero ∷ Peano PZero
-  PSucc ∷ IsPeano p ⇒ Peano p → Peano (PSucc p)
+  PSucc ∷ Peano p → Peano (PSucc p)
 
 class IsPeano n where
   peano ∷ Peano n

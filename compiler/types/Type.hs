@@ -5,6 +5,9 @@
 
 {-# LANGUAGE CPP, FlexibleContexts #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 
 -- | Main functions for manipulating types and type-related things
 module Type (
@@ -129,7 +132,7 @@ module Type (
         -- ** Finding the kind of a type
         typeKind, tcTypeKind, isTypeLevPoly, resultIsLevPoly,
         tcIsLiftedTypeKind, tcIsConstraintKind, tcReturnsConstraintKind,
-        tcIsRuntimeTypeKind,
+        tcIsRuntimeTypeKind, isKindForall,
 
         -- ** Common Kind
         liftedTypeKind,
@@ -261,6 +264,9 @@ import Unique ( nonDetCmpUnique )
 import Maybes           ( orElse )
 import Data.Maybe       ( isJust )
 import Control.Monad    ( guard )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -- $type_classification
 -- #type_classification#
@@ -609,7 +615,11 @@ data TyCoMapper env m
       }
 
 {-# INLINABLE mapType #-}  -- See Note [Specialising mappers]
-mapType :: Monad m => TyCoMapper env m -> env -> Type -> m Type
+mapType :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+           , Total m
+#endif
+           ) => TyCoMapper env m -> env -> Type -> m Type
 mapType mapper@(TyCoMapper { tcm_tyvar = tyvar
                            , tcm_tycobinder = tycobinder
                            , tcm_tycon = tycon })
@@ -644,7 +654,11 @@ mapType mapper@(TyCoMapper { tcm_tyvar = tyvar
            ; return $ ForAllTy (Bndr tv' vis) inner' }
 
 {-# INLINABLE mapCoercion #-}  -- See Note [Specialising mappers]
-mapCoercion :: Monad m
+mapCoercion :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+               , Total m
+#endif
+               )
             => TyCoMapper env m -> env -> Coercion -> m Coercion
 mapCoercion mapper@(TyCoMapper { tcm_covar = covar
                                , tcm_hole = cohole
@@ -2915,6 +2929,25 @@ isKindLevPoly k = ASSERT2( isLiftedTypeKind k || _is_type, ppr k )
     go CoercionTy{}      = True
 
     _is_type = classifiesTypeWithValues k
+
+
+isKindForall :: Kind -> Bool
+isKindForall k = ASSERT2( isLiftedTypeKind k || _is_type, ppr k )
+                    -- the isLiftedTypeKind check is necessary b/c of Constraint
+                  go k
+  where
+    go ty | Just ty' <- coreView ty = go ty'
+    go TyVarTy{}         = False
+    go AppTy{}           = False  -- it can't be a TyConApp
+    go (TyConApp tc tys) = isFamilyTyCon tc || any go tys
+    go (ForAllTy (Bndr t _) _)  = not (isKindLevPoly (varType t))
+    go (FunTy _ t1 t2)   = go t1 || go t2
+    go LitTy{}           = False
+    go CastTy{}          = False
+    go CoercionTy{}      = False
+
+    _is_type = classifiesTypeWithValues k
+
 
 -----------------------------------------
 --              Subkinding

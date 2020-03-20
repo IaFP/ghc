@@ -1,5 +1,9 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 {- BlockId module should probably go away completely, being superseded by Label -}
 module BlockId
@@ -17,6 +21,9 @@ import Unique
 import UniqSupply
 
 import Hoopl.Label (Label, mkHooplLabel)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 ----------------------------------------------------------------
 --- Block Ids, their environments, and their sets
@@ -35,7 +42,11 @@ type BlockId = Label
 mkBlockId :: Unique -> BlockId
 mkBlockId unique = mkHooplLabel $ getKey unique
 
-newBlockId :: MonadUnique m => m BlockId
+newBlockId :: (MonadUnique m
+#if MIN_VERSION_base(4,14,0)
+             , m @@ Unique
+#endif
+              ) => m BlockId
 newBlockId = mkBlockId <$> getUniqueM
 
 blockLbl :: BlockId -> CLabel

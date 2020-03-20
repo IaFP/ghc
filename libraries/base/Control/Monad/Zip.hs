@@ -1,5 +1,7 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE DefaultSignatures, TypeOperators, ExplicitNamespaces #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -25,6 +27,7 @@ import Data.Ord ( Down(..) )
 import Data.Proxy
 import qualified Data.List.NonEmpty as NE
 import GHC.Generics
+import GHC.Types (type (@@))
 
 -- | Instances should satisfy the laws:
 --
@@ -46,6 +49,7 @@ class Monad m => MonadZip m where
     mzip = mzipWith (,)
 
     mzipWith :: (a -> b -> c) -> m a -> m b -> m c
+    default mzipWith :: (m @@ (a, b)) => (a -> b -> c) -> m a -> m b -> m c
     mzipWith f ma mb = liftM (uncurry f) (mzip ma mb)
 
     munzip :: m (a,b) -> (m a, m b)

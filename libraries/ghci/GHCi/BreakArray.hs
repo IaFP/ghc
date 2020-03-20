@@ -1,5 +1,8 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# LANGUAGE CPP, MagicHash, UnboxedTuples #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
 
 -------------------------------------------------------------------------------
 --

@@ -1,4 +1,8 @@
 {-# LANGUAGE ScopedTypeVariables, GADTs, BangPatterns #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 module RegAlloc.Graph.SpillCost (
         SpillCostRecord,
         plusSpillCostRecord,

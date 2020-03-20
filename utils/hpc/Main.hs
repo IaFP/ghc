@@ -1,3 +1,6 @@
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 -- (c) 2007 Andy Gill
 
 -- Main driver for Hpc

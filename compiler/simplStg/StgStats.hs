@@ -22,6 +22,9 @@ The program gather statistics about
 -}
 
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+-- {-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module StgStats ( showStgStats ) where
 

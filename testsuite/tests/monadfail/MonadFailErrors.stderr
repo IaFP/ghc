@@ -3,14 +3,18 @@ MonadFailErrors.hs:14:5: error:
     • Could not deduce (MonadFail m)
         arising from a do statement
         with the failable pattern ‘Just x’
-      from the context: Monad m
+      from the context: (m @@ a, Total m, Monad m)
         bound by the type signature for:
-                   general :: forall (m :: * -> *) a. Monad m => m a
-        at MonadFailErrors.hs:12:1-25
+                   general :: forall (m :: * -> *) a.
+                              (m @@ a, Total m, Monad m) =>
+                              m a
+        at MonadFailErrors.hs:12:1-36
       Possible fix:
         add (MonadFail m) to the context of
           the type signature for:
-            general :: forall (m :: * -> *) a. Monad m => m a
+            general :: forall (m :: * -> *) a.
+                       (m @@ a, Total m, Monad m) =>
+                       m a
     • In a stmt of a 'do' block: Just x <- undefined
       In the expression:
         do Just x <- undefined
@@ -21,9 +25,13 @@ MonadFailErrors.hs:14:5: error:
                  undefined
 
 MonadFailErrors.hs:28:5: error:
-    • No instance for (MonadFail Identity)
+    • Could not deduce (MonadFail Identity)
         arising from a do statement
         with the failable pattern ‘Just x’
+      from the context: Identity @@ a
+        bound by the type signature for:
+                   identity :: forall a. (Identity @@ a) => Identity a
+        at MonadFailErrors.hs:26:1-22
     • In a stmt of a 'do' block: Just x <- undefined
       In the expression:
         do Just x <- undefined

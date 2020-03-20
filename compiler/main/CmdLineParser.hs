@@ -1,5 +1,8 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
 
 -------------------------------------------------------------------------------
 --
@@ -39,6 +42,9 @@ import Data.Function
 import Data.List
 
 import Control.Monad (liftM, ap)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 --------------------------------------------------------
 --         The Flag and OptKind types
@@ -118,19 +124,38 @@ type Warns = Bag Warn
 newtype EwM m a = EwM { unEwM :: Located String -- Current parse arg
                               -> Errs -> Warns
                               -> m (Errs, Warns, a) }
+#if MIN_VERSION_base(4,14,0)
+instance Total (EwM m)
+#endif
 
-instance Monad m => Functor (EwM m) where
+instance (Monad m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => Functor (EwM m) where
     fmap = liftM
 
-instance Monad m => Applicative (EwM m) where
+instance (Monad m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => Applicative (EwM m) where
     pure v = EwM (\_ e w -> return (e, w, v))
     (<*>) = ap
 
-instance Monad m => Monad (EwM m) where
+instance (Monad m
+#if MIN_VERSION_base(4,14,0)
+         , Total m
+#endif
+         ) => Monad (EwM m) where
     (EwM f) >>= k = EwM (\l e w -> do (e', w', r) <- f l e w
                                       unEwM (k r) l e' w')
 
-runEwM :: EwM m a -> m (Errs, Warns, a)
+runEwM ::
+#if MIN_VERSION_base(4,14,0)
+      Total m => 
+#endif
+  EwM m a -> m (Errs, Warns, a)
 runEwM action = unEwM action (panic "processArgs: no arg yet") emptyBag emptyBag
 
 setArg :: Located String -> EwM m () -> EwM m ()
@@ -146,7 +171,11 @@ addFlagWarn :: Monad m => WarnReason -> String -> EwM m ()
 addFlagWarn reason msg = EwM $
   (\(L loc _) es ws -> return (es, ws `snocBag` Warn reason (L loc msg), ()))
 
-deprecate :: Monad m => String -> EwM m ()
+deprecate :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+            , Total m
+#endif
+             ) => String -> EwM m ()
 deprecate s = do
     arg <- getArg
     addFlagWarn ReasonDeprecatedFlag (arg ++ " is deprecated: " ++ s)
@@ -168,6 +197,9 @@ liftEwM action = EwM (\_ es ws -> do { r <- action; return (es, ws, r) })
 -- (CmdLineP s) typically instantiates the 'm' in (EwM m) and (OptKind m)
 newtype CmdLineP s a = CmdLineP { runCmdLine :: s -> (a, s) }
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total (CmdLineP s)
+#endif
 
 instance Applicative (CmdLineP s) where
     pure a = CmdLineP $ \s -> (a, s)
@@ -189,7 +221,11 @@ putCmdLineState s = CmdLineP $ \_ -> ((),s)
 --         Processing arguments
 --------------------------------------------------------
 
-processArgs :: Monad m
+processArgs :: (Monad m
+#if MIN_VERSION_base(4,14,0)
+               , Total m
+#endif
+               )
             => [Flag m]               -- cmdline parser spec
             -> [Located String]       -- args
             -> m ( [Located String],  -- spare args

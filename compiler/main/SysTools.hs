@@ -9,6 +9,9 @@
 -}
 
 {-# LANGUAGE CPP, MultiWayIf, ScopedTypeVariables #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
 
 module SysTools (
         -- * Initialisation

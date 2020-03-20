@@ -1,4 +1,8 @@
 {-# LANGUAGE CPP, TypeFamilies, ViewPatterns, OverloadedStrings #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
+
 
 -- -----------------------------------------------------------------------------
 -- | This is the top-level module in the LLVM code generator.

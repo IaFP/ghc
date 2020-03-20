@@ -1,6 +1,11 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
+
 
 -- | Provides the heuristics for when it's beneficial to lambda lift bindings.
 -- Most significantly, this employs a cost model to estimate impact on heap
@@ -36,6 +41,9 @@ import Util
 import VarSet
 
 import Data.Maybe ( mapMaybe )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 -- Note [When to lift]
 -- ~~~~~~~~~~~~~~~~~~~
@@ -112,6 +120,14 @@ type instance BinderP      'LiftLams = BinderInfo
 type instance XRhsClosure  'LiftLams = DIdSet
 type instance XLet         'LiftLams = Skeleton
 type instance XLetNoEscape 'LiftLams = Skeleton
+#if MIN_VERSION_base(4,14,0)
+type instance GenStgRhs @@ 'LiftLams = ()
+type instance GenStgRhs @@ 'CodeGen = ()
+type instance GenStgBinding @@ 'LiftLams = ()
+type instance GenStgBinding @@ 'CodeGen = ()
+type instance GenStgExpr @@ 'LiftLams = ()
+type instance GenStgExpr @@ 'CodeGen = ()
+#endif
 
 freeVarsOfRhs :: (XRhsClosure pass ~ DIdSet) => GenStgRhs pass -> DIdSet
 freeVarsOfRhs (StgRhsCon _ _ args) = mkDVarSet [ id | StgVarArg id <- args ]

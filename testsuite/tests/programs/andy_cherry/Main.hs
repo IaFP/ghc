@@ -71,6 +71,7 @@
        parse (',':r) = Comma : parse r
        parse [] = []
        parse _ = rangeError
+       rangeError :: a
        rangeError = error ("incorrect -g option (" ++ range ++ ")\n")
 
  interpArgs' style fn [file] = (style,fn,file)

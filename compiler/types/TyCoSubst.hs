@@ -6,6 +6,8 @@ Type and Coercion - friends' interface
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE BangPatterns #-}
+#if __GLASGOW_HASKELL__ >= 810
+#endif
 
 -- | Substitution into types and coercions.
 module TyCoSubst

@@ -5,6 +5,9 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TupleSections #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, UndecidableInstances #-}
+#endif
 
 -- | Highly random utility functions
 --
@@ -163,6 +166,9 @@ import qualified Data.IntMap as IM
 import qualified Data.Set as Set
 
 import Data.Time
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 #if defined(DEBUG)
 import {-# SOURCE #-} Outputable ( warnPprTrace, text )
@@ -949,20 +955,20 @@ matchVectors = snd . foldl' go (0 :: Int, IM.empty)
 {-# SPECIALIZE INLINE restrictedDamerauLevenshteinDistance'
                       :: Integer -> Int -> Int -> String -> String -> Int #-}
 
-{-# SPECIALIZE restrictedDamerauLevenshteinDistanceWorker
-               :: IM.IntMap Word32 -> Word32 -> Word32
-               -> (Word32, Word32, Word32, Word32, Int)
-               -> Char -> (Word32, Word32, Word32, Word32, Int) #-}
-{-# SPECIALIZE restrictedDamerauLevenshteinDistanceWorker
-               :: IM.IntMap Integer -> Integer -> Integer
-               -> (Integer, Integer, Integer, Integer, Int)
-               -> Char -> (Integer, Integer, Integer, Integer, Int) #-}
+-- {-# SPECIALIZE restrictedDamerauLevenshteinDistanceWorker
+               -- :: IM.IntMap Word32 -> Word32 -> Word32
+               -- -> (Word32, Word32, Word32, Word32, Int)
+               -- -> Char -> (Word32, Word32, Word32, Word32, Int) #-}
+-- {-# SPECIALIZE restrictedDamerauLevenshteinDistanceWorker
+               -- :: IM.IntMap Integer -> Integer -> Integer
+               -- -> (Integer, Integer, Integer, Integer, Int)
+               -- -> Char -> (Integer, Integer, Integer, Integer, Int) #-}
 
 {-# SPECIALIZE INLINE sizedComplement :: Word32 -> Word32 -> Word32 #-}
 {-# SPECIALIZE INLINE sizedComplement :: Integer -> Integer -> Integer #-}
 
-{-# SPECIALIZE matchVectors :: String -> IM.IntMap Word32 #-}
-{-# SPECIALIZE matchVectors :: String -> IM.IntMap Integer #-}
+-- {-# SPECIALIZE matchVectors :: String -> IM.IntMap Word32 #-}
+-- {-# SPECIALIZE matchVectors :: String -> IM.IntMap Integer #-}
 
 fuzzyMatch :: String -> [String] -> [String]
 fuzzyMatch key vals = fuzzyLookup key [(v,v) | v <- vals]
@@ -1280,7 +1286,11 @@ modificationTimeIfExists f = do
 -- as otherwise a partially written file (e.g. due to crash or Ctrl+C)
 -- also results in a skip.
 
-withAtomicRename :: (MonadIO m) => FilePath -> (FilePath -> m a) -> m a
+withAtomicRename :: (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+                   , m @@ ()
+#endif
+                    ) => FilePath -> (FilePath -> m a) -> m a
 withAtomicRename targetFile f
   | enableAtomicRename = do
   -- The temp file must be on the same file system (mount) as the target file

@@ -1,7 +1,6 @@
 options currently set: none.
 base language is: Haskell2010
 with the following modifiers:
-  -XNoDatatypeContexts
   -XNondecreasingIndentation
 GHCi-specific dynamic flag settings:
 other dynamic, non-language, flag settings:
@@ -22,7 +21,6 @@ Should fail, GADTs is not enabled
 options currently set: none.
 base language is: Haskell2010
 with the following modifiers:
-  -XNoDatatypeContexts
   -XGADTSyntax
   -XGADTs
   -XMonoLocalBinds
@@ -46,7 +44,6 @@ Should work, GADTs is in force from :set
 options currently set: none.
 base language is: Haskell2010
 with the following modifiers:
-  -XNoDatatypeContexts
   -XGADTSyntax
   -XMonoLocalBinds
   -XNondecreasingIndentation
@@ -68,7 +65,6 @@ warning settings:
 Should fail, GADTs is now disabled
 base language is: Haskell2010
 with the following modifiers:
-  -XNoDatatypeContexts
   -XExtendedDefaultRules
   -XGADTSyntax
   -XGADTs

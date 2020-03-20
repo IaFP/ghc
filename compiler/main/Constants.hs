@@ -3,6 +3,10 @@
 
 \section[Constants]{Info about this compilation}
 -}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module Constants (module Constants) where
 

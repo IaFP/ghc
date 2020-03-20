@@ -17,6 +17,10 @@ therefore, is almost nothing but re-exporting.
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-} -- For deriving instance Data
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module GHC.Hs (
         module GHC.Hs.Binds,
@@ -117,6 +121,7 @@ data HsModule pass
 deriving instance Data (HsModule GhcPs)
 deriving instance Data (HsModule GhcRn)
 deriving instance Data (HsModule GhcTc)
+
 
 instance (OutputableBndrId p) => Outputable (HsModule (GhcPass p)) where
 

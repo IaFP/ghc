@@ -4,6 +4,7 @@ module Opt where
 import Control.Arrow
 import Control.Category
 import Prelude hiding (id, (.))
+import GHC.Types (Total)
 
 data Opt arr a b where
   Lift  :: arr a b -> Opt arr a b

@@ -10,6 +10,6 @@ T11254.hs:18:12: warning: [-Wdeferred-type-errors (in -Wdefault)]
         Actual type: Rational -> Rational
     • When checking that instance signature for ‘embed’
         is more general than its signature in the class
-        Instance sig: Rational -> Rational
+        Instance sig: (GHC.Real.Ratio @@ Integer) => Rational -> Rational
            Class sig: Rational -> Frac Rational
       In the instance declaration for ‘ID Rational’

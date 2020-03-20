@@ -2,6 +2,7 @@
 module Hang where
 import Control.Monad
 import Data.Char
+import GHC.Types (Total)
 
 data Event
   = EventBeginDocument
@@ -72,17 +73,17 @@ instance Monad (ConduitM i o m) where
     return = pure
     ConduitM f >>= g = ConduitM $ \h -> f $ \a -> unConduitM (g a) h
 
-instance Monad m => Functor (Pipe l i o u m) where
+instance (Total m, Monad m) => Functor (Pipe l i o u m) where
     fmap = liftM
     {-# INLINE fmap #-}
 
-instance Monad m => Applicative (Pipe l i o u m) where
+instance (Total m, Monad m) => Applicative (Pipe l i o u m) where
     pure = Done
     {-# INLINE pure #-}
     (<*>) = ap
     {-# INLINE (<*>) #-}
 
-instance Monad m => Monad (Pipe l i o u m) where
+instance (Total m, Monad m) => Monad (Pipe l i o u m) where
     return = pure
     {-# INLINE return #-}
 

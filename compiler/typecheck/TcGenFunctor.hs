@@ -6,10 +6,14 @@ The deriving code for the Functor, Foldable, and Traversable classes
 (equivalent to the code in TcGenDeriv, for other classes)
 -}
 
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module TcGenFunctor (
         FFoldType(..), functorLikeTraverse,

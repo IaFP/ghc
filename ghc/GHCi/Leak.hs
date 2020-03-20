@@ -1,4 +1,9 @@
 {-# LANGUAGE RecordWildCards, LambdaCase #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+{-# OPTIONS -fno-enable-rewrite-rules #-}
+#endif
 module GHCi.Leak
   ( LeakIndicators
   , getLeakIndicators

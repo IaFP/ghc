@@ -8,6 +8,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- We never want to link against terminfo while bootstrapping.

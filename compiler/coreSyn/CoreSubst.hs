@@ -7,6 +7,10 @@ Utility functions on @Core@ syntax
 -}
 
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
+
 module CoreSubst (
         -- * Main data types
         Subst(..), -- Implementation exported for supercompiler's Renaming.hs only

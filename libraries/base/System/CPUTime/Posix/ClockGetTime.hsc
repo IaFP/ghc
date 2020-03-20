@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP, CApiFFI, NumDecimals #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 
 #include "HsFFI.h"
 #include "HsBaseConfig.h"

@@ -3,6 +3,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -56,6 +57,7 @@ import Data.Functor.Compose
 import Data.Monoid (Alt(..))
 import Data.Proxy
 import GHC.Generics
+import GHC.Types (type (@@))
 
 import Prelude hiding ((.),id)
 
@@ -113,7 +115,7 @@ class Contravariant f where
 -- 'fmap' f ≡ 'phantom'
 -- 'contramap' f ≡ 'phantom'
 -- @
-phantom :: (Functor f, Contravariant f) => f a -> f b
+phantom :: (Functor f, Contravariant f, f @@ ()) => f a -> f b
 phantom x = () <$ x $< ()
 
 infixl 4 >$, $<, >$<, >$$<

@@ -1,6 +1,9 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies, FlexibleContexts, FlexibleInstances #-}
+#endif
 
 -- | Hides away distracting bookkeeping while lambda lifting into a 'LiftM'
 -- monad.
@@ -47,6 +50,9 @@ import Control.Monad.Trans.RWS.Strict ( RWST, runRWST )
 import qualified Control.Monad.Trans.RWS.Strict as RWS
 import Control.Monad.Trans.Cont ( ContT (..) )
 import Data.ByteString ( ByteString )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@), Total)
+#endif
 
 -- | @uncurry 'mkStgBinding' . 'decomposeStgBinding' = id@
 decomposeStgBinding :: GenStgBinding pass -> (RecFlag, [(BinderP pass, GenStgRhs pass)])
@@ -219,6 +225,9 @@ removeRhsCCCS rhs = rhs
 newtype LiftM a
   = LiftM { unwrapLiftM :: RWST Env (OrdList FloatLang) () UniqSM a }
   deriving (Functor, Applicative, Monad)
+#if MIN_VERSION_base(4,14,0)
+instance Total LiftM
+#endif
 
 instance HasDynFlags LiftM where
   getDynFlags = LiftM (RWS.asks e_dflags)
@@ -267,8 +276,16 @@ withSubstBndr bndr inner = LiftM $ do
   let (bndr', subst') = substBndr bndr subst
   RWS.local (\e -> e { e_subst = subst' }) (unwrapLiftM (inner bndr'))
 
+#if MIN_VERSION_base(4,14,0)
+instance Total (ContT a LiftM)
+#endif
+
 -- | See 'withSubstBndr'.
-withSubstBndrs :: Traversable f => f Id -> (f Id -> LiftM a) -> LiftM a
+withSubstBndrs :: (Traversable f
+#if MIN_VERSION_base(4,14,0)
+                  , f @@ ContT a LiftM Id
+#endif
+                  ) => f Id -> (f Id -> LiftM a) -> LiftM a
 withSubstBndrs = runContT . traverse (ContT . withSubstBndr)
 
 -- | Similarly to 'withSubstBndr', this function takes a set of variables to
@@ -306,7 +323,11 @@ withLiftedBndr abs_ids bndr inner = do
     (unwrapLiftM (inner bndr'))
 
 -- | See 'withLiftedBndr'.
-withLiftedBndrs :: Traversable f => DIdSet -> f Id -> (f Id -> LiftM a) -> LiftM a
+withLiftedBndrs :: (Traversable f
+#if MIN_VERSION_base(4,14,0)
+                   , f @@ ContT a LiftM Id, Total (ContT a LiftM)
+#endif
+                   ) => DIdSet -> f Id -> (f Id -> LiftM a) -> LiftM a
 withLiftedBndrs abs_ids = runContT . traverse (ContT . withLiftedBndr abs_ids)
 
 -- | Substitutes a binder /occurrence/, which was brought in scope earlier by

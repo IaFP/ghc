@@ -4,6 +4,10 @@
 -}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- | Contains a debug function to dump parts of the GHC.Hs AST. It uses a syb
 -- traversal which falls back to displaying based on the constructor name, so

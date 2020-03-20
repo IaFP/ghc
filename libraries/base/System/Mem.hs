@@ -14,6 +14,7 @@
 
 {-# LANGUAGE Trustworthy #-}
 -- allocation counter stuff is safe, but GHC.Conc.Sync is Unsafe
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 
 module System.Mem
        (

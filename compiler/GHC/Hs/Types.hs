@@ -16,6 +16,9 @@ GHC.Hs.Types: Abstract syntax: user-defined types
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, DataKinds #-}
+#endif
 
 module GHC.Hs.Types (
         HsType(..), NewHsTypeX(..), LHsType, HsKind, LHsKind,
@@ -95,6 +98,9 @@ import Maybes( isJust )
 import Util ( count, debugIsOn )
 
 import Data.Data hiding ( Fixity, Prefix, Infix )
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 {-
 ************************************************************************
@@ -401,6 +407,10 @@ type instance XHsWC              GhcRn b = [Name]
 type instance XHsWC              GhcTc b = [Name]
 
 type instance XXHsWildCardBndrs  (GhcPass _) b = NoExtCon
+#if MIN_VERSION_base(4,14,0)
+type instance HsWildCardBndrs @@ pass = ()
+type instance HsWildCardBndrs pass @@ thing = ()
+#endif
 
 -- | Located Haskell Signature Type
 type LHsSigType   pass = HsImplicitBndrs pass (LHsType pass)    -- Implicit only
@@ -508,6 +518,9 @@ type instance XUserTyVar    (GhcPass _) = NoExtField
 type instance XKindedTyVar  (GhcPass _) = NoExtField
 
 type instance XXTyVarBndr   (GhcPass _) = NoExtCon
+#if MIN_VERSION_base(4,14,0)
+type instance HsTyVarBndr @@ pass = ()
+#endif
 
 -- | Does this 'HsTyVarBndr' come with an explicit kind annotation?
 isHsKindedTyVar :: HsTyVarBndr pass -> Bool
@@ -750,6 +763,9 @@ type instance XWildCardTy      (GhcPass _) = NoExtField
 
 type instance XXType         (GhcPass _) = NewHsTypeX
 
+#if MIN_VERSION_base(4,14,0)
+type instance HsType @@ pass = ()
+#endif
 
 -- Note [Literal source text] in BasicTypes for SourceText fields in
 -- the following
@@ -897,11 +913,18 @@ data ConDeclField pass  -- Record fields have Haddoc docs on them
 
       -- For details on above see note [Api annotations] in ApiAnnotation
   | XConDeclField (XXConDeclField pass)
+#if MIN_VERSION_base(4,14,0)
+type instance ConDeclField @@ pass = ()
+#endif
 
 type instance XConDeclField  (GhcPass _) = NoExtField
 type instance XXConDeclField (GhcPass _) = NoExtCon
 
-instance OutputableBndrId p
+instance (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+               , HsSplice @@ GhcPass p
+#endif
+         )
        => Outputable (ConDeclField (GhcPass p)) where
   ppr (ConDeclField _ fld_n fld_ty _) = ppr fld_n <+> dcolon <+> ppr fld_ty
   ppr (XConDeclField x) = ppr x
@@ -1367,6 +1390,10 @@ type instance XXFieldOcc (GhcPass _) = NoExtCon
 instance Outputable (FieldOcc pass) where
   ppr = ppr . rdrNameFieldOcc
 
+#if MIN_VERSION_base(4,14,0)
+type instance FieldOcc @@ a = ()
+#endif
+
 mkFieldOcc :: Located RdrName -> FieldOcc GhcPs
 mkFieldOcc rdr = FieldOcc noExtField rdr
 
@@ -1437,18 +1464,30 @@ ambiguousFieldOcc (XFieldOcc nec) = noExtCon nec
 ************************************************************************
 -}
 
-instance OutputableBndrId p => Outputable (HsType (GhcPass p)) where
+instance (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+         , HsSplice @@ GhcPass p
+#endif
+         ) => Outputable (HsType (GhcPass p)) where
     ppr ty = pprHsType ty
 
 instance Outputable HsTyLit where
     ppr = ppr_tylit
 
-instance OutputableBndrId p
+instance (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+               , HsSplice @@ GhcPass p
+#endif
+         )
        => Outputable (LHsQTyVars (GhcPass p)) where
     ppr (HsQTvs { hsq_explicit = tvs }) = interppSP tvs
     ppr (XLHsQTyVars x) = ppr x
 
-instance OutputableBndrId p
+instance (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+               , HsSplice @@ GhcPass p
+#endif
+         )
        => Outputable (HsTyVarBndr (GhcPass p)) where
     ppr (UserTyVar _ n)     = ppr n
     ppr (KindedTyVar _ n k) = parens $ hsep [ppr n, dcolon, ppr k]
@@ -1469,7 +1508,11 @@ pprAnonWildCard = char '_'
 
 -- | Prints a forall; When passed an empty list, prints @forall .@/@forall ->@
 -- only when @-dppr-debug@ is enabled.
-pprHsForAll :: (OutputableBndrId p)
+pprHsForAll :: (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+               , HsSplice @@ GhcPass p
+#endif
+               )
             => ForallVisFlag -> [LHsTyVarBndr (GhcPass p)]
             -> LHsContext (GhcPass p) -> SDoc
 pprHsForAll = pprHsForAllExtra Nothing
@@ -1481,7 +1524,11 @@ pprHsForAll = pprHsForAllExtra Nothing
 -- function for this is needed, as the extra-constraints wildcard is removed
 -- from the actual context and type, and stored in a separate field, thus just
 -- printing the type will not print the extra-constraints wildcard.
-pprHsForAllExtra :: (OutputableBndrId p)
+pprHsForAllExtra :: (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+               , HsSplice @@ GhcPass p
+#endif
+                    )
                  => Maybe SrcSpan -> ForallVisFlag
                  -> [LHsTyVarBndr (GhcPass p)]
                  -> LHsContext (GhcPass p) -> SDoc
@@ -1495,7 +1542,11 @@ pprHsForAllExtra extra fvf qtvs cxt
 
 -- | Version of 'pprHsForAll' or 'pprHsForAllExtra' that will always print
 -- @forall.@ when passed @Just []@. Prints nothing if passed 'Nothing'
-pprHsExplicitForAll :: (OutputableBndrId p)
+pprHsExplicitForAll :: (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+               , HsSplice @@ GhcPass p
+#endif
+                       )
                     => ForallVisFlag
                     -> Maybe [LHsTyVarBndr (GhcPass p)] -> SDoc
 pprHsExplicitForAll fvf (Just qtvs) = forAllLit <+> interppSP qtvs
@@ -1508,14 +1559,22 @@ ppr_forall_separator :: ForallVisFlag -> SDoc
 ppr_forall_separator ForallVis   = space <> arrow
 ppr_forall_separator ForallInvis = dot
 
-pprLHsContext :: (OutputableBndrId p)
+pprLHsContext :: (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+               , HsSplice @@ GhcPass p
+#endif
+                 )
               => LHsContext (GhcPass p) -> SDoc
 pprLHsContext lctxt
   | null (unLoc lctxt) = empty
   | otherwise          = pprLHsContextAlways lctxt
 
 -- For use in a HsQualTy, which always gets printed if it exists.
-pprLHsContextAlways :: (OutputableBndrId p)
+pprLHsContextAlways :: (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+               , HsSplice @@ GhcPass p
+#endif
+                       )
                     => LHsContext (GhcPass p) -> SDoc
 pprLHsContextAlways (L _ ctxt)
   = case ctxt of
@@ -1524,7 +1583,11 @@ pprLHsContextAlways (L _ ctxt)
       _        -> parens (interpp'SP ctxt) <+> darrow
 
 -- True <=> print an extra-constraints wildcard, e.g. @(Show a, _) =>@
-pprLHsContextExtra :: (OutputableBndrId p)
+pprLHsContextExtra :: (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+               , HsSplice @@ GhcPass p
+#endif
+                      )
                    => Bool -> LHsContext (GhcPass p) -> SDoc
 pprLHsContextExtra show_extra lctxt@(L _ ctxt)
   | not show_extra = pprLHsContext lctxt
@@ -1533,7 +1596,11 @@ pprLHsContextExtra show_extra lctxt@(L _ ctxt)
   where
     ctxt' = map ppr ctxt ++ [char '_']
 
-pprConDeclFields :: (OutputableBndrId p)
+pprConDeclFields :: (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+               , HsSplice @@ GhcPass p
+#endif
+                    )
                  => [LConDeclField (GhcPass p)] -> SDoc
 pprConDeclFields fields = braces (sep (punctuate comma (map ppr_fld fields)))
   where
@@ -1559,13 +1626,25 @@ seems like the Right Thing anyway.)
 
 -- Printing works more-or-less as for Types
 
-pprHsType :: (OutputableBndrId p) => HsType (GhcPass p) -> SDoc
+pprHsType :: (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+               , HsSplice @@ GhcPass p
+#endif
+             ) => HsType (GhcPass p) -> SDoc
 pprHsType ty = ppr_mono_ty ty
 
-ppr_mono_lty :: (OutputableBndrId p) => LHsType (GhcPass p) -> SDoc
+ppr_mono_lty :: (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+               , HsSplice @@ GhcPass p
+#endif
+                ) => LHsType (GhcPass p) -> SDoc
 ppr_mono_lty ty = ppr_mono_ty (unLoc ty)
 
-ppr_mono_ty :: (OutputableBndrId p) => HsType (GhcPass p) -> SDoc
+ppr_mono_ty :: (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+               , HsSplice @@ GhcPass p
+#endif
+               ) => HsType (GhcPass p) -> SDoc
 ppr_mono_ty (HsForAllTy { hst_fvf = fvf, hst_bndrs = tvs, hst_body = ty })
   = sep [pprHsForAll fvf tvs noLHsContext, ppr_mono_lty ty]
 
@@ -1634,7 +1713,11 @@ ppr_mono_ty (HsDocTy _ ty doc)
 ppr_mono_ty (XHsType t) = ppr t
 
 --------------------------
-ppr_fun_ty :: (OutputableBndrId p)
+ppr_fun_ty :: (OutputableBndrId p
+#if MIN_VERSION_base(4,14,0)
+               , HsSplice @@ GhcPass p
+#endif
+              )
            => LHsType (GhcPass p) -> LHsType (GhcPass p) -> SDoc
 ppr_fun_ty ty1 ty2
   = let p1 = ppr_mono_lty ty1

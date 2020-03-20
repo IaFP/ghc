@@ -11,6 +11,8 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -129,6 +131,7 @@ import GHC.Num
 import GHC.Read
 import GHC.Show
 import Text.Read( reads )
+import GHC.Types (type (@@), Total)
 
 -- Imports for the instances
 import Control.Applicative (WrappedArrow(..), WrappedMonad(..), ZipList(..))
@@ -235,7 +238,8 @@ class Typeable a => Data a where
   --
   -- The default definition for 'gfoldl' is @'const' 'id'@, which is
   -- suitable for abstract datatypes with no substructures.
-  gfoldl  :: (forall d b. Data d => c (d -> b) -> d -> c b)
+  gfoldl  :: forall c. (Total c)
+          => (forall d b. (Data d)  => c (d -> b) -> d -> c b)
                 -- ^ defines how nonempty constructor applications are
                 -- folded.  It takes the folded tail of the constructor
                 -- application and its head, i.e., an immediate subterm,
@@ -256,7 +260,8 @@ class Typeable a => Data a where
   gfoldl _ z = z
 
   -- | Unfolding constructor applications
-  gunfold :: (forall b r. Data b => c (b -> r) -> c r)
+  gunfold :: forall c. (Total c)
+          => (forall b r. (Data b) => c (b -> r) -> c r)
           -> (forall r. r -> c r)
           -> Constr
           -> c a
@@ -291,8 +296,8 @@ class Typeable a => Data a where
   --
   -- The default definition is @'const' 'Nothing'@, which is appropriate
   -- for instances of other forms.
-  dataCast1 :: Typeable t
-            => (forall d. Data d => c (t d))
+  dataCast1 :: (Typeable t, c @@ a)
+            => (forall d. (Data d) => c (t d))
             -> Maybe (c a)
   dataCast1 _ = Nothing
 
@@ -308,7 +313,7 @@ class Typeable a => Data a where
   --
   -- The default definition is @'const' 'Nothing'@, which is appropriate
   -- for instances of other forms.
-  dataCast2 :: Typeable t
+  dataCast2 :: (Typeable t)
             => (forall d e. (Data d, Data e) => c (t d e))
             -> Maybe (c a)
   dataCast2 _ = Nothing
@@ -378,7 +383,7 @@ class Typeable a => Data a where
   -- The default definition instantiates the type constructor @c@ in
   -- the type of 'gfoldl' to the monad datatype constructor, defining
   -- injection and projection using 'return' and '>>='.
-  gmapM :: forall m. Monad m => (forall d. Data d => d -> m d) -> a -> m a
+  gmapM :: forall m. (Total m, Monad m) => (forall d. (Data d, m @@ d) => d -> m d) -> a -> m a
 
   -- Use immediately the monad datatype constructor
   -- to instantiate the type constructor c in the type of gfoldl,
@@ -393,7 +398,7 @@ class Typeable a => Data a where
 
 
   -- | Transformation of at least one immediate subterm does not fail
-  gmapMp :: forall m. MonadPlus m => (forall d. Data d => d -> m d) -> a -> m a
+  gmapMp :: forall m. (Total m, MonadPlus m) => (forall d. (Data d, m @@ d) => d -> m d) -> a -> m a
 
 {-
 
@@ -416,7 +421,7 @@ this end, we couple the monadic computation with a Boolean.
              )
 
   -- | Transformation of one immediate subterm with success
-  gmapMo :: forall m. MonadPlus m => (forall d. Data d => d -> m d) -> a -> m a
+  gmapMo :: forall m. (Total m, MonadPlus m) => (forall d. (Data d, m @@ d) => d -> m d) -> a -> m a
 
 {-
 
@@ -444,15 +449,15 @@ was transformed successfully.
 
 -- | Type constructor for adding counters to queries
 data Qi q a = Qi Int (Maybe q)
-
+instance Total (Qi q)
 
 -- | The type constructor used in definition of gmapQr
 newtype Qr r a = Qr { unQr  :: r -> r }
-
+instance Total (Qr r)
 
 -- | The type constructor used in definition of gmapMp
 newtype Mp m x = Mp { unMp :: m (x, Bool) }
-
+instance Total (Mp m)
 
 
 ------------------------------------------------------------------------------
@@ -474,15 +479,15 @@ fromConstrB :: Data a
             -> a
 fromConstrB f = runIdentity . gunfold k z
  where
-  k :: forall b r. Data b => Identity (b -> r) -> Identity r
+  k :: forall b r. (Data b, Identity @@ (b -> r), Identity @@ r, Identity @@ b) => Identity (b -> r) -> Identity r
   k c = Identity (runIdentity c f)
 
-  z :: forall r. r -> Identity r
+  z :: forall r. (Identity @@ r) => r -> Identity r
   z = Identity
 
 
 -- | Monadic variation on 'fromConstrB'
-fromConstrM :: forall m a. (Monad m, Data a)
+fromConstrM :: forall m a. (Monad m, Data a, Total m)
             => (forall d. Data d => m d)
             -> Constr
             -> m a
@@ -1180,7 +1185,7 @@ deriving instance Data a => Data (Maybe a)
 deriving instance Data Ordering
 
 -- | @since 4.0.0.0
-deriving instance (Data a, Data b) => Data (Either a b)
+deriving instance (Either @@ a, Either a @@ b, Data a, Data b) => Data (Either a b)
 
 -- | @since 4.0.0.0
 deriving instance Data ()

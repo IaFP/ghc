@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP, MagicHash #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 -- | Dynamically lookup up values from modules and loading them.
 module DynamicLoading (

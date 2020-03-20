@@ -1,5 +1,9 @@
 {-# LANGUAGE DeriveDataTypeable, DeriveFunctor, DeriveFoldable,
              DeriveTraversable #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, UndecidableInstances, TypeFamilies #-}
+#endif
 
 --------------------------------------------------------------------------------
 -- | Boolean formulas without quantifiers and without negation.
@@ -27,6 +31,9 @@ import Binary
 import SrcLoc
 import Unique
 import UniqSet
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 ----------------------------------------------------------------------
 -- Boolean formula type and smart constructors
@@ -37,6 +44,9 @@ type LBooleanFormula a = Located (BooleanFormula a)
 data BooleanFormula a = Var a | And [LBooleanFormula a] | Or [LBooleanFormula a]
                       | Parens (LBooleanFormula a)
   deriving (Eq, Data, Functor, Foldable, Traversable)
+#if MIN_VERSION_base(4,14,0)
+type instance BooleanFormula @@ a = ()
+#endif
 
 mkVar :: a -> BooleanFormula a
 mkVar = Var
@@ -229,7 +239,11 @@ pprBooleanFormulaNice = pprBooleanFormula' pprVar pprAnd pprOr 0
   pprAnd' xs@(_:_) = fsep (punctuate comma (init xs)) <> text ", and" <+> last xs
   pprOr p xs = cparen (p > 1) $ text "either" <+> sep (intersperse (text "or") xs)
 
-instance (OutputableBndr a) => Outputable (BooleanFormula a) where
+instance (OutputableBndr a
+#if MIN_VERSION_base(4,14,0)
+        , BooleanFormula @@ a
+#endif
+         ) => Outputable (BooleanFormula a) where
   ppr = pprBooleanFormulaNormal
 
 pprBooleanFormulaNormal :: (OutputableBndr a)

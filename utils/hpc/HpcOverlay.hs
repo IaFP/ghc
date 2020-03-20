@@ -1,3 +1,6 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+#endif
 module HpcOverlay where
 
 import HpcFlags

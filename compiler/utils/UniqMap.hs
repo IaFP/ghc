@@ -3,6 +3,9 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# OPTIONS_GHC -Wall #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+#endif
 
 -- Like 'UniqFM', these are maps for keys which are Uniquable.
 -- Unlike 'UniqFM', these maps also remember their keys, which
