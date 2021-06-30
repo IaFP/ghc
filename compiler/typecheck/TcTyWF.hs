@@ -20,11 +20,15 @@ import TyCon
 import TyCoRep
 import Type
 import TcType
+import TcValidity (checkValidType, tyConArityErr)
+import TcOrigin
 import TysWiredIn
 import PrelNames
 import THNames
 import TcSMonad (matchFamTcM)
 import Outputable
+import Util
+import TcRnMonad (failWithTc)
 #if __GLASGOW_HASKELL__ >= 810
 import GHC.Types (type (@@))
 #endif
@@ -274,10 +278,12 @@ tyConGenAtsTcM eTycons tycon args -- TODO isUnliftedType??
   = do { let (args', extra_args) = splitAt (tyConArity tycon) args
        ; recGenAts tycon extra_args args' []
        }
-  | isTypeSynonymTyCon tycon =
-      case coreView (TyConApp tycon args) of
-        Just ty   -> do {(_, cs) <- genAtAtConstraintsExceptTcM (tycon: eTycons) ty; return cs}
-        Nothing   -> pprPanic "tyConGenAts" (ppr tycon)
+  | isTypeSynonymTyCon tycon = 
+      if (args `lengthAtLeast` (tyConArity tycon))
+      then case coreView (TyConApp tycon args) of
+             Just ty   -> do {(_, cs) <- genAtAtConstraintsExceptTcM (tycon: eTycons) ty; return cs}
+             Nothing   -> pprPanic "tyConGenAts" (ppr tycon)
+      else failWithTc (tyConArityErr tycon args)
   | isUnboxedTupleTyCon tycon
     || isDataFamilyTyCon tycon
     || isPrimTyCon tycon

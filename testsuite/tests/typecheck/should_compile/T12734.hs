@@ -26,7 +26,7 @@ import Control.Monad.Fix
 import Control.Monad.Trans.Identity
 import Control.Monad.Trans.Class
 import Control.Monad.IO.Class
-
+import GHC.Types (Total)
 
 data A
 data B
@@ -80,7 +80,7 @@ newtype KnownTyx (cls :: Type) (t :: k) (m :: Type -> Type) (a :: Type) =
   deriving (Show, Functor, Monad, MonadIO, MonadFix, MonadTrans,
             Applicative, Alternative)
 
-instance {-# OVERLAPPABLE #-} (t ~ t', Monad m) =>
+instance {-# OVERLAPPABLE #-} (t ~ t', Monad m, Total m) =>
   Inferable cls t (KnownTyx cls t' m)
 instance {-# OVERLAPPABLE #-} (Inferable cls t n, MonadTrans m, Monad (m n)) =>
   Inferable cls t (m n)
@@ -93,7 +93,7 @@ runInferenceTx = undefined
 
 -- running it
 
-test_ghc_err :: (MonadIO m, MonadFix m)
+test_ghc_err :: (MonadIO m, MonadFix m, Total m, Total (KnownTyx B Net m))
         => m (Expr Net '[Ty])
 test_ghc_err = runInferenceTx @B  @Net
              $ runInferenceTx @A @'[Ty]

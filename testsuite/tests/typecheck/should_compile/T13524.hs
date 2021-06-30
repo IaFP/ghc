@@ -3,6 +3,7 @@
 {-# LANGUAGE TypeApplications      #-}
 
 {-# OPTIONS_GHC -fno-warn-partial-type-signatures #-}
+import GHC.Types (Total)
 
 type Empty a = ()
 
@@ -10,11 +11,12 @@ foo :: expr a -> expr a -> expr (Empty a)
 foo = undefined
 
 newtype Expr a = SPT {run :: String}
+instance Total Expr
 
-pt1 :: forall a ptexpr . ptexpr a -> ptexpr (Empty a)
+pt1 :: forall a ptexpr . Total ptexpr => ptexpr a -> ptexpr (Empty a)
 pt1 a = foo a a
 
-pt2 :: forall a ptexpr . ptexpr a -> ptexpr _
+pt2 :: forall a ptexpr . Total ptexpr => ptexpr a -> ptexpr _
 pt2 a = foo a a
 
 main :: IO ()

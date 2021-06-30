@@ -5,6 +5,7 @@ module T9892 where
 import Control.Applicative
 import Control.Category
 import Prelude hiding ((.),id)
+import GHC.Types (Total)
 
 newtype FocusingPlus w k s a = FocusingPlus { unfocusingPlus :: k (s, w) a }
 

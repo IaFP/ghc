@@ -1,10 +1,11 @@
-{-# LANGUAGE KindSignatures, RankNTypes, TypeFamilies, MultiParamTypeClasses, FlexibleInstances,UndecidableInstances #-}
+{-# LANGUAGE KindSignatures, RankNTypes, TypeFamilies, MultiParamTypeClasses, FlexibleInstances,UndecidableInstances, TypeOperators #-}
 
 module T13585a where
 
 import Data.Monoid (First(..))
 import Data.Functor.Identity
 import Data.Kind (Type)
+import GHC.Types (type (@@))
 
 class Profunctor p where
   dimap :: (a -> b) -> (c -> d) -> p b c -> p a d

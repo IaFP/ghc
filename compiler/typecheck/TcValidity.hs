@@ -17,7 +17,8 @@ module TcValidity (
   checkValidTyFamEqn, checkConsistentFamInst,
   badATErr, arityErr,
   checkTyConTelescope,
-  allDistinctTyVars
+  allDistinctTyVars,
+  tyConArityErr
   ) where
 
 #include "HsVersions.h"

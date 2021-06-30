@@ -1,8 +1,9 @@
 {-# LANGUAGE InstanceSigs        #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 
 module T11552 where
-
+import GHC.Types (Total)
 newtype MaybeT m a =
   MaybeT { runMaybeT :: m (Maybe a) }
 
@@ -10,7 +11,7 @@ instance (Functor m) => Functor (MaybeT m) where
   fmap f (MaybeT ma) =
     MaybeT $ (fmap . fmap) f ma
 
-instance forall f . (Applicative f) => Applicative (MaybeT f) where
+instance (forall f . (Applicative f), Total f) => Applicative (MaybeT f) where
   pure :: a -> MaybeT f a
   pure x = MaybeT (pure (pure x))
 
