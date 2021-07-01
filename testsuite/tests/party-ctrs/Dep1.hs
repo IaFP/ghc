@@ -23,7 +23,13 @@ proxy = P
 -- z = P
 
 
-data Wacky k (a :: k) k' (b ::k') = W
+data Wacky k        -- kind
+           (a :: k) -- constrained type
+           k'       -- kind
+           (b ::k') -- constrained type
+  = W
+
+-- here a can only have type of kind k and b to have kind k'
 
 data N = Z | S N
 

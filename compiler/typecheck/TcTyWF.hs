@@ -20,8 +20,7 @@ import TyCon
 import TyCoRep
 import Type
 import TcType
-import TcValidity (checkValidType, tyConArityErr)
-import TcOrigin
+import TcValidity (tyConArityErr)
 import TysWiredIn
 import PrelNames
 import THNames
@@ -330,8 +329,10 @@ tyConGenAts eTycons tycon args -- TODO isUnliftedType??
     || tycon `hasKey` typeRepTyConKey || tycon `hasKey` typeableClassKey
     || tycon `hasKey` eqTyConKey || tycon `hasKey` heqTyConKey
     || tycon `hasKey` someTypeRepTyConKey || tycon `hasKey` proxyPrimTyConKey
-    || tycon `hasKey` ioTyConKey || (tyConName tycon == ioTyConName) || tycon `hasKey` listTyConKey
-    || tycon `hasKey` maybeTyConKey || isBoxedTupleTyCon tycon || tycon `hasKey` stablePtrPrimTyConKey
+    -- || tycon `hasKey` ioTyConKey || (tyConName tycon == ioTyConName)
+    -- || tycon `hasKey` listTyConKey
+    -- || tycon `hasKey` maybeTyConKey
+    || isBoxedTupleTyCon tycon || tycon `hasKey` stablePtrPrimTyConKey
     || tycon `hasKey` stablePtrTyConKey
     || tycon `hasKey` staticPtrTyConKey || (tyConName tycon == staticPtrTyConName)
     || tycon `hasKey` staticPtrInfoTyConKey || (tyConName tycon == staticPtrInfoTyConName)

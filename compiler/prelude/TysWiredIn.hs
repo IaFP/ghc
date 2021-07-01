@@ -418,7 +418,15 @@ atTyTyCon = mkFamilyTyCon atTyTyConName binders constraintKind (Just atTyTyConNa
             Nothing
             NotInjective
   where
-    binders = mkTemplateTyConBinders [liftedTypeKind, liftedTypeKind] id
+    binders = mkTemplateTyConBinders [liftedTypeKind, liftedTypeKind] (\[k1, k2] -> [k1 `mkVisFunTy` k2, k1])
+    -- binders' = mkTemplateKiTyVars
+
+-- type (@@) k1 k2 (a :: k1 -> k2) (b :: k2)
+
+--   tyConBinders = [ Bndr (k1::*)   (NamedTCB Inferred)
+--                  , Bndr (k2::*)   (NamedTCB Inferred)
+--                  , Bndr (a:k1->k2) AnonTCB
+--                  , Bndr (b:k1)     AnonTCB ]
 
 
 totalTyConName :: Name
@@ -443,7 +451,7 @@ totalDataCon :: DataCon
     -- Kind: forall k. k1 -> k2 -> Constraint
     datacon   = pcDataCon totalDataConName tvs [sc_pred] tycon
 
-    binders   = mkTemplateTyConBinders [liftedTypeKind] id
+    binders   = mkTemplateTyConBinders [typeToTypeKind] id
     roles     = [Nominal, Nominal, Nominal]
     rhs       = mkDataTyConRhs [datacon]
 
