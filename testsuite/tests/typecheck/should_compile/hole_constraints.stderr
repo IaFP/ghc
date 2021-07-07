@@ -51,7 +51,7 @@ hole_constraints.hs:20:19: warning: [-Wtyped-holes (in -Wdefault)]
       Where: ‘a’ is a rigid type variable bound by
                the type signature for:
                  castWith :: forall a b.
-                             ((:~:) @@ a, (:~:) @@ *, (:~:) a @@ b) =>
+                             ((:~:) @@ a, (:~:) a @@ b) =>
                              (a :~: b) -> a -> b
                at hole_constraints.hs:19:1-29
     • In the expression: _
@@ -62,7 +62,6 @@ hole_constraints.hs:20:19: warning: [-Wtyped-holes (in -Wdefault)]
       Constraints include
         b ~ a (from hole_constraints.hs:20:10-13)
         (:~:) @@ a (from hole_constraints.hs:19:1-29)
-        (:~:) @@ * (from hole_constraints.hs:19:1-29)
         (:~:) a @@ b (from hole_constraints.hs:19:1-29)
       Valid hole fits include x :: a
 

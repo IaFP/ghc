@@ -24,7 +24,6 @@ free_monad_hole_fits.hs:14:28: warning: [-Wtyped-holes (in -Wdefault)]
       Constraints include
         Free f @@ b (from free_monad_hole_fits.hs:11:5-8)
         Free f @@ a (from free_monad_hole_fits.hs:11:5-8)
-        Free @@ f (from free_monad_hole_fits.hs:10:10-38)
         Functor f (from free_monad_hole_fits.hs:10:10-38)
       Valid hole fits include
         fmap :: forall (f :: * -> *) a b.
@@ -64,9 +63,8 @@ free_monad_hole_fits.hs:25:31: warning: [-Wtyped-holes (in -Wdefault)]
       Constraints include
         Free f @@ b (from free_monad_hole_fits.hs:23:12-14)
         Free f @@ a (from free_monad_hole_fits.hs:23:12-14)
-        Free @@ f (from free_monad_hole_fits.hs:22:10-51)
-        Applicative f (from free_monad_hole_fits.hs:22:10-51)
         Total f (from free_monad_hole_fits.hs:22:10-51)
+        Applicative f (from free_monad_hole_fits.hs:22:10-51)
       Valid refinement hole fits include
         fmap (_ :: a -> b)
           where fmap :: forall (f :: * -> *) a b.

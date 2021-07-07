@@ -20,9 +20,8 @@ T11339.hs:13:9: error:
         sell :: (Bazaar a @@ b, Bazaar @@ a, Bazaar a b @@ b) =>
                 a -> Bazaar a b b
           (bound at T11339.hs:20:5)
-        pins :: (Const [Identity a] @@ t, Const @@ *,
-                 Const @@ [Identity a], Const @@ [Identity a], Const @@ *,
-                 Const [Identity a] @@ b, Identity @@ a) =>
+        pins :: (Const [Identity a] @@ t, Const @@ [Identity a],
+                 Const @@ [Identity a], Const [Identity a] @@ b, Identity @@ a) =>
                 ((a -> Const [Identity a] b) -> Const [Identity a] t)
                 -> [Identity a]
           (bound at T11339.hs:23:5)
@@ -33,9 +32,7 @@ T11339.hs:13:9: error:
 
 T11339.hs:28:31: error:
     • Could not deduce: (f @@ b1, f @@ a1) arising from a use of ‘fmap’
-      from the context: (Bazaar a @@ b, Bazaar @@ a)
-        bound by the instance declaration at T11339.hs:27:10-29
-      or from: (Bazaar a b @@ b1, Bazaar a b @@ a1)
+      from the context: (Bazaar a b @@ b1, Bazaar a b @@ a1)
         bound by the type signature for:
                    fmap :: forall a1 b1.
                            (Bazaar a b @@ b1, Bazaar a b @@ a1) =>
@@ -55,9 +52,7 @@ T11339.hs:28:31: error:
 
 T11339.hs:31:27: error:
     • Could not deduce: f @@ a1 arising from a use of ‘pure’
-      from the context: (Bazaar a @@ b, Bazaar @@ a)
-        bound by the instance declaration at T11339.hs:30:10-33
-      or from: Bazaar a b @@ a1
+      from the context: Bazaar a b @@ a1
         bound by the type signature for:
                    pure :: forall a1. (Bazaar a b @@ a1) => a1 -> Bazaar a b a1
         at T11339.hs:31:3-6
@@ -75,10 +70,8 @@ T11339.hs:31:27: error:
 T11339.hs:32:46: error:
     • Could not deduce: (f @@ (a1 -> b1), f @@ b1, f @@ a1)
         arising from a use of ‘<*>’
-      from the context: (Bazaar a @@ b, Bazaar @@ a)
-        bound by the instance declaration at T11339.hs:30:10-33
-      or from: (Bazaar a b @@ (a1 -> b1), Bazaar a b @@ b1,
-                Bazaar a b @@ a1)
+      from the context: (Bazaar a b @@ (a1 -> b1), Bazaar a b @@ b1,
+                         Bazaar a b @@ a1)
         bound by the type signature for:
                    (<*>) :: forall a1 b1.
                             (Bazaar a b @@ (a1 -> b1), Bazaar a b @@ b1, Bazaar a b @@ a1) =>

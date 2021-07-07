@@ -2,8 +2,8 @@
 {-# LANGUAGE RankNTypes #-}
 
 module ShouldCompile where
-
-type Generic i o = forall x. i x -> o x
+import GHC.Types(type (@@))
+type Generic i o = forall x. (i @@ x, o @@ x) => i x -> o x
 type Id x = x
 
 foo :: Generic Id Id

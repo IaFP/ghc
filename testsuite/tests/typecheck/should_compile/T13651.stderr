@@ -1,16 +1,14 @@
 
 T13651.hs:11:8: error:
     • Could not deduce: F (Bar h (Foo u)) cs ~ Bar (Foo h) (Bar u s)
-      from the context: (Bar @@ r, Bar r @@ u, Bar h @@ Bar r u,
-                         Bar @@ h, Foo @@ (cr -> cs), Foo @@ h, Bar @@ Foo h,
-                         Bar (Foo h) @@ Bar u s, Bar u @@ s, Bar @@ u,
+      from the context: (Bar h @@ Bar r u, Bar @@ h, Foo @@ (cr -> cs),
+                         Foo @@ h, Bar @@ Foo h, Bar (Foo h) @@ Bar u s,
                          F cu cs ~ Bar (Foo h) (Bar u s), F cr cu ~ Bar h (Bar r u))
         bound by the type signature for:
                    foo :: forall cr cu h r u cs s.
-                          (Bar @@ r, Bar r @@ u, Bar h @@ Bar r u, Bar @@ h,
-                           Foo @@ (cr -> cs), Foo @@ h, Bar @@ Foo h, Bar (Foo h) @@ Bar u s,
-                           Bar u @@ s, Bar @@ u, F cu cs ~ Bar (Foo h) (Bar u s),
-                           F cr cu ~ Bar h (Bar r u)) =>
+                          (Bar h @@ Bar r u, Bar @@ h, Foo @@ (cr -> cs), Foo @@ h,
+                           Bar @@ Foo h, Bar (Foo h) @@ Bar u s,
+                           F cu cs ~ Bar (Foo h) (Bar u s), F cr cu ~ Bar h (Bar r u)) =>
                           Bar h (Bar r u) -> Bar (Foo h) (Bar u s) -> Foo (cr -> cs)
         at T13651.hs:(11,8)-(13,65)
     • In the ambiguity check for ‘foo’

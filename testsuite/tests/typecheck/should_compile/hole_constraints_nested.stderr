@@ -14,7 +14,6 @@ hole_constraints_nested.hs:12:16: warning: [-Wtyped-holes (in -Wdefault)]
         Ord a (from hole_constraints_nested.hs:12:7-11)
         b ~ a (from hole_constraints_nested.hs:11:5-8)
         (:~:) @@ a (from hole_constraints_nested.hs:8:1-30)
-        (:~:) @@ * (from hole_constraints_nested.hs:8:1-30)
         (:~:) a @@ b (from hole_constraints_nested.hs:8:1-30)
         EqOrd @@ a (from hole_constraints_nested.hs:8:1-30)
       Valid hole fits include
