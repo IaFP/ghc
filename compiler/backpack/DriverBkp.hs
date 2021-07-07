@@ -423,7 +423,7 @@ compileInclude n (i, uid) = do
 -- beyond the 'Session', c.f. 'BkpEnv'.
 type BkpM = IOEnv BkpEnv
 #if MIN_VERSION_base(4,14,0)
-type instance IOEnv BkpEnv @@ IORef = ()
+type instance IOEnv BkpEnv @@ a = ()
 #endif
 
 

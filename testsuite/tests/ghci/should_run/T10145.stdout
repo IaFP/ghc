@@ -7,167 +7,83 @@ instance Functor ((->) r) -- Defined in ‘GHC.Base’
 instance Monad ((->) r) -- Defined in ‘GHC.Base’
 instance Monoid b => Monoid (a -> b) -- Defined in ‘GHC.Base’
 instance Semigroup b => Semigroup (a -> b) -- Defined in ‘GHC.Base’
-instance (Either @@ a) => Total (Either a)
-  -- Defined in ‘Data.Either’
-instance Total [] -- Defined in ‘GHC.Base’
-instance Total Maybe -- Defined in ‘GHC.Base’
-instance Total IO -- Defined in ‘GHC.Base’
-instance Total ((,) a) -- Defined in ‘GHC.Base’
-type instance Maybe @@ a = () :: Constraint
-  	-- Defined in ‘GHC.Maybe’
-type instance Either a @@ b = () :: Constraint
-  	-- Defined in ‘Data.Either’
+instance Total ((->) a) -- Defined in ‘GHC.Base’
 type instance Either @@ a = () :: Constraint
   	-- Defined in ‘Data.Either’
-type instance (,) b @@ a = () :: Constraint
-  	-- Defined in ‘Data.Traversable’
 type instance (,) @@ a = () :: Constraint
   	-- Defined in ‘Data.Traversable’
-type instance forall k1 b (a :: k1). (->) b @@ a = () :: Constraint
+type instance (->) b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 (a :: k1). (->) @@ a = () :: Constraint
+type instance (->) @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 i h g f e d c b (a :: k1). (,,,,,,,,)
-                                                     i h g f e d c b
-                                                   @@ a
-  = () :: Constraint
+type instance (,,,,,,,,) h g f e d c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 h g f e d c b (a :: k1). (,,,,,,,,)
-                                                   h g f e d c b
-                                                 @@ a
-  = () :: Constraint
+type instance (,,,,,,,,) g f e d c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 g f e d c b (a :: k1). (,,,,,,,,)
-                                                 g f e d c b
-                                               @@ a
-  = () :: Constraint
+type instance (,,,,,,,,) f e d c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 f e d c b (a :: k1). (,,,,,,,,) f e d c b
-                                             @@ a
-  = () :: Constraint
+type instance (,,,,,,,,) e d c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 e d c b (a :: k1). (,,,,,,,,) e d c b @@ a
-  = () :: Constraint
+type instance (,,,,,,,,) d c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 d c b (a :: k1). (,,,,,,,,) d c b @@ a
-  = () :: Constraint
+type instance (,,,,,,,,) c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 c b (a :: k1). (,,,,,,,,) c b @@ a
-  = () :: Constraint
+type instance (,,,,,,,,) b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 b (a :: k1). (,,,,,,,,) b @@ a
-  = () :: Constraint
+type instance (,,,,,,,,) @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 (a :: k1). (,,,,,,,,) @@ a
-  = () :: Constraint
+type instance (,,,,,,,) g f e d c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 h g f e d c b (a :: k1). (,,,,,,,)
-                                                   h g f e d c b
-                                                 @@ a
-  = () :: Constraint
+type instance (,,,,,,,) f e d c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 g f e d c b (a :: k1). (,,,,,,,)
-                                                 g f e d c b
-                                               @@ a
-  = () :: Constraint
+type instance (,,,,,,,) e d c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 f e d c b (a :: k1). (,,,,,,,) f e d c b
-                                             @@ a
-  = () :: Constraint
+type instance (,,,,,,,) d c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 e d c b (a :: k1). (,,,,,,,) e d c b @@ a
-  = () :: Constraint
+type instance (,,,,,,,) c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 d c b (a :: k1). (,,,,,,,) d c b @@ a
-  = () :: Constraint
+type instance (,,,,,,,) b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 c b (a :: k1). (,,,,,,,) c b @@ a
-  = () :: Constraint
+type instance (,,,,,,,) @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 b (a :: k1). (,,,,,,,) b @@ a
-  = () :: Constraint
+type instance (,,,,,,) f e d c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 (a :: k1). (,,,,,,,) @@ a
-  = () :: Constraint
+type instance (,,,,,,) e d c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 g f e d c b (a :: k1). (,,,,,,) g f e d c b
-                                               @@ a
-  = () :: Constraint
+type instance (,,,,,,) d c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 f e d c b (a :: k1). (,,,,,,) f e d c b
-                                             @@ a
-  = () :: Constraint
+type instance (,,,,,,) c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 e d c b (a :: k1). (,,,,,,) e d c b @@ a
-  = () :: Constraint
+type instance (,,,,,,) b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 d c b (a :: k1). (,,,,,,) d c b @@ a
-  = () :: Constraint
+type instance (,,,,,,) @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 c b (a :: k1). (,,,,,,) c b @@ a
-  = () :: Constraint
+type instance (,,,,,) e d c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 b (a :: k1). (,,,,,,) b @@ a
-  = () :: Constraint
+type instance (,,,,,) d c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 (a :: k1). (,,,,,,) @@ a = () :: Constraint
+type instance (,,,,,) c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 f e d c b (a :: k1). (,,,,,) f e d c b @@ a
-  = () :: Constraint
+type instance (,,,,,) b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 e d c b (a :: k1). (,,,,,) e d c b @@ a
-  = () :: Constraint
+type instance (,,,,,) @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 d c b (a :: k1). (,,,,,) d c b @@ a
-  = () :: Constraint
+type instance (,,,,) d c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 c b (a :: k1). (,,,,,) c b @@ a
-  = () :: Constraint
+type instance (,,,,) c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 b (a :: k1). (,,,,,) b @@ a
-  = () :: Constraint
+type instance (,,,,) b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 (a :: k1). (,,,,,) @@ a = () :: Constraint
+type instance (,,,,) @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 e d c b (a :: k1). (,,,,) e d c b @@ a
-  = () :: Constraint
+type instance (,,,) c b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 d c b (a :: k1). (,,,,) d c b @@ a
-  = () :: Constraint
+type instance (,,,) b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 c b (a :: k1). (,,,,) c b @@ a
-  = () :: Constraint
+type instance (,,,) @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 b (a :: k1). (,,,,) b @@ a
-  = () :: Constraint
+type instance (,,) b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 (a :: k1). (,,,,) @@ a = () :: Constraint
+type instance (,,) @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 d c b (a :: k1). (,,,) d c b @@ a
-  = () :: Constraint
-  	-- Defined in ‘GHC.Base’
-type instance forall k1 c b (a :: k1). (,,,) c b @@ a
-  = () :: Constraint
-  	-- Defined in ‘GHC.Base’
-type instance forall k1 b (a :: k1). (,,,) b @@ a
-  = () :: Constraint
-  	-- Defined in ‘GHC.Base’
-type instance forall k1 (a :: k1). (,,,) @@ a = () :: Constraint
-  	-- Defined in ‘GHC.Base’
-type instance forall k1 c b (a :: k1). (,,) c b @@ a
-  = () :: Constraint
-  	-- Defined in ‘GHC.Base’
-type instance forall k1 b (a :: k1). (,,) b @@ a = () :: Constraint
-  	-- Defined in ‘GHC.Base’
-type instance forall k1 (a :: k1). (,,) @@ a = () :: Constraint
-  	-- Defined in ‘GHC.Base’
-type instance forall k1 b (a :: k1). (,) b @@ a = () :: Constraint
-  	-- Defined in ‘GHC.Base’
-type instance forall k1 (a :: k1). (,) @@ a = () :: Constraint
-  	-- Defined in ‘GHC.Base’
-type instance forall k1 (a :: k1). Maybe @@ a = () :: Constraint
-  	-- Defined in ‘GHC.Base’
-type instance forall k1 (a :: k1). IO @@ a = () :: Constraint
-  	-- Defined in ‘GHC.Base’
-type instance forall k1 (a :: k1). [] @@ a = () :: Constraint
-  	-- Defined in ‘GHC.Base’
+type instance (,) @@ a = () :: Constraint 	-- Defined in ‘GHC.Base’

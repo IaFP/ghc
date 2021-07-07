@@ -1,17 +1,27 @@
 
 tcfail181.hs:17:9: error:
-    • Could not deduce (Monad m0) arising from a use of ‘foo’
-      from the context: Monad m
+    • Could not deduce: m0 @@ Bool arising from a use of ‘foo’
+      from the context: (m @@ Bool, Monad m)
         bound by the inferred type of
-                 wog :: Monad m => p -> Something (m Bool) e
+                   wog :: (m @@ Bool, Monad m) => p -> Something (m Bool) e
+        at tcfail181.hs:17:1-30
+    • In the expression: foo
+      In the expression: foo {bar = return True}
+      In an equation for ‘wog’: wog x = foo {bar = return True}
+
+tcfail181.hs:17:9: error:
+    • Could not deduce (Monad m0) arising from a use of ‘foo’
+      from the context: (m @@ Bool, Monad m)
+        bound by the inferred type of
+                   wog :: (m @@ Bool, Monad m) => p -> Something (m Bool) e
         at tcfail181.hs:17:1-30
       The type variable ‘m0’ is ambiguous
       These potential instances exist:
+        instance Monad (Either e) -- Defined in ‘Data.Either’
         instance Monad IO -- Defined in ‘GHC.Base’
         instance Monad Maybe -- Defined in ‘GHC.Base’
-        instance Monoid a => Monad ((,) a) -- Defined in ‘GHC.Base’
-        ...plus three others
-        ...plus two instances involving out-of-scope types
+        ...plus four others
+        ...plus 23 instances involving out-of-scope types
         (use -fprint-potential-instances to see them all)
     • In the expression: foo
       In the expression: foo {bar = return True}

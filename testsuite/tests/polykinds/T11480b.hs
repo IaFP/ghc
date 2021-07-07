@@ -26,6 +26,7 @@ import Data.Type.Equality as Equality
 import Data.Type.Coercion as Coercion
 import qualified Prelude
 import Prelude (Either(..))
+import GHC.Types (type (@@), Total)
 
 newtype Y (p :: i -> j -> Type) (a :: j) (b :: i) = Y { getY :: p b a }
 
@@ -76,13 +77,13 @@ data Nat (p :: i -> i -> Type)
 instance (Category p, Category q) => Category (Nat p q) where
   type Ob (Nat p q) = Functor p q
   id = Nat id1 where
-    id1 :: forall f x. (Functor p q f, Ob p x) => q (f x) (f x)
+    id1 :: forall f x. (Functor p q f, Ob p x, q (f x) @@ f x, q @@ f x, f @@ x) => q (f x) (f x)
     id1 = id \\ (ob :: Ob p x :- Ob q (f x))
   Nat f . Nat g = Nat (f . g)
   source Nat{} = Dict
   target Nat{} = Dict
 
-ob :: forall p q f a. Functor p q f => Ob p a :- Ob q (f a)
+ob :: forall p q f a. (Functor p q f, f @@ a) => Ob p a :- Ob q (f a)
 ob = Sub (case source (fmap (id :: p a a) :: q (f a) (f a)) of Dict -> Dict)
 
 instance (Category p, Category q) =>

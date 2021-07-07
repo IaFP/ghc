@@ -4,10 +4,8 @@ T9662.hs:49:8: error:
       ‘n’ is a rigid type variable bound by
         the type signature for:
           test :: forall sh k m n.
-                  ((:.) sh @@ k, (:.) @@ (sh :. k), (:.) (sh :. k) @@ m,
-                   (:.) @@ ((sh :. k) :. m), (:.) ((sh :. k) :. m) @@ n,
-                   Shape @@ (((sh :. k) :. m) :. n), (:.) @@ sh, (:.) sh @@ m,
-                   (:.) @@ (sh :. m), (:.) (sh :. m) @@ n, (:.) @@ ((sh :. m) :. n),
+                  ((:.) @@ ((sh :. k) :. m), (:.) ((sh :. k) :. m) @@ n,
+                   Shape @@ (((sh :. k) :. m) :. n), (:.) @@ ((sh :. m) :. n),
                    (:.) ((sh :. m) :. n) @@ k, Shape @@ (((sh :. m) :. n) :. k)) =>
                   Shape (((sh :. k) :. m) :. n) -> Shape (((sh :. m) :. n) :. k)
         at T9662.hs:46:1-50

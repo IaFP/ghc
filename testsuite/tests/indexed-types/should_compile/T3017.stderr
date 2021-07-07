@@ -14,8 +14,7 @@ COERCION AXIOMS
 DATA CONSTRUCTORS
   L :: forall a. [a] -> ListColl a
 CLASS INSTANCES
-  instance (ListColl @@ a) => Coll (ListColl a)
-    -- Defined at T3017.hs:12:11
+  instance Coll (ListColl a) -- Defined at T3017.hs:12:11
 FAMILY INSTANCES
   type instance Elem (ListColl a) = a -- Defined at T3017.hs:13:9
   type instance ListColl @@ a = () :: Constraint

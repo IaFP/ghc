@@ -1,9 +1,17 @@
 
 tcfail201.hs:17:56: error:
-    • Couldn't match type ‘a’ with ‘HsDoc id0’
+    • Could not deduce: a ~ HsDoc id0
+      from the context: c @@ a
+        bound by the type signature for:
+                   gfoldl' :: forall (c :: * -> *) a.
+                              (c @@ a) =>
+                              (forall a1 b. c (a1 -> b) -> a1 -> c b)
+                              -> (forall g. g -> c g) -> a -> c a
+        at tcfail201.hs:15:1-85
       ‘a’ is a rigid type variable bound by
         the type signature for:
           gfoldl' :: forall (c :: * -> *) a.
+                     (c @@ a) =>
                      (forall a1 b. c (a1 -> b) -> a1 -> c b)
                      -> (forall g. g -> c g) -> a -> c a
         at tcfail201.hs:15:1-85

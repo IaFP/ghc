@@ -12,7 +12,7 @@ module T14270 (pattern App) where
 
 import Data.Kind (Type)
 import GHC.Fingerprint (Fingerprint, fingerprintFingerprints)
-import GHC.Types (RuntimeRep, TYPE, TyCon)
+import GHC.Types (RuntimeRep, TYPE, TyCon, type (@@), Total)
 
 data (a :: k1) :~~: (b :: k2) where
   HRefl :: a :~~: a
@@ -33,6 +33,8 @@ data TypeRep (a :: k) where
             -> TypeRep a
             -> TypeRep b
             -> TypeRep (a -> b)
+
+instance Total TypeRep
 
 data SomeTypeRep where
     SomeTypeRep :: forall k (a :: k). !(TypeRep a) -> SomeTypeRep

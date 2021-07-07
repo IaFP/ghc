@@ -1,7 +1,31 @@
 
+T13135.hs:28:17: error:
+    • Could not deduce: sup @@ sig arising from a use of ‘inj’
+      from the context: sub :<: sup
+        bound by the instance declaration at T13135.hs:26:10-43
+      or from: (sub @@ sig, AST sup @@ sig)
+        bound by the type signature for:
+                   inj :: forall (sig :: Sig t).
+                          (sub @@ sig, AST sup @@ sig) =>
+                          sub sig -> AST sup sig
+        at T13135.hs:28:5-7
+    • In the second argument of ‘(.)’, namely ‘inj’
+      In the expression: Sym . inj
+      In an equation for ‘inj’: inj = Sym . inj
+    • Relevant bindings include
+        inj :: sub sig -> AST sup sig (bound at T13135.hs:28:5)
+
 T13135.hs:60:10: error:
-    • No instance for (Constr :<: Constr)
+    • Could not deduce (Constr :<: Constr)
         arising from a use of ‘smartSym’
+      from the context: (AST Constr @@ 'Full [a], AST @@ Constr,
+                         AST Constr @@ 'Full Int)
+        bound by the type signature for:
+                   arrLen :: forall a.
+                             (AST @@ Constr, AST Constr @@ 'Full [a], AST @@ Constr,
+                              AST Constr @@ 'Full Int) =>
+                             AST Constr ('Full [a]) -> AST Constr ('Full Int)
+        at T13135.hs:59:1-57
     • In the expression: smartSym sym
       In an equation for ‘arrLen’:
           arrLen

@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, NoUndecidableInstances #-}
 
 -- Here's a nice example of a fundep loop, correctly
 -- rejected by the undecidable-instance check.

@@ -92,6 +92,7 @@ Other Prelude modules are much easier with fewer complex dependencies.
            , TypeOperators
            , ConstrainedClassMethods
            , UndecidableInstances
+           , TypeApplications
   #-}
 
 -- -Wno-orphans is needed for things like:

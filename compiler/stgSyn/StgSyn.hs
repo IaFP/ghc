@@ -109,10 +109,6 @@ data GenStgTopBinding pass
 -- See Note [CoreSyn top-level string literals]
   = StgTopLifted (GenStgBinding pass)
   | StgTopStringLit Id ByteString
-#if MIN_VERSION_base(4,14,0)
-type instance GenStgTopBinding @@ pass = ()
--- type instance GenStgTopBinding @@ 'Vanilla = ()
-#endif
 
 data GenStgBinding pass
   = StgNonRec (BinderP pass) (GenStgRhs pass)

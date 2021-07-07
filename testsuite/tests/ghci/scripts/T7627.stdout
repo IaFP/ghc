@@ -20,29 +20,28 @@ type (,) :: * -> * -> *
 data (,) a b = (,) a b
   	-- Defined in ‘GHC.Tuple’
 instance Monoid a => Applicative ((,) a) -- Defined in ‘GHC.Base’
-instance (Eq b, Eq a) => Eq (a, b) -- Defined in ‘GHC.Classes’
+instance (Eq a, Eq b) => Eq (a, b) -- Defined in ‘GHC.Classes’
 instance Functor ((,) a) -- Defined in ‘GHC.Base’
 instance Monoid a => Monad ((,) a) -- Defined in ‘GHC.Base’
-instance (Monoid b, Monoid a) => Monoid (a, b)
+instance (Monoid a, Monoid b) => Monoid (a, b)
   -- Defined in ‘GHC.Base’
-instance (Ord b, Ord a) => Ord (a, b) -- Defined in ‘GHC.Classes’
-instance (Semigroup b, Semigroup a) => Semigroup (a, b)
+instance (Ord a, Ord b) => Ord (a, b) -- Defined in ‘GHC.Classes’
+instance (Semigroup a, Semigroup b) => Semigroup (a, b)
   -- Defined in ‘GHC.Base’
 instance Total ((,) a) -- Defined in ‘GHC.Base’
 instance Traversable ((,) a) -- Defined in ‘Data.Traversable’
-instance (Show b, Show a) => Show (a, b) -- Defined in ‘GHC.Show’
-instance (Read b, Read a) => Read (a, b) -- Defined in ‘GHC.Read’
+instance (Show a, Show b) => Show (a, b) -- Defined in ‘GHC.Show’
+instance (Read a, Read b) => Read (a, b) -- Defined in ‘GHC.Read’
 instance Foldable ((,) a) -- Defined in ‘Data.Foldable’
-instance (Bounded b, Bounded a) => Bounded (a, b)
+instance (Bounded a, Bounded b) => Bounded (a, b)
   -- Defined in ‘GHC.Enum’
 type instance (,) b @@ a = () :: Constraint
   	-- Defined in ‘Data.Traversable’
 type instance (,) @@ a = () :: Constraint
   	-- Defined in ‘Data.Traversable’
-type instance forall k1 b (a :: k1). (,) b @@ a = () :: Constraint
+type instance (,) b @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
-type instance forall k1 (a :: k1). (,) @@ a = () :: Constraint
-  	-- Defined in ‘GHC.Base’
+type instance (,) @@ a = () :: Constraint 	-- Defined in ‘GHC.Base’
 type (#,#) :: *
               -> *
               -> TYPE

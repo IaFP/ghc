@@ -152,7 +152,7 @@ class Category a => Arrow a where
                      , a @@ (c', c), a (b, c) @@ (c', c), a @@ c, a c @@ c, a @@ (b, c)
                      , a (c, b) @@ (b, c), a (c, b) @@ (c, c'), a @@ (c, b)
                      , a (b, b) @@ (c, b), a b @@ b
-                     , a (c, c') @@ (c', c), a @@ (c, c')
+                     , a (c, c') @@ (c', c), a @@ (c, c'), a b @@ (c, c'), a @@ b
                      , a (c, c') @@ (c, c'), a @@ c', a c' @@ c', a (c', c) @@ (c', c)
                      , a (b, c) @@ (c, b), a (b, c) @@ (b, c), a (c, b) @@ (c, b))
                   => a b c -> a b c' -> a b (c,c')
@@ -333,6 +333,7 @@ class Arrow a => ArrowChoice a where
                      , a (Either b' c) @@ Either c c', a @@ Either b' c
                      , a (Either b' c) @@ Either c' c
                      , a (Either c' c) @@ Either c c', a @@ Either c' c
+                     , a (Either b b') @@ Either c c', a @@ Either b b'
                      ) =>  a b c -> a b' c' -> a (Either b b') (Either c c')
     f +++ g = left f >>> arr mirror >>> left g >>> arr mirror
       where
@@ -347,7 +348,9 @@ class Arrow a => ArrowChoice a where
     --   version if desired.
     (|||) :: a b d -> a c d -> a (Either b c) d
     default (|||) :: (a (Either b c) @@ Either d d
-                     , a (Either d d) @@ d, a @@ Either d d) => a b d -> a c d -> a (Either b c) d
+                     , a (Either d d) @@ d, a @@ Either d d
+                     , a (Either b c) @@ d, a @@ Either b c
+                     ) => a b d -> a c d -> a (Either b c) d
     f ||| g = f +++ g >>> arr untag
       where
         untag (Left x) = x

@@ -7,6 +7,7 @@
 --
 -- This program must be called with GHC's libdir as the single command line
 -- argument.
+{-# LANGUAGE PartialTypeConstructors #-}
 module Main where
 
 import GHC

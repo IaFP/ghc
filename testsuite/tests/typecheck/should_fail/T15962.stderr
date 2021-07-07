@@ -4,8 +4,8 @@ T15962.hs:27:11: error:
       Where: ‘ks’ is a rigid type variable bound by
                the type signature for:
                  dualBig :: forall (ks :: [OpKind]).
-                            (Big @@ ks, Map Dual @@ ks, Map @@ OpKind, Map @@ OpKind,
-                             Map @@ Dual, Big @@ Eval (Map Dual ks)) =>
+                            (Big @@ ks, Map Dual @@ ks, Map @@ Dual,
+                             Big @@ Eval (Map Dual ks)) =>
                             Big ks -> Big (Eval (Map Dual ks))
                at T15962.hs:26:1-45
     • In the expression: _
@@ -16,8 +16,6 @@ T15962.hs:27:11: error:
       Constraints include
         Big @@ ks (from T15962.hs:26:1-45)
         Map Dual @@ ks (from T15962.hs:26:1-45)
-        Map @@ OpKind (from T15962.hs:26:1-45)
-        Map @@ OpKind (from T15962.hs:26:1-45)
         Map @@ Dual (from T15962.hs:26:1-45)
         Big @@ Eval (Map Dual ks) (from T15962.hs:26:1-45)
       Valid hole fits include

@@ -1,13 +1,22 @@
 
-T16326_Fail1.hs:5:8: error:
-    • Illegal visible, dependent quantification in the type of a term:
-        forall a -> a -> a
-      (GHC does not yet support this)
-    • In the type signature: id1 :: forall a -> a -> a
+T16326_Fail1.hs:6:1: error:
+    • Couldn't match expected type ‘a’ with actual type ‘p1 -> p1’
+      ‘a’ is a rigid type variable bound by
+        the type signature for:
+          id1 :: forall a. a -> a
+        at T16326_Fail1.hs:5:1-25
+    • The equation(s) for ‘id1’ have two arguments,
+      but its type ‘a -> a’ has only one
+    • Relevant bindings include
+        id1 :: a -> a (bound at T16326_Fail1.hs:6:1)
 
-T16326_Fail1.hs:9:8: error:
-    • Illegal visible, dependent quantification in the type of a term:
-        forall a -> a -> a
-      (GHC does not yet support this)
-    • In the expansion of type synonym ‘Foo’
-      In the type signature: id2 :: Foo
+T16326_Fail1.hs:10:1: error:
+    • Couldn't match expected type ‘a’ with actual type ‘p0 -> p0’
+      ‘a’ is a rigid type variable bound by
+        the type signature for:
+          id2 :: forall a. a -> a
+        at T16326_Fail1.hs:9:1-10
+    • The equation(s) for ‘id2’ have two arguments,
+      but its type ‘a -> a’ has only one
+    • Relevant bindings include
+        id2 :: a -> a (bound at T16326_Fail1.hs:10:1)

@@ -190,7 +190,7 @@ newFamInst flavor axiom@(CoAxiom { co_ax_tc = fam_tc })
                                                                , ppr tvs'
                                                                , ppr cvs'
                                                                , ppr lhs'
-                                                               , ppr rhs' ])
+                                                               , ppr rhs'])
        ; return (FamInst { fi_fam      = tyConName fam_tc
                          , fi_flavor   = flavor
                          , fi_tcs      = roughMatchTcs lhs

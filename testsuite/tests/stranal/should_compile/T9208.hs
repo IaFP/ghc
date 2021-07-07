@@ -39,7 +39,8 @@ import qualified Language.Haskell.TH        as TH
 import qualified Language.Haskell.TH.Syntax as TH
 
 import           Unsafe.Coerce
-
+import GHC.Types (Total)
+  
 data THResultType = THExp | THPat | THType | THDec
 
 data Message
@@ -59,6 +60,8 @@ instance Binary Message where
 data QState = QState
 
 data GHCJSQ a = GHCJSQ { runGHCJSQ :: QState -> IO (a, QState) }
+
+instance Total GHCJSQ
 
 instance Functor GHCJSQ where
   fmap f (GHCJSQ s) = GHCJSQ $ fmap (\(x,s') -> (f x,s')) . s

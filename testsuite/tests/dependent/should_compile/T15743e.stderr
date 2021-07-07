@@ -51,6 +51,46 @@ DATA CONSTRUCTORS
                 (f :: k1 -> *) (c :: k1) k8 (a :: k8) (b :: Proxy k3)
                 (d :: Proxy k5) (e :: Proxy k7).
          f c -> T k8 a b f c d e
+FAMILY INSTANCES
+  type instance forall {k1} {k2} {k3 :: k2} {k7} {k4} {a :: k4}.
+                  T2 k4 @@ a = () :: Constraint -- Defined at T15743e.hs:20:1
+  type instance forall {k1} {k2} {k3 :: k2} {k7} {k4} {a :: k4}
+                       {b :: Proxy k3}.
+                  T2 k4 a @@ b = () :: Constraint -- Defined at T15743e.hs:20:1
+  type instance forall {k1} {k2} {k3 :: k2} {k7} {k4} {a :: k4}
+                       {b :: Proxy k3} {f :: k7 -> *}.
+                  T2 k4 a b @@ f = () :: Constraint -- Defined at T15743e.hs:20:1
+  type instance forall {k1} {k2} {k3 :: k2} {k7} {k4} {a :: k4}
+                       {b :: Proxy k3} {f :: k7 -> *} {c :: k7}.
+                  T2 k4 a b f @@ c = () :: Constraint -- Defined at T15743e.hs:20:1
+  type instance forall {k1} {k2} {k3 :: k2} {k7} {k4} {a :: k4}
+                       {b :: Proxy k3} {f :: k7 -> *} {c :: k7} {k5 :: k1}
+                       {d :: Proxy k5}.
+                  T2 k4 a b f c @@ d = () :: Constraint -- Defined at T15743e.hs:20:1
+  type instance forall {k1} {k2} {k3 :: k2} {k7} {k4} {a :: k4}
+                       {b :: Proxy k3} {f :: k7 -> *} {c :: k7} {k5 :: k1} {d :: Proxy k5}
+                       {k6} {k8 :: k6} {e :: Proxy k8}.
+                  T2 k4 a b f c d @@ e = () :: Constraint
+                    -- Defined at T15743e.hs:20:1
+  type instance forall {k1} {k2} {k3} {k4 :: k2} {k5} {k6} {a :: k6}.
+                  T k6 @@ a = () :: Constraint -- Defined at T15743e.hs:9:1
+  type instance forall {k1} {k2} {k3} {k4 :: k2} {k5} {k6} {a :: k6}
+                       {b :: Proxy k4}.
+                  T k6 a @@ b = () :: Constraint -- Defined at T15743e.hs:9:1
+  type instance forall {k1} {k2} {k3} {k4 :: k2} {k5} {k6} {a :: k6}
+                       {b :: Proxy k4} {f :: k3 -> *}.
+                  T k6 a b @@ f = () :: Constraint -- Defined at T15743e.hs:9:1
+  type instance forall {k1} {k2} {k3} {k4 :: k2} {k5} {k6} {a :: k6}
+                       {b :: Proxy k4} {f :: k3 -> *} {c :: k3}.
+                  T k6 a b f @@ c = () :: Constraint -- Defined at T15743e.hs:9:1
+  type instance forall {k1} {k2} {k3} {k4 :: k2} {k5} {k6} {a :: k6}
+                       {b :: Proxy k4} {f :: k3 -> *} {c :: k3} {k7 :: k1}
+                       {d :: Proxy k7}.
+                  T k6 a b f c @@ d = () :: Constraint -- Defined at T15743e.hs:9:1
+  type instance forall {k1} {k2} {k3} {k4 :: k2} {k5} {k6} {a :: k6}
+                       {b :: Proxy k4} {f :: k3 -> *} {c :: k3} {k7 :: k1} {d :: Proxy k7}
+                       {k8 :: k5} {e :: Proxy k8}.
+                  T k6 a b f c d @@ e = () :: Constraint -- Defined at T15743e.hs:9:1
 Dependent modules: []
 Dependent packages: [base-4.14.0.0, ghc-prim-0.6.1,
-                     integer-gmp-1.0.2.0]
+                     integer-gmp-1.0.3.0]

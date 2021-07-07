@@ -1,12 +1,10 @@
 
 T7729a.hs:36:26: error:
     • Could not deduce: BasePrimMonad m ~ t0 (BasePrimMonad m)
-      from the context: (Rand @@ m, MonadPrim m)
-        bound by the instance declaration at T7729a.hs:34:10-42
-      or from: (BasePrimMonad (Rand m) @@ a, Rand m @@ a)
+      from the context: Rand m @@ a
         bound by the type signature for:
                    liftPrim :: forall a.
-                               (BasePrimMonad (Rand m) @@ a, Rand m @@ a) =>
+                               (Rand m @@ a) =>
                                BasePrimMonad (Rand m) a -> Rand m a
         at T7729a.hs:36:3-10
       Expected type: BasePrimMonad (Rand m) a

@@ -299,6 +299,7 @@ tc_hs_sig_type isF skol_info hs_sig_type ctxt_kind
                     ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
                     ; if enblPCtrs && not isF
                       then do { elab_ty <- elabWithAtAtConstraintsTcM raw_ty
+                              ; traceTc "tc_hs_sig_type: " (ppr raw_ty)
                               ; traceTc "tc_hs_sig_type elaborating signature: " (ppr elab_ty)
                               ; return elab_ty }
                       else return raw_ty }
@@ -340,12 +341,13 @@ tcTopLHsType mode hs_sig_type ctxt_kind
                  bindImplicitTKBndrs_Skol sig_vars $
                  do { kind <- newExpectedKind ctxt_kind
                     ; raw_ty <- tc_lhs_type mode hs_ty kind
-                    ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
-                    ; if enblPCtrs
-                      then do { elab_ty <- elabWithAtAtConstraintsTcM raw_ty
-                              ; traceTc "tcTopLHsType elaborating signature: " (ppr elab_ty)
-                              ; return elab_ty }
-                      else return raw_ty
+                    -- ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
+                    -- ; if enblPCtrs && (mode_level mode == TypeLevel)
+                    --   then do { elab_ty <- elabWithAtAtConstraintsTcM raw_ty
+                    --           ; traceTc "tcTopLHsType elaborating signature: " (ppr elab_ty)
+                    --           ; return elab_ty }
+                    --   else
+                    ; return raw_ty
                     }
 
        ; spec_tkvs <- zonkAndScopedSort spec_tkvs
@@ -416,6 +418,12 @@ tcHsClsInstType user_ctxt hs_inst_ty
          -- sees an unsolved coercion hole
          inst_ty <- checkNoErrs $
                     tcTopLHsType typeLevelMode hs_inst_ty (TheKind constraintKind)
+       -- ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
+       -- ; inst_ty <- if enblPCtrs
+       --              then do { inst_ty <- elabWithAtAtConstraintsTcM inst_ty'
+       --                      ; traceTc "tcHsClsInstType elaborating signature: " (ppr inst_ty)
+       --                      ; return inst_ty }
+       --              else return inst_ty'
        ; checkValidInstance user_ctxt hs_inst_ty inst_ty
        ; return inst_ty }
 

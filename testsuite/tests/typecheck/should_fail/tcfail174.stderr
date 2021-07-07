@@ -29,7 +29,7 @@ tcfail174.hs:19:14: error:
         at tcfail174.hs:1:1
       ‘b’ is a rigid type variable bound by
         the type signature for:
-          h2 :: forall b. Capture b
+          h2 :: forall b. (Capture @@ b) => Capture b
         at tcfail174.hs:18:1-15
       Expected type: Capture (forall x. x -> b)
         Actual type: Capture (forall a. a -> a)

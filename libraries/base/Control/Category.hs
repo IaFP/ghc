@@ -25,7 +25,6 @@ import qualified GHC.Base (id,(.))
 import Data.Type.Coercion
 import Data.Type.Equality
 import Data.Coerce (coerce)
-import GHC.Types (type (@@), RuntimeRep( LiftedRep ))
 
 infixr 9 .
 infixr 1 >>>, <<<
@@ -52,7 +51,7 @@ class Category cat where
 --                 (p . q) . r = p . (q . r)
  #-}
 
-type instance (->) @@ 'LiftedRep = ()
+-- type instance (->) @@ 'LiftedRep = ()
 
 -- | @since 3.0
 instance Category (->) where

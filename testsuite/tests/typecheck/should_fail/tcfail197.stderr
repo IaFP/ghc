@@ -1,6 +1,7 @@
 
-tcfail197.hs:5:8: error:
-    • Illegal polymorphic type: forall a. a
-      GHC doesn't yet support impredicative polymorphism
-    • In the type signature:
-        foo :: [forall a. a] -> Int
+tcfail197.hs:6:7: error:
+    • Cannot instantiate unification variable ‘a0’
+      with a type involving polytypes: [forall a. a] -> Int
+        GHC doesn't yet support impredicative polymorphism
+    • In the expression: error "urk"
+      In an equation for ‘foo’: foo = error "urk"

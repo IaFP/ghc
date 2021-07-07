@@ -41,7 +41,6 @@ import TyCoRep
 import TyCoPpr    ( pprTyVars )
 import TysWiredIn
 import TcTyWF (genAtAtConstraintsExcept, mergeAtAtConstraints, getAllPredTyArgs)
-
 import RnNames( extendGlobalRdrEnvRn )
 import RnBinds
 import RnEnv
@@ -2352,58 +2351,47 @@ as e is existential in MkT2 we do not bubble out that type instance
 
 mk_atat_fam' :: SrcSpan
             -> [FamInst]
-            -> TyCon                    -- TyCon to work on
-            -> [Type]                   -- Universals to exclude
-            -> ([Type],[Type])          -- Type arguments (done, left)
-            -> ([TyVar],[TyVar])        -- Type Variables (done, left)
-            -> ThetaType                -- Datatype context (done, left)
+            -> TyCon                       -- TyCon to work on
+            -> [Type]                      -- Universals to exclude
+            -> ([Type],[Type])             -- Type arguments (done, left)
+            -> ([TyVar],[(TyVar, Bool)])   -- Type Variables (done, (left, shouldInclude?))
+            -> ThetaType                   -- Datatype context (done, left)
             -> TcM [FamInst]
-mk_atat_fam' loc acc tc uTys (tyd, ty:tyl) (tyvarsd, tyvar:tyvarsl) ctxt =
+mk_atat_fam' loc acc tc uTys (tyd, ty:tyl) (tyvarsd, (tyvar, shouldInc):tyvarsl) ctxt =
   do { let tyd' = tyd ++ [ty]
            tyvarsd' = tyvarsd ++ [tyvar]
-     ; mpred <- getMatchingPredicates ty (tyl ++ uTys) ctxt
-     ; -- sizeof mpred <= sizeof mkTyConApp (mkTyConApp tc tyd) ty
-     ; inst_name <- newFamInstTyConName (L loc atTyTyConName) tyd'
-     ; let axiom = mkSingleCoAxiom Nominal inst_name tyvarsd' [] [] atTyTyCon
-                   [tcTypeKind (mkTyConApp tc tyd), tcTypeKind ty, (mkTyConApp tc tyd), ty] mpred
-     ; fam <- newFamInst SynFamilyInst axiom
-     ; traceTc "matching predicates for " (vcat [ ppr fam
-                                                , ppr mpred
-                                                , text "new ty: " <> ppr ty <+> text "tys left:" <+> ppr tyl])
-     ; mk_atat_fam' loc (fam:acc) tc uTys (tyd', tyl) (tyvarsd', tyvarsl) ctxt
-     }
-  
-mk_atat_fam' _ acc _ _ (_, _) (_, _) _ = return acc
-     
-mk_atat_datacon :: SrcSpan -> TyCon -> DataCon -> TcM ThetaType
-mk_atat_datacon loc tycon dc =
-  do { let arg_tys' = dataConOrigArgTys dc
-     ; let arg_tys = filter (isGoodTyArg tycon) arg_tys'
-     ; traceTc "mk_atat_datacon"
-       (vcat [ text "tycon=" <> ppr tycon
-             , text "tycon bndrs=" <> ppr (tyConVisibleTyVars tycon)
-             , text "dc=" <> ppr dc
-             , text "arg_tys=" <> (ppr arg_tys)
-             , text "loc=" <> ppr loc
-             , text "univTys=" <> ppr (dataConUnivTyVars dc)] )
-     ; elabty_arg_atats <- mapM (genAtAtConstraintsExcept [tycon]) arg_tys
-     ; let (_, arg_atats) = unzip elabty_arg_atats
-     ; let atats = foldl mergeAtAtConstraints [] arg_atats
-     ; traceTc "elab atats=" (ppr atats)
-     ; return atats
-     }
-  where
-    isGoodTyArg :: TyCon -> Type -> Bool
-    isGoodTyArg tc (TyConApp tyc _) = not (tc == tyc)
-    isGoodTyArg _ _ = True
+     ; if shouldInc
+       then do { mpred <- getMatchingPredicates ty (tyl ++ uTys) ctxt
+                -- ; sizeof mpred <= sizeof mkTyConApp (mkTyConApp tc tyd) ty
+               ; inst_name <- newFamInstTyConName (L loc atTyTyConName) tyd'
+               ; traceTc "building axiom " (ppr (mkTyConApp tc tyd) <> dcolon <> ppr (tcTypeKind (mkTyConApp tc tyd))
+                                   <+> ppr atTyTyCon
+                                   <+> ppr ty <> dcolon <> ppr (tcTypeKind ty))
+               ; let argK = tcTypeKind ty
+                     f = mkTyConApp tc tyd
+                     fk = tcTypeKind f
+                     resK = piResultTy fk argK
+                     axiom = mkSingleCoAxiom Nominal inst_name tyvarsd' [] [] atTyTyCon
+                               [argK, resK, f, ty] mpred
 
+               ; fam <- newFamInst SynFamilyInst axiom
+               ; traceTc "matching predicates for " (vcat [ ppr fam
+                                                          , ppr mpred
+                                                          , text "new ty: " <> ppr ty <+> text "tys left:" <+> ppr tyl])
+               ; mk_atat_fam' loc (fam:acc) tc uTys (tyd', tyl) (tyvarsd', tyvarsl) ctxt }
+       else mk_atat_fam' loc acc tc uTys (tyd', tyl) (tyvarsd', tyvarsl) ctxt
+     }
+mk_atat_fam' _ acc _ _ _ _ _ = return acc
+     
+-- mk_atat_datacon :: SrcSpan -> TyCon -> DataCon -> TcM ThetaType
+-- mk_atat_datacon loc tycon dc = mk_atat_datacon_except loc tycon [] dc
 
 mk_atat_datacon_except :: SrcSpan -> TyCon -> [TyCon] -> DataCon -> TcM ThetaType
 mk_atat_datacon_except loc tycon skip_tcs dc =
   do { let arg_tys' = dataConOrigArgTys dc
      ; let arg_tys = filter (isGoodTyArg tycon) arg_tys'
      ; traceTc "mk_atat_datacon"
-       (vcat [ text "tycon=" <> ppr tycon
+       (vcat [ text "tycon=" <> ppr tycon <+> ppr (tyConArity tycon)
              , text "tycon bndrs=" <> ppr (tyConVisibleTyVars tycon)
              , text "dc=" <> ppr dc
              , text "arg_tys=" <> (ppr arg_tys)
@@ -2422,21 +2410,7 @@ mk_atat_datacon_except loc tycon skip_tcs dc =
 
 
 mk_atat_fam :: SrcSpan -> TyCon -> TcM [FamInst]
-mk_atat_fam loc tc
-  | isAlgTyCon tc && not (isClassTyCon tc || isFunTyCon tc || isAbstractTyCon tc)
-  -- we don't want class tycons to creep in
-  = do {
-      ; atatss <- mapM (mk_atat_datacon loc tc) dcs
-      ; let atats = foldl mergeAtAtConstraints [] atatss
-      ; mk_atat_fam' loc [] tc univTys ([], tyargs) ([], tyvars) (atats ++ dt_ctx)
-      }
-  | otherwise = return []
-  where
-    dcs = visibleDataCons $ algTyConRhs tc
-    univTys = mkTyVarTys $ concatMap dataConExTyCoVars dcs
-    dt_ctx = tyConStupidTheta tc
-    tyvars = tyConTyVars tc
-    tyargs = mkTyVarTys tyvars
+mk_atat_fam loc tc = mk_atat_fam_except loc tc []
 
 mk_atat_fam_except :: SrcSpan -> TyCon -> [TyCon] -> TcM [FamInst]
 mk_atat_fam_except loc tc skip_tcs
@@ -2445,7 +2419,7 @@ mk_atat_fam_except loc tc skip_tcs
   = do {
       ; atatss <- mapM (mk_atat_datacon_except loc tc skip_tcs) dcs
       ; let atats = foldl mergeAtAtConstraints [] atatss
-      ; mk_atat_fam' loc [] tc univTys ([], tyargs) ([], tyvars) (atats ++ dt_ctx)
+      ; mk_atat_fam' loc [] tc univTys ([], tyargs) ([], tyvars_binder_type) (atats ++ dt_ctx)
       }
   | otherwise = return []
   where
@@ -2453,6 +2427,8 @@ mk_atat_fam_except loc tc skip_tcs
     univTys = mkTyVarTys $ concatMap dataConExTyCoVars dcs
     dt_ctx = tyConStupidTheta tc
     tyvars = tyConTyVars tc
+    binders = tyConBinders tc
+    tyvars_binder_type = zip tyvars (map (\b -> isVisibleTyConBinder b && not (isNamedTyConBinder b)) binders)
     tyargs = mkTyVarTys tyvars
 
 

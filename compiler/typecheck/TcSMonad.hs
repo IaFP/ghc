@@ -3570,9 +3570,9 @@ matchFamTcM tycon args
               = reduceTyFamApp_maybe fam_envs Nominal tycon args
        ; TcM.traceTc "matchFamTcM" $
          vcat [ text "Matching:" <+> ppr (mkTyConApp tycon args)
-              , ppr_res match_fam_result ]
-              -- , ppr (lookupFamInstEnv fam_envs tycon args)
-              -- , ppr (lookupFamInstEnvByTyCon fam_envs tycon) ]
+              , ppr_res match_fam_result
+              , ppr (lookupFamInstEnv fam_envs tycon args)
+              , ppr (lookupFamInstEnvByTyCon fam_envs tycon) ]
        ; return match_fam_result }
   where
     ppr_res Nothing        = text "Match failed"

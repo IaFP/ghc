@@ -1,3 +1,4 @@
+{-# LANGUAGE ExplicitNamespaces, TypeOperators #-}
 module Main where
 
 import System.IO
@@ -12,7 +13,7 @@ import Bag (filterBag,isEmptyBag)
 import System.Directory (removeFile)
 import System.Environment( getArgs )
 import PrelNames
-
+import GHC.Types (type (@@), Total)
 main :: IO()
 main
   = do  [libdir] <- getArgs
@@ -25,7 +26,7 @@ main
                      , IIDecl (simpleImportDecl (mkModuleNameFS (fsLit "System.IO")))]
           runDecls "data X = Y ()"
           execStmt "print True" execOptions
-          gtry $ execStmt "print (Y ())" execOptions :: GhcMonad m => m (Either SomeException ExecResult)
+          gtry $ execStmt "print (Y ())" execOptions :: (Total m, m @@ ExecResult, m @@ Either SomeException ExecResult, GhcMonad m) => m (Either SomeException ExecResult)
           runDecls "data X = Y () deriving Show"
           _ <- dynCompileExpr "'x'"
           execStmt "print (Y ())" execOptions

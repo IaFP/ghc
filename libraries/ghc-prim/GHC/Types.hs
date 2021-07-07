@@ -35,7 +35,7 @@ module GHC.Types (
         Nat, Symbol,
         Any,
         type (~~), Coercible,
-        type (@@), Total, Total2,
+        type (@@), Total, -- Total2,
         TYPE, RuntimeRep(..), Type, Constraint,
           -- The historical type * should ideally be written as
           -- `type *`, without the parentheses. But that's a true
@@ -304,11 +304,8 @@ class Coercible (a :: k) (b :: k)
 
 type family (@@) (t :: k' -> k) (u :: k') :: Constraint
 
-class Total (f:: k' -> k)
+class Total (f :: k' -> k)
 -- Total a = forall a. f @@ a
-
-class Total2 (f :: k'' -> k' -> k)
--- Total2 a = forall a b. (f @@ a, f a @@ b)
 
 {- *********************************************************************
 *                                                                      *

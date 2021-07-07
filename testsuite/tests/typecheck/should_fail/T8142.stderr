@@ -1,6 +1,12 @@
 
 T8142.hs:6:10: error:
-    • Couldn't match type ‘Nu ((,) a0)’ with ‘c -> f c’
+    • Could not deduce: Nu ((,) a0) ~ (c -> f c)
+      from the context: (f @@ c, Coinductive f)
+        bound by the type signature for:
+                   tracer :: forall (f :: * -> *) c.
+                             (f @@ c, Coinductive f, Functor f) =>
+                             (c -> f c) -> c -> f c
+        at T8142.hs:5:1-64
       Expected type: (c -> f c) -> c -> f c
         Actual type: Nu ((,) a0) -> Nu g0
       The type variable ‘a0’ is ambiguous
@@ -14,7 +20,13 @@ T8142.hs:6:10: error:
         tracer :: (c -> f c) -> c -> f c (bound at T8142.hs:6:1)
 
 T8142.hs:6:57: error:
-    • Couldn't match type ‘Nu ((,) a)’ with ‘g (Nu ((,) a))’
+    • Could not deduce: Nu ((,) a) ~ g (Nu ((,) a))
+      from the context: (f @@ c, Coinductive f)
+        bound by the type signature for:
+                   tracer :: forall (f :: * -> *) c.
+                             (f @@ c, Coinductive f, Functor f) =>
+                             (c -> f c) -> c -> f c
+        at T8142.hs:5:1-64
       Expected type: Nu ((,) a) -> (a, g (Nu ((,) a)))
         Actual type: Nu ((,) a) -> (a, Nu ((,) a))
     • In the second argument of ‘(.)’, namely ‘out’

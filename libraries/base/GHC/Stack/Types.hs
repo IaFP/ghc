@@ -5,7 +5,7 @@
 {-# LANGUAGE PolyKinds         #-}
 {-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE Trustworthy       #-}
---{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 {-# OPTIONS_HADDOCK not-home #-}
 -- we hide this module from haddock to enforce GHC.Stack as the main
 -- access point.
@@ -35,6 +35,7 @@ module GHC.Stack.Types (
     -- * Source locations
     SrcLoc(..)
   ) where
+
 
 {-
 Ideally these would live in GHC.Stack but sadly they can't due to this

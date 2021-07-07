@@ -1,19 +1,13 @@
-{-# LANGUAGE DataKinds, PolyKinds, RankNTypes, TypeFamilies #-}
+{-# LANGUAGE DataKinds, PolyKinds, RankNTypes, TypeFamilies, TypeOperators #-}
 
 module Dep1 where
 
 import Data.Kind
-import GHC.Types(Constraint)
+-- import GHC.Types(type (@@))
 
 data Proxy k (a :: k) = P
 
--- Proxy :: forall k. (a :: k) :: *
-type family (@@) (t :: k' -> k) (u :: k') :: Constraint
-
--- type instance Proxy @@ k = ()
-type instance Proxy k @@ a = ()
-
-proxy :: (Proxy Type @@ Int) => Proxy Type Int
+proxy :: Proxy Type Int
 proxy = P
 
 -- y :: Proxy Bool True
@@ -23,13 +17,17 @@ proxy = P
 -- z = P
 
 
-data Wacky k        -- kind
-           (a :: k) -- constrained type
-           k'       -- kind
-           (b ::k') -- constrained type
+data Wacky k        -- kind              -- NamedTCB Required
+           (a :: k) -- constrained type  -- AnnonTCB VisArg
+           k'       -- kind              -- NamedTCB Required
+           (b ::k') -- constrained type  -- AnnonTCB VisArg
   = W
 
--- here a can only have type of kind k and b to have kind k'
+newtype Const   -- {k1}        -- NamedTCB infered
+                -- {k2}        -- NamedTCB infered
+              a -- {a :: k1}   -- AnnonTCB VisArg
+              b -- {b :: k2}   -- AnnonTCB VisArg
+  = Const { getConst :: a }
 
 data N = Z | S N
 

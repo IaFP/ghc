@@ -1,20 +1,23 @@
 
 ==================== Tidy Core ====================
 Result size of Tidy Core
-  = {terms: 98, types: 38, coercions: 5, joins: 0/0}
+  = {terms: 99, types: 59, coercions: 13, joins: 0/0}
 
--- RHS size: {terms: 2, types: 2, coercions: 0, joins: 0/0}
-convert1 :: Wrap Age -> Wrap Age
-[GblId, Arity=1, Caf=NoCafRefs, Unf=OtherCon []]
-convert1 = \ (ds :: Wrap Age) -> ds
+-- RHS size: {terms: 3, types: 9, coercions: 0, joins: 0/0}
+convert1 :: (Wrap @@ Age) => Wrap Age -> Wrap Age
+[GblId, Arity=2, Caf=NoCafRefs, Unf=OtherCon []]
+convert1 = \ _ [Occ=Dead] (ds :: Wrap Age) -> ds
 
--- RHS size: {terms: 1, types: 0, coercions: 5, joins: 0/0}
-convert :: Wrap Age -> Int
-[GblId, Arity=1, Caf=NoCafRefs, Unf=OtherCon []]
+-- RHS size: {terms: 1, types: 0, coercions: 13, joins: 0/0}
+convert :: (Wrap @@ Age) => Wrap Age -> Int
+[GblId, Arity=2, Caf=NoCafRefs, Unf=OtherCon []]
 convert
   = convert1
-    `cast` (<Wrap Age>_R ->_R Roles13.N:Wrap[0] (Roles13.N:Age[0])
-            :: (Wrap Age -> Wrap Age) ~R# (Wrap Age -> Int))
+    `cast` (<Wrap @@ Age>_R
+            ->_R <Wrap Age>_R
+            ->_R Roles13.N:Wrap[0] (Roles13.N:Age[0])
+            :: ((Wrap @@ Age) -> Wrap Age -> Wrap Age)
+               ~R# ((Wrap @@ Age) -> Wrap Age -> Int))
 
 -- RHS size: {terms: 1, types: 0, coercions: 0, joins: 0/0}
 $trModule1 :: GHC.Prim.Addr#

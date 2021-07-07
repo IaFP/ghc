@@ -5,7 +5,5 @@ data Foo a b
 type instance forall (a :: * -> *) k (b :: k). Foo a @@ b
   = () :: Constraint
   	-- Defined at <interactive>:3:1
-type instance Foo a @@ k = () :: Constraint
-  	-- Defined at <interactive>:3:1
 type instance Foo @@ a = () :: Constraint
   	-- Defined at <interactive>:3:1

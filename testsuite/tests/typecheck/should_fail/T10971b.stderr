@@ -16,8 +16,7 @@ T10971b.hs:4:11: error:
         f :: t2 a2 -> Int (bound at T10971b.hs:4:1)
       Probable fix: use a type annotation to specify what ‘t2’ should be.
       These potential instances exist:
-        instance (Either @@ a) => Foldable (Either a)
-          -- Defined in ‘Data.Foldable’
+        instance Foldable (Either a) -- Defined in ‘Data.Foldable’
         instance Foldable Maybe -- Defined in ‘Data.Foldable’
         instance Foldable ((,) a) -- Defined in ‘Data.Foldable’
         ...plus one other
@@ -47,8 +46,7 @@ T10971b.hs:5:13: error:
         g :: (a1 -> b1) -> t1 a1 -> t1 b1 (bound at T10971b.hs:5:1)
       Probable fix: use a type annotation to specify what ‘t1’ should be.
       These potential instances exist:
-        instance (Either @@ a) => Traversable (Either a)
-          -- Defined in ‘Data.Traversable’
+        instance Traversable (Either a) -- Defined in ‘Data.Traversable’
         instance Traversable Maybe -- Defined in ‘Data.Traversable’
         instance Traversable ((,) a) -- Defined in ‘Data.Traversable’
         ...plus one other
@@ -78,8 +76,7 @@ T10971b.hs:6:14: error:
         h :: (a0 -> b0) -> t0 a0 -> (t0 b0, Int) (bound at T10971b.hs:6:1)
       Probable fix: use a type annotation to specify what ‘t0’ should be.
       These potential instances exist:
-        instance (Either @@ a) => Traversable (Either a)
-          -- Defined in ‘Data.Traversable’
+        instance Traversable (Either a) -- Defined in ‘Data.Traversable’
         instance Traversable Maybe -- Defined in ‘Data.Traversable’
         instance Traversable ((,) a) -- Defined in ‘Data.Traversable’
         ...plus one other
@@ -97,8 +94,7 @@ T10971b.hs:6:31: error:
         h :: (a0 -> b0) -> t0 a0 -> (t0 b0, Int) (bound at T10971b.hs:6:1)
       Probable fix: use a type annotation to specify what ‘t0’ should be.
       These potential instances exist:
-        instance (Either @@ a) => Foldable (Either a)
-          -- Defined in ‘Data.Foldable’
+        instance Foldable (Either a) -- Defined in ‘Data.Foldable’
         instance Foldable Maybe -- Defined in ‘Data.Foldable’
         instance Foldable ((,) a) -- Defined in ‘Data.Foldable’
         ...plus one other

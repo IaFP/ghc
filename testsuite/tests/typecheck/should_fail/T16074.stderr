@@ -3,11 +3,11 @@ T16074.hs:10:7: error:
     • Couldn't match type ‘a’ with ‘b’
       ‘a’ is a rigid type variable bound by
         the type signature for:
-          foo :: ((:~:) * @@ *, (:~:) @@ *, (:~:) @@ *) => * :~: *
+          foo :: ((:~:) * @@ *, (:~:) @@ *) => * :~: *
         at T16074.hs:9:1-24
       ‘b’ is a rigid type variable bound by
         the type signature for:
-          foo :: ((:~:) * @@ *, (:~:) @@ *, (:~:) @@ *) => * :~: *
+          foo :: ((:~:) * @@ *, (:~:) @@ *) => * :~: *
         at T16074.hs:9:1-24
       Expected type: TYPE a :~: TYPE b
         Actual type: TYPE a :~: TYPE a

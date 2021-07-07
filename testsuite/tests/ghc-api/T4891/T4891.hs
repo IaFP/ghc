@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, TypeOperators, ExplicitNamespaces #-}
 module Main where
 
 import ByteCodeLink
@@ -23,9 +23,9 @@ import Bag
 import Outputable
 import GhcMonad
 import X
-
+import GHC.Types (Total)
 import System.Environment
-
+import GHC.Types (type (@@))
 main :: IO ()
 main = do [libdir] <- getArgs
           runGhc (Just libdir) doit
@@ -46,7 +46,7 @@ doit = do
   () <- chaseConstructor (unsafeCoerce (4 :->.+ 4))
   return ()
 
-chaseConstructor :: (GhcMonad m) => HValue -> m ()
+chaseConstructor :: (m @@ (), m @@ DynFlags, m @@ Closure, m @@ HscEnv, GhcMonad m) => HValue -> m ()
 chaseConstructor !hv = do
   dflags <- getDynFlags
   liftIO $ putStrLn "====="

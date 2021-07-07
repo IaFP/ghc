@@ -8,7 +8,7 @@ tcfail179.hs:14:41: error:
         at tcfail179.hs:14:14-16
       ‘s’ is a rigid type variable bound by
         the type signature for:
-          run :: forall s. T s -> Int
+          run :: forall s. (T @@ s) => T s -> Int
         at tcfail179.hs:12:1-17
       Expected type: x -> s
         Actual type: s -> s

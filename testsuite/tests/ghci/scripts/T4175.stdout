@@ -57,7 +57,7 @@ instance Foldable Maybe -- Defined in ‘Data.Foldable’
 type instance A (Maybe a) a = a 	-- Defined at T4175.hs:9:15
 type instance Maybe @@ a = () :: Constraint
   	-- Defined in ‘GHC.Maybe’
-type instance forall k1 (a :: k1). Maybe @@ a = () :: Constraint
+type instance Maybe @@ a = () :: Constraint
   	-- Defined in ‘GHC.Base’
 type Int :: *
 data Int = GHC.Types.I# GHC.Prim.Int#

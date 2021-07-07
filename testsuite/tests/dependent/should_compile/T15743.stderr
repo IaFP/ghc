@@ -2,6 +2,15 @@ TYPE CONSTRUCTORS
   data type T{6} ::
     forall {k1} k2 (k3 :: k2). Proxy k3 -> k1 -> k2 -> *
     roles nominal nominal nominal phantom phantom phantom
+FAMILY INSTANCES
+  type instance forall {k1} {k2} {k3 :: k2} {b :: Proxy k3}.
+                  T @@ b = () :: Constraint -- Defined at T15743.hs:7:1
+  type instance forall {k1} {k2} {k3 :: k2} {b :: Proxy k3}
+                       {c :: k1}.
+                  T b @@ c = () :: Constraint -- Defined at T15743.hs:7:1
+  type instance forall {k1} {k2} {k3 :: k2} {b :: Proxy k3} {c :: k1}
+                       {a :: k2}.
+                  T b c @@ a = () :: Constraint -- Defined at T15743.hs:7:1
 Dependent modules: []
 Dependent packages: [base-4.14.0.0, ghc-prim-0.6.1,
-                     integer-gmp-1.0.2.0]
+                     integer-gmp-1.0.3.0]

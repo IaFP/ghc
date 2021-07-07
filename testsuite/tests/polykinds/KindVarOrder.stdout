@@ -1,12 +1,9 @@
 f :: forall k (a :: k) j (b :: j).
-     (() :: Constraint, () :: Constraint, () :: Constraint,
-      () :: Constraint) =>
+     (() :: Constraint, () :: Constraint) =>
      Proxy a -> Proxy b -> ()
 g :: forall j (b :: j) k (a :: Proxy Proxy).
-     (() :: Constraint, () :: Constraint, () :: Constraint,
-      () :: Constraint) =>
+     (() :: Constraint, () :: Constraint) =>
      Proxy b -> Proxy a -> ()
 h :: forall j k (a :: (j, k)) (b :: Proxy a).
-     (() :: Constraint, () :: Constraint, () :: Constraint,
-      () :: Constraint) =>
+     (() :: Constraint, () :: Constraint) =>
      Proxy a -> Proxy b -> ()

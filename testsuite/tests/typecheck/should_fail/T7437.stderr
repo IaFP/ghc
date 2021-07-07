@@ -1,7 +1,7 @@
 
 T7437.hs:14:13: error:
     • The default type signature for put:
-        forall t. (Generic t, GPut (Rep t)) => t -> [()]
+        forall t. (GPut (Rep t), Generic t) => t -> [()]
       does not match its corresponding non-default type signature
     • When checking the class method:
         put :: forall a. Put a => a -> [()]
@@ -9,9 +9,9 @@ T7437.hs:14:13: error:
 
 T7437.hs:14:13: error:
     • Could not deduce (Put a0)
-      from the context: (Put a, Generic t, GPut (Rep t))
+      from the context: (Put a, GPut (Rep t), Generic t)
         bound by the type signature for:
-                   put :: forall a t. (Put a, Generic t, GPut (Rep t)) => t -> [()]
+                   put :: forall a t. (Put a, GPut (Rep t), Generic t) => t -> [()]
         at T7437.hs:14:13-15
       The type variable ‘a0’ is ambiguous
     • In the ambiguity check for ‘put’

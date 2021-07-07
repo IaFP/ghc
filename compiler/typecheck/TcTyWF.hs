@@ -27,7 +27,7 @@ import THNames
 import TcSMonad (matchFamTcM)
 import Outputable
 import Util
-import TcRnMonad (failWithTc)
+import TcRnMonad (failWithTc, traceTc)
 #if __GLASGOW_HASKELL__ >= 810
 import GHC.Types (type (@@))
 #endif
@@ -61,45 +61,7 @@ attachConstraints constraints ty =
 
 -- Generates all the f @@ a constraints
 genAtAtConstraintsTcM :: Type ->  TcM (Type, ThetaType)
-genAtAtConstraintsTcM ty
-  | isLiftedRuntimeRep ty = return (ty, [])
-  -- it  generates (->) @@ a and (a ->) @@ b and recursively generates constraints for a and b
-  -- it is a special case of Type constructor
-  | (FunTy VisArg ty1 ty2) <- ty = do -- atc <- (funAt ty1 ty2)
-      (elab_ty1, atc_ty1) <- (genAtAtConstraintsTcM ty1)
-      (elab_ty2, atc_ty2) <- (genAtAtConstraintsTcM ty2)
-      return $ (FunTy VisArg elab_ty1 elab_ty2, mergeAtAtConstraints atc_ty1 atc_ty2)
-
-    -- for (=>) types ignore the 1st arg as it is a constraint
-  | (FunTy InvisArg constraint ty') <- ty  = do
-      (elab_ty, atc_ty) <- (genAtAtConstraintsTcM ty')
-      return (FunTy InvisArg constraint elab_ty, atc_ty)
-
-  -- for type application we need ty1 @@ ty2
-  | (AppTy ty1 ty2) <- ty = do let atc = [ty1 `at'at` ty2]
-                               (elab_ty1, atc_ty1) <- genAtAtConstraintsTcM ty1
-                               (elab_ty2, atc_ty2) <- genAtAtConstraintsTcM ty2
-                               return $ (AppTy elab_ty1 elab_ty2, mergeAtAtConstraints atc $ mergeAtAtConstraints atc_ty1 atc_ty2)
-
-  -- recursively build @@ constraints for type constructor
-  | (TyConApp tyc tycargs) <- ty = do
-      atc_tycon <- tyConGenAtsTcM [] tyc tycargs
-      elabTys_and_atats <- mapM genAtAtConstraintsTcM tycargs
-      let (elab_tys, atc_args) = unzip elabTys_and_atats
-      return (TyConApp tyc elab_tys, foldl mergeAtAtConstraints atc_tycon atc_args)
-  
-  -- recurse inwards
-  --  (ForAllTy _ ty1) <- ty = do
-  --     let (tvs, _) = splitForAllTys ty
-  --     (elab_ty1, atc_ty1) <- genAtAtConstraintsTcM ty1
-  --     let (_, not_contains_tvs) = partition (predHas tvs) atc_ty1
-  --     let r_ty = attachConstraints atc_ty1 elab_ty1
-  --     return (r_ty, not_contains_tvs) -- genAtAtConstraintsTcM ty'
-
-  | otherwise = return (ty, [])
-
-  -- where predHas :: [TyVar] -> PredType -> Bool
-  --       predHas tvs pred = or [x == y | x <- (getAllPredTyVarArgs pred),  y <- tvs]
+genAtAtConstraintsTcM ty = genAtAtConstraintsExceptTcM [] ty
 
 -- Generates all the f @@ a constraints
 genAtAtConstraints :: (Monad m
@@ -107,43 +69,7 @@ genAtAtConstraints :: (Monad m
                        , m @@ ThetaType, m @@ [(Type, ThetaType)]
 #endif
                       ) => Type ->  m (Type, ThetaType)
-genAtAtConstraints ty
-  | isLiftedRuntimeRep ty = return (ty, [])
-  -- it  generates (->) @@ a and (a ->) @@ b and recursively generates constraints for a and b
-  -- it is a special case of Type constructor
-  | (FunTy VisArg ty1 ty2) <- ty = do -- atc <- (funAt ty1 ty2)
-      (elab_ty1, atc_ty1) <- (genAtAtConstraints ty1)
-      (elab_ty2, atc_ty2) <- (genAtAtConstraints ty2)
-      return $ (FunTy VisArg elab_ty1 elab_ty2, mergeAtAtConstraints atc_ty1 atc_ty2)
-
-    -- for (=>) types ignore the 1st arg as it is a constraint
-  | (FunTy InvisArg constraint ty') <- ty  = do
-      (elab_ty, atc_ty) <- (genAtAtConstraints ty')
-      return (FunTy InvisArg constraint elab_ty, atc_ty)
-
-  -- for type application we need ty1 @@ ty2
-  | (AppTy ty1 ty2) <- ty = do let atc = [ty1 `at'at` ty2]
-                               (elab_ty1, atc_ty1) <- genAtAtConstraints ty1
-                               (elab_ty2, atc_ty2) <- genAtAtConstraints ty2
-                               return $ (AppTy elab_ty1 elab_ty2, mergeAtAtConstraints atc $ mergeAtAtConstraints atc_ty1 atc_ty2)
-
-  -- recursively build @@ constraints for type constructor
-  | (TyConApp tyc tycargs) <- ty = do
-      atc_tycon <- tyConGenAts [] tyc tycargs
-      elabTys_and_atats <- mapM genAtAtConstraints tycargs
-      let (elab_tys, atc_args) = unzip elabTys_and_atats
-      return (TyConApp tyc elab_tys, foldl mergeAtAtConstraints atc_tycon atc_args)
-  
-  -- recurse inwards
-  --  (ForAllTy _ ty1) <- ty = do
-  --     let (tvs, _) = splitForAllTys ty
-  --     (elab_ty1, atc_ty1) <- genAtAtConstraints ty1
-  --     let (_, not_contains_tvs) = partition (predHas tvs) atc_ty1
-  --     let r_ty = attachConstraints atc_ty1 elab_ty1
-  --     return (r_ty, not_contains_tvs) -- genAtAtConstraints ty'
-
-  | otherwise = return (ty, [])
-
+genAtAtConstraints ty = genAtAtConstraintsExcept [] ty
 
 
 -- Generates f @@ a constraints unless tycon passed in appears in LHS
@@ -153,7 +79,7 @@ genAtAtConstraintsExcept :: (Monad m
 #endif
                             ) => [TyCon] -> Type ->  m (Type, ThetaType)
 genAtAtConstraintsExcept tycons ty
-  | isLiftedRuntimeRep ty = return (ty, [])
+  | isLiftedRuntimeRep ty || isLiftedTypeKind ty = return (ty, [])
   -- it  generates (->) @@ a and (a ->) @@ b and recursively generates constraints for a and b
   -- it is a special case of Type constructor
   | (FunTy VisArg ty1 ty2) <- ty = do -- atc <- (funAt ty1 ty2)
@@ -166,26 +92,23 @@ genAtAtConstraintsExcept tycons ty
       (elab_ty, atc_ty) <- (genAtAtConstraintsExcept tycons ty')
       return (FunTy InvisArg constraint elab_ty, atc_ty)
 
+  -- recursively build @@ constraints for type constructor
+  | (TyConApp tyc tycargs) <- ty = do
+      { elabTys_and_atats <- mapM (genAtAtConstraintsExcept (tyc:tycons)) tycargs
+      ; let (elab_tys, atc_args) = unzip elabTys_and_atats
+      ; if any (== tyc) tycons
+        then return (TyConApp tyc elab_tys, foldl mergeAtAtConstraints [] atc_args)
+        else do
+        { atc_tycon <- tyConGenAts tycons tyc tycargs
+        ; return (TyConApp tyc elab_tys, foldl mergeAtAtConstraints atc_tycon atc_args)
+        }
+      }
   -- for type application we need ty1 @@ ty2
   | (AppTy ty1 ty2) <- ty = do let atc = [ty1 `at'at` ty2]
                                (elab_ty1, atc_ty1) <- genAtAtConstraintsExcept tycons ty1
                                (elab_ty2, atc_ty2) <- genAtAtConstraintsExcept tycons ty2
-                               return $ (AppTy elab_ty1 elab_ty2, mergeAtAtConstraints atc $ mergeAtAtConstraints atc_ty1 atc_ty2)
-
-  -- recursively build @@ constraints for type constructor
-  | (TyConApp tyc tycargs) <- ty = do
-      if any (== tyc) tycons
-        then do
-        { elabTys_and_atats <- mapM (genAtAtConstraintsExcept (tyc:tycons)) tycargs
-        ; let (elab_tys, atc_args) = unzip elabTys_and_atats
-        ; return (TyConApp tyc elab_tys, foldl mergeAtAtConstraints [] atc_args)
-        }
-        else do
-        { atc_tycon <- tyConGenAts tycons tyc tycargs
-        ; elabTys_and_atats <- mapM (genAtAtConstraintsExcept (tyc:tycons)) tycargs
-        ; let (elab_tys, atc_args) = unzip elabTys_and_atats
-        ; return (TyConApp tyc elab_tys, foldl mergeAtAtConstraints atc_tycon atc_args)
-        }
+                               return $ (AppTy elab_ty1 elab_ty2, mergeAtAtConstraints atc
+                                          $ mergeAtAtConstraints atc_ty1 atc_ty2)
         
   -- recurse inwards
   --  (ForAllTy _ ty1) <- ty = do
@@ -206,7 +129,7 @@ genAtAtConstraintsExcept tycons ty
 -- Generates f @@ a constraints unless tycon passed in appears in LHS
 genAtAtConstraintsExceptTcM :: [TyCon] -> Type ->  TcM (Type, ThetaType)
 genAtAtConstraintsExceptTcM tycons ty
-  | isLiftedRuntimeRep ty = return (ty, [])
+  | isLiftedRuntimeRep ty || isLiftedTypeKind ty = return (ty, [])
   -- it  generates (->) @@ a and (a ->) @@ b and recursively generates constraints for a and b
   -- it is a special case of Type constructor
   | (FunTy VisArg ty1 ty2) <- ty = do -- atc <- (funAt ty1 ty2)
@@ -219,26 +142,23 @@ genAtAtConstraintsExceptTcM tycons ty
       (elab_ty, atc_ty) <- (genAtAtConstraintsExceptTcM tycons ty')
       return (FunTy InvisArg constraint elab_ty, atc_ty)
 
+  -- recursively build @@ constraints for type constructor
+  | (TyConApp tyc tycargs) <- ty = do
+      { elabTys_and_atats <- mapM (genAtAtConstraintsExceptTcM (tyc:tycons)) tycargs
+      ; let (elab_tys, atc_args) = unzip elabTys_and_atats
+      ; if any (== tyc) tycons
+        then return (TyConApp tyc elab_tys, foldl mergeAtAtConstraints [] atc_args)
+        else do
+        { atc_tycon <- tyConGenAtsTcM tycons tyc tycargs
+        ; return (TyConApp tyc elab_tys, foldl mergeAtAtConstraints atc_tycon atc_args)
+        }
+        }
   -- for type application we need ty1 @@ ty2
   | (AppTy ty1 ty2) <- ty = do let atc = [ty1 `at'at` ty2]
                                (elab_ty1, atc_ty1) <- genAtAtConstraintsExceptTcM tycons ty1
                                (elab_ty2, atc_ty2) <- genAtAtConstraintsExceptTcM tycons ty2
-                               return $ (AppTy elab_ty1 elab_ty2, mergeAtAtConstraints atc $ mergeAtAtConstraints atc_ty1 atc_ty2)
-
-  -- recursively build @@ constraints for type constructor
-  | (TyConApp tyc tycargs) <- ty = do
-      if any (== tyc) tycons
-        then do
-        { elabTys_and_atats <- mapM (genAtAtConstraintsExceptTcM (tyc:tycons)) tycargs
-        ; let (elab_tys, atc_args) = unzip elabTys_and_atats
-        ; return (TyConApp tyc elab_tys, foldl mergeAtAtConstraints [] atc_args)
-        }
-        else do
-        { atc_tycon <- tyConGenAtsTcM tycons tyc tycargs
-        ; elabTys_and_atats <- mapM (genAtAtConstraintsExceptTcM (tyc:tycons)) tycargs
-        ; let (elab_tys, atc_args) = unzip elabTys_and_atats
-        ; return (TyConApp tyc elab_tys, foldl mergeAtAtConstraints atc_tycon atc_args)
-        }
+                               return $ (AppTy elab_ty1 elab_ty2, mergeAtAtConstraints atc
+                                          $ mergeAtAtConstraints atc_ty1 atc_ty2)
         
   -- recurse inwards
   --  (ForAllTy _ ty1) <- ty = do
@@ -264,7 +184,8 @@ tyConGenAtsTcM eTycons tycon args -- TODO isUnliftedType??
     || tycon `hasKey` typeRepTyConKey || tycon `hasKey` typeableClassKey
     || tycon `hasKey` eqTyConKey || tycon `hasKey` heqTyConKey
     || tycon `hasKey` someTypeRepTyConKey || tycon `hasKey` proxyPrimTyConKey
-    || tycon `hasKey` ioTyConKey || (tyConName tycon == ioTyConName) || tycon `hasKey` listTyConKey
+    || tycon `hasKey` ioTyConKey || (tyConName tycon == ioTyConName)
+    || tycon `hasKey` listTyConKey
     || tycon `hasKey` maybeTyConKey || isBoxedTupleTyCon tycon || tycon `hasKey` stablePtrPrimTyConKey
     || tycon `hasKey` stablePtrTyConKey
     || tycon `hasKey` staticPtrTyConKey || (tyConName tycon == staticPtrTyConName)
@@ -274,13 +195,15 @@ tyConGenAtsTcM eTycons tycon args -- TODO isUnliftedType??
     || tycon `hasKey` tExpTyConKey
   = return []
   | isTyConAssoc tycon && not (isNewTyCon tycon)
-  = do { let (args', extra_args) = splitAt (tyConArity tycon) args
-       ; recGenAts tycon extra_args args' []
+  = do { let (args', extra_args) = splitAt (tyConArity tycon) (zip args (tyConBinders tycon))
+       ; recGenAtsTcM' tycon extra_args (map fst args') []
        }
   | isTypeSynonymTyCon tycon = 
       if (args `lengthAtLeast` (tyConArity tycon))
-      then case coreView (TyConApp tycon args) of
-             Just ty   -> do {(_, cs) <- genAtAtConstraintsExceptTcM (tycon: eTycons) ty; return cs}
+      then case tcView (TyConApp tycon args) of
+             Just ty   -> do { (_, cs) <- genAtAtConstraintsExceptTcM eTycons ty
+                             ; traceTc "tyConGenAtsTcM: " (ppr ty)
+                             ; return cs }
              Nothing   -> pprPanic "tyConGenAts" (ppr tycon)
       else failWithTc (tyConArityErr tycon args)
   | isUnboxedTupleTyCon tycon
@@ -294,7 +217,7 @@ tyConGenAtsTcM eTycons tycon args -- TODO isUnliftedType??
        ; return $ foldl mergeAtAtConstraints [] css
        }
   | isTypeFamilyTyCon tycon
-  = do { elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM (tycon:eTycons)) args
+  = do { elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM eTycons) args
        ; let (_, css) = unzip elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
        ; case co_ty_mb of
@@ -305,13 +228,26 @@ tyConGenAtsTcM eTycons tycon args -- TODO isUnliftedType??
              }
        }
     
-  | otherwise = recGenAts tycon args [] []
-  where recGenAts :: TyCon -> [Type] -> [Type] -> [Type] -> TcM ThetaType
-        recGenAts _ [] _ acc = return acc
-        recGenAts tyc (hd : tl) tycargs' acc
-          = do let atc = [(TyConApp tyc (tycargs')) `at'at` hd]
-               -- atc' <- genAtAtConstraints hd
-               recGenAts tyc tl (tycargs' ++ [hd]) (mergeAtAtConstraints acc atc)
+  | otherwise = recGenAtsTcM tycon args
+  where
+    recGenAtsTcM :: Monad m => TyCon -> [Type] -> m ThetaType
+    recGenAtsTcM tc args = recGenAtsTcM' tc arg_binder [] []
+      where
+        binders = tyConBinders tc
+        arg_binder = zip args binders
+
+    recGenAtsTcM' :: Monad m => TyCon
+                             -> [(Type, TyConBinder)] -- remaning 
+                             -> [Type]                -- done
+                             -> ThetaType             -- accumulator
+                             -> m ThetaType
+    recGenAtsTcM' _ [] _ acc = return acc
+    recGenAtsTcM' tyc ((hd, bndr) : tl) tycargs' acc
+          = do { let atc = if (not (isNamedTyConBinder bndr)) && isVisibleTyConBinder bndr
+                           then [(TyConApp tyc (tycargs')) `at'at` hd]
+                           else []
+               ; recGenAtsTcM' tyc tl (tycargs' ++ [hd]) (mergeAtAtConstraints acc atc)
+               }
 
 
 
@@ -329,9 +265,9 @@ tyConGenAts eTycons tycon args -- TODO isUnliftedType??
     || tycon `hasKey` typeRepTyConKey || tycon `hasKey` typeableClassKey
     || tycon `hasKey` eqTyConKey || tycon `hasKey` heqTyConKey
     || tycon `hasKey` someTypeRepTyConKey || tycon `hasKey` proxyPrimTyConKey
-    -- || tycon `hasKey` ioTyConKey || (tyConName tycon == ioTyConName)
-    -- || tycon `hasKey` listTyConKey
-    -- || tycon `hasKey` maybeTyConKey
+    || tycon `hasKey` ioTyConKey || (tyConName tycon == ioTyConName)
+    || tycon `hasKey` listTyConKey
+    || tycon `hasKey` maybeTyConKey
     || isBoxedTupleTyCon tycon || tycon `hasKey` stablePtrPrimTyConKey
     || tycon `hasKey` stablePtrTyConKey
     || tycon `hasKey` staticPtrTyConKey || (tyConName tycon == staticPtrTyConName)
@@ -341,12 +277,12 @@ tyConGenAts eTycons tycon args -- TODO isUnliftedType??
     || tycon `hasKey` tExpTyConKey
   = return []
   | isTyConAssoc tycon && not (isNewTyCon tycon)
-  = do { let (args', extra_args) = splitAt (tyConArity tycon) args
-       ; recGenAts tycon extra_args args' []
+  = do { let (args', extra_args) = splitAt (length (tyConVisibleTyVars tycon)) (zip args (tyConBinders tycon))
+       ; recGenAts' tycon extra_args (map fst args') []
        }
   | isTypeSynonymTyCon tycon =
       case coreView (TyConApp tycon args) of
-        Just ty   -> do {(_, cs) <- genAtAtConstraintsExcept (tycon: eTycons) ty; return cs}
+        Just ty   -> do {(_, cs) <- genAtAtConstraintsExcept eTycons ty; return cs}
         Nothing   -> pprPanic "tyConGenAts" (ppr tycon)
   | isUnboxedTupleTyCon tycon
     || isDataFamilyTyCon tycon
@@ -354,34 +290,48 @@ tyConGenAts eTycons tycon args -- TODO isUnliftedType??
     || isPromotedDataCon tycon
     || isClassTyCon tycon
     || isFunTyCon tycon
-    || isTypeFamilyTyCon tycon
+    || isFamilyTyCon tycon
   = do { elabtys_and_css <- mapM (genAtAtConstraintsExcept (tycon:eTycons)) args
        ; let (_, css) = unzip elabtys_and_css
        ; return $ foldl mergeAtAtConstraints [] css
        }
-  | otherwise = recGenAts tycon args [] []
-  where recGenAts :: Monad m => TyCon -> [Type] -> [Type] -> [Type] -> m ThetaType
-        recGenAts _ [] _ acc = return acc
-        recGenAts tyc (hd : tl) tycargs' acc
-          = do let atc = [(TyConApp tyc (tycargs')) `at'at` hd]
-               -- atc' <- genAtAtConstraints hd
-               recGenAts tyc tl (tycargs' ++ [hd]) (mergeAtAtConstraints acc atc)
+  | otherwise = recGenAts tycon args
+  where
+    recGenAts :: Monad m => TyCon -> [Type] -> m ThetaType
+    recGenAts tc args = recGenAts' tc arg_binder [] []
+      where
+        binders = tyConBinders tc
+        arg_binder = zip args binders
+
+    recGenAts' :: Monad m => TyCon
+                             -> [(Type, TyConBinder)] -- remaning 
+                             -> [Type]                -- done
+                             -> ThetaType             -- accumuator
+                             -> m ThetaType
+    recGenAts' _ [] _ acc = return acc
+    recGenAts' tyc ((hd, bndr) : tl) tycargs' acc
+          = do { let atc = if (not (isNamedTyConBinder bndr)) && isVisibleTyConBinder bndr
+                           then [(TyConApp tyc (tycargs')) `at'at` hd]
+                           else []
+               ; recGenAts' tyc tl (tycargs' ++ [hd]) (mergeAtAtConstraints acc atc)
+               }
 
 
 -- takes in type arguments ty1 ty2 and returns the constraint ty1 @@ ty2
 -- we do have to provide the kinds for ty1 and ty2 so
 -- that the correctly kinded type is instantiated in @@ class
 at'at :: Type -> Type -> PredType
-at'at ty1 ty2 = TyConApp atTyTyCon [k1, k2, ty1, ty2]
-  where k1 = tcTypeKind ty1 -- kind for ty1
-        k2 = tcTypeKind ty2 -- kind for ty2
+at'at f arg = TyConApp atTyTyCon [argk, resk, f, arg]
+  where argk = tcTypeKind arg
+        fk   = tcTypeKind f
+        resk = piResultTy fk argk
 
 -- function is just a special case of type constructor -> with 2 arguments
 -- funAt :: Monad m => Type -> Type -> m ThetaType
 -- funAt ty1 ty2 = tyConGenAts (TysPrim.funTyCon) [ty1, ty2]
   
 
--- Merges only unique constraints
+-- Merges two thetas to a theta with unique constraints
 mergeAtAtConstraints :: ThetaType -> ThetaType ->  ThetaType
 mergeAtAtConstraints c1s c2s = matc [] c1s c2s
   where

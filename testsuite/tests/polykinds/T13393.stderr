@@ -1,27 +1,4 @@
 
-T13393.hs:32:10: error:
-    • Could not deduce (Total m)
-        arising from the superclasses of an instance declaration
-      from the context: (RWST r w s @@ m, RWST r @@ w, RWST @@ r,
-                         RWST r w @@ s, Monoid w, Monad m)
-        bound by the instance declaration at T13393.hs:32:10-59
-    • In the instance declaration for ‘MonadState s (RWST r w s m)’
-
-T13393.hs:35:15: error:
-    • Could not deduce: (f @@ t, f @@ b) arising from a use of ‘fmap’
-      from the context: Functor f
-        bound by the type signature for:
-                   iso :: (s -> a) -> (b -> t) -> Iso s t a b
-        at T13393.hs:35:1-30
-    • In the first argument of ‘(.)’, namely ‘fmap bt’
-      In the expression: fmap bt . x . sa
-      In an equation for ‘iso’: iso sa bt x = fmap bt . x . sa
-    • Relevant bindings include
-        x :: a -> f b (bound at T13393.hs:35:11)
-        bt :: b -> t (bound at T13393.hs:35:8)
-        iso :: (s -> a) -> (b -> t) -> Iso s t a b
-          (bound at T13393.hs:35:1)
-
 T13393.hs:61:3: error:
     • Could not deduce: (t0 @@ b0, t0 @@ EncodeResult,
                          t0 @@ RWST Int () (AacEncSt rate channels codec) IO b0)
@@ -30,7 +7,7 @@ T13393.hs:61:3: error:
                          @@ Either EncodeFailure (Maybe (Audio rate channels (Aac codec))),
                          RWST Int () @@ AacEncSt rate channels codec, RWST @@ Int,
                          RWST Int @@ (), RWST Int () (AacEncSt rate channels codec) @@ IO,
-                         AacEncSt rate channels @@ codec, AacEncSt @@ rate, AacEncSt @@ *,
+                         AacEncSt rate channels @@ codec, AacEncSt @@ rate,
                          AacEncSt rate @@ channels, Aac @@ codec, Audio rate @@ channels,
                          Audio @@ rate, Audio rate channels @@ Aac codec,
                          Either EncodeFailure @@ Maybe (Audio rate channels (Aac codec)),
@@ -46,7 +23,7 @@ T13393.hs:61:3: error:
                                          RWST Int @@ (),
                                          RWST Int () (AacEncSt rate channels codec) @@ IO,
                                          AacEncSt rate channels @@ codec, AacEncSt @@ rate,
-                                         AacEncSt @@ *, AacEncSt rate @@ channels, Aac @@ codec,
+                                         AacEncSt rate @@ channels, Aac @@ codec,
                                          Audio rate @@ channels, Audio @@ rate,
                                          Audio rate channels @@ Aac codec,
                                          Either EncodeFailure
@@ -81,7 +58,7 @@ T13393.hs:61:3: error:
                          @@ Either EncodeFailure (Maybe (Audio rate channels (Aac codec))),
                          RWST Int () @@ AacEncSt rate channels codec, RWST @@ Int,
                          RWST Int @@ (), RWST Int () (AacEncSt rate channels codec) @@ IO,
-                         AacEncSt rate channels @@ codec, AacEncSt @@ rate, AacEncSt @@ *,
+                         AacEncSt rate channels @@ codec, AacEncSt @@ rate,
                          AacEncSt rate @@ channels, Aac @@ codec, Audio rate @@ channels,
                          Audio @@ rate, Audio rate channels @@ Aac codec,
                          Either EncodeFailure @@ Maybe (Audio rate channels (Aac codec)),
@@ -97,7 +74,7 @@ T13393.hs:61:3: error:
                                          RWST Int @@ (),
                                          RWST Int () (AacEncSt rate channels codec) @@ IO,
                                          AacEncSt rate channels @@ codec, AacEncSt @@ rate,
-                                         AacEncSt @@ *, AacEncSt rate @@ channels, Aac @@ codec,
+                                         AacEncSt rate @@ channels, Aac @@ codec,
                                          Audio rate @@ channels, Audio @@ rate,
                                          Audio rate channels @@ Aac codec,
                                          Either EncodeFailure
@@ -114,8 +91,7 @@ T13393.hs:61:3: error:
         at T13393.hs:(58,1)-(59,100)
       The type variable ‘t0’ is ambiguous
       These potential instances exist:
-        instance (Either @@ a) => Traversable (Either a)
-          -- Defined in ‘Data.Traversable’
+        instance Traversable (Either a) -- Defined in ‘Data.Traversable’
         instance Traversable Identity -- Defined in ‘Data.Traversable’
         instance Traversable Maybe -- Defined in ‘Data.Traversable’
         ...plus two others

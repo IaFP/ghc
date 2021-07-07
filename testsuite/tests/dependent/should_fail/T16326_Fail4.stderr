@@ -1,11 +1,41 @@
 
-T16326_Fail4.hs:6:30: error:
-    • Illegal visible, dependent quantification in the type of a term:
-        forall a1 -> Maybe a1 -> Maybe a1 -> Maybe a1
-      (GHC does not yet support this)
-    • In an expression type signature:
-        forall a -> Maybe a -> Maybe a -> Maybe a
-      In the first argument of ‘zipWith’, namely
-        ‘((<>) :: forall a -> Maybe a -> Maybe a -> Maybe a)’
+T16326_Fail4.hs:6:13: error:
+    • Couldn't match expected type ‘Maybe a’
+                  with actual type ‘[Maybe a0]’
+    • In the expression:
+        zipWith ((<>) :: forall a -> Maybe a -> Maybe a -> Maybe a) xs ys
+      In an equation for ‘foo’:
+          foo xs ys
+            = zipWith ((<>) :: forall a -> Maybe a -> Maybe a -> Maybe a) xs ys
+    • Relevant bindings include
+        ys :: Maybe a (bound at T16326_Fail4.hs:6:8)
+        xs :: Maybe a (bound at T16326_Fail4.hs:6:5)
+        foo :: Maybe a -> Maybe a -> Maybe a (bound at T16326_Fail4.hs:6:1)
+
+T16326_Fail4.hs:6:73: error:
+    • Couldn't match expected type ‘[Maybe a0]’
+                  with actual type ‘Maybe a’
+    • In the second argument of ‘zipWith’, namely ‘xs’
       In the expression:
         zipWith ((<>) :: forall a -> Maybe a -> Maybe a -> Maybe a) xs ys
+      In an equation for ‘foo’:
+          foo xs ys
+            = zipWith ((<>) :: forall a -> Maybe a -> Maybe a -> Maybe a) xs ys
+    • Relevant bindings include
+        ys :: Maybe a (bound at T16326_Fail4.hs:6:8)
+        xs :: Maybe a (bound at T16326_Fail4.hs:6:5)
+        foo :: Maybe a -> Maybe a -> Maybe a (bound at T16326_Fail4.hs:6:1)
+
+T16326_Fail4.hs:6:76: error:
+    • Couldn't match expected type ‘[Maybe a0]’
+                  with actual type ‘Maybe a’
+    • In the third argument of ‘zipWith’, namely ‘ys’
+      In the expression:
+        zipWith ((<>) :: forall a -> Maybe a -> Maybe a -> Maybe a) xs ys
+      In an equation for ‘foo’:
+          foo xs ys
+            = zipWith ((<>) :: forall a -> Maybe a -> Maybe a -> Maybe a) xs ys
+    • Relevant bindings include
+        ys :: Maybe a (bound at T16326_Fail4.hs:6:8)
+        xs :: Maybe a (bound at T16326_Fail4.hs:6:5)
+        foo :: Maybe a -> Maybe a -> Maybe a (bound at T16326_Fail4.hs:6:1)

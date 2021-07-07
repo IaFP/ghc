@@ -8,7 +8,8 @@ tcfail068.hs:14:9: error:
       ‘s’ is a rigid type variable bound by
         the type signature for:
           itgen :: forall a s.
-                   Constructed a =>
+                   (STArray s (Int, Int) @@ a, STArray @@ s, STArray s @@ (Int, Int),
+                    Constructed a) =>
                    (Int, Int) -> a -> IndTree s a
         at tcfail068.hs:11:1-55
       Expected type: GHC.ST.ST s1 (IndTree s a)
@@ -31,7 +32,8 @@ tcfail068.hs:19:9: error:
       ‘s’ is a rigid type variable bound by
         the type signature for:
           itiap :: forall a s.
-                   Constructed a =>
+                   (STArray s @@ (Int, Int), STArray @@ s, STArray s (Int, Int) @@ a,
+                    Constructed a) =>
                    (Int, Int) -> (a -> a) -> IndTree s a -> IndTree s a
         at tcfail068.hs:16:1-75
       Expected type: GHC.ST.ST s1 (IndTree s a)
@@ -62,7 +64,8 @@ tcfail068.hs:24:36: error:
       ‘s’ is a rigid type variable bound by
         the type signature for:
           itrap :: forall a s.
-                   Constructed a =>
+                   (STArray s @@ (Int, Int), STArray @@ s, STArray s (Int, Int) @@ a,
+                    Constructed a) =>
                    ((Int, Int), (Int, Int)) -> (a -> a) -> IndTree s a -> IndTree s a
         at tcfail068.hs:23:1-87
       Expected type: GHC.ST.ST s1 (IndTree s a)
@@ -99,7 +102,8 @@ tcfail068.hs:36:46: error:
       ‘s’ is a rigid type variable bound by
         the type signature for:
           itrapstate :: forall b a c s.
-                        Constructed b =>
+                        (STArray s @@ (Int, Int), STArray @@ s, STArray s (Int, Int) @@ b,
+                         Constructed b) =>
                         ((Int, Int), (Int, Int))
                         -> (a -> b -> (a, b))
                         -> ((Int, Int) -> c -> a)

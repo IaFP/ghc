@@ -1,4 +1,6 @@
+{-# LANGUAGE DefaultSignatures #-}
 module WarnMinimal where
+import GHC.Types (type (@@))
 
 class Fine a where
 instance Fine Int
@@ -34,6 +36,8 @@ class Monad' f where
   fmap' :: (a -> b) -> f a -> f b
   join' :: f (f a) -> f a
   bind' :: f a -> (a -> f b) -> f b
+  default bind' :: (f @@ f b) => f a -> (a -> f b) -> f b
+  
   {-# MINIMAL return', (fmap',join' | bind') #-}
   fmap' f x = bind' x (return' . f)
   join' x = bind' x id

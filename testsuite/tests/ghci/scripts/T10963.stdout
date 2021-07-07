@@ -1,4 +1,10 @@
-mapM :: (Traversable t, Monad m) => (a -> m b) -> t a -> m (t b)
-mapM :: Monad m => (a -> m b) -> [a] -> m [b]
-length :: [a] -> Int
+mapM
+  :: (m @@ b, m @@ t b, t @@ b, t @@ a, t @@ m b, Traversable t,
+      Total m, Monad m) =>
+     (a -> m b) -> t a -> m (t b)
+mapM
+  :: (m @@ b, m @@ [b], () :: Constraint, () :: Constraint,
+      () :: Constraint, Total m, Monad m) =>
+     (a -> m b) -> [a] -> m [b]
+length :: (() :: Constraint) => [a] -> Int
 foo :: Double -> Double

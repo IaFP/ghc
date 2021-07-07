@@ -2,8 +2,8 @@
 T7368a.hs:8:6: error:
     • Couldn't match kind ‘*’ with ‘* -> *’
       When matching types
-        f :: * -> *
-        Bad :: (* -> *) -> *
+        w0 :: * -> *
+        Bad f :: *
       Expected type: f (Bad f)
         Actual type: Bad w0
     • In the pattern: Bad x

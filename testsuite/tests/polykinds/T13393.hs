@@ -12,7 +12,7 @@ import Control.Monad.Trans.RWS.Strict (RWST)
 import Data.Functor.Identity (Identity)
 import Data.Kind (Type)
 import Data.Word (Word16)
-
+import GHC.Types(Total, type (@@))
 data Rate
 data Audio (sampleRate :: Rate) (channelLayout :: Type) (encoding :: Type)
 data EncodeResult = MkEncodeResult
@@ -28,8 +28,8 @@ newtype AacEncSt (rate :: Rate) channels (codec :: AacCodec) = MkAacEncSt
 
 -- makeLenses ''AacEncSt
 
-type Iso s t a b = forall p f. (Functor f) => (a -> f b) -> s -> (f t)
-instance (Monad m, Monoid w) => MonadState s (RWST r w s m) where
+type Iso s t a b = forall p f. (Functor f, f @@ b, f @@ t) => (a -> f b) -> s -> (f t)
+instance (Total m, Monad m, Monoid w) => MonadState s (RWST r w s m) where
 
 iso :: (s -> a) -> (b -> t) -> Iso s t a b
 iso sa bt x = fmap bt . x . sa

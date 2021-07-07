@@ -10,12 +10,9 @@ T15067.hs:9:14: error:
                                                           '[ 'GHC.Types.LiftedRep,
                                                              'GHC.Types.LiftedRep]))
       from the context: ((# 'GHC.Types.LiftedRep | Bool #) @@ Int,
-                         (# 'GHC.Types.LiftedRep #) @@ 'GHC.Types.LiftedRep,
-                         (# #) @@ 'GHC.Types.LiftedRep, (# 'GHC.Types.LiftedRep #) @@ Bool)
+                         (# 'GHC.Types.LiftedRep #) @@ Bool)
         bound by the type signature for:
                    floopadoop :: ((# 'GHC.Types.LiftedRep | Bool #) @@ Int,
-                                  (# 'GHC.Types.LiftedRep #) @@ 'GHC.Types.LiftedRep,
-                                  (# #) @@ 'GHC.Types.LiftedRep,
                                   (# 'GHC.Types.LiftedRep #) @@ Bool) =>
                                  TypeRep (# Bool | Int #)
         at T15067.hs:8:1-38

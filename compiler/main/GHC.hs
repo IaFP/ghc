@@ -1155,7 +1155,7 @@ compileToCoreModule :: (GhcMonad m
               , m @@ Maybe HomeModInfo, m @@ HomeModInfo
               , m @@ IORef (NameEnv TyThing), m @@ IORef HomePackageTable
               , m @@ IORef [IO ()], m @@ DynFlags, m @@ (SuccessFlag, ModuleGraph)
-              , m @@ MVar HscEnv, m @@ IORef
+              , m @@ MVar HscEnv
               , m @@ QSem
               , m @@ (CompilationGraph, Maybe [ModSummary])
               , m @@ [Maybe ModSummary], m @@ ExternalPackageState
@@ -1180,7 +1180,7 @@ compileToCoreSimplified :: (GhcMonad m
               , m @@ Maybe HomeModInfo, m @@ HomeModInfo
               , m @@ IORef (NameEnv TyThing), m @@ IORef HomePackageTable
               , m @@ IORef [IO ()], m @@ DynFlags, m @@ (SuccessFlag, ModuleGraph)
-              , m @@ MVar HscEnv, m @@ IORef
+              , m @@ MVar HscEnv
               , m @@ QSem
               , m @@ (CompilationGraph, Maybe [ModSummary])
               , m @@ [Maybe ModSummary], m @@ ExternalPackageState
@@ -1203,7 +1203,7 @@ compileCore :: (GhcMonad m
               , m @@ Maybe HomeModInfo, m @@ HomeModInfo
               , m @@ IORef (NameEnv TyThing), m @@ IORef HomePackageTable
               , m @@ IORef [IO ()], m @@ DynFlags, m @@ (SuccessFlag, ModuleGraph)
-              , m @@ MVar HscEnv, m @@ IORef
+              , m @@ MVar HscEnv
               , m @@ QSem
               , m @@ (CompilationGraph, Maybe [ModSummary])
               , m @@ [Maybe ModSummary], m @@ ExternalPackageState

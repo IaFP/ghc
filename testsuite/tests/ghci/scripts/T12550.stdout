@@ -32,7 +32,7 @@ instance Functor (URec Double) -- Defined in ‘GHC.Generics’
 instance Functor (URec Float) -- Defined in ‘GHC.Generics’
 instance Functor (URec Int) -- Defined in ‘GHC.Generics’
 instance Functor (URec Word) -- Defined in ‘GHC.Generics’
-instance (U1 @@ ★) ⇒ Functor U1 -- Defined in ‘GHC.Generics’
+instance Functor U1 -- Defined in ‘GHC.Generics’
 instance ∀ (f ∷ ★ → ★). Functor f ⇒ Functor (Rec1 f)
   -- Defined in ‘GHC.Generics’
 instance Functor Par1 -- Defined in ‘GHC.Generics’
@@ -51,8 +51,7 @@ instance ∀ (f ∷ ★ → ★) (g ∷ ★ → ★).
          (Functor f, Functor g) ⇒
          Functor (f :*: g)
   -- Defined in ‘GHC.Generics’
-instance ∀ a. (Either @@ a) ⇒ Functor (Either a)
-  -- Defined in ‘Data.Either’
+instance ∀ a. Functor (Either a) -- Defined in ‘Data.Either’
 instance Functor [] -- Defined in ‘GHC.Base’
 instance Functor Maybe -- Defined in ‘GHC.Base’
 instance Functor IO -- Defined in ‘GHC.Base’

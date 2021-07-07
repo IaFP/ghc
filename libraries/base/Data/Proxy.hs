@@ -121,6 +121,8 @@ instance Applicative Proxy where
     {-# INLINE pure #-}
     _ <*> _ = Proxy
     {-# INLINE (<*>) #-}
+    liftA2 _ _ _ = Proxy
+    {-# INLINE liftA2 #-}
 
 -- | @since 4.9.0.0
 instance Alternative Proxy where

@@ -873,10 +873,10 @@ instance Monad f => Monad (Rec1 f) where
 deriving instance MonadPlus f => MonadPlus (Rec1 f)
 
 -- | @since 4.12.0.0
-deriving instance (Semigroup (f p)) => Semigroup (Rec1 f p)
+deriving instance (f @@ p, Semigroup (f p)) => Semigroup (Rec1 f p)
 
 -- | @since 4.12.0.0
-deriving instance (Monoid (f p)) => Monoid (Rec1 f p)
+deriving instance (f @@ p, Monoid (f p)) => Monoid (Rec1 f p)
 
 -- | Constants, additional parameters and recursion of kind @*@
 newtype K1 (i :: Type) c (p :: k) = K1 { unK1 :: c }
@@ -914,10 +914,10 @@ deriving instance Monad f => Monad (M1 i c f)
 deriving instance MonadPlus f => MonadPlus (M1 i c f)
 
 -- | @since 4.12.0.0
-deriving instance (Semigroup (f p)) => Semigroup (M1 i c f p)
+deriving instance (f @@ p, Semigroup (f p)) => Semigroup (M1 i c f p)
 
 -- | @since 4.12.0.0
-deriving instance (Monoid (f p)) => Monoid (M1 i c f p)
+deriving instance (f @@ p, Monoid (f p)) => Monoid (M1 i c f p)
 
 -- | Meta-information (constructor names, etc.)
 newtype M1 (i :: Type) (c :: Meta) (f :: k -> Type) (p :: k) =
@@ -1005,16 +1005,16 @@ instance (Applicative f, Applicative g) => Applicative (f :.: g) where
   liftA2 f (Comp1 x) (Comp1 y) = Comp1 (liftA2 (liftA2 f) x y)
 
 -- | @since 4.9.0.0
-instance (Alternative f, Applicative g) => Alternative (f :.: g) where
+instance (Total f, Total g, Alternative f, Applicative g) => Alternative (f :.: g) where
   empty = Comp1 empty
   (<|>) = coerce ((<|>) :: f (g a) -> f (g a) -> f (g a)) ::
-    forall a . (f @@ g a, g @@ a) => (f :.: g) a -> (f :.: g) a -> (f :.: g) a
+    forall a . (f :.: g) a -> (f :.: g) a -> (f :.: g) a
 
 -- | @since 4.12.0.0
-deriving instance (Semigroup (f (g p))) => Semigroup ((f :.: g) p)
+deriving instance (f @@ g p, g @@ p, Semigroup (f (g p))) => Semigroup ((f :.: g) p)
 
 -- | @since 4.12.0.0
-deriving instance (Monoid (f (g p))) => Monoid ((f :.: g) p)
+deriving instance (g @@ p, f @@ g p, Monoid (f (g p))) => Monoid ((f :.: g) p)
 
 -- | Constants of unlifted kinds
 --
