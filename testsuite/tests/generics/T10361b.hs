@@ -9,7 +9,7 @@
 module T10361b where
 
 import GHC.Generics
-
+import GHC.Types (Total)
 ---------------------------------------------------------------------
 class Convert a where
     type Result a
@@ -17,7 +17,7 @@ class Convert a where
 
     convert :: a -> Result a
     default convert
-            :: (Generic a, GConvert (Rep a), Result a ~ GResult (Rep a))
+            :: (Generic a, GConvert (Rep a), Result a ~ GResult (Rep a), Total (Rep a))
             => a -> Result a
     convert x = gconvert (from x)
 

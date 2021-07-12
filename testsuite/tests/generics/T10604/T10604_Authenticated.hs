@@ -6,12 +6,13 @@
 module T10604_Authenticated where
 
 import GHC.Generics
+import GHC.Types (type (@@))
 
 data AuthParam = Prover | Verifier
 
 class MapAuth f where
     mapAuth :: f 'Prover -> f 'Verifier
-    default mapAuth :: (GMapAuth (Rep1 f), Generic1 f)
+    default mapAuth :: (GMapAuth (Rep1 f), Generic1 f, Rep1 f @@ 'Prover, Rep1 f @@ 'Verifier)
                     => f 'Prover -> f 'Verifier
     mapAuth = to1 . gmapAuth . from1
 

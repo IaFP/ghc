@@ -4,6 +4,7 @@
 module Main where
 
 import GHC.Generics hiding (C, D)
+import GHC.Types (Total)
 
 class GEq' f where
   geq' :: f a -> f a -> Bool
@@ -30,7 +31,7 @@ instance (GEq' a, GEq' b) => GEq' (a :*: b) where
 
 class GEq a where 
   geq :: a -> a -> Bool
-  default geq :: (Generic a, GEq' (Rep a)) => a -> a -> Bool
+  default geq :: (Generic a, GEq' (Rep a), Total (Rep a)) => a -> a -> Bool
   geq x y = geq' (from x) (from y)
 
 

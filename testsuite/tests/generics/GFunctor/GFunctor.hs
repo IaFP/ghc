@@ -9,7 +9,7 @@ module GFunctor (
 
 
 import GHC.Generics
-
+import GHC.Types (type (@@))
 --------------------------------------------------------------------------------
 -- Generic fmap
 --------------------------------------------------------------------------------
@@ -45,7 +45,7 @@ instance (GFunctor f, GFunctor' g) => GFunctor' (f :.: g) where
 
 class GFunctor f where
   gmap :: (a -> b) -> f a -> f b
-  default gmap :: (Generic1 f, GFunctor' (Rep1 f))
+  default gmap :: (Generic1 f, GFunctor' (Rep1 f), Rep1 f @@ b, Rep1 f @@ a)
                => (a -> b) -> f a -> f b
   gmap f = to1 . gmap' f . from1
 

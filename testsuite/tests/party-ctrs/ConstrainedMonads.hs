@@ -139,12 +139,14 @@ type JSCode = String
 type CompM a = State Int a
 
 newVar :: CompM a
-newVar = undefined
+newVar = do s <- get
+            put (s+1)
+            return 
 
 compileJS :: Sunroof a => JS a -> CompM (JSCode, a)
 compileJS (Prompt s) = do
   (decl, v) <- newVar
-  return (concat [decl
+  return (concat [ decl
                  , assignVar v ("prompt(" ++ showJS s ++ ")")], v)
 compileJS (Alert s) =
   return (concat ["alert(", showJS s, ");"], ())
@@ -152,7 +154,7 @@ compileJS (If b ja1 ja2) = do
   (decl, v) <- newVar
   (c1, a1) <- compileJS ja1
   (c2, a2) <- compileJS ja2
-  return (concat [decl
+  return (concat [ decl
                  , "if(", showJS b, ") {"
                  , c1, assignVar v (showJS a1)
                  , "} else {"

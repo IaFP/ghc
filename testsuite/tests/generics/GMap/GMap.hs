@@ -9,14 +9,14 @@ module GMap (
 
 
 import GHC.Generics
-
+import GHC.Types (type (@@))
 --------------------------------------------------------------------------------
 -- Generic map
 --------------------------------------------------------------------------------
 
 class GMap t where
   gmap :: (a -> b) -> t a -> t b
-  default gmap :: (Generic1 t, GMap (Rep1 t)) => (a -> b) -> t a -> t b
+  default gmap :: (Generic1 t, GMap (Rep1 t), Rep1 t @@ a, Rep1 t @@ b) => (a -> b) -> t a -> t b
   gmap f = to1 . gmap f . from1
 
 instance GMap Par1 where gmap f (Par1 x) = Par1 $ f x

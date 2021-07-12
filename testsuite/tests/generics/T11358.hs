@@ -5,7 +5,7 @@
 module Main (main) where
 
 import GHC.Generics
-
+import GHC.Types (Total)
 infixr 1 `T`
 data T a = T a a deriving Generic
 instance HasFixity (T a)
@@ -15,7 +15,7 @@ instance HasFixity (I a)
 
 class HasFixity a where
   fixity :: a -> Fixity
-  default fixity :: (Generic a, GHasFixity (Rep a)) => a -> Fixity
+  default fixity :: (Generic a, GHasFixity (Rep a), Total (Rep a)) => a -> Fixity
   fixity = gfixity . from
 
 class GHasFixity f where

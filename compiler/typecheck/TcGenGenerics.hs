@@ -147,17 +147,17 @@ canDoGenerics :: TyCon -> Validity
 canDoGenerics tc
   = mergeErrors (
           -- Check (b) from Note [Requirements for deriving Generic and Rep].
-              -- (if (not (null (tyConStupidTheta tc)))
-              --   then (NotValid (tc_name <+> text "must not have a datatype context"))
-              --   else IsValid) :
+              (if (not (null (tyConStupidTheta tc)))
+               then (NotValid (tc_name <+> text "must not have a datatype context"))
+               else IsValid) :
           -- See comment below
              (map bad_con (tyConDataCons tc)))
   where
     -- The tc can be a representation tycon. When we want to display it to the
     -- user (in an error message) we should print its parent
-    -- tc_name = ppr $ case tyConFamInst_maybe tc of
-    --     Just (ptc, _) -> ptc
-    --     _             -> tc
+    tc_name = ppr $ case tyConFamInst_maybe tc of
+        Just (ptc, _) -> ptc
+        _             -> tc
 
         -- Check (c) from Note [Requirements for deriving Generic and Rep].
         --

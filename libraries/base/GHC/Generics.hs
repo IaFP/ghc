@@ -764,6 +764,7 @@ data V1 (p :: k)
            , Generic  -- ^ @since 4.9.0.0
            , Generic1 -- ^ @since 4.9.0.0
            )
+instance Total V1
 
 -- | @since 4.12.0.0
 instance Semigroup (V1 p) where
@@ -774,6 +775,7 @@ data U1 (p :: k) = U1
   deriving ( Generic  -- ^ @since 4.7.0.0
            , Generic1 -- ^ @since 4.9.0.0
            )
+instance Total U1
 
 -- | @since 4.9.0.0
 instance Eq (U1 p) where
@@ -888,7 +890,7 @@ newtype K1 (i :: Type) c (p :: k) = K1 { unK1 :: c }
            , Generic  -- ^ @since 4.7.0.0
            , Generic1 -- ^ @since 4.9.0.0
            )
-
+instance Total (K1 i c)
 -- | @since 4.12.0.0
 instance Monoid c => Applicative (K1 i c) where
   pure _ = K1 mempty
@@ -943,7 +945,7 @@ data (:+:) (f :: k -> Type) (g :: k -> Type) (p :: k) = L1 (f p) | R1 (g p)
            , Generic  -- ^ @since 4.7.0.0
            , Generic1 -- ^ @since 4.9.0.0
            )
-
+instance Total (f :+: g)
 -- | Products: encode multiple arguments to constructors
 infixr 6 :*:
 data (:*:) (f :: k -> Type) (g :: k -> Type) (p :: k) = f p :*: g p
@@ -955,6 +957,7 @@ data (:*:) (f :: k -> Type) (g :: k -> Type) (p :: k) = f p :*: g p
            , Generic  -- ^ @since 4.7.0.0
            , Generic1 -- ^ @since 4.9.0.0
            )
+instance Total (f :*: g)
 
 -- | @since 4.9.0.0
 instance (Applicative f, Applicative g) => Applicative (f :*: g) where
@@ -987,7 +990,7 @@ instance (Monoid (f p), Monoid (g p)) => Monoid ((f :*: g) p) where
 
 -- | Composition of functors
 infixr 7 :.:
-newtype {-Total f => -} (:.:) (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) =
+newtype (:.:) (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) =
     Comp1 { unComp1 :: f (g p) }
   deriving ( Eq       -- ^ @since 4.7.0.0
            , Ord      -- ^ @since 4.7.0.0

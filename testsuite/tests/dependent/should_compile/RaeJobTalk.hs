@@ -19,7 +19,7 @@ import Data.Kind
 import Unsafe.Coerce
 import Data.Char
 import Data.Maybe
-
+import GHC.Types (type (@@), Total)
 -------------------------------
 -- Utilities
 
@@ -85,6 +85,9 @@ data TyCon (a :: k) where
   LiftedRep' :: TyCon 'LiftedRep
   -- If extending, add to eqTyCon too
 
+instance Total TyCon
+type instance TyCon @@ a = ()
+
 eqTyCon :: TyCon a -> TyCon b -> Maybe (a :~~: b)
 eqTyCon Int Int = Just HRefl
 eqTyCon Bool Bool = Just HRefl
@@ -104,8 +107,17 @@ type family Primitive (a :: k) :: Constraint where
   Primitive _     = (() :: Constraint)
 
 data TypeRep (a :: k) where
-  TyCon :: forall k (a :: k). (Primitive a, Typeable k) => TyCon a -> TypeRep a
-  TyApp :: TypeRep a -> TypeRep b -> TypeRep (a b)
+  TyCon :: forall k (a :: k). (Primitive a, Typeable k, TypeRep @@ a) => TyCon a -> TypeRep a
+  TyApp :: (TypeRep @@ a, TypeRep @@ b, a @@ b) => TypeRep a -> TypeRep b -> TypeRep (a b)
+
+instance Total TypeRep
+type instance TypeRep @@ String = ()
+type instance TypeRep @@ Int = ()
+type instance TypeRep @@ Bool = ()
+type instance TypeRep @@ Char = ()
+type instance TypeRep @@ Maybe = ()
+type instance TypeRep @@ [Int] = ()
+type instance TypeRep @@ (->) a b = ()
 
 -- Equality on TypeReps
 eqT :: TypeRep a -> TypeRep b -> Maybe (a :~~: b)
@@ -121,7 +133,7 @@ eqT _ _ = Nothing
 -- Existentials
 
 data TyConX where
-  TyConX :: forall k (a :: k). (Primitive a, Typeable k) => TyCon a -> TyConX
+  TyConX :: forall k (a :: k). (Primitive a, Typeable k, TyCon @@ a) => TyCon a -> TyConX
 
 instance Read TyConX where
   readsPrec _ "Int" = [(TyConX Int, "")]
@@ -133,7 +145,7 @@ instance Read TyConX where
 -- constraint on the inner TypeRep
 data SomeTypeRep :: (forall k. k -> Constraint) -> Type where
   SomeTypeRep :: forall k (c :: forall k'. k' -> Constraint) (a :: k).
-              c a => TypeRep a -> SomeTypeRep c
+              (c a, TypeRep @@ a) => TypeRep a -> SomeTypeRep c
 
 -- This constraint is always satisfied
 class ConstTrue (a :: k) -- needs the :: k to make it a specified tyvar
@@ -195,7 +207,7 @@ kindRep (TyApp (f :: TypeRep (tf :: k1 -> k)) _) = case kindRep f :: TypeRep (k1
 
 -- Convert an explicit TypeRep into an implicit one. Doesn't require unsafeCoerce
 -- in Core
-withTypeable :: forall a r. TypeRep a -> (Typeable a => r) -> r
+withTypeable :: forall a r. (TypeRep @@ a) => TypeRep a -> (Typeable a => r) -> r
 withTypeable tr thing = unsafeCoerce (Don'tInstantiate thing :: DI a r) tr
 newtype DI a r = Don'tInstantiate (Typeable a => r)
 
@@ -235,7 +247,7 @@ instance TyConAble a => Typeable' a 'True where
 instance (Typeable a, Typeable b) => Typeable' (a b) 'False where
   typeRep' = TyApp typeRep typeRep
 
-typeRep :: forall a. Typeable a => TypeRep a
+typeRep :: forall a. (Typeable a, TypeRep @@ a) => TypeRep a
 typeRep = typeRep' @_ @(CheckPrim a)
 
 -----------------------------

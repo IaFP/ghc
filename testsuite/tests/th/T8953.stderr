@@ -5,8 +5,13 @@ type instance forall (k_3 :: *)
 type family T8953.Silly :: k_0 -> *
 type instance T8953.Silly = (Data.Proxy.Proxy :: * -> *)
 type instance T8953.Silly = (Data.Proxy.Proxy :: (* -> *) -> *)
-T8953.a :: Data.Proxy.Proxy (Data.Proxy.Proxy :: * -> *)
-T8953.b :: Data.Proxy.Proxy (Data.Proxy.Proxy :: (* -> *) -> *)
+T8953.a :: (GHC.Types.@@) (Data.Proxy.Proxy :: (* -> *) -> *)
+                          (Data.Proxy.Proxy :: * -> *) =>
+           Data.Proxy.Proxy (Data.Proxy.Proxy :: * -> *)
+T8953.b :: (GHC.Types.@@) (Data.Proxy.Proxy :: ((* -> *) -> *) ->
+                                               *)
+                          (Data.Proxy.Proxy :: (* -> *) -> *) =>
+           Data.Proxy.Proxy (Data.Proxy.Proxy :: (* -> *) -> *)
 type T8953.StarProxy (a_0 :: *) = Data.Proxy.Proxy a_0
 class T8953.PC (a_0 :: k_1)
 instance T8953.PC (a_2 :: *)

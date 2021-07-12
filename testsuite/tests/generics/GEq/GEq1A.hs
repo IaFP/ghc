@@ -5,6 +5,7 @@ module GEq1A where
 
 import GHC.Exts
 import GHC.Generics
+import GHC.Types (Total)
 
 class GEq' f where
   geq' :: f a -> f a -> Bool
@@ -44,7 +45,7 @@ instance GEq' UWord where
 
 class GEq a where
   geq :: a -> a -> Bool
-  default geq :: (Generic a, GEq' (Rep a)) => a -> a -> Bool
+  default geq :: (Generic a, GEq' (Rep a), Total (Rep a)) => a -> a -> Bool
   geq x y = geq' (from x) (from y)
 
 -- Base types instances (ad-hoc)

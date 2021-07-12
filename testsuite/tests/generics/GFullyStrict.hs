@@ -5,10 +5,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 module Main where
 
 import Data.Proxy (Proxy(..))
 import GHC.Generics
+import GHC.Types (Total)
 
 main :: IO ()
 main = do
@@ -23,10 +25,10 @@ instance FullyStrict a => FullyStrict (Maybe a)
 
 class FullyStrict a where
   fullyStrict :: proxy a -> Bool
-  default fullyStrict :: (GFullyStrict (Rep a)) => proxy a -> Bool
+  default fullyStrict :: (GFullyStrict (Rep a), Total (Rep a)) => proxy a -> Bool
   fullyStrict _ = gfullyStrict (Proxy :: Proxy (Rep a p))
 
-class GFullyStrict f where
+class Total f => GFullyStrict f where
   gfullyStrict :: proxy (f p) -> Bool
 
 instance GFullyStrict V1 where

@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveFoldable, GADTs, StandaloneDeriving #-}
 module Main where
+import GHC.Types (type (@@), Total)
 
 class (a ~ Int) => Foo a
 instance Foo Int
@@ -19,7 +20,7 @@ data HK f a where
   HK1 :: f a -> HK f (f a)
   HK2 :: f a -> HK f a
 
-deriving instance Foldable f => Foldable (HK f)
+deriving instance (Total f, Foldable f) => Foldable (HK f)
 
 one :: Int
 one = 1

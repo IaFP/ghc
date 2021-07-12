@@ -9,7 +9,7 @@ module Enum where
 
 
 import GHC.Generics
-
+import GHC.Types(Total)
 
 -----------------------------------------------------------------------------
 -- Utility functions for Enum'
@@ -73,13 +73,13 @@ instance (GEnum a) => GEnum (Maybe a)
 instance (GEnum a) => GEnum [a]
 
 
-genumDefault :: (Generic a, Enum' (Rep a)) => [a]
+genumDefault :: (Generic a, Enum' (Rep a), Total (Rep a)) => [a]
 genumDefault = map to enum'
 
 class GEnum a where
   genum :: [a]
 
-  default genum :: (Generic a, Enum' (Rep a)) => [a]
+  default genum :: (Generic a, Enum' (Rep a), Total (Rep a)) => [a]
   genum = genumDefault
 
 instance GEnum Int where

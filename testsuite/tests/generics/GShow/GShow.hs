@@ -14,7 +14,7 @@ module GShow (
 
 import GHC.Exts
 import GHC.Generics
-
+import GHC.Types (Total)
 --------------------------------------------------------------------------------
 -- Generic show
 --------------------------------------------------------------------------------
@@ -104,7 +104,7 @@ instance GShow' UWord where
 
 class GShow a where
   gshowsPrec :: Int -> a -> ShowS
-  default gshowsPrec :: (Generic a, GShow' (Rep a)) => Int -> a -> ShowS
+  default gshowsPrec :: (Generic a, GShow' (Rep a), Total (Rep a)) => Int -> a -> ShowS
   gshowsPrec n = gshowsPrec' Pref n . from
 
   gshows :: a -> ShowS

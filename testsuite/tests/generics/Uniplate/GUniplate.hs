@@ -10,7 +10,7 @@
 module GUniplate where
 
 import GHC.Generics
-
+import GHC.Types (Total)
 --------------------------------------------------------------------------------
 -- Generic Uniplate
 --------------------------------------------------------------------------------
@@ -41,7 +41,7 @@ instance (Uniplate' f b, Uniplate' g b) => Uniplate' (f :*: g) b where
 
 class Uniplate a where 
   children :: a -> [a]
-  default children :: (Generic a, Uniplate' (Rep a) a) => a -> [a]
+  default children :: (Generic a, Uniplate' (Rep a) a, Total (Rep a)) => a -> [a]
   children = children' . from
 
 

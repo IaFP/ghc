@@ -1,8 +1,8 @@
 
 ==================== Derived instances ====================
 Derived class instances:
-  instance (GHC.Base.Applicative f, GHC.Base.Applicative g,
-            GHC.Base.Semigroup a) =>
+  instance (g @@ a, f @@ g a, GHC.Base.Applicative f,
+            GHC.Base.Applicative g, GHC.Base.Semigroup a) =>
            GHC.Base.Semigroup (T14578.Wat f g a) where
     (GHC.Base.<>)
       = GHC.Prim.coerce
@@ -20,6 +20,7 @@ Derived class instances:
           @(GHC.Base.NonEmpty (T14578.Wat f g a) -> T14578.Wat f g a)
           (GHC.Base.sconcat
              @(T14578.App (Data.Functor.Compose.Compose f g) a)) ::
+          (@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) GHC.Base.NonEmpty (T14578.Wat f g a) =>
           GHC.Base.NonEmpty (T14578.Wat f g a) -> T14578.Wat f g a
     GHC.Base.stimes
       = GHC.Prim.coerce
@@ -41,14 +42,17 @@ Derived class instances:
           (GHC.Base.fmap @f) ::
           forall (a :: TYPE GHC.Types.LiftedRep)
                  (b :: TYPE GHC.Types.LiftedRep).
+          ((@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) b,
+           (@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) a) =>
           (a -> b) -> T14578.App f a -> T14578.App f b
     (GHC.Base.<$)
       = GHC.Prim.coerce
-          @(a -> f b -> f a)
-          @(a -> T14578.App f b -> T14578.App f a)
+          @(a -> f b -> f a) @(a -> T14578.App f b -> T14578.App f a)
           ((GHC.Base.<$) @f) ::
           forall (a :: TYPE GHC.Types.LiftedRep)
                  (b :: TYPE GHC.Types.LiftedRep).
+          ((@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) a,
+           (@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) b) =>
           a -> T14578.App f b -> T14578.App f a
   
   instance GHC.Base.Applicative f =>
@@ -56,7 +60,9 @@ Derived class instances:
     GHC.Base.pure
       = GHC.Prim.coerce
           @(a -> f a) @(a -> T14578.App f a) (GHC.Base.pure @f) ::
-          forall (a :: TYPE GHC.Types.LiftedRep). a -> T14578.App f a
+          forall (a :: TYPE GHC.Types.LiftedRep).
+          (@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) a =>
+          a -> T14578.App f a
     (GHC.Base.<*>)
       = GHC.Prim.coerce
           @(f (a -> b) -> f a -> f b)
@@ -64,6 +70,10 @@ Derived class instances:
           ((GHC.Base.<*>) @f) ::
           forall (a :: TYPE GHC.Types.LiftedRep)
                  (b :: TYPE GHC.Types.LiftedRep).
+          ((@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) (a
+                                                                                        -> b),
+           (@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) b,
+           (@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) a) =>
           T14578.App f (a -> b) -> T14578.App f a -> T14578.App f b
     GHC.Base.liftA2
       = GHC.Prim.coerce
@@ -74,22 +84,33 @@ Derived class instances:
           forall (a :: TYPE GHC.Types.LiftedRep)
                  (b :: TYPE GHC.Types.LiftedRep)
                  (c :: TYPE GHC.Types.LiftedRep).
+          ((@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) b,
+           (@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) c,
+           (@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) a) =>
           (a -> b -> c) -> T14578.App f a -> T14578.App f b -> T14578.App f c
     (GHC.Base.*>)
       = GHC.Prim.coerce
           @(f a -> f b -> f b)
           @(T14578.App f a -> T14578.App f b -> T14578.App f b)
           ((GHC.Base.*>) @f) ::
-          forall (a :: TYPE GHC.Types.LiftedRep)
-                 (b :: TYPE GHC.Types.LiftedRep).
+          forall (b :: TYPE GHC.Types.LiftedRep)
+                 (a :: TYPE GHC.Types.LiftedRep).
+          ((@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) a,
+           (@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) b,
+           (@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) (b
+                                                                                        -> b)) =>
           T14578.App f a -> T14578.App f b -> T14578.App f b
     (GHC.Base.<*)
       = GHC.Prim.coerce
           @(f a -> f b -> f a)
           @(T14578.App f a -> T14578.App f b -> T14578.App f a)
           ((GHC.Base.<*) @f) ::
-          forall (a :: TYPE GHC.Types.LiftedRep)
-                 (b :: TYPE GHC.Types.LiftedRep).
+          forall (b :: TYPE GHC.Types.LiftedRep)
+                 (a :: TYPE GHC.Types.LiftedRep).
+          ((@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) a,
+           (@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) b,
+           (@@) @(TYPE GHC.Types.LiftedRep) @(TYPE GHC.Types.LiftedRep) (T14578.App f) (b
+                                                                                        -> a)) =>
           T14578.App f a -> T14578.App f b -> T14578.App f a
   
 

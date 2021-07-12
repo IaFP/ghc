@@ -19,7 +19,9 @@ module Main where
 -- import qualified Data.Array.Unboxed as UA
 -- import qualified BST as B
 
-import FAlgebra
+-- import FAlgebra
+import ConstrainedMonads
+
 -- set1 = fromList [1,2,3,4]
 -- set2 = fromList ['a', 'b', 'c', 'd']
 
@@ -58,11 +60,15 @@ main :: IO ()
 -- putStrLn "Thats all folks!"
 
 main = do
+  let s1 = fromList [1,2]
+  let ps = do a <- s1
+              return (a, show a)
+  putStrLn $ show ps
   -- putStrLn "Starting"
   -- putStrLn $ show (setPair set1 set2)
   -- putStrLn $ show (arr_int')
   -- putStrLn $ show (UA.bounds arr_int'')
   -- putStrLn $ show (fmap show arr_int')
   -- putStrLn $ "FAlgebra"
-  putStrLn $ v2 ++ "~>" ++ show v1
-  putStrLn $ show v3
+  -- putStrLn $ v2 ++ "~>" ++ show v1
+  -- putStrLn $ show v3
