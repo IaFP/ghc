@@ -13,16 +13,17 @@ import Control.Applicative
 import Data.Functor.Compose
 import Data.Proxy
 import Data.Semigroup
+import GHC.Types (type (@@))
 
 newtype App (f :: Type -> Type) a = App (f a)
   deriving newtype
     (Functor, Applicative)
 
-instance (Applicative f, Semigroup a) => Semigroup (App f a) where
+instance (f @@ a, Applicative f, Semigroup a) => Semigroup (App f a) where
   (<>) = liftA2 (<>)
 
 deriving via (App (Compose (f :: Type -> Type) g) a)
-         instance (Applicative f, Applicative g, Semigroup a)
+         instance (g @@ a, f @@ g a, Applicative f, Applicative g, Semigroup a)
                => Semigroup (Compose f g a)
 
 class C (a :: k -> Type)

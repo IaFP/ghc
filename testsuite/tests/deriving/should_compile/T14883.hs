@@ -12,6 +12,7 @@ module T14883 where
 
 import Data.Coerce
 import Data.Kind
+import GHC.Types (Total)
 
 type Representational1 m = (forall a b. Coercible a b => Coercible (m a) (m b) :: Constraint)
 
@@ -26,5 +27,5 @@ class Functor' t => Traversable' t where
   traverse' :: Applicative' f => (a -> f b) -> t a -> f (t b)
 
 -- Typechecks
-newtype T1 m a = MkT1 (m a) deriving Functor'
-deriving instance Traversable' m => Traversable' (T1 m)
+newtype (Total m) => T1 m a = MkT1 (m a) deriving Functor'
+deriving instance (Total m, Traversable' m) => Traversable' (T1 m)

@@ -7,10 +7,11 @@
 module T13272a where
 
 import GHC.Generics
+import GHC.Types (Total)
 
 class TypeName a where
   typeName         :: proxy a -> String
-  default typeName :: (Generic a, Rep a ~ gg, gg ~ D1 d f, Datatype d)
+  default typeName :: (Generic a, Rep a ~ gg, gg ~ D1 d f, Datatype d, Total f)
                    => proxy a -> String
   typeName _ = gtypeName $ from (undefined :: a)
 

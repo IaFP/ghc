@@ -13,7 +13,7 @@ module T13758 where
 import Data.Coerce
 import GHC.Generics
 import Data.Semigroup
-
+import GHC.Types (Total)
 -----
 
 class Monoid' f where
@@ -36,20 +36,20 @@ instance (Monoid' f, Monoid' h) => Monoid' (f :*: h) where
   mempty' = mempty' :*: mempty'
   mappend' (x1 :*: y1) (x2 :*: y2) = mappend' x1 x2 :*: mappend' y1 y2
 
-memptydefault :: (Generic a, Monoid' (Rep a)) => a
+memptydefault :: (Generic a, Monoid' (Rep a), Total (Rep a)) => a
 memptydefault = to mempty'
 
-mappenddefault :: (Generic a, Monoid' (Rep a)) => a -> a -> a
+mappenddefault :: (Generic a, Monoid' (Rep a), Total (Rep a)) => a -> a -> a
 mappenddefault x y = to (mappend' (from x) (from y))
 
 -----
 
 newtype GenericMonoid a = GenericMonoid a
 
-instance (Generic a, Monoid' (Rep a)) => Semigroup (GenericMonoid a) where
+instance (Generic a, Monoid' (Rep a), Total (Rep a)) => Semigroup (GenericMonoid a) where
   (<>) = coerce (mappenddefault :: a -> a -> a)
 
-instance (Generic a, Monoid' (Rep a)) => Monoid (GenericMonoid a) where
+instance (Generic a, Monoid' (Rep a), Total (Rep a)) => Monoid (GenericMonoid a) where
   mempty  = coerce (memptydefault  :: a)
   mappend = coerce (mappenddefault :: a -> a -> a)
 

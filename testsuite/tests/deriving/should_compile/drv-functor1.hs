@@ -5,7 +5,7 @@
 {-# LANGUAGE DatatypeContexts #-}
 
 module ShouldCompile where
-
+import GHC.Types (Total)
 data Trivial a = Trivial
    deriving (Functor)
 
@@ -46,7 +46,7 @@ data ComplexConstraint f a = ComplexConstraint (f Int (f Bool a,a))
 
 data Universal a
     = Universal  (forall b. (b,[a]))
-    | Universal2 (forall f. Functor f => (f a))
+    | Universal2 (forall f. (Functor f, Total f) => (f a))
     | Universal3 (forall a. a -> Int) -- reuse a
     | NotReallyUniversal (forall b. a)
   deriving (Functor)

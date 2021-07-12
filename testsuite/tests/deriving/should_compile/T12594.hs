@@ -7,7 +7,7 @@
 module T12594 where
 
 import GHC.Generics
-
+import GHC.Types(Total)
 data Action = Action
 
 class ToField a where
@@ -19,7 +19,7 @@ instance ToField Int where
 
 class ToRow a where
     toRow :: a -> [Action]
-    default toRow :: (Generic a, GToRow (Rep a)) => a -> [Action]
+    default toRow :: (Generic a, GToRow (Rep a), Total (Rep a)) => a -> [Action]
     toRow = gtoRow . from
 
 class GToRow f where
