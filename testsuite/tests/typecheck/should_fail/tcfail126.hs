@@ -10,6 +10,7 @@
 -- 3 Sept 2010: with the new typechecker, this one succeeds
 
 module Foo  where
+import GHC.Types (type (@@), Total)
 
 import Control.Monad.Trans
 

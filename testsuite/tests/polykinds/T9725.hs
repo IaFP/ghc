@@ -1,12 +1,15 @@
-{-# LANGUAGE GADTs, DataKinds, KindSignatures, PolyKinds, FlexibleContexts, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE GADTs, DataKinds, KindSignatures, PolyKinds, FlexibleContexts, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
 module T9725 where
 
 import Data.Kind (Type)
+import GHC.Types (type (@@))
 
 data En = M Bool
 class Kn (l :: En)
 
 instance Kn (M b)
+
+type instance 'M @@ a = ()
 
 data Fac :: En -> Type where
   Mo :: Kn (M b) => Fac (M b)

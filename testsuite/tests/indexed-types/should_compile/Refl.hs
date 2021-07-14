@@ -3,13 +3,14 @@
 module Refl where
 
 import Data.Kind (Type)
+import GHC.Types (type (@@))
 
 type family T a :: Type -> Type
 
 foo :: a x -> a y
 foo = undefined
 
-bar :: a -> T a x -> T a y
+bar :: (T a @@ x, T a @@ y) => a -> T a x -> T a y
 bar x t = foo t
 
 {- GHC complains that it could not deduce (T a x ~ T a x) where problem is

@@ -43,6 +43,7 @@ typeRepFingerprint :: TypeRep a -> Fingerprint
 typeRepFingerprint = undefined
 
 mkTrApp :: forall k1 k2 (a :: k1 -> k2) (b :: k1).
+           (TypeRep @@ a, TypeRep @@ b, TypeRep @@ (a b)) => 
            TypeRep (a :: k1 -> k2)
         -> TypeRep (b :: k1)
         -> TypeRep (a b)

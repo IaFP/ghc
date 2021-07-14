@@ -15,3 +15,4 @@ instance Functor (k (s, w)) => Functor (FocusingPlus w k s) where
 instance Applicative (k (s, w)) => Applicative (FocusingPlus w k s) where
   pure = FocusingPlus . pure
   FocusingPlus kf <*> FocusingPlus ka = FocusingPlus (kf <*> ka)
+  liftA2 f (FocusingPlus ka) (FocusingPlus kb) = FocusingPlus (liftA2 f ka kb)

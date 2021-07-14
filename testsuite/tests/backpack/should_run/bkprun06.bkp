@@ -1,4 +1,6 @@
 {-# LANGUAGE RoleAnnotations #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+
 unit sigs where
     signature Map where
         import Data.Typeable
@@ -8,12 +10,13 @@ unit sigs where
         import Data.Monoid
         import Control.DeepSeq
         import Control.Applicative
-
+	import GHC.Types (type (@@))
         infixl 9 !,\\
 
         type role Map nominal representational
         data Map k a
-
+	type Map @@ k = ()
+	type Map k @@ a = ()
         instance Functor (Map k)
         instance Foldable (Map k)
         instance Traversable (Map k)
@@ -131,9 +134,11 @@ unit sigs where
 
     signature MapAsSet where
         import Data.Set
-
+	import GHC.Types (type (@@))
         type role Map nominal representational
         data Map k a
+	instance Map @@ k = ()
+	instance Map k @@ a = ()
         instance Functor (Map k)
 
         keysSet :: Map k a -> Set k

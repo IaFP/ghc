@@ -1,12 +1,13 @@
-{-# LANGUAGE TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies, FlexibleContexts, QuantifiedConstraints #-}
 
 -- #3590: a bug in typechecking of sections
 
 module T3590 where
 
 import Data.Kind (Type)
+import GHC.Types (type (@@))
 
-newtype ListT m a =
+newtype (m @@ ListT m a) => ListT m a =
   ListT { runListT :: m (Maybe (a, ListT m a)) }
 
 class Monad (ItemM l) => List l where

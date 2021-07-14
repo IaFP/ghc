@@ -194,19 +194,24 @@ tyConGenAtsTcM eTycons tycon args -- TODO isUnliftedType??
     || tycon `hasKey` qTyConKey || tyConName tycon == qTyConName
     || tycon `hasKey` tExpTyConKey
   = return []
-  | isTyConAssoc tycon && not (isNewTyCon tycon)
-  = do { let (args', extra_args) = splitAt (tyConArity tycon) (zip args (tyConBinders tycon))
-       ; recGenAtsTcM' tycon extra_args (map fst args') []
-       }
   | isTypeSynonymTyCon tycon = 
       if (args `lengthAtLeast` (tyConArity tycon))
-      then case tcView (TyConApp tycon args) of
+      then case coreView (TyConApp tycon args) of
              Just ty   -> do { (_, cs) <- genAtAtConstraintsExceptTcM eTycons ty
-                             ; traceTc "tyConGenAtsTcM: " (ppr ty)
+                             ; traceTc "tysyn tyConGenAtsTcM: " (ppr ty)
                              ; return cs }
-             Nothing   -> pprPanic "tyConGenAts" (ppr tycon)
+             Nothing   -> pprPanic "tysyn tyConGenAts" (ppr tycon)
       else failWithTc (tyConArityErr tycon args)
+  | isTyConAssoc tycon -- && not (isNewTyCon tycon)
+  = do { let (args', extra_args) = splitAt (tyConArity tycon) (zip args (tyConBinders tycon))
+       ; traceTc "tyconassoc tyConGensAtsTcM: " (text "TyCon " <> ppr tycon
+                                                 <+> ppr (tyConArity tycon)
+                                                 <+> text "args " <> ppr args'
+                                                 <+> text "extra_args " <> ppr extra_args)
+       ; recGenAtsTcM' tycon extra_args (map fst args') []
+       }
   | isUnboxedTupleTyCon tycon
+    || isUnboxedSumTyCon tycon
     || isDataFamilyTyCon tycon
     || isPrimTyCon tycon
     || isPromotedDataCon tycon
@@ -281,9 +286,17 @@ tyConGenAts eTycons tycon args -- TODO isUnliftedType??
        ; recGenAts' tycon extra_args (map fst args') []
        }
   | isTypeSynonymTyCon tycon =
-      case coreView (TyConApp tycon args) of
-        Just ty   -> do {(_, cs) <- genAtAtConstraintsExcept eTycons ty; return cs}
-        Nothing   -> pprPanic "tyConGenAts" (ppr tycon)
+      if (args `lengthAtLeast` (tyConArity tycon))
+      then case coreView (TyConApp tycon args) of
+             Just ty   -> do { (_, cs) <- genAtAtConstraintsExcept eTycons ty
+                             -- ; traceTc "tysyn tyConGenAts: " (ppr ty)
+                             ; return cs }
+             Nothing   -> pprPanic "tysyn tyConGenAts" (ppr tycon)
+      else pprPanic "tysyn tyConGenAts" (ppr tycon)
+      
+      -- case coreView (TyConApp tycon args) of
+      --   Just ty   -> do {(_, cs) <- genAtAtConstraintsExcept eTycons ty; return cs}
+      --   Nothing   -> pprPanic "tyConGenAts" (ppr tycon)
   | isUnboxedTupleTyCon tycon
     || isDataFamilyTyCon tycon
     || isPrimTyCon tycon

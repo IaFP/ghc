@@ -4,15 +4,15 @@ module T11339c where
 
 import Control.Applicative ( Const(Const, getConst) )
 import Data.Functor.Identity ( Identity(Identity) )
-
-type Traversal s t a b = forall f. Applicative f => (a -> f b) -> s -> f t
+import GHC.Types (Total)
+type Traversal s t a b = forall f. (Applicative f, Total f) => (a -> f b) -> s -> f t
 
 failing :: forall s t a b . Traversal s t a b -> Traversal s t a b -> Traversal s t a b
 failing left right afb s = case pins t of
   [] -> right afb s
   _  -> t afb
   where
-    t :: Applicative f => (a -> f b) -> f t
+    t :: (Total f, Applicative f) => (a -> f b) -> f t
     -- Works because of MonoLocalBinds
     Bazaar { getBazaar = t } = left sell s
 
@@ -22,7 +22,8 @@ failing left right afb s = case pins t of
     pins :: ((a -> Const [Identity a] b) -> Const [Identity a] t) -> [Identity a]
     pins f   = getConst (f (\ra -> Const [Identity ra]))
 
-newtype Bazaar a b t = Bazaar { getBazaar :: (forall f. Applicative f => (a -> f b) -> f t) }
+newtype Bazaar a b t = Bazaar { getBazaar :: (forall f. (Total f, Applicative f) => (a -> f b) -> f t) }
+instance Total (Bazaar a b)
 
 instance Functor (Bazaar a b) where
   fmap f (Bazaar k) = Bazaar (fmap f . k)

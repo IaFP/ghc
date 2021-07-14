@@ -2,6 +2,7 @@
 module T4185 where
 
 import Data.Kind (Type)
+import GHC.Types (type (@@), Constraint)
 
 data family Foo k :: Type -> Type
 
@@ -15,6 +16,7 @@ instance Bar Maybe where
         bar Just{} = 1
         woo x = x
 
+type instance Foo Int @@ a = ()
 -- Deriving clause
 newtype instance Foo Int a = FooInt (Maybe a) deriving (Bar)
 

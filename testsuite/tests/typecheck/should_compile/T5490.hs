@@ -14,6 +14,7 @@ module Bug (await, bug) where
 import Data.Typeable
 import Data.Functor
 import Control.Exception
+import GHC.Types (Total, type (@@))
 
 data Attempt α = Success α
                | ∀ e . Exception e ⇒ Failure e 
@@ -22,18 +23,20 @@ fromAttempt ∷ Attempt α → IO α
 fromAttempt (Success a) = return a
 fromAttempt (Failure e) = throwIO e
 
-data Inject f α = ∀ β . Inject (f β) (α → β)
+data Total f ⇒ Inject f α = ∀ β . Inject (f β) (α → β)
+instance Total (Inject f)
 
 class Completable f where
   complete ∷ f α → α → IO Bool
 
-instance Completable f ⇒ Completable (Inject f) where
+instance (Total f, Completable f) ⇒ Completable (Inject f) where
   complete (Inject f inj) = complete f . inj
 
 class Awaitable f where
   awaitResult ∷ f α → IO α
 
 data FakeFuture α = FakeFuture
+instance Total FakeFuture
 
 instance Completable FakeFuture where
   complete _ _ = undefined
@@ -43,7 +46,7 @@ instance Awaitable FakeFuture where
 
 class WaitOp op where
   type WaitOpResult op
-  registerWaitOp ∷ Completable f
+  registerWaitOp ∷ (Total f, Completable f)
                  ⇒ op → f (Attempt (WaitOpResult op)) → IO Bool
 
 await ∷ WaitOp op ⇒ op → IO (WaitOpResult op)
@@ -58,12 +61,11 @@ instance WaitOp (FakeOp α) where
   type WaitOpResult (FakeOp α) = α
   registerWaitOp _ _ = return True
 
-data WaitOps rs where
+data HNonEmpty rs ⇒ WaitOps rs where
   WaitOp ∷ WaitOp op ⇒ op → WaitOps (HSingle (WaitOpResult op))
-  (:?)   ∷ (WaitOp op, HNonEmpty rs)
-         ⇒ op → WaitOps rs → WaitOps (WaitOpResult op :* rs)
+  (:?)   ∷ WaitOp op ⇒ op → WaitOps rs → WaitOps (WaitOpResult op :* rs)
 
-waitOpsNonEmpty ∷ ∀ rs . WaitOps rs → HNonEmptyInst rs
+waitOpsNonEmpty ∷ ∀ rs . (HNonEmptyInst @@ rs, WaitOps @@ rs) ⇒ WaitOps rs → HNonEmptyInst rs
 waitOpsNonEmpty (WaitOp _) = HNonEmptyInst
 waitOpsNonEmpty (_ :? _)   = HNonEmptyInst
 
@@ -80,7 +82,7 @@ op1 .?. op2 = op1 .? WaitOp op2
 
 data NthException n e = NthException (Peano n) e deriving (Typeable, Show)
 
-instance (Typeable n, Exception e) ⇒ Exception (NthException n e)
+instance (Typeable n, Exception e, Peano @@ n) ⇒ Exception (NthException n e)
 
 instance WaitOp (WaitOps rs) where
   type WaitOpResult (WaitOps rs) = HElemOf rs
@@ -118,9 +120,12 @@ bug = do
 data PZero deriving Typeable
 data PSucc p deriving Typeable
 
-data Peano n where
+type instance Peano @@ (PSucc n) = ()
+type instance Peano @@ PZero = ()
+
+data IsPeano n ⇒ Peano n where
   PZero ∷ Peano PZero
-  PSucc ∷ IsPeano p ⇒ Peano p → Peano (PSucc p)
+  PSucc ∷ Peano n → Peano (PSucc n)
 
 instance Show (Peano n) where
   show n = show (peanoNum n ∷ Int)
@@ -209,8 +214,8 @@ hTail (_ :* t) = t
 data HNonEmptyInst l where
   HNonEmptyInst ∷ HListClass t ⇒ HNonEmptyInst (h :* t)
 
-data HDropWitness n l where
-  HDropZero ∷ HListClass l ⇒ HDropWitness PZero l
+data HListClass l ⇒ HDropWitness n l where
+  HDropZero ∷ HDropWitness PZero l
   HDropSucc ∷ HDropClass p t ⇒ HDropWitness (PSucc p) (h :* t)
 
 class (IsPeano n, HListClass l, HListClass (HDrop n l)) ⇒ HDropClass n l where

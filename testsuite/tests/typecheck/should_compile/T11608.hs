@@ -5,8 +5,8 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module T11608 where
-
-type Traversal s t a b = forall f. Applicative f => (a -> f b) -> s -> f t
+import GHC.Types (type (@@), Total)
+type Traversal s t a b = forall f. (Applicative f, f @@ b, f @@ t) => (a -> f b) -> s -> f t
 
 class Each s t a b | s -> a, t -> b, s b -> t, t a -> s where
   each :: Traversal s t a b

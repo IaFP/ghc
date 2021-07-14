@@ -6,10 +6,11 @@ module Data.Profunctor.Strong where
 import Control.Arrow
 import Control.Category
 import Data.Tuple
+import GHC.Types (Total, type (@@))
 import Prelude hiding (id,(.))
 
 infixr 0 :->
-type p :-> q = forall a b. p a b -> q a b
+type p :-> q = forall a b. (Total p, Total (p a), Total q, Total (q a)) => p a b -> q a b
 
 class Profunctor p where
   dimap :: (a -> b) -> (c -> d) -> p b c -> p a d
@@ -34,7 +35,8 @@ class Profunctor p => Strong p where
 
 ----------------------------------------------------------------------------
 
-newtype Tambara p a b = Tambara { runTambara :: forall c. p (a, c) (b, c) }
+newtype Tambara p a b = Tambara { runTambara :: forall c. (p @@ (a, c), p (a, c) @@ (b, c)) => p (a, c) (b, c) }
+instance Total (Tambara p)
 
 instance Profunctor p => Profunctor (Tambara p) where
   dimap f g (Tambara p) = Tambara $ dimap (first f) (first g) p

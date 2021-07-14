@@ -5,7 +5,7 @@
 {-# LANGUAGE DefaultSignatures      #-}
 {-# LANGUAGE StandaloneDeriving     #-}
 {-# LANGUAGE UndecidableInstances   #-}
-{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveAnyClass, ExistentialQuantification  #-}
 
 module Main where
 
@@ -13,6 +13,7 @@ import GHC.Generics hiding (C, C1, D)
 import GEq1A
 import Enum
 import GFunctor
+import GHC.Types (type (@@), Total)
 
 data A = A1
   deriving (Show, Generic, GEq, GEnum)
@@ -23,9 +24,11 @@ data B a = B1 | B2 a (B a)
 data C phantom a = C1 | C2 a (C phantom a)
   deriving (Show, Generic, Generic1, GEq, GEnum, GFunctor)
 
-data D f a = D1 (f a) (f (D f a)) deriving (Generic, Generic1)
-deriving instance (Show (f a), Show (f (D f a))) => Show (D f a)
-deriving instance (GEq  (f a), GEq  (f (D f a))) => GEq  (D f a)
+data D f a = D1 (f a) (f (D f a))
+deriving instance (f @@ a, f @@ (D f a)) => (Generic (D f a))
+deriving instance (Total f, Functor f) => (Generic1 (D f))
+deriving instance (f @@ a, f @@ (D f a), Show (f a), Show (f (D f a))) => Show (D f a)
+deriving instance (f @@ a, f @@ (D f a), GEq  (f a), GEq  (f (D f a))) => GEq  (D f a)
 
 data E f a = E1 (f a)
   deriving (Show, Eq, Generic, Generic1, GFunctor)

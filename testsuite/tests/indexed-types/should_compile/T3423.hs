@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module T3423 where
+import GHC.Types (type (@@), Total)
 
 newtype Trie m k a = Trie (Maybe a, m (SubKey k) (Trie m k a))
 

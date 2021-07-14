@@ -2724,40 +2724,47 @@ filterTotalCts :: [Ct] -> TcPluginM [Ct]
 filterTotalCts = filterM is_total
   where
     is_total :: Ct -> TcPluginM Bool
-    is_total (CDictCan _ tycls _ _) =
-      do  return (totalTyCon == classTyCon tycls)
-
-    is_total _ = return False
+    is_total ct | (CDictCan _ tycls _ _) <- ct = return (totalTyCon == classTyCon tycls)
+                | otherwise = return False
 
          
 filterAtAts :: [Ct] -> TcPluginM [Ct]
 filterAtAts = filterM is_atat
   where
     is_atat :: Ct -> TcPluginM Bool
-    is_atat (CIrredCan ev _) =
-      do let p = ctEvPred ev
-         case p of
+    is_atat ct
+      | (CIrredCan ev _) <- ct =
+          case ctEvPred ev of
             TyConApp tc _ -> return $ atTyTyCon == tc
             _  -> return False
-    is_atat _ = return False
+      | otherwise = return False
 
 solvableAtAts :: [Ct] -> [Ct] -> TcPluginM [Ct]
 solvableAtAts []  _ = return []
 solvableAtAts _  [] = return []
 solvableAtAts givens wanteds =
-  do let fs = map TyVarTy $ concatMap tyCoVarsOfCtList givens
+  do let fs = concatMap extract_total_type givens
+         -- fs = map TyVarTy $ concatMap tyCoVarsOfCtList givens
          (totals, _) = partition (is_atat_total fs) wanteds
-     return $ totals
+     return totals
   where
      is_atat_total :: [Type] -> Ct -> Bool
-     is_atat_total fs (CIrredCan ev _) =
-       case (ctEvPred ev) of
-         TyConApp _ [f, _] -> is_total f fs
-         TyConApp _ [_, _, f, _] -> is_total f fs
-         _ -> False
-     is_atat_total _ _ = False
+     is_atat_total fs ct
+         | (CIrredCan ev _) <- ct = 
+             case (ctEvPred ev) of
+               TyConApp _ [_, _, f, _] -> is_total f fs
+               TyConApp _ [f, _] -> is_total f fs
+               _ -> False
+         | otherwise = False
+
      is_total f fs = any (eqType f) fs
-     
+     extract_total_type :: Ct -> [Type]
+     extract_total_type ct =
+             case ctPred ct of
+               TyConApp tc [_, f] -> if tc == totalTyCon then [f] else []
+               TyConApp tc [_, _, f] -> if tc == totalTyCon then [f] else []
+               _ -> []
+
 
 gen_ev_terms :: [Ct] -> TcPluginM [(EvTerm, Ct)]
 gen_ev_terms = mapM gen_ev_term

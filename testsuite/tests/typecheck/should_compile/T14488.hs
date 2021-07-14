@@ -1,8 +1,8 @@
 {-# LANGUAGE RankNTypes #-}
 
 module T14488 where
-
-type Lens' s a = forall f. Functor f => (a -> f a) -> s -> f s
+import GHC.Types (type (@@))
+type Lens' s a = forall f. (Functor f, f @@ a, f @@ s) => (a -> f a) -> s -> f s
 
 data T a = MkT { _tfield :: Eq a => a }
 
