@@ -6,6 +6,9 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE RoleAnnotations #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE NoPartialTypeConstructors, TypeOperators #-}
+#endif
 
 module GHC.Hs.Pat where
 

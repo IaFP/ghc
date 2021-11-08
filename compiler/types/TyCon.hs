@@ -6,7 +6,7 @@
 The @TyCon@ datatype
 -}
 
-{-# LANGUAGE CPP, FlexibleInstances #-}
+{-# LANGUAGE CPP, FlexibleInstances, RecordWildCards #-}
 #if __GLASGOW_HASKELL__ >= 810
 {-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
 #endif
@@ -111,6 +111,7 @@ module TyCon(
         expandSynTyCon_maybe,
         newTyConCo, newTyConCo_maybe,
         pprPromotionQuote, mkTyConKind,
+        updateAlgTyCon, updateNewTyConRhs,
 
         -- ** Predicated on TyConFlavours
         tcFlavourIsOpen,
@@ -1034,6 +1035,12 @@ mkDataTyConRhs cons
            <- dataConFullSig con
        = null ex_tvs && null eq_spec && null theta && null arg_tys
 
+updateNewTyConRhs :: AlgTyConRhs -> DataCon -> AlgTyConRhs
+updateNewTyConRhs ntyrhs@(NewTyCon {}) dc'
+  = ntyrhs {data_con = dc'}
+updateNewTyConRhs rhs _ = rhs
+
+
 -- | Some promoted datacons signify extra info relevant to GHC. For example,
 -- the @IntRep@ constructor of @RuntimeRep@ corresponds to the 'IntRep'
 -- constructor of 'PrimRep'. This data structure allows us to store this
@@ -1629,6 +1636,10 @@ mkAlgTyCon name binders res_kind roles cType stupid rhs parent gadt_syn
         algTcParent      = ASSERT2( okParent name parent, ppr name $$ ppr parent ) parent,
         algTcGadtSyntax  = gadt_syn
     }
+
+updateAlgTyCon :: TyCon -> AlgTyConRhs -> TyCon
+updateAlgTyCon tc@(AlgTyCon {}) rhs = tc { algTcRhs = rhs }
+updateAlgTyCon tc _ = tc
 
 -- | Simpler specialization of 'mkAlgTyCon' for classes
 mkClassTyCon :: Name -> [TyConBinder]

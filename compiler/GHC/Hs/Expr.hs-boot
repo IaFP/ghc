@@ -7,17 +7,27 @@
 {-# LANGUAGE RoleAnnotations #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RankNTypes #-}
 #if __GLASGOW_HASKELL__ >= 810
-{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+{-# LANGUAGE NoPartialTypeConstructors, TypeOperators #-}
 #endif
 
 module GHC.Hs.Expr where
 
-import SrcLoc     ( Located )
+import SrcLoc     ( Located
+#if __GLASGOW_HASKELL__ >= 810
+                  , GenLocated , SrcSpan
+#endif
+                  )
 import Outputable ( SDoc, Outputable )
 import {-# SOURCE #-} GHC.Hs.Pat  ( LPat )
 import BasicTypes ( SpliceExplicitFlag(..))
 import GHC.Hs.Extension ( OutputableBndrId, GhcPass )
+
+#if __GLASGOW_HASKELL__ >= 810
+import GHC.Types (type (@@))
+#endif
+
 
 type role HsExpr nominal
 type role HsCmd nominal
@@ -37,19 +47,41 @@ instance OutputableBndrId p => Outputable (HsCmd (GhcPass p))
 
 type LHsExpr a = Located (HsExpr a)
 
-pprLExpr :: (OutputableBndrId p) => LHsExpr (GhcPass p) -> SDoc
+pprLExpr :: (OutputableBndrId p
+#if __GLASGOW_HASKELL__ >= 810
+ -- We do this becuase GHC doesn't support type family instances in boot files
+            , GhcPass @@ p
+#endif
+            ) => LHsExpr (GhcPass p) -> SDoc
 
-pprExpr :: (OutputableBndrId p) => HsExpr (GhcPass p) -> SDoc
+pprExpr :: (OutputableBndrId p
+#if __GLASGOW_HASKELL__ >= 810
+           , GhcPass @@ p
+#endif
+           ) => HsExpr (GhcPass p) -> SDoc
 
-pprSplice :: (OutputableBndrId p) => HsSplice (GhcPass p) -> SDoc
+pprSplice :: (OutputableBndrId p
+#if __GLASGOW_HASKELL__ >= 810
+             , GhcPass @@ p             
+#endif
+             ) => HsSplice (GhcPass p) -> SDoc
 
-pprSpliceDecl ::  (OutputableBndrId p)
+pprSpliceDecl ::  (OutputableBndrId p
+#if __GLASGOW_HASKELL__ >= 810
+                  , GhcPass @@ p
+#endif
+                  )
           => HsSplice (GhcPass p) -> SpliceExplicitFlag -> SDoc
 
 pprPatBind :: forall bndr p body. (OutputableBndrId bndr,
                                    OutputableBndrId p,
-                                   Outputable body)
+                                   Outputable body
+                                  )
            => LPat (GhcPass bndr) -> GRHSs (GhcPass p) body -> SDoc
 
-pprFunBind :: (OutputableBndrId idR, Outputable body)
-           => MatchGroup (GhcPass idR) body -> SDoc
+pprFunBind :: forall idR body. (OutputableBndrId idR, Outputable body
+-- #if __GLASGOW_HASKELL__ >= 810
+--               , GhcPass @@ idR
+--               , MatchGroup @@ GhcPass idR, MatchGroup (GhcPass idR) @@ body
+-- #endif
+              ) => MatchGroup (GhcPass idR) body -> SDoc

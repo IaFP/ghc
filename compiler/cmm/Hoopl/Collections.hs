@@ -5,7 +5,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 810
-{-# LANGUAGE PartialTypeConstructors, TypeOperators, ConstrainedClassMethods  #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, ConstrainedClassMethods, FlexibleInstances, FlexibleContexts  #-}
 #endif
 
 module Hoopl.Collections
@@ -22,6 +22,9 @@ import qualified Data.IntMap.Strict as M
 import qualified Data.IntSet as S
 
 import Data.List (foldl1')
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 class IsSet set where
   type ElemOf set
@@ -141,6 +144,9 @@ instance IsSet UniqueSet where
 
 newtype UniqueMap v = UM (M.IntMap v)
   deriving (Eq, Ord, Show, Functor, Foldable, Traversable)
+#if MIN_VERSION_base(4,14,0)
+instance Total UniqueMap
+#endif
 
 instance IsMap UniqueMap where
   type KeyOf UniqueMap = Int

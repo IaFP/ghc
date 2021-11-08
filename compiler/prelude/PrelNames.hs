@@ -1902,9 +1902,6 @@ atTyTyConKey = mkPreludeTyConUnique 191
 totalTyConKey :: Unique
 totalTyConKey = mkPreludeTyConUnique 192
 
-total2TyConKey :: Unique
-total2TyConKey = mkPreludeTyConUnique 193
-
 ---------------- Template Haskell -------------------
 --      THNames.hs: USES TyConUniques 200-299
 -----------------------------------------------------

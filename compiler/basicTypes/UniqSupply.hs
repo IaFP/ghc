@@ -13,7 +13,7 @@
 #endif
 #if __GLASGOW_HASKELL__ >= 810
 {-# LANGUAGE PartialTypeConstructors, TypeOperators
-            , ConstrainedClassMethods, DefaultSignatures #-}
+            , ConstrainedClassMethods, DefaultSignatures, UndecidableSuperClasses #-}
 #endif
 
 module UniqSupply (

@@ -71,11 +71,6 @@ import Outputable (Outputable(..), text, (<+>))
 import qualified Data.Semigroup
 
 import Control.Monad
-#if MIN_VERSION_base(4,14,0)
-import GHC.Types (type (@@))
-import {-# SOURCE #-} CoreMonad (CoreWriter, CoreReader)
-import IOEnv (IOEnv)
-#endif
 
 -- | Command line options gathered from the -PModule.Name:stuff syntax
 -- are given to you as this type
@@ -224,10 +219,6 @@ defaultPlugin = Plugin {
       , spliceRunAction       = \_ -> return
       , interfaceLoadAction   = \_ -> return
     }
-#if MIN_VERSION_base(4,14,0)
-type instance CoreM @@ a = (IOEnv CoreReader @@ (a, CoreWriter))
-#endif
-
 
 -- | A renamer plugin which mades the renamed source available in
 -- a typechecker plugin.

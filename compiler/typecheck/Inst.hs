@@ -9,7 +9,7 @@ The @Inst@ type: dictionaries or method instances
 {-# LANGUAGE CPP, MultiWayIf, TupleSections #-}
 {-# LANGUAGE FlexibleContexts #-}
 #if __GLASGOW_HASKELL__ >= 810
-{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies, ScopedTypeVariables #-}
 #endif
 
 module Inst (
@@ -533,8 +533,9 @@ newOverloadedLit
         -- Reason: If we do, tcSimplify will call lookupInst, which
         --         will call tcSyntaxName, which does unification,
         --         which tcSimplify doesn't like
-           Just expr -> return (lit { ol_witness = expr
-                                    , ol_ext = OverLitTc False res_ty })
+           Just expr -> return ((OverLit { ol_witness = expr
+                                         , ol_val = val
+                                         , ol_ext = OverLitTc False res_ty }))
            Nothing   -> newNonTrivialOverloadedLit orig lit
                                                    (mkCheckExpType res_ty) }
 
@@ -551,7 +552,7 @@ newNonTrivialOverloadedLit :: CtOrigin
                            -> ExpRhoType
                            -> TcM (HsOverLit GhcTcId)
 newNonTrivialOverloadedLit orig
-  lit@(OverLit { ol_val = val, ol_witness = HsVar _ (L _ meth_name)
+  (OverLit { ol_val = val, ol_witness = HsVar _ (L _ meth_name)
                , ol_ext = rebindable }) res_ty
   = do  { hs_lit <- mkOverLit val
         ; let lit_ty = hsLitType hs_lit
@@ -560,8 +561,9 @@ newNonTrivialOverloadedLit orig
                       \_ -> return ()
         ; let L _ witness = nlHsSyntaxApps fi' [nlHsLit hs_lit]
         ; res_ty <- readExpType res_ty
-        ; return (lit { ol_witness = witness
-                      , ol_ext = OverLitTc rebindable res_ty }) }
+        ; return (OverLit { ol_witness = witness
+                          , ol_val = val
+                          , ol_ext = ((OverLitTc rebindable res_ty)) }) }
 newNonTrivialOverloadedLit _ lit _
   = pprPanic "newNonTrivialOverloadedLit" (ppr lit)
 

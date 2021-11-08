@@ -188,10 +188,6 @@ data CoreMapX a
        , cm_ecase :: CoreMapG (TypeMapG a)    -- Note [Empty case alternatives]
      }
 
-#if MIN_VERSION_base(4,14,0)
-type instance CoreMapX @@ a = ()
-#endif
-
 instance Eq (DeBruijn CoreExpr) where
   D env1 e1 == D env2 e2 = go e1 e2 where
     go (Var v1) (Var v2) = case (lookupCME env1 v1, lookupCME env2 v2) of
@@ -370,9 +366,6 @@ data AltMap a   -- A single alternative
   = AM { am_deflt :: CoreMapG a
        , am_data  :: DNameEnv (CoreMapG a)
        , am_lit   :: LiteralMap (CoreMapG a) }
-#if MIN_VERSION_base(4,14,0)
-type instance AltMap @@ a = ()
-#endif
 
 instance TrieMap AltMap where
    type Key AltMap = CoreAlt
@@ -494,9 +487,6 @@ data TypeMapX a
        , tm_coerce :: Maybe a
        }
     -- Note that there is no tyconapp case; see Note [Equality on AppTys] in Type
-#if MIN_VERSION_base(4,14,0)
-type instance TypeMapX @@ a = ()
-#endif
 
 -- | Squeeze out any synonyms, and change TyConApps to nested AppTys. Why the
 -- last one? See Note [Equality on AppTys] in Type

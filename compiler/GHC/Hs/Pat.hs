@@ -73,7 +73,7 @@ import Maybes
 -- libraries:
 import Data.Data hiding (TyCon,Fixity)
 #if MIN_VERSION_base(4,14,0)
-import GHC.Types(type (@@))
+import GHC.Types(type (@@), Total)
 #endif
 
 type InPat p  = LPat p        -- No 'Out' constructors
@@ -283,7 +283,7 @@ data Pat p
 
 -- ---------------------------------------------------------------------
 #if MIN_VERSION_base(4,14,0)
-type instance Pat @@ a = ()
+instance Total Pat
 #endif
 
 data ListPatTc
@@ -359,7 +359,19 @@ data HsRecFields p arg         -- A bunch of record fields
         -- Used for both expressions and patterns
   = HsRecFields { rec_flds   :: [LHsRecField p arg],
                   rec_dotdot :: Maybe (Located Int) }  -- Note [DotDot fields]
-  deriving (Functor, Foldable, Traversable)
+  deriving (Functor
+#if MIN_VERSION_base(4,14,0)           
+           )
+instance (Foldable (HsRecFields p)) where
+  foldMap f = foldr (mappend . f) mempty
+
+instance (Traversable (HsRecFields p)) where
+  traverse f = sequenceA . fmap f
+
+instance Total (HsRecFields p)
+#else
+        , Foldable, Traversable)
+#endif
 
 
 -- Note [DotDot fields]
@@ -400,7 +412,19 @@ data HsRecField' id arg = HsRecField {
         hsRecFieldLbl :: Located id,
         hsRecFieldArg :: arg,           -- ^ Filled in by renamer when punning
         hsRecPun      :: Bool           -- ^ Note [Punning]
-  } deriving (Data, Functor, Foldable, Traversable)
+  } deriving (Data, Functor
+#if MIN_VERSION_base(4,14,0)           
+             )
+instance (Foldable (HsRecField' id)) where
+  foldMap f = foldr (mappend . f) mempty
+
+instance (Traversable (HsRecField' id)) where
+  traverse f = sequenceA . fmap f
+
+instance Total (HsRecField' p)
+#else
+        , Foldable, Traversable)
+#endif
 
 
 -- Note [Punning]

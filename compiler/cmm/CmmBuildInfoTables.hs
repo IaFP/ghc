@@ -41,9 +41,6 @@ import qualified Data.Set as Set
 import Data.Tuple
 import Control.Monad.Trans.State
 import Control.Monad.Trans.Class
-#if MIN_VERSION_base(4,14,0)
-import GHC.Types (Total)
-#endif
 
 
 {- Note [SRTs]
@@ -632,10 +629,6 @@ doSRTs dflags moduleSRTInfo tops = do
     decls' = concatMap (updInfoSRTs dflags srtFieldMap funSRTMap) decls
 
   return (moduleSRTInfo', concat declss ++ decls')
-#if MIN_VERSION_base(4,14,0)
-instance Total (StateT SRTMap (StateT ModuleSRTInfo UniqSM))
-instance Total (StateT ModuleSRTInfo UniqSM)
-#endif
 
 
 -- | Build the SRT for a strongly-connected component of blocks

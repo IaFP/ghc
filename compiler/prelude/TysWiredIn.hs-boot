@@ -17,6 +17,8 @@ unitTy :: Type
 liftedTypeKind :: Kind
 constraintKind :: Kind
 
+liftedTypeKindTyCon :: TyCon
+
 runtimeRepTyCon, vecCountTyCon, vecElemTyCon :: TyCon
 runtimeRepTy :: Type
 

@@ -213,7 +213,7 @@ canClass ev cls tys pend_sc
   =   -- all classes do *nominal* matching
     ASSERT2( ctEvRole ev == Nominal, ppr ev $$ ppr cls $$ ppr tys )
     do { (xis, cos, _kind_co) <- flattenArgsNom ev cls_tc tys
-       ; MASSERT( isTcReflCo _kind_co )
+       ; MASSERT2( isTcReflCo _kind_co, ppr _kind_co )
        ; let co = mkTcTyConAppCo Nominal cls_tc cos
              xi = mkClassPred cls xis
              mk_ct new_ev = CDictCan { cc_ev = new_ev

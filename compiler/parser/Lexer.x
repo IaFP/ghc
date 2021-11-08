@@ -47,8 +47,7 @@
 
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 #if __GLASGOW_HASKELL__ >= 810
-{-# LANGUAGE PartialTypeConstructors, ConstrainedClassMethods #-}
-{-# OPTIONS -fno-enable-rewrite-rules #-}
+{-# LANGUAGE PartialTypeConstructors, ConstrainedClassMethods, UndecidableSuperClasses #-}
 #endif
 
 module Lexer (

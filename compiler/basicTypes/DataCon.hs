@@ -28,6 +28,7 @@ module DataCon (
 
         -- ** Type construction
         mkDataCon, buildAlgTyCon, buildSynTyCon, fIRST_TAG,
+        updateDataCon, updateNTDataCon, -- updateDataConWorkerId,
 
         -- ** Type deconstruction
         dataConRepType, dataConSig, dataConInstSig, dataConFullSig,
@@ -66,7 +67,7 @@ module DataCon (
 
 import GhcPrelude
 
-import {-# SOURCE #-} MkId( DataConBoxer )
+import {-# SOURCE #-} MkId( DataConBoxer, mkDataConWorkId, updateDataConRep )
 import Type
 import ForeignCall ( CType )
 import Coercion
@@ -87,7 +88,7 @@ import Module
 import Binary
 import UniqSet
 import Unique( mkAlphaTyVarUnique )
-
+import UniqSupply ( UniqSupply )
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Builder as BSB
 import qualified Data.ByteString.Lazy    as LBS
@@ -1105,11 +1106,59 @@ dataConKindEqSpec (MkData {dcExTyCoVars = ex_tcvs})
           tv = getTyVar "dataConKindEqSpec" ty1
     ]
 
+-- | Enriches the well formed theta information in the rep type of the datacon
+-- There are 3 things we need to update here:
+-- 1. The data con itself
+-- 2. The wrapper
+-- 3. The worker
+updateDataCon :: UniqSupply -> DataCon -> ThetaType ->  DataCon
+updateDataCon _ dc [] = dc
+updateDataCon us dc wfth = new_dc
+
+  where
+    -- dcRepType
+    --      forall a x y. (a~(x,y), x~y, Ord x) =>
+    --        x -> y -> T a
+    -- we update the dcRepType as we want the linter to be happy
+    -- ([a, x, y], ((a~(x,y), x~y, Ord x) => x -> y -> T a))
+    (covars, tau) = splitForAllTys (dcRepType dc)
+    -- ([(a~(x,y), x~y, Ord x), x,  y],  T a)
+    (argTys, rty) = splitFunTys tau
+
+    argTys' = stableMergeTypes wfth argTys
+
+    new_rep_ty = mkTyCoInvForAllTys covars $ mkVisFunTys argTys' rty
+
+    new_dcRepArity = length argTys'
+
+    s_th = dcStupidTheta dc
+
+    new_rep_dc = updateDataConRep us dc (dcRep dc) wfth new_rep_ty
+
+    work_id = mkDataConWorkId (Var.varName (dataConWorkId dc)) new_dc
+    -- also set the new iddetails
+    new_dc = dc { -- dcOtherTheta = mergeTypes wfth (dcOtherTheta dc)
+                  dcRep = new_rep_dc
+                , dcRepType = new_rep_ty
+                , dcRepArity = new_dcRepArity
+                , dcStupidTheta = stableMergeTypes wfth s_th
+                , dcWorkId = work_id
+                }
+
+-- Don't change the reptype, just affects the user type
+updateNTDataCon :: DataCon -> ThetaType -> DataCon
+updateNTDataCon dc [] = dc
+updateNTDataCon dc wfth = new_dc
+  where
+    new_dc = dc {dcStupidTheta = stableMergeTypes wfth (dcStupidTheta dc)}
+    
+
+             
 -- | The *full* constraints on the constructor type, including dependent GADT
 -- equalities.
 dataConTheta :: DataCon -> ThetaType
-dataConTheta con@(MkData { dcEqSpec = eq_spec, dcOtherTheta = theta })
-  = eqSpecPreds (dataConKindEqSpec con ++ eq_spec) ++ theta
+dataConTheta con@(MkData { dcEqSpec = eq_spec, dcOtherTheta = theta, dcStupidTheta = stupid_theta })
+  = eqSpecPreds (dataConKindEqSpec con ++ eq_spec) ++ (stableMergeTypes stupid_theta theta)
 
 -- | Get the Id of the 'DataCon' worker: a function that is the "actual"
 -- constructor and has no top level binding in the program. The type may
@@ -1268,9 +1317,9 @@ dataConInstSig con@(MkData { dcUnivTyVars = univ_tvs, dcExTyCoVars = ex_tvs
 dataConFullSig :: DataCon
                -> ([TyVar], [TyCoVar], [EqSpec], ThetaType, [Type], Type)
 dataConFullSig (MkData {dcUnivTyVars = univ_tvs, dcExTyCoVars = ex_tvs,
-                        dcEqSpec = eq_spec, dcOtherTheta = theta,
+                        dcEqSpec = eq_spec, dcOtherTheta = theta, dcStupidTheta = stupid_theta,
                         dcOrigArgTys = arg_tys, dcOrigResTy = res_ty})
-  = (univ_tvs, ex_tvs, eq_spec, theta, arg_tys, res_ty)
+  = (univ_tvs, ex_tvs, eq_spec, stableMergeTypes stupid_theta theta, arg_tys, res_ty)
 
 dataConOrigResTy :: DataCon -> Type
 dataConOrigResTy dc = dcOrigResTy dc
@@ -1297,9 +1346,10 @@ dataConUserType :: DataCon -> Type
 -- NB: If the constructor is part of a data instance, the result type
 -- mentions the family tycon, not the internal one.
 dataConUserType (MkData { dcUserTyVarBinders = user_tvbs,
-                          dcOtherTheta = theta, dcOrigArgTys = arg_tys,
-                          dcOrigResTy = res_ty })
+                          dcOtherTheta = theta, dcStupidTheta = stupid_theta,
+                          dcOrigArgTys = arg_tys, dcOrigResTy = res_ty })
   = mkForAllTys user_tvbs $
+    mkInvisFunTys stupid_theta $
     mkInvisFunTys theta $
     mkVisFunTys arg_tys $
     res_ty
@@ -1352,9 +1402,10 @@ dataConRepArgTys :: DataCon -> [Type]
 dataConRepArgTys (MkData { dcRep = rep
                          , dcEqSpec = eq_spec
                          , dcOtherTheta = theta
+                         , dcStupidTheta = stupid_theta
                          , dcOrigArgTys = orig_arg_tys })
   = case rep of
-      NoDataConRep -> ASSERT( null eq_spec ) theta ++ orig_arg_tys
+      NoDataConRep -> ASSERT( null eq_spec ) (stableMergeTypes stupid_theta theta) ++ orig_arg_tys
       DCR { dcr_arg_tys = arg_tys } -> arg_tys
 
 -- | The string @package:module.name@ identifying a constructor, which is attached

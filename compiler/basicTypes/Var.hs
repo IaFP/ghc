@@ -54,17 +54,17 @@ module Var (
         -- ** Constructing, taking apart, modifying 'Id's
         mkGlobalVar, mkLocalVar, mkExportedLocalVar, mkCoVar,
         idInfo, idDetails,
-        lazySetIdInfo, setIdDetails, globaliseId,
+        lazySetIdInfo, lazySetIdArity, setIdDetails, globaliseId,
         setIdExported, setIdNotExported,
 
         -- ** Predicates
         isId, isTyVar, isTcTyVar,
         isLocalVar, isLocalId, isCoVar, isNonCoVarId, isTyCoVar,
-        isGlobalId, isExportedId,
+        isGlobalId, isExportedId, isDFunVar,
         mustHaveLocalBinding,
 
         -- * ArgFlags
-        ArgFlag(..), isVisibleArgFlag, isInvisibleArgFlag, sameVis,
+        ArgFlag(..), isVisibleArgFlag, isSpecifiedArgFlag, isInvisibleArgFlag, sameVis,
         AnonArgFlag(..), ForallVisFlag(..), argToForallVisFlag,
 
         -- * TyVar's
@@ -96,7 +96,7 @@ import {-# SOURCE #-}   TyCoRep( Type, Kind )
 import {-# SOURCE #-}   TyCoPpr( pprKind )
 import {-# SOURCE #-}   TcType( TcTyVarDetails, pprTcTyVarDetails, vanillaSkolemTv )
 import {-# SOURCE #-}   IdInfo( IdDetails, IdInfo, coVarDetails, isCoVarDetails,
-                                vanillaIdInfo, pprIdDetails )
+                                vanillaIdInfo, pprIdDetails, setArityInfo, isDFunVarDetails )
 
 import Name hiding (varName)
 import Unique ( Uniquable, Unique, getKey, getUnique
@@ -105,7 +105,6 @@ import Util
 import Binary
 import DynFlags
 import Outputable
-
 import Data.Data
 
 {-
@@ -399,6 +398,11 @@ isVisibleArgFlag :: ArgFlag -> Bool
 isVisibleArgFlag Required = True
 isVisibleArgFlag _        = False
 
+-- | is this ArgFlag specified?
+isSpecifiedArgFlag :: ArgFlag -> Bool
+isSpecifiedArgFlag Specified = True
+isSpecifiedArgFlag _ = False
+
 -- | Does this 'ArgFlag' classify an argument that is not written in Haskell?
 isInvisibleArgFlag :: ArgFlag -> Bool
 isInvisibleArgFlag = not . isVisibleArgFlag
@@ -677,9 +681,12 @@ mk_id name ty scope details info
 lazySetIdInfo :: Id -> IdInfo -> Var
 lazySetIdInfo id info = id { id_info = info }
 
+lazySetIdArity :: Id -> Int -> Var
+lazySetIdArity id arity = id { id_info = setArityInfo (idInfo id) arity }
+
 setIdDetails :: Id -> IdDetails -> Id
 setIdDetails id details = id { id_details = details }
-
+  
 globaliseId :: Id -> Id
 -- ^ If it's a local, make it global
 globaliseId id = id { idScope = GlobalId }
@@ -717,6 +724,10 @@ isTcTyVar _            = False
 
 isTyCoVar :: Var -> Bool
 isTyCoVar v = isTyVar v || isCoVar v
+
+isDFunVar :: Var -> Bool
+isDFunVar (Id {id_details = details}) = isDFunVarDetails details
+isDFunVar _                           = False
 
 -- | Is this a value-level (i.e., computationally relevant) 'Id'entifier?
 -- Satisfies @isId = not . isTyVar@.

@@ -166,7 +166,7 @@ import Control.DeepSeq
 import Data.Coerce
 import Data.Data
 import Data.Function
-import Data.Map (Map)
+import Data.Map (Map, assocs)
 import Data.Set (Set)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -1158,6 +1158,11 @@ wiredInUnitIds = [ primUnitId,
 -- | A map keyed off of 'Module's
 newtype ModuleEnv elt = ModuleEnv (Map NDModule elt)
 
+instance Outputable elt => Outputable (ModuleEnv elt) where
+  ppr (ModuleEnv env) = text "ModuleEnv ["
+                        <>  vcat (fmap ppr (assocs env))
+                        <>  text "]"
+
 {-
 Note [ModuleEnv performance and determinism]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1183,6 +1188,9 @@ instance Ord NDModule where
   compare (NDModule (Module p1 n1)) (NDModule (Module p2 n2)) =
     (getUnique p1 `nonDetCmpUnique` getUnique p2) `thenCmp`
     (getUnique n1 `nonDetCmpUnique` getUnique n2)
+
+instance Outputable NDModule where
+  ppr (NDModule m) = ppr m
 
 filterModuleEnv :: (Module -> a -> Bool) -> ModuleEnv a -> ModuleEnv a
 filterModuleEnv f (ModuleEnv e) =

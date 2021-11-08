@@ -199,6 +199,7 @@ necessary to the stack to accommodate it (e.g. 2).
 
 {
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 810
 {-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}

@@ -441,6 +441,9 @@ data UnifyResultM a = Unifiable a        -- the subst that unifies the types
                                          -- See Note [The substitution in MaybeApart]
                     | SurelyApart
                     deriving Functor
+#if MIN_VERSION_base(4,14,0)
+instance Total UnifyResultM
+#endif
 
 instance Applicative UnifyResultM where
   pure  = Unifiable

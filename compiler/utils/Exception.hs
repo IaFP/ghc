@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
 {-# LANGUAGE CPP                 #-}
 #if __GLASGOW_HASKELL__ >= 810
-{-# LANGUAGE PartialTypeConstructors, ConstrainedClassMethods  #-}
+{-# LANGUAGE PartialTypeConstructors, ConstrainedClassMethods, UndecidableSuperClasses  #-}
 #endif
 
 module Exception

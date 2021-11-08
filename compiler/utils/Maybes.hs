@@ -35,6 +35,9 @@ import Control.Monad.Trans.Maybe
 import Control.Exception (catch, SomeException(..))
 import Data.Maybe
 import Util (HasCallStack)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif   
 
 infixr 4 `orElse`
 
@@ -100,6 +103,9 @@ tryMaybeT action = MaybeT $ catch (Just `fmap` action) handler
 
 data MaybeErr err val = Succeeded val | Failed err
     deriving (Functor)
+#if MIN_VERSION_base(4,14,0)
+instance Total (MaybeErr err)
+#endif
 
 instance Applicative (MaybeErr err) where
   pure  = Succeeded

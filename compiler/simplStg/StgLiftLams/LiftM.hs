@@ -276,10 +276,6 @@ withSubstBndr bndr inner = LiftM $ do
   let (bndr', subst') = substBndr bndr subst
   RWS.local (\e -> e { e_subst = subst' }) (unwrapLiftM (inner bndr'))
 
-#if MIN_VERSION_base(4,14,0)
-instance Total (ContT a LiftM)
-#endif
-
 -- | See 'withSubstBndr'.
 withSubstBndrs :: (Traversable f
 #if MIN_VERSION_base(4,14,0)
@@ -325,7 +321,7 @@ withLiftedBndr abs_ids bndr inner = do
 -- | See 'withLiftedBndr'.
 withLiftedBndrs :: (Traversable f
 #if MIN_VERSION_base(4,14,0)
-                   , f @@ ContT a LiftM Id, Total (ContT a LiftM)
+                   , f @@ ContT a LiftM Id
 #endif
                    ) => DIdSet -> f Id -> (f Id -> LiftM a) -> LiftM a
 withLiftedBndrs abs_ids = runContT . traverse (ContT . withLiftedBndr abs_ids)

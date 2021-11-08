@@ -80,7 +80,10 @@ module IdInfo (
 
         -- ** Levity info
         LevityInfo, levityInfo, setNeverLevPoly, setLevityInfoWithType,
-        isNeverLevPolyIdInfo
+        isNeverLevPolyIdInfo,
+
+        isDFunVarDetails
+       
     ) where
 
 #include "HsVersions.h"
@@ -187,6 +190,11 @@ coVarDetails = CoVarId
 isCoVarDetails :: IdDetails -> Bool
 isCoVarDetails CoVarId = True
 isCoVarDetails _       = False
+
+isDFunVarDetails :: IdDetails -> Bool
+isDFunVarDetails (DFunId _) = True
+isDFunVarDetails _          = False
+
 
 isJoinIdDetails_maybe :: IdDetails -> Maybe JoinArity
 isJoinIdDetails_maybe (JoinId join_arity) = Just join_arity

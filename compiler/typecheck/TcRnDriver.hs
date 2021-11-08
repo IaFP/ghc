@@ -795,13 +795,17 @@ checkHiBootIface'
         ; mapM_ check_export boot_exports
 
                 -- Check for no family instances
-        ; unless (null boot_fam_insts) $
-            panic ("TcRnDriver.checkHiBootIface: Cannot handle family " ++
+                -- except @@ instance 
+        -- ; unless (null $ filter (not . (== atTyTyCon) . famInstTyCon) boot_fam_insts) $
+        ; unless (null boot_fam_insts) $ do {
+              traceTc "Found type family instances for: " (ppr boot_fam_insts)
+            ; panic ("TcRnDriver.checkHiBootIface: Cannot handle family " ++
                    "instances in boot files yet...")
+            }
             -- FIXME: Why?  The actual comparison is not hard, but what would
             --        be the equivalent to the dfun bindings returned for class
             --        instances?  We can't easily equate tycons...
-
+            -- ANI: Why isn't eq tycon checking simple? aren't they conguent?
                 -- Check instance declarations
                 -- and generate an impedance-matching binding
         ; mb_dfun_prs <- mapM check_cls_inst boot_dfuns

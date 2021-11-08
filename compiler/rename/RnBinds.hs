@@ -464,7 +464,8 @@ rnBind _ bind@(PatBind { pat_lhs = pat
                        , pat_rhs = grhss
                                    -- pat fvs were stored in bind_fvs
                                    -- after processing the LHS
-                       , pat_ext = pat_fvs })
+                       , pat_ext = pat_fvs
+                       , pat_ticks = ticks })
   = do  { mod <- getModule
         ; (grhss', rhs_fvs) <- rnGRHSs PatBindRhs rnLExpr grhss
 
@@ -475,8 +476,10 @@ rnBind _ bind@(PatBind { pat_lhs = pat
                 -- As well as dependency analysis, we need these for the
                 -- MonoLocalBinds test in TcBinds.decideGeneralisationPlan
               bndrs = collectPatBinders pat
-              bind' = bind { pat_rhs  = grhss'
-                           , pat_ext = fvs' }
+              bind' = PatBind { pat_rhs  = grhss'
+                              , pat_lhs = pat
+                              , pat_ext = fvs'
+                              , pat_ticks = ticks }
 
               ok_nobind_pat
                   = -- See Note [Pattern bindings that bind no variables]

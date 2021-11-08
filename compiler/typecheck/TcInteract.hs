@@ -64,7 +64,7 @@ import Control.Monad.Trans.Maybe
 
 -- import TcPluginM (TcPluginM)
 import qualified TcPluginM as TcPluginM
-import TysWiredIn (atTyTyCon, totalTyCon)
+import TysWiredIn (atTyTyCon, totalTyCon, totalClass)
 
 {-
 **********************************************************************
@@ -273,9 +273,9 @@ runTcPluginsWanted wc@(WC { wc_simple = simples1, wc_impl = implics1 })
   = return (False, wc)
   | otherwise
   = do { plugins' <- getTcPlugins
-       ; dflags <- getDynFlags
-       ; let pctrs = xopt LangExt.PartialTypeConstructors dflags
-       ; let plugins = if pctrs then solveWF:plugins' else plugins'
+       -- ; dflags <- getDynFlags
+       -- ; let pctrs = xopt LangExt.PartialTypeConstructors dflags
+       ; let plugins = solveWF:plugins'
        ; if null plugins then return (False, wc) else
 
     do { given <- getInertGivens
@@ -2705,20 +2705,34 @@ solveWF givens deriveds wanteds =
     atat_wanteds <- filterAtAts wanteds
     
     -- filter all the wanted constraints f @@ a where f is in total_givens
-    atat_solved <- solvableAtAts total_givens atat_wanteds 
+    -- or its of the shape ((->) a) @@ b
+    -- the one's that cannot be proved to be locally total, add them for a global total instance search 
+    (atat_solved, maybe_atat_globals) <- solvableAtAts total_givens atat_wanteds 
 
     -- generate (evTerm, ct) for each atat_solved cts
     evTerms <- gen_ev_terms atat_solved
+
+    new_totals <- mapM atat_to_total maybe_atat_globals
+    let (new_solved_globals, unsolved) = foldr (\(ct, x) (ls, rs) ->
+                                                  case x of
+                                                   Just (ev, ct') -> ((ev, ct):ls, ct':rs)
+                                                   Nothing -> (ls, ct:rs)
+                                               ) ([], []) $ zip maybe_atat_globals new_totals
+    -- The problem here is that we are going to degrade the error messages.
+    -- any f @@ a that cannot be solved even with global instance match will error out with
+    -- a missing total instance error.
     
     TcPluginM.tcPluginTrace "WFPlugin" (vcat [ text "givens:" <+> ppr givens
-                                    , text "deriveds:" <+> ppr deriveds
-                                    , text "wanteds:" <+> ppr wanteds
-                                    , text "total_givens:" <+> ppr total_givens
-                                    , text "atat_wanteds:" <+> ppr atat_wanteds
-                                    , text "atat_solvable:" <+> ppr atat_solved
-                                    , text "evTerms:" <+> ppr (fmap fst evTerms)])
+                                             , text "deriveds:" <+> ppr deriveds
+                                             , text "wanteds:" <+> ppr wanteds
+                                             , text "total_givens:" <+> ppr total_givens
+                                             , text "atat_wanteds:" <+> ppr atat_wanteds
+                                             , text "atat_solvable:" <+> ppr atat_solved
+                                             , text "maybe_atat_solved" <+> ppr new_solved_globals
+                                             , text "not solved:" <+> ppr unsolved
+                                             , text "evTerms:" <+> ppr (fmap fst evTerms)])
      
-    return (TcPluginOk evTerms [])
+    return (TcPluginOk (evTerms ++ new_solved_globals) unsolved)
 
 filterTotalCts :: [Ct] -> TcPluginM [Ct]
 filterTotalCts = filterM is_total
@@ -2739,32 +2753,62 @@ filterAtAts = filterM is_atat
             _  -> return False
       | otherwise = return False
 
-solvableAtAts :: [Ct] -> [Ct] -> TcPluginM [Ct]
-solvableAtAts []  _ = return []
-solvableAtAts _  [] = return []
+-- There are two ways to identify if f @@ a is solvable
+-- 1. We have (Total f) as a given in the type signature predicate
+--    This can be solved.
+-- 2. We have a (Total f) instance defined globally
+--    This cannot be solved here so we generate a new work predicate that
+--    the constraint solver would need to satisfy.
+solvableAtAts :: [Ct] -> [Ct] -> TcPluginM ([Ct], [Ct])
+solvableAtAts _  [] = return ([], [])
 solvableAtAts givens wanteds =
   do let fs = concatMap extract_total_type givens
          -- fs = map TyVarTy $ concatMap tyCoVarsOfCtList givens
-         (totals, _) = partition (is_atat_total fs) wanteds
-     return totals
+     return $ partition (is_atat_total fs) wanteds
   where
      is_atat_total :: [Type] -> Ct -> Bool
      is_atat_total fs ct
-         | (CIrredCan ev _) <- ct = 
+         | (CIrredCan ev _) <- ct =
              case (ctEvPred ev) of
-               TyConApp _ [_, _, f, _] -> is_total f fs
-               TyConApp _ [f, _] -> is_total f fs
+               TyConApp _ [_, _, f, _] -> isFunApp f
+                                          || is_total_local f fs
+                 -- @@ @{k1} @{k2} a b || @@ @{k1} @{k2} (TyConApp (->) [a]) b
+               TyConApp _ [f, _] -> isFunApp f
+                                    || is_total_local f fs   -- I think this is pointless
+               TyConApp _ [_, _, f] -> isFunApp f
+                                       || is_total_local f fs  -- I think this is pointless
                _ -> False
          | otherwise = False
+         
+     is_total_local :: Type -> [Type] -> Bool
+     is_total_local f fs = any (eqType f) fs               
 
-     is_total f fs = any (eqType f) fs
      extract_total_type :: Ct -> [Type]
      extract_total_type ct =
              case ctPred ct of
                TyConApp tc [_, f] -> if tc == totalTyCon then [f] else []
+               TyConApp tc [_, _, f, _] -> if tc == totalTyCon then [f] else []
                TyConApp tc [_, _, f] -> if tc == totalTyCon then [f] else []
                _ -> []
+     isFunApp :: Type -> Bool
+     isFunApp (TyConApp f _) = f == funTyCon || isFunTyCon f
+     isFunApp f  = isFunTy f
 
+atat_to_total :: Ct -> TcPluginM (Maybe (EvTerm, Ct))
+atat_to_total c
+  | CIrredCan ev _ <- c
+  , TyConApp tc [_, _, f, _] <- ctEvPred ev
+  , tc == atTyTyCon
+  = do nw <- TcPluginM.newDerived (ctev_loc ev) (mkClassPred totalClass [f])
+       TcPluginM.tcPluginTrace "find Total instance of" (ppr f <+> text "as" <+> ppr nw)
+       return $ Just ( EvExpr (Var (ctEvId c))
+                     , CDictCan { cc_ev = nw
+                                , cc_class = totalClass
+                                , cc_tyargs = [f]
+                                , cc_pend_sc = False
+                                })
+         -- , mkIrredCt (ev { ctev_pred = mkClassPred totalClass [k, f]})
+  | otherwise = return $ Nothing
 
 gen_ev_terms :: [Ct] -> TcPluginM [(EvTerm, Ct)]
 gen_ev_terms = mapM gen_ev_term

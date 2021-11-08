@@ -39,7 +39,7 @@ import TcEnv
 import TcBinds( tcValBinds )
 import TyCoRep( Type(..), Coercion(..), MCoercion(..), UnivCoProvenance(..) )
 import TcType
--- import TcMType
+import TcTyWF (genAtAtConstraints, flatten_atat_constraint)
 import Predicate
 import TysWiredIn( unitTy )
 import MkCore( rEC_SEL_ERROR_ID )
@@ -70,7 +70,7 @@ import FastString
 import FV
 import Module
 
--- import qualified GHC.LanguageExtensions as LangExt
+import qualified GHC.LanguageExtensions as LangExt
 
 import Control.Monad
 
@@ -862,9 +862,7 @@ mkOneRecordSelector :: [ConLike] -> RecSelParent -> FieldLabel
                     -> TcM (Id, LHsBind GhcRn)
 mkOneRecordSelector all_cons idDetails fl
   = do
-  { -- partialCtrs <- xoptM LangExt.PartialTypeConstructors
-
-    let loc      = getSrcSpan sel_name
+  { let loc      = getSrcSpan sel_name
         lbl      = flLabel fl
         sel_name = flSelector fl
 
@@ -880,7 +878,7 @@ mkOneRecordSelector all_cons idDetails fl
         data_tv_set= mkVarSet data_tvs
         is_naughty = not (tyCoVarsOfType field_ty `subVarSet` data_tv_set)
         (field_tvs, field_theta, field_tau) = tcSplitSigmaTy field_ty
-  
+
         -- Make the binding: sel (C2 { fld = x }) = x
         --                   sel (C7 { fld = x }) = x
         --    where cons_w_field = [C2,C7]
@@ -933,13 +931,12 @@ mkOneRecordSelector all_cons idDetails fl
 
         unit_rhs = mkLHsTupleExpr []
         msg_lit = HsStringPrim NoSourceText (bytesFS lbl)
-  -- ; atatcs <- if partialCtrs then do {(_, cs) <- genAtAtConstraints field_tau; return cs} else return []
   ; let sel_ty | is_naughty = unitTy  -- See Note [Naughty record selectors]
                | otherwise = mkSpecForAllTys data_tvs          $
                              mkPhiTy (conLikeStupidTheta con1) $   -- Urgh!
                              mkVisFunTy data_ty                $
                              mkSpecForAllTys field_tvs         $
-                             mkPhiTy (field_theta) $
+                             mkPhiTy field_theta $
                              -- req_theta is empty for normal DataCon
                              mkPhiTy (req_theta)     $
                              field_tau

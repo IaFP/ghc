@@ -188,10 +188,6 @@ call and just recurse directly in to the subexpressions.
 
 -}
 
-#if MIN_VERSION_base(4,14,0)
-instance Total (ReaderT HieState Hsc)
-#endif
-
 -- These synonyms match those defined in main/GHC.hs
 type RenamedSource     = ( HsGroup GhcRn, [LImportDecl GhcRn]
                          , Maybe [(LIE GhcRn, Avails)]

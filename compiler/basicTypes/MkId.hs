@@ -23,7 +23,7 @@ module MkId (
         mkPrimOpId, mkFCallId,
 
         unwrapNewTypeBody, wrapFamInstBody,
-        DataConBoxer(..), mkDataConRep, mkDataConWorkId,
+        DataConBoxer(..), mkDataConRep, mkDataConWorkId, updateDataConRep,
 
         -- And some particular Ids; see below for why they are wired in
         wiredInIds, ghcPrimIds,
@@ -770,6 +770,140 @@ mkDataConRep dflags fam_envs wrap_name mb_bangs data_con
            ; (rep_ids2, binds) <- go subst boxers src_vars
            ; return (rep_ids1 ++ rep_ids2, NonRec src_var arg : binds) }
     go _ (_:_) [] = pprPanic "mk_boxer" (ppr data_con)
+
+
+    mk_rep_app :: [(Id,Unboxer)] -> CoreExpr -> UniqSM CoreExpr
+    mk_rep_app [] con_app
+      = return con_app
+    mk_rep_app ((wrap_arg, unboxer) : prs) con_app
+      = do { (rep_ids, unbox_fn) <- unboxer wrap_arg
+           ; expr <- mk_rep_app prs (mkVarApps con_app rep_ids)
+           ; return (unbox_fn expr) }
+
+-- TODO Simplify. Its copy pasted from mkDataConRep but maybe we don't need all that jazz.
+-- Ideally I would like to build this logic into mkDataConRep, but i've commited myself to updating things in TcDeriv.hs
+-- for the purposes of a POC
+updateDataConRep :: UniqSupply -> DataCon -> DataConRep -> ThetaType -> Type -> DataConRep
+updateDataConRep _ _ NoDataConRep _ _ = NoDataConRep
+updateDataConRep us data_con
+                 (DCR { dcr_wrap_id = old_wrap_id
+                      , dcr_bangs = old_bangs
+                      -- , dcr_stricts = old_stricts
+                      , dcr_arg_tys = old_arg_tys })
+                 wfth new_ty
+
+  = initUs_ us new_dc_rep
+  where
+    new_arg_tys = stableMergeTypes wfth old_arg_tys
+    new_args_delta = length new_arg_tys - length old_arg_tys
+
+    bangs' = take new_args_delta (repeat HsLazy)
+    -- stricts' = take new_args_delta (repeat NotMarkedStrict)
+
+    wrap_ty = new_ty
+
+    new_dc_rep = do { wrap_args <- mapM newLocal new_arg_tys
+                    ; wrap_body <- mk_rep_app (wrap_args `zip` dropList eq_spec unboxers)
+                                       initial_wrap_app
+
+                    ; let wrap_id = mkGlobalId (DataConWrapId data_con) (getName old_wrap_id) wrap_ty wrap_info
+                          wrap_info = noCafIdInfo
+                                      `setArityInfo`         wrap_arity
+                                      -- It's important to specify the arity, so that partial
+                                      -- applications are treated as values
+                                      `setInlinePragInfo`    wrap_prag
+                                      `setUnfoldingInfo`     wrap_unf
+                                      `setStrictnessInfo`    wrap_sig
+                                      -- We need to get the CAF info right here because TidyPgm
+                                      -- does not tidy the IdInfo of implicit bindings (like the wrapper)
+                                      -- so it not make sure that the CAF info is sane
+                                      `setLevityInfoWithType` wrap_ty
+                          
+                          wrap_sig = mkClosedStrictSig wrap_arg_dmds (dataConCPR data_con)
+      
+                          wrap_arg_dmds =
+                            replicate (length theta) topDmd ++ map mk_dmd arg_ibangs
+                      -- Don't forget the dictionary arguments when building
+                    -- the strictness signature (#14290).
+
+                          mk_dmd str | isBanged str = evalDmd
+                                     | otherwise           = topDmd
+
+                          wrap_prag = alwaysInlinePragma `setInlinePragmaActivation`
+                            activeDuringFinal
+                         -- See Note [Activation for data constructor wrappers]
+
+                          wrap_unf = mkInlineUnfolding wrap_rhs
+                          wrap_rhs = mkLams wrap_tvs $
+                            mkLams wrap_args $
+                            wrapFamInstBody tycon res_ty_args $
+                            wrap_body
+                    ; MASSERT2(length rep_tys == length rep_strs
+                               && length arg_ibangs == length wfth + length (dataConOrigArgTys data_con)
+                              , ppr rep_tys <+> parens (ppr (length rep_tys))
+                                $$ ppr rep_strs <+> parens (ppr (length rep_strs))
+                                $$ ppr arg_ibangs <+> parens (ppr (length arg_ibangs))
+                                $$ ppr (dataConOrigArgTys data_con) <+> parens (ppr (length $ dataConOrigArgTys data_con))
+                                        <+> ppr (length wfth)
+                              ) -- make sure invariants hold (check DataCon.DCR)
+                    ; return (DCR { dcr_wrap_id = wrap_id
+                                  , dcr_boxer   = mk_boxer boxers
+                                  , dcr_arg_tys = rep_tys
+                                  , dcr_stricts = rep_strs
+                                  -- For newtypes, dcr_bangs is always [HsLazy].
+                                  -- See Note [HsImplBangs for newtypes].
+                                  , dcr_bangs   = arg_ibangs }) }
+
+    (univ_tvs, ex_tvs, eq_spec, theta, orig_arg_tys, _orig_res_ty)
+      = dataConFullSig data_con
+    wrap_tvs     = dataConUserTyVars data_con
+    res_ty_args  = substTyVars (mkTvSubstPrs (map eqSpecPair eq_spec)) univ_tvs
+
+    tycon        = dataConTyCon data_con       -- The representation TyCon (not family)
+    -- wrap_ty      = dataConUserType data_con
+    ev_tys       = eqSpecPreds eq_spec ++ theta
+    all_arg_tys  = ev_tys ++ new_arg_tys
+    ev_ibangs    = map (const HsLazy) ev_tys
+
+    wrap_arg_tys = (stableMergeTypes wfth theta) ++ orig_arg_tys
+    wrap_arity   = count isCoVar ex_tvs + length wrap_arg_tys
+              -- The wrap_args are the arguments *other than* the eq_spec
+              -- Because we are going to apply the eq_spec args manually in the
+              -- wrapper
+
+    arg_ibangs = bangs' ++ old_bangs
+
+    (rep_tys_w_strs, wrappers)
+        = unzip (zipWith dataConArgRep all_arg_tys (ev_ibangs ++ arg_ibangs))
+
+    (unboxers, boxers) = unzip wrappers
+    (rep_tys, rep_strs) = unzip (concat rep_tys_w_strs)
+
+    initial_wrap_app = Var (dataConWorkId data_con)
+                         `mkTyApps`  res_ty_args
+                         `mkVarApps` ex_tvs
+                         `mkCoApps`  map (mkReflCo Nominal . eqSpecType) eq_spec
+
+
+    mk_boxer :: [Boxer] -> DataConBoxer
+    mk_boxer boxers = DCB (\ ty_args src_vars ->
+                                do { let (ex_vars, term_vars) = splitAtList ex_tvs src_vars
+                                         subst1 = zipTvSubst univ_tvs ty_args
+                                         subst2 = extendTCvSubstList subst1 ex_tvs
+                                                     (mkTyCoVarTys ex_vars)
+                                   ; (rep_ids, binds) <- go subst2 boxers term_vars
+                                   ; return (ex_vars ++ rep_ids, binds) } )
+
+    go _ [] src_vars = ASSERT2( null src_vars, ppr data_con ) return ([], [])
+    go subst (UnitBox : boxers) (src_var : src_vars)
+        = do { (rep_ids2, binds) <- go subst boxers src_vars
+             ; return (src_var : rep_ids2, binds) }
+    go subst (Boxer boxer : boxers) (src_var : src_vars)
+            = do { (rep_ids1, arg)  <- boxer subst
+                 ; (rep_ids2, binds) <- go subst boxers src_vars
+                 ; return (rep_ids1 ++ rep_ids2, NonRec src_var arg : binds) }
+    go _ (_:_) [] = pprPanic "mk_boxer" (ppr data_con)
+
 
     mk_rep_app :: [(Id,Unboxer)] -> CoreExpr -> UniqSM CoreExpr
     mk_rep_app [] con_app

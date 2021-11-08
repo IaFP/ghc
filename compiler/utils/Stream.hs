@@ -47,6 +47,10 @@ import GHC.Types (Total)
 --
 newtype Stream m a b = Stream { runStream :: m (Either b (a, Stream m a b)) }
 
+#if MIN_VERSION_base(4,14,0)
+instance Total (Stream m a)
+#endif
+
 instance (Monad f
 #if MIN_VERSION_base(4,14,0)
         , Total f

@@ -868,7 +868,7 @@ rnOverLit :: HsOverLit t ->
              RnM ((HsOverLit GhcRn, Maybe (HsExpr GhcRn)), FreeVars)
 rnOverLit origLit
   = do  { opt_NumDecimals <- xoptM LangExt.NumDecimals
-        ; let { lit@(OverLit {ol_val=val})
+        ; let { (OverLit {ol_val=val})
             | opt_NumDecimals = origLit {ol_val = generalizeOverLitVal (ol_val origLit)}
             | otherwise       = origLit
           }
@@ -878,8 +878,9 @@ rnOverLit origLit
         ; let rebindable = case from_thing_name of
                                 HsVar _ lv -> (unLoc lv) /= std_name
                                 _          -> panic "rnOverLit"
-        ; let lit' = lit { ol_witness = from_thing_name
-                         , ol_ext = rebindable }
+        ; let lit' = OverLit { ol_witness = from_thing_name
+                             , ol_val = val
+                             , ol_ext = rebindable }
         ; if isNegativeZeroOverLit lit'
           then do { (SyntaxExpr { syn_expr = negate_name }, fvs2)
                       <- lookupSyntaxName negateName

@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE StandaloneDeriving #-}
 #if __GLASGOW_HASKELL__ >= 810
 {-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 #endif
@@ -58,10 +59,12 @@ import GHC.Types (Total)
 ----------------------------------------------------------------------
 
 
-newtype IOEnv env a = IOEnv (env -> IO a) deriving (Functor)
+newtype IOEnv env a = IOEnv (env -> IO a)
 #if MIN_VERSION_base(4,14,0)
 instance Total (IOEnv env)
 #endif
+
+deriving instance Functor (IOEnv env)
 
 unIOEnv :: IOEnv env a -> (env -> IO a)
 unIOEnv (IOEnv m) = m

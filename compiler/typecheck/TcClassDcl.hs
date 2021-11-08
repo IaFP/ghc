@@ -63,6 +63,9 @@ import Util
 
 import Control.Monad
 import Data.List ( mapAccumL, partition )
+import TcTyWF ( elabAtAtConstraintsTcM )
+import qualified GHC.LanguageExtensions as LangExt
+
 
 {-
 Dictionary handling
@@ -156,6 +159,13 @@ tcClassSigs clas sigs def_methods
     tc_sig gen_dm_env (op_names, op_hs_ty)
       = do { traceTc "ClsSig 1" (ppr op_names)
            ; op_ty <- tcClassSigType skol_info op_names op_hs_ty
+           ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
+           ; op_ty <- if enblPCtrs
+                      then do { ty' <- elabAtAtConstraintsTcM op_ty
+                              ; traceTc "tc_sig before elaborating: " (ppr op_ty)
+                              ; traceTc "tc_sig elaborated signature: " (ppr ty')
+                              ; return ty' }
+                      else return op_ty
                    -- Class tyvars already in scope
 
            ; traceTc "ClsSig 2" (ppr op_names)

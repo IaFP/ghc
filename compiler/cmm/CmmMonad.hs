@@ -24,8 +24,14 @@ import qualified Control.Monad.Fail as MonadFail
 
 import DynFlags
 import Lexer
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 newtype PD a = PD { unPD :: DynFlags -> PState -> ParseResult a }
+#if MIN_VERSION_base(4,14,0)
+instance Total PD
+#endif
 
 instance Functor PD where
   fmap = liftM

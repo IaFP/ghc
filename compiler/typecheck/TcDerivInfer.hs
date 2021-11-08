@@ -41,14 +41,14 @@ import TcOrigin
 import Constraint
 import Predicate
 import TcType
-import TcTyWF (genAtAtConstraints)
+import TcTyWF ( genAtAtConstraints )
 import TyCon
 import TyCoPpr (pprTyVars)
 import Type
 import TcSimplify
 import TcValidity (validDerivPred)
 import TcUnify (buildImplicationFor, checkConstraints)
-import TysWiredIn (typeToTypeKind)
+import TysWiredIn (typeToTypeKind, totalClass)
 import Unify (tcUnifyTy)
 import Util
 import Var
@@ -173,6 +173,9 @@ inferConstraintsStock (DerivInstTys { dit_cls_tys     = cls_tys
        let partialCtrs = xopt LangExt.PartialTypeConstructors dflags
            inst_ty    = mkTyConApp tc tc_args
            tc_binders = tyConBinders rep_tc
+           -- skip_tys = map (mkTyVarTy . binderVar) $
+           --      filter (\b -> isNamedTyConBinder b
+           --                    && (isSpecifiedArgFlag (tyConBinderArgFlag b))) tc_binders
            choose_level bndr
              | isNamedTyConBinder bndr = KindLevel
              | otherwise               = TypeLevel
@@ -188,17 +191,19 @@ inferConstraintsStock (DerivInstTys { dit_cls_tys     = cls_tys
            get_gen1_constraints :: Class -> CtOrigin -> TypeOrKind -> Type
                                 -> DerivM [([PredOrigin], Maybe TCvSubst)]
            get_gen1_constraints functor_cls orig t_or_k ty
-              = mk_functor_like_constraints orig t_or_k functor_cls mk_cls_pred $
+              = mk_functor_like_constraints orig t_or_k functor_cls mk_cls_pred {-skip_tys-} $
                 get_gen1_constrained_tys last_tv ty
 
            get_std_constrained_tys :: CtOrigin -> TypeOrKind -> Type
                                    -> DerivM [([PredOrigin], Maybe TCvSubst)]
            get_std_constrained_tys orig t_or_k ty
                | is_functor_like
-               = mk_functor_like_constraints orig t_or_k main_cls mk_cls_pred $
+               = mk_functor_like_constraints orig t_or_k main_cls mk_cls_pred {-skip_tys-} $
                  deepSubtypesContaining last_tv ty
                | otherwise
-               = do { atat_constraints <- if partialCtrs then do {(_, cs) <- genAtAtConstraints ty; return cs} else return []
+               = do { atat_constraints <- if partialCtrs
+                                          then do {(_, cs) <- genAtAtConstraints ty
+                                                  ; return cs } else return []
                     ; return [( [mk_cls_pred orig t_or_k main_cls ty] ++ fmap (mkPredOrigin orig TypeLevel) atat_constraints
                               , Nothing )] }
 
@@ -257,15 +262,19 @@ inferConstraintsStock (DerivInstTys { dit_cls_tys     = cls_tys
           |  is_generic
            -> return ([], tvs, inst_tys)
 
-             -- Generic1 needs Functor
+             -- Generic1 needs Functor & a Total
              -- See Note [Getting base classes]
           |  is_generic1
            -> ASSERT( rep_tc_tvs `lengthExceeds` 0 )
               -- Generic1 has a single kind variable
               ASSERT( cls_tys `lengthIs` 1 )
               do { functorClass <- lift $ tcLookupClass functorClassName
-                 ; con_arg_constraints rep_tc inst_tys tvs all_rep_tc_args t_or_ks
-                        $ get_gen1_constraints functorClass }
+                 ; (a, _, _) <- con_arg_constraints rep_tc inst_tys tvs all_rep_tc_args t_or_ks
+                        $ get_gen1_constraints totalClass
+                 ; (a', b', c') <- con_arg_constraints rep_tc inst_tys tvs all_rep_tc_args t_or_ks
+                        $ get_gen1_constraints functorClass
+                 ; return (a ++ a', b', c')
+                 }
 
              -- The others are a bit more complicated
           |  otherwise
@@ -301,14 +310,13 @@ mk_functor_like_constraints :: CtOrigin -> TypeOrKind
                             -> Class -> (CtOrigin -> TypeOrKind -> Class -> Type -> PredOrigin)
                             -> [Type]
                             -> DerivM [([PredOrigin], Maybe TCvSubst)]
-mk_functor_like_constraints orig t_or_k cls mk_cls_pred tys
+mk_functor_like_constraints orig t_or_k cls mk_cls_pred tys -- skip_tys
   = do { mapM mk_functor_constraints_aux tys }
   where
     mk_functor_constraints_aux :: Type -> DerivM ([PredOrigin], Maybe TCvSubst)
     mk_functor_constraints_aux ty
           = do { dflags <- getDynFlags
                ; let partialCtrs = xopt LangExt.PartialTypeConstructors dflags 
-
                      ki = tcTypeKind ty
                ; atat_constraints <-
                  if partialCtrs then do

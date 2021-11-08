@@ -295,7 +295,8 @@ mkCoAlgCaseMatchResult
   -> MatchResult
 mkCoAlgCaseMatchResult var ty match_alts
   | isNewtype  -- Newtype case; use a let
-  = ASSERT( null (tail match_alts) && null (tail arg_ids1) )
+  = ASSERT2( null (tail match_alts) && null (tail arg_ids1),
+             ppr var $$ ppr ty $$ ppr tc $$ ppr ty_args $$ ppr arg_ids1)
     mkCoLetMatchResult (NonRec arg_id1 newtype_rhs) match_result1
 
   | otherwise

@@ -938,17 +938,17 @@ cond_functorOK allowFunctions allowExQuantifiedLastTyVar _ _ rep_tc
   = NotValid (text "Data type" <+> quotes (ppr rep_tc)
               <+> text "must have some type parameters")
 
-  | not (null bad_stupid_theta)
-  = NotValid (text "Data type" <+> quotes (ppr rep_tc)
-              <+> text "must not have a class context:" <+> pprTheta bad_stupid_theta)
+  -- | not (null bad_stupid_theta)
+  -- = NotValid (text "Data type" <+> quotes (ppr rep_tc)
+  --             <+> text "must not have a class context:" <+> pprTheta bad_stupid_theta)
 
   | otherwise
   = allValid (map check_con data_cons)
   where
     tc_tvs            = tyConTyVars rep_tc
-    last_tv           = last tc_tvs
-    bad_stupid_theta  = filter is_bad (tyConStupidTheta rep_tc)
-    is_bad pred       = last_tv `elemVarSet` exactTyCoVarsOfType pred
+    -- last_tv           = last tc_tvs
+    -- bad_stupid_theta  = filter is_bad (tyConStupidTheta rep_tc)
+    -- is_bad pred       = last_tv `elemVarSet` exactTyCoVarsOfType pred
       -- See Note [Check that the type variable is truly universal]
 
     data_cons = tyConDataCons rep_tc

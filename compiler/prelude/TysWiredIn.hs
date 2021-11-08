@@ -431,7 +431,7 @@ totalTyConName :: Name
 totalTyConName = mkWiredInTyConName BuiltInSyntax gHC_TYPES (fsLit "Total") totalTyConKey totalTyCon
 
 totalDataConName :: Name
-totalDataConName = mkWiredInDataConName UserSyntax gHC_TYPES (fsLit "MkTotal") totalDataConKey totalDataCon
+totalDataConName = mkWiredInDataConName BuiltInSyntax gHC_TYPES (fsLit "MkTotal") totalDataConKey totalDataCon
 
 -- class Total (f :: k' -> k)
 -- forall k' k f :: k' -> k. Total f
@@ -450,7 +450,7 @@ totalDataCon :: DataCon
     datacon   = pcDataCon totalDataConName tvs [sc_pred] tycon
 
     binders   = mkTemplateTyConBinders [liftedTypeKind, liftedTypeKind] (\[k1, k2] -> [k1 `mkVisFunTy` k2])
-    roles     = [Nominal, Nominal, Nominal]
+    roles     = [Nominal, Nominal, Representational]
     rhs       = mkDataTyConRhs [datacon]
 
     tvs         = binderVars binders
@@ -458,39 +458,6 @@ totalDataCon :: DataCon
     sc_sel_id   = mkDictSelId totalSCSelIdName klass
 
     totalSCSelIdName = mkWiredInIdName gHC_TYPES (fsLit "total_sel") totalSCSelIdKey sc_sel_id
-
--- total2TyConName :: Name
--- total2TyConName = mkWiredInTyConName BuiltInSyntax gHC_TYPES (fsLit "Total2") total2TyConKey total2TyCon
-
--- total2DataConName :: Name
--- total2DataConName = mkWiredInDataConName UserSyntax gHC_TYPES (fsLit "MkTotal2") total2DataConKey total2DataCon
-
-
--- -- class Total2 (f :: k'' -> k' -> k)
--- -- forall k'' k' k f :: k'' -> k' -> k. Total2 f
--- total2TyCon :: TyCon
--- total2Class :: Class
--- total2DataCon :: DataCon
--- (total2TyCon, total2Class, total2DataCon)
---   = (tycon, klass, datacon)
---   where
---     tycon     = mkClassTyCon total2TyConName binders roles
---                              rhs klass
---                              (mkPrelTyConRepName total2TyConName)
---     klass     = mk_class tycon sc_pred sc_sel_id
-
---     -- Kind: forall k. k1 -> k2 -> Constraint
---     datacon   = pcDataCon total2DataConName tvs [sc_pred] tycon
-
---     binders   = mkTemplateTyConBinders [liftedTypeKind, liftedTypeKind] id
---     roles     = [Nominal, Nominal, Nominal]
---     rhs       = mkDataTyConRhs [datacon]
-
---     tvs         = binderVars binders
---     sc_pred     = mkTyConApp tycon (mkTyVarTys tvs)
---     sc_sel_id   = mkDictSelId total2SCSelIdName klass
-
---     total2SCSelIdName = mkWiredInIdName gHC_TYPES (fsLit "total2_sel") totalSCSelIdKey sc_sel_id
 
 
 -- | Make a fake, recovery 'TyCon' from an existing one.

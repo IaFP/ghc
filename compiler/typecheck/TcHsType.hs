@@ -89,7 +89,7 @@ import TyCoRep
 import TyCoPpr
 import TcErrors ( reportAllUnsolved )
 import TcType
-import TcTyWF (elabWithAtAtConstraintsTcM)
+import TcTyWF ( elabAtAtConstraintsTcM )
 import Inst   ( tcInstInvisibleTyBinders, tcInstInvisibleTyBinder )
 import Type
 import TysPrim
@@ -288,22 +288,29 @@ tc_hs_sig_type :: Bool -> SkolemInfo -> LHsSigType GhcRn
 -- No validity checking or zonking
 -- Returns also a Bool indicating whether the type induced an insoluble constraint;
 -- True <=> constraint is insoluble
-tc_hs_sig_type isF skol_info hs_sig_type ctxt_kind
+tc_hs_sig_type don'telab skol_info hs_sig_type ctxt_kind
   | HsIB { hsib_ext = sig_vars, hsib_body = hs_ty } <- hs_sig_type
   = do { (tc_lvl, (wanted, (spec_tkvs, ty)))
               <- pushTcLevelM                           $
                  solveLocalEqualitiesX "tc_hs_sig_type" $
                  bindImplicitTKBndrs_Skol sig_vars      $
                  do { kind <- newExpectedKind ctxt_kind
-                    ; raw_ty <- tc_lhs_type typeLevelMode hs_ty kind
-                    ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
-                    ; if enblPCtrs && not isF
-                      then do { elab_ty <- elabWithAtAtConstraintsTcM raw_ty
-                              ; traceTc "tc_hs_sig_type: " (ppr raw_ty)
-                              ; traceTc "tc_hs_sig_type elaborating signature: " (ppr elab_ty)
-                              ; return elab_ty }
-                      else return raw_ty }
-
+                    ; tc_lhs_type typeLevelMode hs_ty kind }
+                    -- ; raw_ty <- tc_lhs_type typeLevelMode hs_ty kind
+                    -- ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
+                    -- ; if enblPCtrs && not isF
+                    --   then do { elab_ty <- elabAtAtConstraintsTcM raw_ty
+                    --           ; traceTc "tc_hs_sig_type: " (ppr raw_ty)
+                    --           ; traceTc "tc_hs_sig_type elaborating signature: " (ppr elab_ty)
+                    --           ; return elab_ty }
+                    --   else return raw_ty }
+       ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
+       ; ty <- if enblPCtrs && not don'telab
+               then do { elabTy <- elabAtAtConstraintsTcM ty
+                       ; traceTc "tc_hs_sig_type before elaborating: " (ppr ty)
+                       ; traceTc "tc_hs_sig_type elaborated signature: " (ppr elabTy)
+                       ; return elabTy }
+               else return ty
        -- Any remaining variables (unsolved in the solveLocalEqualities)
        -- should be in the global tyvars, and therefore won't be quantified
        ; spec_tkvs <- zonkAndScopedSort spec_tkvs
@@ -340,15 +347,18 @@ tcTopLHsType mode hs_sig_type ctxt_kind
                  solveEqualities                   $
                  bindImplicitTKBndrs_Skol sig_vars $
                  do { kind <- newExpectedKind ctxt_kind
-                    ; raw_ty <- tc_lhs_type mode hs_ty kind
-                    -- ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
-                    -- ; if enblPCtrs && (mode_level mode == TypeLevel)
-                    --   then do { elab_ty <- elabWithAtAtConstraintsTcM raw_ty
-                    --           ; traceTc "tcTopLHsType elaborating signature: " (ppr elab_ty)
-                    --           ; return elab_ty }
-                    --   else
-                    ; return raw_ty
+                    ; tc_lhs_type mode hs_ty kind
                     }
+       -- ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
+       -- ; ty <- if enblPCtrs && isTypeLevel (mode_level mode)
+       --         then do { (ty', cts) <- genAtAtConstraintsExceptTcM [] (map mkTyVarTy spec_tkvs) ty
+       --                 ; cts' <- concatMapM flatten_atat_constraint cts
+       --                 ; traceTc "tcTopLHsType ctxt: " (ppr cts')
+       --                 ; let elabTy = attachConstraints cts' ty'
+       --                 ; traceTc "tcTopLHsType before elaborating: " (ppr ty)
+       --                 ; traceTc "tcTopLHsType elaborated signature: " (ppr elabTy)
+       --                 ; return elabTy }
+       --         else return ty
 
        ; spec_tkvs <- zonkAndScopedSort spec_tkvs
        ; let ty1 = mkSpecForAllTys spec_tkvs ty
@@ -418,12 +428,15 @@ tcHsClsInstType user_ctxt hs_inst_ty
          -- sees an unsolved coercion hole
          inst_ty <- checkNoErrs $
                     tcTopLHsType typeLevelMode hs_inst_ty (TheKind constraintKind)
+                    -- FIXME: why don't atat constraints flatten out here?
        -- ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
        -- ; inst_ty <- if enblPCtrs
-       --              then do { inst_ty <- elabWithAtAtConstraintsTcM inst_ty'
-       --                      ; traceTc "tcHsClsInstType elaborating signature: " (ppr inst_ty)
-       --                      ; return inst_ty }
-       --              else return inst_ty'
+       --              then do { elabTy <- elabAtAtConstraintsTcM inst_ty
+       --                      ; traceTc "tcHsClsInstType before elaborating: " (ppr inst_ty)
+       --                      ; traceTc "tcHsClsInstType elaborated signature: " (ppr elabTy)
+       --                      ; return elabTy }
+       --         else return inst_ty
+                    
        ; checkValidInstance user_ctxt hs_inst_ty inst_ty
        ; return inst_ty }
 
@@ -1558,8 +1571,9 @@ tcTyVar mode name         -- Could be a tyvar, a tycon, or a datacon
                    ; when (isFamInstTyCon (dataConTyCon dc)) $
                        -- see #15245
                        promotionErr name FamDataConPE
-                   ; let (_, _, _, theta, _, _) = dataConFullSig dc
-                   ; traceTc "tcTyVar" (ppr dc <+> ppr theta $$ ppr (dc_theta_illegal_constraint theta))
+                   ; let (_, _, _, theta, _, res_ty) = dataConFullSig dc
+                   ; traceTc "tcTyVar" (ppr dc <+> ppr theta $$ ppr (dc_theta_illegal_constraint theta)
+                                        <+> ppr res_ty)
                    ; case dc_theta_illegal_constraint theta of
                        Just pred -> promotionErr name $
                                     ConstrainedDataConPE pred

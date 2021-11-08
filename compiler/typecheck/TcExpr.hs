@@ -1748,12 +1748,6 @@ tcInferId id_name
 
   | otherwise
   = do { (expr, ty) <- tc_infer_id (nameRdrName id_name) id_name
-       -- ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
-       -- ; ty' <- if enblPCtrs
-       --          then do { elab_ty <- elabWithAtAtConstraints ty
-       --                  ; traceTc "TcExpr.tcInferId elaborating signature: " (ppr elab_ty)
-       --                  ; return elab_ty }
-       --   else return ty
        ; traceTc "tcInferId" (ppr id_name <+> dcolon <+> ppr ty)
        ; return (expr, ty)
        }

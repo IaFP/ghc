@@ -1912,7 +1912,7 @@ mkCoerceClassMethEqn cls inst_tvs inst_tys rhs_ty id
 \begin{verbatim}
 data Foo ... = ...
 
-con2tag_Foo :: Foo ... -> Int#
+con2tag_Foo :: Wf(Foo) => Foo ... -> Int#
 tag2con_Foo :: Int -> Foo ...   -- easier if Int, not Int#
 maxtag_Foo  :: Int              -- ditto (NB: not unlifted)
 \end{verbatim}

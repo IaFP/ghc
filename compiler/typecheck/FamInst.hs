@@ -476,6 +476,9 @@ getFamInsts hpt_fam_insts mod
   | Just env <- lookupModuleEnv hpt_fam_insts mod = return env
   | otherwise = do { _ <- initIfaceTcRn (loadSysInterface doc mod)
                    ; eps <- getEps
+                   -- ; traceTc "getFamInsts" (vcat [ text "Looking up fam env for module: " <> ppr mod 
+                   --                               -- , text "module env: " <> ppr (eps_mod_fam_inst_env eps)
+                   --                               ])
                    ; return (expectJust "checkFamInstConsistency" $
                              lookupModuleEnv (eps_mod_fam_inst_env eps) mod) }
   where

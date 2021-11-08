@@ -13,7 +13,10 @@ Handles @deriving@ clauses on @data@ declarations.
 #if __GLASGOW_HASKELL__ >= 810
 {-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
 #endif
-module TcDeriv ( tcDeriving, DerivInfo(..), mk_atat_fam, mk_atat_fam_except ) where
+module TcDeriv ( tcDeriving, DerivInfo(..)
+               , mk_atat_fam, mk_atat_fam_except
+               , mk_atat_fam_units, mk_atat_fam_except_units
+               , elabTcDataConsCtxt, saneTyConForElab) where
 
 #include "HsVersions.h"
 
@@ -40,7 +43,8 @@ import TcHsType
 import TyCoRep
 import TyCoPpr    ( pprTyVars )
 import TysWiredIn
-import TcTyWF (genAtAtConstraintsExcept, mergeAtAtConstraints, getAllPredTyArgs)
+import TcTyWF (genAtAtConstraintsExceptTcM, mergeAtAtConstraints
+              , predTyArgs, flatten_atat_constraint, saneTyConForElab)
 import RnNames( extendGlobalRdrEnvRn )
 import RnBinds
 import RnEnv
@@ -60,6 +64,7 @@ import NameSet
 import TyCon
 import TcType
 import Var
+import Id
 import VarEnv
 import VarSet
 import PrelNames
@@ -2364,20 +2369,22 @@ mk_atat_fam' loc acc tc uTys (tyd, ty:tyl) (tyvarsd, (tyvar, shouldInc):tyvarsl)
        then do { mpred <- getMatchingPredicates ty (tyl ++ uTys) ctxt
                 -- ; sizeof mpred <= sizeof mkTyConApp (mkTyConApp tc tyd) ty
                ; inst_name <- newFamInstTyConName (L loc atTyTyConName) tyd'
-               ; traceTc "building axiom " (ppr (mkTyConApp tc tyd) <> dcolon <> ppr (tcTypeKind (mkTyConApp tc tyd))
-                                   <+> ppr atTyTyCon
-                                   <+> ppr ty <> dcolon <> ppr (tcTypeKind ty))
                ; let argK = tcTypeKind ty
                      f = mkTyConApp tc tyd
                      fk = tcTypeKind f
                      resK = piResultTy fk argK
                      axiom = mkSingleCoAxiom Nominal inst_name tyvarsd' [] [] atTyTyCon
                                [argK, resK, f, ty] mpred
+               ; traceTc "building axiom " (ppr f <> dcolon <> ppr fk
+                                             <+> ppr atTyTyCon
+                                             <+> ppr ty <> dcolon <> ppr argK
+                                             <+> (text " isForallTy ") <> ppr (isForAllTy argK))
 
                ; fam <- newFamInst SynFamilyInst axiom
-               ; traceTc "matching predicates for " (vcat [ ppr fam
-                                                          , ppr mpred
-                                                          , text "new ty: " <> ppr ty <+> text "tys left:" <+> ppr tyl])
+               -- ; traceTc "matching predicates for "
+               --   (vcat [ ppr fam
+               --         , ppr mpred
+               --         , text "new ty: " <> ppr ty <+> text "tys left:" <+> ppr tyl])
                ; mk_atat_fam' loc (fam:acc) tc uTys (tyd', tyl) (tyvarsd', tyvarsl) ctxt }
        else mk_atat_fam' loc acc tc uTys (tyd', tyl) (tyvarsd', tyvarsl) ctxt
      }
@@ -2385,22 +2392,29 @@ mk_atat_fam' _ acc _ _ _ _ _ = return acc
      
 -- mk_atat_datacon :: SrcSpan -> TyCon -> DataCon -> TcM ThetaType
 -- mk_atat_datacon loc tycon dc = mk_atat_datacon_except loc tycon [] dc
-
+-- Consider
+--        n  n   r                     r           n
+-- data T k1 k2 (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) where
+--      MkT1 :: f -> p -> T f g p
+--      MkT2 :: g -> p -> T f g p
+-- We don't want (f @@ g p) to creap in hence this bad_bndr dance, as k1 and k2 are specified binders
 mk_atat_datacon_except :: SrcSpan -> TyCon -> [TyCon] -> DataCon -> TcM ThetaType
 mk_atat_datacon_except loc tycon skip_tcs dc =
   do { let arg_tys' = dataConOrigArgTys dc
-     ; let arg_tys = filter (isGoodTyArg tycon) arg_tys'
-     ; traceTc "mk_atat_datacon"
-       (vcat [ text "tycon=" <> ppr tycon <+> ppr (tyConArity tycon)
-             , text "tycon bndrs=" <> ppr (tyConVisibleTyVars tycon)
-             , text "dc=" <> ppr dc
-             , text "arg_tys=" <> (ppr arg_tys)
-             , text "loc=" <> ppr loc
-             , text "univTys=" <> ppr (dataConUnivTyVars dc)] )
-     ; elabty_arg_atats <- mapM (genAtAtConstraintsExcept ([tycon]++ skip_tcs)) arg_tys
+           -- univ_roles = zip (dataConUnivTyVars dc) (tyConRoles tycon)
+           -- bad_tys = map (TyVarTy . fst) (filter (\(_, r) -> r == Nominal) univ_roles)
+           arg_tys = filter (isGoodTyArg tycon) arg_tys'
+     -- ; traceTc "mk_atat_datacon"
+     --   (vcat [ text "dc=" <> ppr dc
+     --         , text "tycon=" <> ppr tycon <+> ppr (tyConArity tycon) <> ppr loc
+     --         , text "tycon bndrs=" <> ppr (tyConBinders tycon)
+     --         , text "arg_tys=" <> (ppr arg_tys)
+     --         -- , text "bad_tys" <> ppr bad_tys
+     --         , text "univTys=" <> ppr univ_roles] )
+     ; elabty_arg_atats <- mapM (genAtAtConstraintsExceptTcM (tycon:skip_tcs) []) arg_tys
      ; let (_, arg_atats) = unzip elabty_arg_atats
      ; let atats = foldl mergeAtAtConstraints [] arg_atats
-     ; traceTc "elab atats=" (ppr atats)
+     -- ; traceTc "elab atats=" (ppr atats)
      ; return atats
      }
   where
@@ -2412,10 +2426,15 @@ mk_atat_datacon_except loc tycon skip_tcs dc =
 mk_atat_fam :: SrcSpan -> TyCon -> TcM [FamInst]
 mk_atat_fam loc tc = mk_atat_fam_except loc tc []
 
+-- | just like mk_atat_fam but generates T @@ a = () for all possible axioms generatable
+mk_atat_fam_units :: SrcSpan -> TyCon -> TcM [FamInst]
+mk_atat_fam_units loc tc = mk_atat_fam_except_units loc tc []
+
 mk_atat_fam_except :: SrcSpan -> TyCon -> [TyCon] -> TcM [FamInst]
 mk_atat_fam_except loc tc skip_tcs
-  | isAlgTyCon tc && not (isClassTyCon tc || isFunTyCon tc || isAbstractTyCon tc)
+  | isAlgTyCon tc && saneTyConForElab tc
   -- we don't want class tycons to creep in
+  -- maybe simplify to isDataTyCon?
   = do {
       ; atatss <- mapM (mk_atat_datacon_except loc tc skip_tcs) dcs
       ; let atats = foldl mergeAtAtConstraints [] atatss
@@ -2427,9 +2446,39 @@ mk_atat_fam_except loc tc skip_tcs
     univTys = mkTyVarTys $ concatMap dataConExTyCoVars dcs
     dt_ctx = tyConStupidTheta tc
     tyvars = tyConTyVars tc
+    roles = tyConRoles tc
     binders = tyConBinders tc
-    tyvars_binder_type = zip tyvars (map (\b -> isVisibleTyConBinder b && not (isNamedTyConBinder b)) binders)
+    tyvar_binder_roles = zip3 tyvars binders roles
+    tyvars_binder_type = map (\(t, b, r) ->
+                                 (t, (isVisibleTyConBinder b
+                                       && not (isNamedTyConBinder b)))
+                                       -- && not (r == Nominal)))
+                             ) tyvar_binder_roles
     tyargs = mkTyVarTys tyvars
+
+-- | TODO: Can optimize and skip on the matching pred funtion call, but meh.
+mk_atat_fam_except_units :: SrcSpan -> TyCon -> [TyCon] -> TcM [FamInst]
+mk_atat_fam_except_units loc tc skip_tcs
+  | isAlgTyCon tc && saneTyConForElab tc
+  -- we don't want class tycons to creep in
+  -- maybe simplify to isDataTyCon?
+  = do mk_atat_fam' loc [] tc univTys ([], tyargs) ([], tyvars_binder_type) []
+  | otherwise = return []
+  where
+    dcs = visibleDataCons $ algTyConRhs tc
+    univTys = mkTyVarTys $ concatMap dataConExTyCoVars dcs
+    -- dt_ctx = []
+    tyvars = tyConTyVars tc
+    roles = tyConRoles tc
+    binders = tyConBinders tc
+    tyvar_binder_roles = zip3 tyvars binders roles
+    tyvars_binder_type = map (\(t, b, r) ->
+                                 (t, (isVisibleTyConBinder b
+                                       && not (isNamedTyConBinder b)))
+                                       -- && not (r == Nominal)))
+                             ) tyvar_binder_roles
+    tyargs = mkTyVarTys tyvars
+
 
 
 getMatchingPredicates :: Type     -- Has to exists
@@ -2437,16 +2486,15 @@ getMatchingPredicates :: Type     -- Has to exists
                       -> [PredType]
                       -> TcM Type
 getMatchingPredicates t tvs preds =
-  if n == 1
-  then return $ head mpreds
-  else do
-    {
-    ; ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
-    ; return $ mkTyConApp ctupleTyCon mpreds
-    }
+    do { preds <- concatMapM flatten_atat_constraint mpreds
+       ; let n = length preds
+       ; if n == 1 then return (head preds)
+         else do { ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
+                 ; return $ mkTyConApp ctupleTyCon preds
+                 }
+       }
   where
     mpreds = getMatchingPredicates' t tvs preds
-    n = length mpreds
 
 -- filters the appropriate predicates from the given type variables
 -- eg:
@@ -2462,6 +2510,118 @@ getMatchingPredicates' :: Type     -- Has to exists
 getMatchingPredicates' tv tvs preds =
   filter (\p -> qual tv tvs p) preds
   where qual tv tvs p =
-          any (eqType tv) (getAllPredTyArgs p)
-          && not (or [eqType tv' t | tv' <- tvs, t <- getAllPredTyArgs p])
+          any (eqType tv) (predTyArgs p)
+          && not (or [eqType tv' t | tv' <- tvs, t <- predTyArgs p])
                
+-- | Go into each of the datacons of the tycon and elaborate their context with wf(res_type)
+--   This is needed so that the desugarer that converts each datacon to core exp expects the right number of arguments
+--   We do it this way as we cannot add this context into the datacon while building it due to recursive knot nonsense.
+--   We also cache the algTcWfTheta in the tycon
+elabTcDataConsCtxt :: TyCon -> TcM TyCon
+elabTcDataConsCtxt tc
+  -- | isDataTyCon tc && saneTyConForElab tc && not (isNewTyCon tc)
+  = do { let dcs = tyConDataCons tc
+       ; dcs' <- mapM (elabDataConCtxt tc) dcs
+       -- ; let tcRhs' = mkDataTyConRhs (dcs')
+       -- ; let wfTheta = if null dcs'th then [] else snd (head dcs'th)
+       -- ; wfTheta' <- concatMapM flatten_atat_constraint wfTheta
+       -- ; let s_theta = tyConStupidTheta tc
+       -- ; let final_theta = mergeAtAtConstraints wfTheta' s_theta
+       -- ; traceTc "elabTyConCtxt " (ppr tc <+> ppr (tyConStupidTheta tc))
+       -- ; if not (null final_theta)
+       ; return (updateAlgTyCon tc (mkDataTyConRhs (dcs')))
+       }
+  -- FIXME There is awkwardness with constrained newtypes, see GHC.Generics data structure Rec1 for ex.
+  -- This is because we do not support constrained type families.
+  -- | isNewTyCon tc && saneTyConForElab tc && (null (tail (tyConDataCons tc)))
+  -- = do { let dc = head (tyConDataCons tc) -- newtypes have only one case
+  --      ; (dc, elab_ty, wfctx) <- elabNewDataConCtxt tc dc
+  --      ; let tcRhs' = updateNewTyConRhs (algTyConRhs tc) dc
+  --      ; traceTc "elabTyConCtxt newTyCon" (ppr tc <+> ppr elab_ty)
+  --      ; if null wfctx
+  --        then return tc
+  --        else return $ updateAlgTyCon tc tcRhs'
+  --      }
+  
+  -- | otherwise = return tc
+  
+-- update the theta of each datacon, also update the return type of the rep tycon
+-- as during the creation of the worker/wrapper the worker doesn't get assigned the correct theta
+elabDataConCtxt :: TyCon -> DataCon -> TcM DataCon
+elabDataConCtxt tc dc =
+  do { -- traceTc "elabDataConCtx" (ppr dc)
+     ; let res_ty = dataConOrigResTy dc
+           arg_tys = dataConOrigArgTys dc
+           -- univ_roles_dc = zip (dataConUnivTyVars dc) (tyConRoles tc)
+           -- bad_tys_dc = map fst $ filter (\(v, r) -> isHigherKindedType v)
+           --               (map (\(v, r) -> (TyVarTy v, r)) univ_roles_dc)
+           -- univ_roles_tc = zip (tyConTyVars tc) (tyConRoles tc)
+           -- bad_tys_tc = map fst $ filter (\(v, r) -> isHigherKindedType v)
+           --              (map (\(v, r) -> (TyVarTy v, r)) univ_roles_tc)
+     ; wftys <- mapM (genAtAtConstraintsExceptTcM [tc] []) arg_tys
+     ; wftys_ret <- genAtAtConstraintsExceptTcM [] [] res_ty
+     ; fwftys <- concatMapM flatten_atat_constraint (concat $ map snd wftys)
+     ; fwftys_ret <- concatMapM flatten_atat_constraint (snd wftys_ret)
+     ; elab_ctx <- concatMapM flatten_atat_constraint $ mergeTypes (fwftys_ret) (fwftys) -- fwftys --
+     ; traceTc  "elabDataConCtxt" (ppr dc <+> ppr elab_ctx)
+     ; us <- newUniqueSupply 
+     ; if null elab_ctx && not (isPromotedDataCon tc)
+       then return dc
+       else return $ updateDataCon us dc elab_ctx
+
+         -- do { 
+         --       ; return $ updateDataCon us dc elab_ctx
+               -- ; traceTc "elabDataConCtx" (vcat [ text "arg_tys=" <> ppr arg_tys
+               --                                  , text "arg_tys wf=" <> ppr wftys
+               --                                  , text "univ_roles_dc" <> ppr (zip univ_roles_dc
+               --                                                                 (map (tcTypeKind . TyVarTy)
+               --                                                                   (dataConUnivTyVars dc)))
+               --                                  , text "univ_roles_tc" <> ppr (zip univ_roles_tc
+               --                                                                 (map (tcTypeKind . TyVarTy)
+               --                                                                   (tyConTyVars tc)))
+               --                                  , text "flattened elab wf=" <> ppr elab_ctx
+               --                                  , text "datacon=" <> ppr dc''
+               --                                  , text "dcRepTy=" <> ppr (dataConRepType dc'')
+               --                                  , text "dcRepArity=" <> ppr (dataConRepArity dc'')
+               --                                  , text "dcUserType=" <> ppr (dataConUserType dc'')
+               --                                  , text "worker_id type=" <> parens (ppr $ idArity (dataConWorkId dc''))
+               --                                    <> ppr (varType (dataConWorkId dc''))
+               --                                  , text "worker_id.datacon.worker_id"
+               --                                    <> parens (ppr $ idDetails (dataConWorkId dc''))
+               --                                  ])
+               -- ; return $ dc''
+               -- }
+     }
+
+
+-- elabNewDataConCtxt :: TyCon -> DataCon -> TcM (DataCon, Type, ThetaType)
+-- elabNewDataConCtxt tc dc = 
+--   do { let res_ty = dataConOrigResTy dc
+--            arg_tys = dataConOrigArgTys dc
+--            univ_roles_dc = zip (dataConUnivTyVars dc) (tyConRoles tc)
+--            -- bad_tys_dc = map (TyVarTy . fst) (filter (\(_, r) -> r == Nominal) univ_roles_dc)
+--            univ_roles_tc = zip (tyConTyVars tc) (tyConRoles tc)
+--            -- bad_tys_tc = map (TyVarTy . fst) (filter (\(_, r) -> r == Nominal) univ_roles_tc)
+--      ; wftys <- mapM (genAtAtConstraintsExceptTcM [tc] []) arg_tys
+--      ; wftys_ret <- genAtAtConstraintsExceptTcM [] [] res_ty
+--      ; fwftys <- concatMapM flatten_atat_constraint (concat $ map snd wftys)
+--      ; fwftys_ret <- concatMapM flatten_atat_constraint (snd wftys_ret)
+--      ; let elab_ctx = stableMergeTypes (fwftys_ret) (fwftys) -- fwftys -- 
+--      ; if not (null elab_ctx)
+--        then do { let dc' = updateNTDataCon dc elab_ctx
+--                      new_id = mkDataConWorkId (Var.varName (dataConWorkId dc')) dc'
+--                      dc'' = updateDataConWorkerId dc' new_id
+--                ; traceTc "elabDataConCtx newty" (vcat [ text "arg_tys=" <> ppr arg_tys
+--                                                       , text "flattened elab wf=" <> ppr elab_ctx
+--                                                       , text "univ_roles_dc" <> ppr univ_roles_dc
+--                                                       , text "univ_roles_tc" <> ppr univ_roles_tc
+--                                                       , text "datacon=" <> ppr dc''
+--                                                       , text "dcRepTy=" <> ppr (dataConRepType dc'')
+--                                                       , text "dcRepArity=" <> ppr (dataConRepArity dc'')
+--                                                       , text "dcUserType=" <> ppr (dataConUserType dc'')
+--                                                       , text "worker_id type=" <> ppr (varType (dataConWorkId dc''))
+--                                                       ])
+--                ; return $ (dc', dataConRepType dc', elab_ctx) }
+--        else return (dc, dataConRepType dc, [])
+--      }
+

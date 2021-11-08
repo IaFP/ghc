@@ -8,4 +8,5 @@ vanillaIdInfo :: IdInfo
 coVarDetails :: IdDetails
 isCoVarDetails :: IdDetails -> Bool
 pprIdDetails :: IdDetails -> SDoc
-
+setArityInfo :: IdInfo -> Int -> IdInfo
+isDFunVarDetails :: IdDetails -> Bool

@@ -40,7 +40,7 @@ import TcHsSyn
 import TcTyDecls
 import TcClassDcl
 import {-# SOURCE #-} TcInstDcls( tcInstDecls1 )
-import TcDeriv (DerivInfo(..), mk_atat_fam)
+import TcDeriv (DerivInfo(..), mk_atat_fam, mk_atat_fam_except_units, elabTcDataConsCtxt, saneTyConForElab)
 import TcUnify ( unifyKind )
 import TcHsType
 import ClsInst( AssocInstInfo(..) )
@@ -194,14 +194,55 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
          -- we want them in the environment because
          -- they may be mentioned in interface files
 
+         -- Optionally elaborate and validate the WFT Tycons/DataCons
+       -- FIXME: Is this the most appropriate place to do this?
        ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; gbl_env <- if enblPCtrs && (length tyclds == 1)
+       ; gbl_env <- if enblPCtrs 
                      then do { let locs = map getLoc tyclds
+                             -- ; let tAndR = thisAndRest tyclss
                              ; let locsAndTcs = zip locs tyclss
-                             ; fam_insts_list <- mapM (\(l, tc) -> mk_atat_fam l tc) locsAndTcs
-                             ; let fam_insts = concat fam_insts_list
-                             ; traceTc "adding generated @@ fam instances" (vcat (map ppr fam_insts))
-                             ; tcExtendLocalFamInstEnv (fam_insts) $ addTyConsToGblEnv tyclss }
+                             
+                             ; fam_insts <-  if (length tyclds == 1)
+                                                -- for now we can only reason about non-circular datatypes
+                                             then concatMapM (\(l, tc) -> mk_atat_fam l tc)
+                                                  locsAndTcs
+                                                  -- should generate T @@ a ~ () axioms here
+                                                  -- for all the co-dependent datatypes
+                                                  -- thats the best we can do atm
+                                             else concatMapM (\(l, tc) -> mk_atat_fam_except_units l tc tyclss)
+                                                  locsAndTcs
+                                                  
+                             -- ; tcExtendLocalFamInstEnv fam_insts (return ())
+                             -- ; traceTc "adding generated @@ fam instances" (vcat (map ppr fam_insts))
+                             -- fist add all the newly generated wf constraint equations in the env
+                             -- Then update each of the datacons of data types with elaborated context
+                             -- we update the env first so that we can simplify the atat constraints
+                             -- eagerly in the next step.
+                             ; let (tyclss1, tyclss2) = partition (\tc -> isDataTyCon tc
+                                                                    && saneTyConForElab tc
+                                                                    && not (isNewTyCon tc
+                                                                             || isPromotedDataCon tc)) tyclss
+                             ; tyclss' <- mapM (\t -> fixM $ do \_ ->
+                                                                    tcExtendLocalFamInstEnv fam_insts
+                                                                    $ do elabTcDataConsCtxt t) tyclss1
+                                          -- do { mapM elabTcDataConsCtxt tyclss1 }
+                             ; traceTc "updated WF datacons"
+                                 (vcat $ fmap (\tc -> text "tycon=" <> ppr tc
+                                                      <+> brackets (  
+                                                  vcat (fmap (\dc -> text "dc=" <> (ppr dc)
+                                                                     $$ text "user type=" <> (ppr $ dataConUserType dc)
+                                                                     $$ text "rep type=" <> (ppr $ dataConRepType dc)
+                                                                     $$ text "worker ty=" <> (ppr $ varType (dataConWorkId dc)))
+                                                         (tyConDataCons tc)))
+                                              )  tyclss')
+
+                             -- Check that elaborated tycons are generated okay
+                             ; traceTc "Starting validity check post WF enrichment" (ppr tyclss')
+                             ; tyclss' <- concatMapM checkValidTyCl tyclss'
+                             ; traceTc "Done validity check post WF enrichment" (ppr tyclss')
+
+                             ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $ tyclss' ++ tyclss2)
+                             }
                      -- else
                      --  if enblPCtrs && (length tyclds > 1)
                      --  then do { let locs = map getLoc tyclds
@@ -211,16 +252,13 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                      --          ; let fam_insts = concat fam_insts_list
                      --          ; traceTc "adding generated @@ fam instances" (vcat (map ppr fam_insts))
                      --          ; tcExtendLocalFamInstEnv (fam_insts) $ addTyConsToGblEnv tyclss }
-                      else addTyConsToGblEnv tyclss
-
+                      else do { addTyConsToGblEnv tyclss }
+       
            -- Step 4: check instance declarations
-       ; (gbl_env', inst_info, datafam_deriv_info) <-
-         setGblEnv gbl_env $
-         tcInstDecls1 instds
+       ; (gbl_env', inst_info, datafam_deriv_info) <- setGblEnv gbl_env $ tcInstDecls1 instds
 
        ; let deriv_info = datafam_deriv_info ++ data_deriv_info
        ; return (gbl_env', inst_info, deriv_info) }
-
 
 tcTyClGroup (XTyClGroup nec) = noExtCon nec
 
@@ -3431,7 +3469,13 @@ checkValidTyCon tc
                ; mapM_ (checkPartialRecordField data_cons) (tyConFieldLabels tc)
 
                 -- Check that fields with the same name share a type
-               ; mapM_ check_fields groups }}
+               ; mapM_ check_fields groups }
+       ; traceTc "checkValidTyCon done" (ppr tc $$ ppr (zip3 (getTyConTyVars tc)
+                                                             (tyConRoles tc)
+                                                             (zip (fmap (isTyKindPoly . mkTyVarTy) $ getTyConTyVars tc)
+                                                                  (map varType $ getTyConTyVars tc))
+                                                       ))
+       }
   where
     syn_ctxt  = TySynCtxt name
     name      = tyConName tc
@@ -3521,19 +3565,6 @@ checkValidDataCon dflags existential_ok tc con
           let tc_tvs      = tyConTyVars tc
               res_ty_tmpl = mkFamilyTyConApp tc (mkTyVarTys tc_tvs)
               orig_res_ty = dataConOrigResTy con
-        -- ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
-        -- ; res_ty_tmpl <- if enblPCtrs then
-        --                    do { elab_ty <- elabWithAtAtConstraints res_ty_tmpl
-        --                       ; traceTc "elab dc_res_ty" (ppr elab_ty)
-        --                       ; return elab_ty
-        --                       }
-        --                  else return res_ty_tmpl
-        -- ; orig_res_ty <- if enblPCtrs then
-        --                    do { elab_ty <- elabWithAtAtConstraints orig_res_ty
-        --                       ; traceTc "elab dc_res_ty" (ppr elab_ty)
-        --                       ; return elab_ty
-        --                       }
-        --                  else return orig_res_ty
         ; traceTc "checkValidDataCon" (vcat
               [ ppr con, ppr tc, ppr tc_tvs
               , ppr res_ty_tmpl <+> dcolon <+> ppr (tcTypeKind res_ty_tmpl)
@@ -3594,9 +3625,11 @@ checkValidDataCon dflags existential_ok tc con
 
         ; traceTc "Done validity of data con" $
           vcat [ ppr con
-               , text "Datacon user type:" <+> ppr (dataConUserType con)
+               , text "Datacon user type:" <+> ppr (dataConUserType con) <> parens (ppr $ dataConRepArity con)
                , text "Datacon rep type:" <+> ppr (dataConRepType con)
                , text "Rep typcon binders:" <+> ppr (tyConBinders (dataConTyCon con))
+               , text "worker_id type=" <> parens (ppr $ idArity (dataConWorkId con))
+                                        <> ppr (varType (dataConWorkId con))
                , case tyConFamInst_maybe (dataConTyCon con) of
                    Nothing -> text "not family"
                    Just (f, _) -> ppr (tyConBinders f) ]
