@@ -1,7 +1,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE PartialTypeConstructors, RankNTypes, KindSignatures, PolyKinds, UndecidableSuperClasses #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -36,7 +36,7 @@ import GHC.Generics
 import GHC.List ( head, tail )
 import Control.Monad.ST.Imp
 import System.IO
-
+import GHC.Types (Total, Type)
 -- | Monads having fixed points with a \'knot-tying\' semantics.
 -- Instances of 'MonadFix' should satisfy the following laws:
 --
@@ -55,7 +55,7 @@ import System.IO
 --
 -- This class is used in the translation of the recursive @do@ notation
 -- supported by GHC and Hugs.
-class (Monad m) => MonadFix m where
+class Monad m => MonadFix m where
         -- | The fixed point of a monadic computation.
         -- @'mfix' f@ executes the action @f@ only once, with the eventual
         -- output fed back as the input.  Hence @f@ should not be strict,
@@ -125,11 +125,11 @@ instance MonadFix Last where
     mfix f   = Last (mfix (getLast . f))
 
 -- | @since 4.8.0.0
-instance MonadFix f => MonadFix (Alt f) where
+instance (Total f, MonadFix f, Total (Alt f)) => MonadFix (Alt f) where
     mfix f   = Alt (mfix (getAlt . f))
 
 -- | @since 4.12.0.0
-instance MonadFix f => MonadFix (Ap f) where
+instance (Total f, MonadFix f, Total (Ap f)) => MonadFix (Ap f) where
     mfix f   = Ap (mfix (getAp . f))
 
 -- Instances for GHC.Generics
@@ -138,18 +138,20 @@ instance MonadFix Par1 where
     mfix f = Par1 (fix (unPar1 . f))
 
 -- | @since 4.9.0.0
-instance MonadFix f => MonadFix (Rec1 f) where
+instance (Total f, MonadFix f) => MonadFix (Rec1 f) where
     mfix f = Rec1 (mfix (unRec1 . f))
 
 -- | @since 4.9.0.0
-instance MonadFix f => MonadFix (M1 i c f) where
+instance (Total f, MonadFix f) => MonadFix (M1 i c f) where
     mfix f = M1 (mfix (unM1. f))
 
 -- | @since 4.9.0.0
-instance (MonadFix f, MonadFix g) => MonadFix (f :*: g) where
+instance (Total f, Total g, MonadFix f, MonadFix g) => MonadFix (f :*: g) where
     mfix f = (mfix (fstP . f)) :*: (mfix (sndP . f))
       where
+        fstP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p::k'). (Total f', Total g') => (f' :*: g') p -> f' p
         fstP (a :*: _) = a
+        sndP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p ::k'). (Total f', Total g') => (f' :*: g') p -> g' p
         sndP (_ :*: b) = b
 
 -- Instances for Data.Ord

@@ -41,6 +41,7 @@ import GHC.Base (Applicative (..))
 import GHC.Generics (Generic, Generic1)
 import GHC.Float (Floating(..))
 import Data.Data (Data)
+import GHC.Types (Total)
 import Foreign (Storable, castPtr, peek, poke, pokeElemOff, peekElemOff, sizeOf,
                 alignment)
 
@@ -73,7 +74,7 @@ data Complex a
                  , Foldable    -- ^ @since 4.9.0.0
                  , Traversable -- ^ @since 4.9.0.0
                  )
-
+instance Total Complex
 -- -----------------------------------------------------------------------------
 -- Functions over Complex
 

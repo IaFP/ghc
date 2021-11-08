@@ -132,9 +132,14 @@ infixl 4 >$, $<, >$<, >$$<
 (>$$<) :: Contravariant f => f b -> (a -> b) -> f a
 (>$$<) = flip contramap
 
-deriving instance Contravariant f => Contravariant (Alt f)
-deriving instance Contravariant f => Contravariant (Rec1 f)
-deriving instance Contravariant f => Contravariant (M1 i c f)
+instance Contravariant f => Contravariant (Alt f) where
+  contramap f (Alt x) = Alt (contramap f x)
+  
+instance Contravariant f => Contravariant (Rec1 f) where
+  contramap f (Rec1 x) = Rec1 (contramap f x)
+  
+instance Contravariant f => Contravariant (M1 i c f) where
+  contramap f (M1 x) = M1 (contramap f x)
 
 instance Contravariant V1 where
   contramap _ x = case x of

@@ -64,7 +64,6 @@ import NameSet
 import TyCon
 import TcType
 import Var
-import Id
 import VarEnv
 import VarSet
 import PrelNames

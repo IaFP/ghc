@@ -1,7 +1,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE PartialTypeConstructors, StandaloneDeriving, FlexibleContexts #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 -----------------------------------------------------------------------------
@@ -41,7 +41,7 @@ module Control.Applicative (
     -- * Alternatives
     Alternative(..),
     -- * Instances
-    Const(..), WrappedMonad(..), WrappedArrow(..), ZipList(..),
+    Const(..), WrappedMonad(..), {-WrappedArrow(..),-} ZipList(..),
     -- * Utility functions
     (<$>), (<$), (<**>),
     liftA, liftA3,
@@ -66,30 +66,40 @@ import GHC.Show (Show)
 import GHC.Types (Total)
 
 newtype WrappedMonad m a = WrapMonad { unwrapMonad :: m a }
-                         deriving ( Generic  -- ^ @since 4.7.0.0
-                                  , Generic1 -- ^ @since 4.7.0.0
-                                  , Monad    -- ^ @since 4.7.0.0
-                                  )
+                         -- deriving ( Generic  -- ^ @since 4.7.0.0
+                         --          , Generic1 -- ^ @since 4.7.0.0
+                         --          , Monad    -- ^ @since 4.7.0.0
+                         --          )
 
 -- | @since 2.01
 instance (Total m, Monad m) => Functor (WrappedMonad m) where
     fmap f (WrapMonad v) = WrapMonad (liftM f v)
 
 -- | @since 2.01
-instance (Total m, Monad m) => Applicative (WrappedMonad m) where
+instance (Total m, Total (WrappedMonad m), Monad m) => Applicative (WrappedMonad m) where
     pure = WrapMonad . pure
     WrapMonad f <*> WrapMonad v = WrapMonad (f `ap` v)
     liftA2 f (WrapMonad x) (WrapMonad y) = WrapMonad (liftM2 f x y)
 
+instance (Monad m, Total (WrappedMonad m), Total m) => Monad (WrappedMonad m) where
+  (WrapMonad x) >>= f = WrapMonad (x >>= \z -> unwrapMonad (f z))
+
 -- | @since 2.01
-instance (Total m, MonadPlus m) => Alternative (WrappedMonad m) where
+instance (Total m, Total (WrappedMonad m), MonadPlus m) => Alternative (WrappedMonad m) where
     empty = WrapMonad mzero
     WrapMonad u <|> WrapMonad v = WrapMonad (u `mplus` v)
 
+deriving instance (Total m) => Generic (WrappedMonad m a)
+deriving instance (Total m) => Generic1 (WrappedMonad m)
+
+
 newtype WrappedArrow a b c = WrapArrow { unwrapArrow :: a b c }
-                           deriving ( Generic  -- ^ @since 4.7.0.0
-                                    , Generic1 -- ^ @since 4.7.0.0
-                                    )
+                           -- deriving ( Generic  -- ^ @since 4.7.0.0
+                           --          , Generic1 -- ^ @since 4.7.0.0
+
+                           --          )
+deriving instance Generic (WrappedArrow a b c)
+deriving instance Total (a b) => Generic1 (WrappedArrow a b)
 {-
 -- | @since 2.01
 instance (Total a, Arrow a) => Functor (WrappedArrow a b) where
@@ -113,10 +123,15 @@ newtype ZipList a = ZipList { getZipList :: [a] }
                            , Ord      -- ^ @since 4.7.0.0
                            , Read     -- ^ @since 4.7.0.0
                            , Functor  -- ^ @since 2.01
-                           , Foldable -- ^ @since 4.9.0.0
-                           , Generic  -- ^ @since 4.7.0.0
-                           , Generic1 -- ^ @since 4.7.0.0
+                           -- , Foldable -- ^ @since 4.9.0.0
+                           -- , Generic  -- ^ @since 4.7.0.0
+                           -- , Generic1 -- ^ @since 4.7.0.0
                            )
+instance Total ZipList
+deriving instance Foldable ZipList
+deriving instance Generic (ZipList a)
+deriving instance Generic1 ZipList
+
 -- See Data.Traversable for Traversable instance due to import loops
 
 -- |

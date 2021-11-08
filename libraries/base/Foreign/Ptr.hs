@@ -5,7 +5,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE NoPartialTypeConstructors #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -83,12 +83,20 @@ foreign import ccall unsafe "freeHaskellFunctionPtr"
 -- can be marshalled to and from that type safely.
 INTEGRAL_TYPE(WordPtr,Word)
         -- Word and Int are guaranteed pointer-sized in GHC
+-- newtype WordPtr = WordPtr Word deriving (Eq, Ord, Num, Enum, Storable, Real, Bounded,Integral,Bits,FiniteBits)
+
+-- deriving instance (Read WordPtr)
+-- deriving instance (Show WordPtr)
 
 -- | A signed integral type that can be losslessly converted to and from
 -- @Ptr@.  This type is also compatible with the C99 type @intptr_t@, and
 -- can be marshalled to and from that type safely.
 INTEGRAL_TYPE(IntPtr,Int)
         -- Word and Int are guaranteed pointer-sized in GHC
+-- newtype IntPtr = IntPtr Int deriving (Eq, Ord, Num, Enum, Storable, Real, Bounded,Integral,Bits,FiniteBits)
+
+-- deriving instance (Read IntPtr)
+-- deriving instance (Show IntPtr)
 
 -- | casts a @Ptr@ to a @WordPtr@
 ptrToWordPtr :: Ptr a -> WordPtr

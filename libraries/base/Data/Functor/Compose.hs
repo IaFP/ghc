@@ -5,7 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE PartialTypeConstructors, StandaloneDeriving, DeriveFunctor #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 -----------------------------------------------------------------------------
@@ -34,6 +34,7 @@ import Data.Coerce (coerce)
 import Data.Data (Data)
 import Data.Type.Equality (TestEquality(..), (:~:)(..))
 import GHC.Generics (Generic, Generic1)
+import Data.Typeable (Typeable)
 import GHC.Types (type (@@), Total)
 import Text.Read (Read(..), readListDefault, readListPrecDefault)
 
@@ -44,9 +45,15 @@ infixr 9 `Compose`
 -- but the composition of monads is not always a monad.
 newtype Compose f g a = Compose { getCompose :: f (g a) }
   deriving ( Data     -- ^ @since 4.9.0.0
-           , Generic  -- ^ @since 4.9.0.0
+           -- , Generic  -- ^ @since 4.9.0.0
            -- , Generic1 -- ^ @since 4.9.0.0
            )
+instance Total (Compose f g)
+-- FIX ME!                   
+-- deriving instance (f @@ g a, g @@ a, Data (f (g a)), Typeable a, Typeable f, Typeable g)
+--     => Data (Compose f g a)                   
+deriving instance (Total f, Total g, Functor f, Functor g) => Generic1 (Compose f g)
+deriving instance (Total f, Total g, Functor f, Functor g) => Generic (Compose f g a)
 
 -- Instances of lifted Prelude classes
 
@@ -124,8 +131,7 @@ instance (Applicative f, Applicative g) => Applicative (Compose f g) where
 -- | @since 4.9.0.0
 instance (Total f, Total g, Alternative f, Applicative g) => Alternative (Compose f g) where
     empty = Compose empty
-    (<|>) = coerce ((<|>) :: (f @@ g a, g @@ a) => f (g a) -> f (g a) -> f (g a))
-      :: forall a . Compose f g a -> Compose f g a -> Compose f g a
+    (Compose x) <|> (Compose y) = Compose (x <|> y)
 
 -- | The deduction (via generativity) that if @g x :~: g y@ then @x :~: y@.
 --

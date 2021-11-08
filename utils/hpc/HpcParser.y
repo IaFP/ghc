@@ -5,6 +5,9 @@
 module HpcParser where
 
 import HpcLexer
+#if __GLASGOW_HASKELL__ >= 810
+import GHC.Types (Total)
+#endif
 }
 
 %name parser
@@ -106,4 +109,8 @@ hpcParser filename = do
   return $ parser tokens  	
 
 happyError e = error $ show (take 10 e)
+#if MIN_VERSION_base(4,14,0)
+instance Total (HappyIdentity)
+#endif
+    
 }

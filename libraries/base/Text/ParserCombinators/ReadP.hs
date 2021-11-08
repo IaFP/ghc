@@ -76,7 +76,7 @@ module Text.ParserCombinators.ReadP
 import GHC.Unicode ( isSpace )
 import GHC.List ( replicate, null )
 import GHC.Base hiding ( many )
-
+import GHC.Types (Total)
 import Control.Monad.Fail
 
 infixr 5 +++, <++
@@ -102,6 +102,8 @@ data P a
   | Result a (P a)
   | Final (NonEmpty (a,String))
   deriving Functor -- ^ @since 4.8.0.0
+
+instance Total P
 
 -- Monad, MonadPlus
 
@@ -163,6 +165,7 @@ instance Alternative P where
 -- The ReadP type
 
 newtype ReadP a = R (forall b . (a -> P b) -> P b)
+instance Total ReadP
 
 -- | @since 2.01
 instance Functor ReadP where
@@ -231,14 +234,17 @@ R f1 +++ R f2 = R (\k -> f1 k <|> f2 k)
 --   not used.
 R f0 <++ q =
   do s <- look
-     probe (f0 return) s 0#
- where
-  probe (Get f)        (c:s) n = probe (f c) s (n+#1#)
-  probe (Look f)       s     n = probe (f s) s n
-  probe p@(Result _ _) _     n = discard n >> R (p >>=)
-  probe (Final r)      _     _ = R (Final r >>=)
-  probe _              _     _ = q
+     probe q (f0 return) s 0#
 
+ where
+  probe :: ReadP a -> P a -> String -> Int# -> ReadP a
+  probe q1 (Get f)        (c:s) n = probe q1 (f c) s (n+#1#)
+  probe q1 (Look f)       s     n = probe q1 (f s) s n
+  probe _ p@(Result _ _) _      n = discard n >> R (p >>=)
+  probe _ (Final r)      _     _  = R (Final r >>=)
+  probe q1 _              _     _ = q1
+
+  discard :: Int# -> ReadP ()
   discard 0# = return ()
   discard n  = get >> discard (n-#1#)
 

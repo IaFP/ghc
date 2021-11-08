@@ -34,7 +34,7 @@ import GHC.Num
 import GHC.Read
 import GHC.Real (Fractional, Integral, Real, RealFrac)
 import GHC.Show
-
+import GHC.Types (Total)
 -- |
 -- > comparing p x y = compare (p x) (p y)
 --
@@ -74,7 +74,7 @@ newtype Down a = Down
       , RealFloat  -- ^ @since 4.14.0.0
       , Storable   -- ^ @since 4.14.0.0
       )
-
+instance Total Down
 -- | This instance would be equivalent to the derived instances of the
 -- 'Down' newtype if the 'getDown' field were removed
 --

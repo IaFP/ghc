@@ -14,11 +14,7 @@
 
 module GHC.Hs.Expr where
 
-import SrcLoc     ( Located
-#if __GLASGOW_HASKELL__ >= 810
-                  , GenLocated , SrcSpan
-#endif
-                  )
+import SrcLoc     ( Located )
 import Outputable ( SDoc, Outputable )
 import {-# SOURCE #-} GHC.Hs.Pat  ( LPat )
 import BasicTypes ( SpliceExplicitFlag(..))

@@ -117,7 +117,7 @@ import GHC.Real         ( fromIntegral )
 import GHC.Show         ( Show(..), showParen, showString )
 import GHC.Stable       ( StablePtr(..) )
 import GHC.Weak
-
+import GHC.Types (Total)
 infixr 0 `par`, `pseq`
 
 -----------------------------------------------------------------------------
@@ -638,6 +638,7 @@ newStablePtrPrimMVar (MVar m) = IO $ \s0 ->
 
 -- |A monad supporting atomic memory transactions.
 newtype STM a = STM (State# RealWorld -> (# State# RealWorld, a #))
+instance Total STM
 
 unSTM :: STM a -> (State# RealWorld -> (# State# RealWorld, a #))
 unSTM (STM a) = a

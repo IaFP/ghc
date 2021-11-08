@@ -73,7 +73,6 @@ instance Binary TH.PatSynDir
 instance Binary TH.PatSynArgs
 
 -- We need Binary TypeRep for serializing annotations
-
 instance Binary Serialized where
     put (Serialized tyrep wds) = put tyrep >> put (B.pack wds)
     get = Serialized <$> get <*> (B.unpack <$> get)
@@ -84,3 +83,5 @@ instance Binary TH.Bytes where
    get = do
       B.PS ptr off sz <- get
       return (TH.Bytes ptr (fromIntegral off) (fromIntegral sz))
+
+

@@ -1,6 +1,6 @@
 {-# LANGUAGE Unsafe #-}
 {-# LANGUAGE NoImplicitPrelude, MagicHash, UnboxedTuples, RankNTypes #-}
-{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE PartialTypeConstructors, ExplicitNamespaces, TypeOperators, TypeFamilies #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 -----------------------------------------------------------------------------
@@ -27,9 +27,8 @@ module GHC.ST (
 
 import GHC.Base
 import GHC.Show
-import GHC.Types (Total)
 import qualified Control.Monad.Fail as Fail
-
+import GHC.Types (Total)
 default ()
 
 -- The 'ST' monad proper.  By default the monad is strict;

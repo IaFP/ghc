@@ -21,28 +21,37 @@
 #define OPAQUE_CLASSES Eq,Ord,Storable
 
 #define ARITHMETIC_TYPE(T,B) \
-newtype T = T B deriving (ARITHMETIC_CLASSES) \
-                deriving newtype (Read, Show);
+newtype T = T B deriving (ARITHMETIC_CLASSES);	\
+deriving instance (Read T); \
+deriving instance  (Show T);
 
 #define INTEGRAL_TYPE(T,B) \
-newtype T = T B deriving (ARITHMETIC_CLASSES, INTEGRAL_CLASSES) \
-                deriving newtype (Read, Show);
+newtype T = T B deriving (ARITHMETIC_CLASSES, INTEGRAL_CLASSES);	\
+deriving instance (Read T); \
+deriving instance (Show T);
+
 
 #define INTEGRAL_TYPE_WITH_CTYPE(T,THE_CTYPE,B) \
 newtype {-# CTYPE "THE_CTYPE" #-} T = T B \
-    deriving (ARITHMETIC_CLASSES, INTEGRAL_CLASSES) \
-    deriving newtype (Read, Show);
+  deriving (ARITHMETIC_CLASSES, INTEGRAL_CLASSES); \
+deriving instance (Read T); \
+deriving instance (Show T);
+
 
 #define FLOATING_TYPE(T,B) \
-newtype T = T B deriving (ARITHMETIC_CLASSES, FLOATING_CLASSES) \
-                deriving newtype (Read, Show);
+newtype T = T B deriving (ARITHMETIC_CLASSES, FLOATING_CLASSES);	\
+deriving instance (Read T);						\
+deriving instance (Show T);
+
 
 #define FLOATING_TYPE_WITH_CTYPE(T,THE_CTYPE,B) \
 newtype {-# CTYPE "THE_CTYPE" #-} T = T B \
-    deriving (ARITHMETIC_CLASSES, FLOATING_CLASSES) \
-    deriving newtype (Read, Show);
+  deriving (ARITHMETIC_CLASSES, FLOATING_CLASSES);	\
+deriving instance (Read T);				\
+deriving instance (Show T);
+
 
 #define OPAQUE_TYPE_WITH_CTYPE(T,THE_CTYPE,B) \
 newtype {-# CTYPE "THE_CTYPE" #-} T = T (B) \
-    deriving (OPAQUE_CLASSES) \
-    deriving newtype Show;
+  deriving (OPAQUE_CLASSES);		    \
+deriving instance (Show T);

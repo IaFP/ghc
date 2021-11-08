@@ -1,7 +1,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE NoPartialTypeConstructors #-}
 
 -----------------------------------------------------------------------------
 -- |

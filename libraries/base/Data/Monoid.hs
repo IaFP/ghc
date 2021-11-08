@@ -5,7 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE Trustworthy                #-}
 {-# LANGUAGE PartialTypeConstructors    #-}
-{-# LANGUAGE TypeOperators, UndecidableInstances, ExplicitNamespaces #-}
+{-# LANGUAGE TypeOperators, UndecidableInstances, ExplicitNamespaces, StandaloneDeriving, DeriveFunctor #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -87,9 +87,9 @@ import GHC.Generics
 import GHC.Num
 import GHC.Read
 import GHC.Show
-import GHC.Types (type (@@))
+import GHC.Types (type (@@), Total)
 
-import Control.Monad.Fail (MonadFail)
+import Control.Monad.Fail (MonadFail (..))
 
 import Data.Semigroup.Internal
 
@@ -147,13 +147,20 @@ newtype First a = First { getFirst :: Maybe a }
                  , Ord         -- ^ @since 2.01
                  , Read        -- ^ @since 2.01
                  , Show        -- ^ @since 2.01
-                 , Generic     -- ^ @since 4.7.0.0
-                 , Generic1    -- ^ @since 4.7.0.0
-                 , Functor     -- ^ @since 4.8.0.0
-                 , Applicative -- ^ @since 4.8.0.0
-                 , Monad       -- ^ @since 4.8.0.0
+                 -- , Generic     -- ^ @since 4.7.0.0
+                 -- , Generic1    -- ^ @since 4.7.0.0
+                 -- , Functor     -- ^ @since 4.8.0.0
+                 -- , Applicative -- ^ @since 4.8.0.0
+                 -- , Monad       -- ^ @since 4.8.0.0
                  )
 
+deriving instance Generic (First a)
+deriving instance Generic1 (First)
+deriving instance Functor First
+deriving instance Applicative First
+deriving instance Monad First
+
+instance Total First
 -- | @since 4.9.0.0
 instance Semigroup (First a) where
         First Nothing <> b = b
@@ -186,12 +193,18 @@ newtype Last a = Last { getLast :: Maybe a }
                  , Ord         -- ^ @since 2.01
                  , Read        -- ^ @since 2.01
                  , Show        -- ^ @since 2.01
-                 , Generic     -- ^ @since 4.7.0.0
-                 , Generic1    -- ^ @since 4.7.0.0
-                 , Functor     -- ^ @since 4.8.0.0
-                 , Applicative -- ^ @since 4.8.0.0
-                 , Monad       -- ^ @since 4.8.0.0
+                 -- , Generic     -- ^ @since 4.7.0.0
+                 -- , Generic1    -- ^ @since 4.7.0.0
+                 -- , Functor     -- ^ @since 4.8.0.0
+                 -- , Applicative -- ^ @since 4.8.0.0
+                 -- , Monad       -- ^ @since 4.8.0.0
                  )
+instance Total Last
+deriving instance Generic (Last a)
+deriving instance Generic1 (Last)
+deriving instance Functor Last
+deriving instance Applicative Last
+deriving instance Monad Last
 
 -- | @since 4.9.0.0
 instance Semigroup (Last a) where
@@ -208,42 +221,76 @@ instance Monoid (Last a) where
 --
 -- @since 4.12.0.0
 newtype Ap f a = Ap { getAp :: f a }
-        deriving ( Alternative -- ^ @since 4.12.0.0
-                 , Applicative -- ^ @since 4.12.0.0
-                 , Enum        -- ^ @since 4.12.0.0
-                 , Eq          -- ^ @since 4.12.0.0
-                 , Functor     -- ^ @since 4.12.0.0
-                 , Generic     -- ^ @since 4.12.0.0
-                 , Generic1    -- ^ @since 4.12.0.0
-                 , Monad       -- ^ @since 4.12.0.0
-                 , MonadFail   -- ^ @since 4.12.0.0
-                 , MonadPlus   -- ^ @since 4.12.0.0
-                 , Ord         -- ^ @since 4.12.0.0
-                 , Read        -- ^ @since 4.12.0.0
-                 , Show        -- ^ @since 4.12.0.0
-                 )
+        -- deriving ( Alternative -- ^ @since 4.12.0.0
+        --          , Applicative -- ^ @since 4.12.0.0
+        --          , Enum        -- ^ @since 4.12.0.0
+        --          , Eq          -- ^ @since 4.12.0.0
+        --          , Functor     -- ^ @since 4.12.0.0
+        --          , Generic     -- ^ @since 4.12.0.0
+        --          , Generic1    -- ^ @since 4.12.0.0
+        --          , Monad       -- ^ @since 4.12.0.0
+        --          , MonadFail   -- ^ @since 4.12.0.0
+        --          , MonadPlus   -- ^ @since 4.12.0.0
+        --          , Ord         -- ^ @since 4.12.0.0
+        --          , Read        -- ^ @since 4.12.0.0
+        --          , Show        -- ^ @since 4.12.0.0
+        --          )
+
+deriving instance Total f => Generic1 (Ap f)
+deriving instance f @@ a => Generic (Ap f a)
+deriving instance (f @@ a, Read (f a)) => Read (Ap f a)
+deriving instance (f @@ a, Show (f a)) => Show (Ap f a)
+deriving instance (f @@ a, Eq (f a)) => Eq (Ap f a)
+
+instance (Total f, Functor f) => Functor (Ap f) where
+  fmap f (Ap x) = Ap $ fmap f x
+
+instance (Applicative f, Total f, Total (Ap f)) => Applicative (Ap f) where
+  pure x = Ap $ pure x
+  (Ap x) <*> (Ap y) = Ap $ x <*> y
 
 -- | @since 4.12.0.0
-instance (Applicative f, Semigroup a, f @@ a, f @@ (a -> a)) => Semigroup (Ap f a) where
-        (Ap x) <> (Ap y) = Ap $ liftA2 (<>) x y
+instance (Applicative f, Semigroup a, f @@ a, Total (Ap f)) => Semigroup (Ap f a) where
+  (Ap x) <> (Ap y) = Ap $ liftA2 (<>) x y
 
 -- | @since 4.12.0.0
-instance (Applicative f, Monoid a, f @@ a, f @@ (a -> a)) => Monoid (Ap f a) where
-        mempty = Ap $ pure mempty
+instance (Alternative f, Total f, Total (Ap f)) => Alternative (Ap f) where
+  empty = Ap $ empty
+  (Ap x) <|> (Ap y) = Ap $ x <|> y
+
+instance (Monad f, Total f, Total (Ap f)) => Monad (Ap f) where
+  Ap x >>= f = Ap (x >>= \z -> getAp (f z))
+  
+-- | @since 4.12.0.0
+instance (Applicative f, Monoid a, f @@ a, Total (Ap f)) => Monoid (Ap f a) where
+  mempty = Ap $ pure mempty
 
 -- | @since 4.12.0.0
-instance (Applicative f, Bounded a, f @@ a) => Bounded (Ap f a) where
+instance (Applicative f, Bounded a, Total f, Total (Ap f)) => Bounded (Ap f a) where
   minBound = pure minBound
   maxBound = pure maxBound
 
 -- | @since 4.12.0.0
-instance (Applicative f, Num a, f @@ a, f @@ (a -> a)) => Num (Ap f a) where
+instance (Applicative f, Num a, Total f, Total (Ap f)) => Num (Ap f a) where
   (+)         = liftA2 (+)
   (*)         = liftA2 (*)
   negate      = fmap negate
   fromInteger = pure . fromInteger
   abs         = fmap abs
   signum      = fmap signum
+
+instance (f @@ a, Enum (f a)) => Enum (Ap f a) where
+  succ (Ap x) = Ap (succ x)
+  pred (Ap x) = Ap (pred x)
+  toEnum f    = Ap (toEnum f)
+  fromEnum (Ap f) = fromEnum f
+  enumFrom (Ap f) = fmap Ap (enumFrom f)
+
+instance (Total f, MonadPlus f, Total (Ap f)) => MonadPlus (Ap f)
+
+instance (Total f, MonadFail f, Total (Ap f)) => MonadFail (Ap f) where
+  fail s = Ap (fail s)
+
 
 {-
 {--------------------------------------------------------------------

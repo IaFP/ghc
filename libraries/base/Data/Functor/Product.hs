@@ -2,9 +2,9 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE PartialTypeConstructors, StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeOperators, RankNTypes, PolyKinds #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -32,15 +32,18 @@ import Control.Monad.Zip (MonadZip(mzipWith))
 import Data.Data (Data)
 import Data.Functor.Classes
 import GHC.Generics (Generic, Generic1)
-import GHC.Types (type (@@))
+import GHC.Types (type (@@), Total, Type)
 import Text.Read (Read(..), readListDefault, readListPrecDefault)
 
 -- | Lifted product of functors.
 data Product f g a = Pair (f a) (g a)
   deriving ( Data     -- ^ @since 4.9.0.0
-           , Generic  -- ^ @since 4.9.0.0
-           , Generic1 -- ^ @since 4.9.0.0
+           -- , Generic  -- ^ @since 4.9.0.0
+           -- , Generic1 -- ^ @since 4.9.0.0
            )
+instance Total (Product f g)
+deriving instance (Total f, Total g, Functor f, Functor g) => Generic1 (Product f g)
+deriving instance (f @@ a, g @@ a, Functor f, Functor g) => Generic (Product f g a)
 
 -- | @since 4.9.0.0
 instance (Eq1 f, Eq1 g) => Eq1 (Product f g) where
@@ -65,22 +68,22 @@ instance (Show1 f, Show1 g) => Show1 (Product f g) where
         showsBinaryWith (liftShowsPrec sp sl) (liftShowsPrec sp sl) "Pair" d x y
 
 -- | @since 4.9.0.0
-instance (f @@ a, f @@ g a, g @@ a, Eq1 f, Eq1 g, Eq a) => Eq (Product f g a)
+instance (f @@ a, g @@ a, Eq1 f, Eq1 g, Eq a) => Eq (Product f g a)
     where (==) = eq1
 
 -- | @since 4.9.0.0
-instance (f @@ a, f @@ g a, g @@ a, Ord1 f, Ord1 g, Ord a) => Ord (Product f g a) where
+instance (f @@ a, g @@ a, Ord1 f, Ord1 g, Ord a) => Ord (Product f g a) where
     compare = compare1
 
 -- | @since 4.9.0.0
-instance (f @@ a, f @@ g a, g @@ a, Read1 f, Read1 g, Read a) => Read (Product f g a) where
+instance (f @@ a, g @@ a, Read1 f, Read1 g, Read a) => Read (Product f g a) where
     readPrec = readPrec1
 
     readListPrec = readListPrecDefault
     readList     = readListDefault
 
 -- | @since 4.9.0.0
-instance (f @@ a, f @@ g a, g @@ a, Show1 f, Show1 g, Show a) => Show (Product f g a) where
+instance (f @@ a, g @@ a, Show1 f, Show1 g, Show a) => Show (Product f g a) where
     showsPrec = showsPrec1
 
 -- | @since 4.9.0.0
@@ -93,8 +96,8 @@ instance (Foldable f, Foldable g) => Foldable (Product f g) where
     foldMap f (Pair x y) = foldMap f x `mappend` foldMap f y
 
 -- -- | @since 4.9.0.0
--- instance (Traversable f, Traversable g) => Traversable (Product f g) where
---     traverse f (Pair x y) = liftA2 Pair (traverse f x) (traverse f y)
+instance (Traversable f, Traversable g) => Traversable (Product f g) where
+    traverse f (Pair x y) = liftA2 Pair (traverse f x) (traverse f y)
 
 -- | @since 4.9.0.0
 instance (Applicative f, Applicative g) => Applicative (Product f g) where
@@ -108,24 +111,28 @@ instance (Alternative f, Alternative g) => Alternative (Product f g) where
     Pair x1 y1 <|> Pair x2 y2 = Pair (x1 <|> x2) (y1 <|> y2)
 
 -- | @since 4.9.0.0
-instance (Monad f, Monad g) => Monad (Product f g) where
+instance (Total f, Total g, Monad f, Monad g) => Monad (Product f g) where
     Pair m n >>= f = Pair (m >>= fstP . f) (n >>= sndP . f)
       where
+        fstP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p::k'). (Total f', Total g') => (Product f' g') p -> f' p
         fstP (Pair a _) = a
+        sndP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p::k'). (Total f', Total g') => (Product f' g') p -> g' p
         sndP (Pair _ b) = b
 
 -- | @since 4.9.0.0
-instance (MonadPlus f, MonadPlus g) => MonadPlus (Product f g) where
+instance (Total f, Total g, MonadPlus f, MonadPlus g) => MonadPlus (Product f g) where
     mzero = Pair mzero mzero
     Pair x1 y1 `mplus` Pair x2 y2 = Pair (x1 `mplus` x2) (y1 `mplus` y2)
 
 -- | @since 4.9.0.0
-instance (MonadFix f, MonadFix g) => MonadFix (Product f g) where
+instance (Total f, Total g, MonadFix f, MonadFix g) => MonadFix (Product f g) where
     mfix f = Pair (mfix (fstP . f)) (mfix (sndP . f))
       where
+        fstP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p::k'). (Total f', Total g') => (Product f' g') p -> f' p
         fstP (Pair a _) = a
+        sndP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p::k'). (Total f', Total g') => (Product f' g') p -> g' p
         sndP (Pair _ b) = b
 
 -- | @since 4.9.0.0
-instance (MonadZip f, MonadZip g) => MonadZip (Product f g) where
+instance (Total f, Total g, MonadZip f, MonadZip g) => MonadZip (Product f g) where
     mzipWith f (Pair x1 y1) (Pair x2 y2) = Pair (mzipWith f x1 x2) (mzipWith f y1 y2)

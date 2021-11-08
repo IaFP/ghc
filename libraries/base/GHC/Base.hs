@@ -93,7 +93,8 @@ Other Prelude modules are much easier with fewer complex dependencies.
            , ConstrainedClassMethods
            , UndecidableInstances
            , TypeApplications
-  #-}
+           , UndecidableSuperClasses
+#-}
 
 -- -Wno-orphans is needed for things like:
 -- Orphan rule: "x# -# x#" ALWAYS forall x# :: Int# -# x# x# = 0
@@ -155,7 +156,7 @@ import {-# SOURCE #-} Data.Semigroup.Internal ( stimesDefault
 infixr 9  .
 infixr 5  ++
 infixl 4  <$
-infixl 1  >>, >>=
+infixl 1  >>,|>>, >>=, |>>=
 infixr 1  =<<
 infixr 0  $, $!
 
@@ -166,6 +167,8 @@ default ()              -- Double isn't available yet
 type instance [] @@ a = ()
 instance Total []
 
+type instance NonEmpty @@ a = ()
+
 type instance IO @@ a = ()
 instance Total IO
 
@@ -174,6 +177,8 @@ instance Total Maybe
 
 type instance (,) @@ a = ()
 instance Total ((,) a)
+instance Total ((,,) a b)
+instance Total ((,,,) a b c)
 
 type instance (,) b @@ a = ()
 
@@ -229,6 +234,7 @@ type instance (,,,,,,,,) i h g f e d c b @@ a = ()
 type instance (->) @@ a = ()
 type instance (->) b @@ a = ()
 instance Total ((->) a)
+instance Total (->)
 {-
 Note [Depend on GHC.Integer]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -310,6 +316,7 @@ class Semigroup a where
         -- "Hello Haskell!"
         sconcat :: NonEmpty a -> a
         sconcat (a :| as) = go a as where
+          -- go :: Semigroup a => a -> [a] -> a
           go b (c:cs) = b <> go c cs
           go b []     = b
 
@@ -387,8 +394,8 @@ instance Semigroup [a] where
 instance Monoid [a] where
         {-# INLINE mempty #-}
         mempty  = []
-        -- {-# INLINE mconcat #-}
-        -- mconcat xss = [x | xs <- xss, x <- xs]
+        {-# INLINE mconcat #-}
+        mconcat xss = [x | xs <- xss, x <- xs]
 -- See Note: [List comprehensions and inlining]
 
 {-
@@ -890,7 +897,7 @@ class Applicative m => Monad m where
     -- do a <- as
     --    bs a
     -- @
-    (>>=)       :: forall a b. (m @@ a, m @@ b) =>  m a -> (a -> m b) -> m b
+    (>>=)       :: forall a b. m a -> (a -> m b) -> m b
 
     -- | Sequentially compose two actions, discarding any value produced
     -- by the first, like sequencing operators (such as the semicolon)
@@ -902,13 +909,46 @@ class Applicative m => Monad m where
     -- do as
     --    bs
     -- @
-    (>>)        :: forall a b. (m @@ a, m @@ b) => m a -> m b -> m b
+    (>>)        :: forall a b. m a -> m b -> m b
     m >> k = m >>= \_ -> k -- See Note [Recursive bindings for Applicative/Monad]
     {-# INLINE (>>) #-}
 
     -- | Inject a value into the monadic type.
     return      :: a -> m a
     return      = pure
+
+
+class Functor m => RMonad m where
+  {--}
+    -- | Sequentially compose two actions, passing any value produced
+    -- by the first as an argument to the second.
+    -- This is the restricted version of @Monad@ i.e. for non parametric types
+    --
+    -- \'@as '>>=' bs@\' can be understood as the @do@ expression
+    --
+    -- @
+    -- do a <- as
+    --    bs a
+    -- @
+    (|>>=)       :: forall a b. m a -> (a -> m b) -> m b
+
+    -- | Sequentially compose two actions, discarding any value produced
+    -- by the first, like sequencing operators (such as the semicolon)
+    -- in imperative languages.
+    --
+    -- \'@as '>>' bs@\' can be understood as the @do@ expression
+    --
+    -- @
+    -- do as
+    --    bs
+    -- @
+    (|>>)        :: forall a b. m a -> m b -> m b
+    m |>> k = m |>>= \_ -> k -- See Note [Recursive bindings for Applicative/Monad]
+    {-# INLINE (|>>) #-}
+
+    -- | Inject a value into the monadic type.
+    rreturn      :: a -> m a
+
 
 {- Note [Recursive bindings for Applicative/Monad]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -948,7 +988,7 @@ when      :: (Applicative f) => Bool -> f () -> f ()
 {-# SPECIALISE when :: Bool -> IO () -> IO () #-}
 {-# SPECIALISE when :: Bool -> Maybe () -> Maybe () #-}
 when p s  = if p then s else pure ()
-
+--
 -- | Evaluate each action in the sequence from left to right,
 -- and collect the results.
 sequence :: Monad m => [m a] -> m [a]
@@ -962,6 +1002,10 @@ mapM :: Monad m => (a -> m b) -> [a] -> m [b]
 mapM f as = foldr k (return []) as
             where
               k a r = do { x <- f a; xs <- r; return (x:xs) }
+-- mapM f [] = return []
+-- mapM f (a:as') = do x <- f a
+--                     xs <- mapM f as'
+--                     return (x:xs)
 
 {-
 Note: [sequence and mapM]
@@ -981,7 +1025,7 @@ similar problems in nofib.
 -}
 
 -- | Promote a function to a monad.
-liftM   :: (Monad m) => (a1 -> r) -> m a1 -> m r
+liftM   :: Monad m => (a1 -> r) -> m a1 -> m r
 liftM f m1              = do { x1 <- m1; return (f x1) }
 
 -- | Promote a function to a monad, scanning the monadic arguments from
@@ -1171,6 +1215,7 @@ data NonEmpty a = a :| [a]
   deriving ( Eq  -- ^ @since 4.9.0.0
            , Ord -- ^ @since 4.9.0.0
            )
+instance Total NonEmpty
 
 -- | @since 4.9.0.0
 instance Functor NonEmpty where

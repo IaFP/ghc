@@ -410,7 +410,6 @@ Here's the rest of the interesting stuff for @StgLet@s; the first flavour is for
 closures:
 -}
 #if MIN_VERSION_base(4,14,0)
-type instance GenStgRhs @@ pass = ()
 type instance GenStgRhs @@ 'Vanilla = ()
 type instance GenStgRhs @@ 'CodeGen = ()
 type instance GenStgRhs @@ 'LiftLams = ()

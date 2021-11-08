@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE PartialTypeConstructors, TypeFamilies, TypeOperators, ExplicitNamespaces, UndecidableSuperClasses #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 -----------------------------------------------------------------------------
@@ -23,6 +23,7 @@ module GHC.GHCi {-# WARNING "This is an unstable interface." #-} (
     ) where
 
 import GHC.Base (IO(), Monad, Functor(fmap), Applicative(..), (>>=), id, (.), ap)
+import GHC.Types (Total)
 
 -- | A monad that can execute GHCi statements by lifting them out of
 -- m into the IO monad. (e.g state monads)
@@ -36,6 +37,8 @@ instance GHCiSandboxIO IO where
 -- | A monad that doesn't allow any IO.
 newtype NoIO a = NoIO { noio :: IO a }
 
+instance Total NoIO
+
 -- | @since 4.8.0.0
 instance Functor NoIO where
   fmap f (NoIO a) = NoIO (fmap f a)
@@ -44,6 +47,7 @@ instance Functor NoIO where
 instance Applicative NoIO where
   pure a = NoIO (pure a)
   (<*>) = ap
+  liftA2 f (NoIO a) (NoIO b) = NoIO (liftA2 f a b)
 
 -- | @since 4.4.0.0
 instance Monad NoIO where

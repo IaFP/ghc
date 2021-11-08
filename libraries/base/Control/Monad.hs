@@ -133,14 +133,14 @@ import GHC.Types (type (@@), Total)
 --   guard (y /= 0)
 --   return (x \`div\` y)
 -- @
-guard           :: (Alternative f) => Bool -> f ()
+guard           :: Alternative f => Bool -> f ()
 guard True      =  pure ()
 guard False     =  empty
 
 -- | This generalizes the list-based 'Data.List.filter' function.
 
 {-# INLINE filterM #-}
-filterM          :: (Applicative m, m @@ ([a] -> [a])) => (a -> m Bool) -> [a] -> m [a]
+filterM          :: Applicative m => (a -> m Bool) -> [a] -> m [a]
 filterM p        = foldr (\ x -> liftA2 (\ flg -> if flg then (x:) else id) (p x)) (pure [])
 
 infixr 1 <=<, >=>

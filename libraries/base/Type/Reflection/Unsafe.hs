@@ -13,7 +13,7 @@
 --
 -----------------------------------------------------------------------------
 {-# LANGUAGE PolyKinds, DataKinds, ScopedTypeVariables #-}
-{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE NoPartialTypeConstructors #-}
 
 module Type.Reflection.Unsafe (
       -- * Type representations

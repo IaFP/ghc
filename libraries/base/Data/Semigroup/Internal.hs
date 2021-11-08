@@ -3,7 +3,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE PartialTypeConstructors, StandaloneDeriving, DerivingStrategies #-}
 {-# LANGUAGE TypeOperators, ExplicitNamespaces, UndecidableInstances #-}
 
 -- | Auxilary definitions for 'Semigroup'
@@ -29,7 +29,7 @@ import GHC.Read
 import GHC.Show
 import GHC.Generics
 import GHC.Real
-import GHC.Types (type (@@))
+import GHC.Types (type (@@), Total)
 
 -- | This is a valid definition of 'stimes' for an idempotent 'Semigroup'.
 --
@@ -119,7 +119,7 @@ newtype Dual a = Dual { getDual :: a }
                  , Generic  -- ^ @since 4.7.0.0
                  , Generic1 -- ^ @since 4.7.0.0
                  )
-
+instance Total Dual
 -- | @since 4.9.0.0
 instance Semigroup a => Semigroup (Dual a) where
         Dual a <> Dual b = Dual (b <> a)
@@ -150,7 +150,7 @@ instance Monad Dual where
 newtype Endo a = Endo { appEndo :: a -> a }
                deriving ( Generic -- ^ @since 4.7.0.0
                         )
-
+instance Total Endo
 -- | @since 4.9.0.0
 instance Semigroup (Endo a) where
         (<>) = coerce ((.) :: (a -> a) -> (a -> a) -> (a -> a))
@@ -224,6 +224,15 @@ newtype Sum a = Sum { getSum :: a }
                  , Generic1 -- ^ @since 4.7.0.0
                  , Num      -- ^ @since 4.7.0.0
                  )
+-- instance Num a => Num (Sum a) where
+--   (Sum a) + (Sum b) = Sum (a + b)
+--   (Sum a) * (Sum b) = Sum (a * b)
+--   abs (Sum a) = Sum (abs a)
+--   signum (Sum a) = Sum (signum a)
+--   fromInteger a = Sum (fromInteger a)
+--   negate (Sum a) = Sum (negate a)
+
+instance Total Sum
 
 -- | @since 4.9.0.0
 instance Num a => Semigroup (Sum a) where
@@ -261,12 +270,20 @@ newtype Product a = Product { getProduct :: a }
                  , Generic1 -- ^ @since 4.7.0.0
                  , Num      -- ^ @since 4.7.0.0
                  )
-
+instance Total Product
 -- | @since 4.9.0.0
 instance Num a => Semigroup (Product a) where
         (<>) = coerce ((*) :: a -> a -> a)
         stimes n (Product a) = Product (a ^ n)
 
+-- instance Num a => Num (Product a) where
+--   (Product a) + (Product b) = Product (a + b)
+--   (Product a) * (Product b) = Product (a * b)
+--   abs (Product a) = Product (abs a)
+--   signum (Product a) = Product (signum a)
+--   fromInteger a = Product (fromInteger a)
+--   negate (Product a) = Product (negate a)
+  
 
 -- | @since 2.01
 instance Num a => Monoid (Product a) where
@@ -296,26 +313,68 @@ instance Monad Product where
 --
 -- @since 4.8.0.0
 newtype Alt f a = Alt {getAlt :: f a}
-  deriving ( Generic     -- ^ @since 4.8.0.0
-           , Generic1    -- ^ @since 4.8.0.0
-           , Read        -- ^ @since 4.8.0.0
-           , Show        -- ^ @since 4.8.0.0
-           , Eq          -- ^ @since 4.8.0.0
-           , Ord         -- ^ @since 4.8.0.0
-           , Num         -- ^ @since 4.8.0.0
-           , Enum        -- ^ @since 4.8.0.0
-           , Monad       -- ^ @since 4.8.0.0
-           , MonadPlus   -- ^ @since 4.8.0.0
-           , Applicative -- ^ @since 4.8.0.0
-           , Alternative -- ^ @since 4.8.0.0
-           , Functor     -- ^ @since 4.8.0.0
-           )
+  -- deriving ( -- Generic     -- ^ @since 4.8.0.0
+           -- , Generic1    -- ^ @since 4.8.0.0
+           -- , Read        -- ^ @since 4.8.0.0
+           -- , Show        -- ^ @since 4.8.0.0
+           -- , Eq          -- ^ @since 4.8.0.0
+           -- , Ord         -- ^ @since 4.8.0.0
+           -- , Num         -- ^ @since 4.8.0.0
+           -- , Enum        -- ^ @since 4.8.0.0
+           -- , Monad       -- ^ @since 4.8.0.0
+           -- , MonadPlus   -- ^ @since 4.8.0.0
+           -- , Applicative -- ^ @since 4.8.0.0
+           -- , Alternative -- ^ @since 4.8.0.0
+           -- , Functor     -- ^ @since 4.8.0.0
+--           )
+
+
+deriving instance Total f => Generic1 (Alt f)
+deriving instance Total f => Generic (Alt f a)
+deriving instance (Total f, Read (f a)) => Read (Alt f a)
+deriving instance (Total f, Show (f a)) => Show (Alt f a)
+deriving instance (Total f, Eq (f a)) => Eq (Alt f a)
+
+instance (f @@ a, Num (f a)) => Num (Alt f a) where
+  (Alt a) + (Alt b) = Alt (a + b)
+  (Alt a) * (Alt b) = Alt (a * b)
+  abs (Alt a) = Alt (abs a)
+  signum (Alt a) = Alt (signum a)
+  fromInteger a = Alt (fromInteger a)
+  negate (Alt a) = Alt (negate a)
+
+
+deriving instance (Total f, Ord (f a)) => Ord (Alt f a)
+
+instance (f @@ a, Enum (f a)) => Enum (Alt f a) where
+  succ (Alt f) = Alt (succ f)
+  pred (Alt f) = Alt (pred f)
+  toEnum f = Alt (toEnum f)
+  fromEnum (Alt f) = fromEnum f
+  enumFrom (Alt f) = fmap Alt (enumFrom f)
+  enumFromThen (Alt a) (Alt b) = fmap Alt (enumFromThen a b)
+  enumFromTo (Alt a) (Alt b) = fmap Alt (enumFromTo a b)
+  
+instance (Functor f, Total f) => Functor (Alt f) where
+  fmap f (Alt x) = Alt {getAlt = fmap f x}
+
+instance (Total f, Applicative f,  Total (Alt f)) => Applicative (Alt f) where
+  pure x = Alt {getAlt = pure x}
+  (Alt f) <*> (Alt g) = Alt {getAlt = f <*> g}
+
+instance (Total f, Monad f,  Total (Alt f)) => Monad (Alt f) where
+  (Alt x) >>= f = Alt (x >>= \z -> getAlt (f z))
+
+deriving instance (Total f, MonadPlus f,  Total (Alt f)) => MonadPlus (Alt f)
+
+instance (Total f, Alternative f, Total (Alt f)) => Alternative (Alt f) where
+  empty = Alt empty
+  (Alt f) <|> (Alt g) = Alt (f <|> g)
 
 -- | @since 4.9.0.0
-instance (f @@ a, Alternative f) => Semigroup (Alt f a) where
-    (<>) = coerce ((<|>) :: f a -> f a -> f a)
-    stimes = stimesMonoid
+instance (f @@ a, Semigroup (f a)) => Semigroup (Alt f a) where
+  (Alt f) <> (Alt g) = Alt (f <> g)
 
 -- | @since 4.8.0.0
-instance (f @@ a, Alternative f) => Monoid (Alt f a) where
-    mempty = Alt empty
+instance (f @@ a, Monoid (f a)) => Monoid (Alt f a) where
+    mempty = Alt mempty

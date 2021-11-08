@@ -36,6 +36,7 @@ import GHC.IOArray (IOArray, newIOArray, readIOArray, writeIOArray,
 import GHC.MVar (MVar, newEmptyMVar, newMVar, putMVar, takeMVar)
 import GHC.Event.Control (controlWriteFd)
 import GHC.Event.Internal (eventIs, evtClose)
+import GHC.Event.IntTable (IntTable)
 import GHC.Event.Manager (Event, EventManager, evtRead, evtWrite, loop,
                              new, registerFd, unregisterFd_)
 import qualified GHC.Event.Manager as M
@@ -109,6 +110,10 @@ closeFdWith close fd = do
     close fd `finally` sequence_ (zipWith3 finish mgrs tables cbApps)
   where
     finish mgr table cbApp = putMVar (M.callbackTableVar mgr fd) table >> cbApp
+    zipWithM :: (EventManager -> IntTable [M.FdData] -> IO (IO ()))
+             -> [EventManager]
+             -> [IntTable [M.FdData]]
+             -> IO [IO ()]
     zipWithM f xs ys = sequence (zipWith f xs ys)
 
 threadWait :: Event -> Fd -> IO ()

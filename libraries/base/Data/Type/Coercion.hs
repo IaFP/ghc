@@ -41,6 +41,7 @@ import GHC.Enum
 import GHC.Show
 import GHC.Read
 import GHC.Base
+import GHC.Types (Total)
 
 -- | Representational equality. If @Coercion a b@ is inhabited by some terminating
 -- value, then the type @a@ has the same underlying representation as the type @b@.
@@ -51,6 +52,9 @@ import GHC.Base
 -- @since 4.7.0.0
 data Coercion a b where
   Coercion :: Coercible a b => Coercion a b
+
+instance (Total Coercion)
+instance (Total (Coercion a))
 
 -- with credit to Conal Elliott for 'ty', Erik Hesselink & Martijn van
 -- Steenbergen for 'type-equality', Edward Kmett for 'eq', and Gabor Greif

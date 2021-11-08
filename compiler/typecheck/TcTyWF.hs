@@ -28,7 +28,7 @@ import Type hiding (attachConstraints)
 import TysWiredIn
 import VarSet
 
-import TcRnMonad (failWithTc, traceTc)
+import TcRnMonad (failWithTc)
 import Data.List (partition)
 import MonadUtils
 import Util

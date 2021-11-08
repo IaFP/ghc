@@ -2,7 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE PartialTypeConstructors, TypeFamilies, TypeOperators #-}
+{-# LANGUAGE PartialTypeConstructors, TypeFamilies, TypeOperators, UndecidableSuperClasses #-}
 {-# OPTIONS_GHC -Wno-inline-rule-shadowing #-}
     -- The RULES for the methods of class Category may never fire
     -- e.g. identity/left, identity/right, association;  see #10528

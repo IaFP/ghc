@@ -209,6 +209,7 @@ newWith be = do
   registerControlFd mgr (wakeupReadFd ctrl) evtRead
   return mgr
   where
+    replicateM :: Int -> IO a -> IO [a]
     replicateM n x = sequence (replicate n x)
 
 failOnInvalidFile :: String -> Fd -> IO Bool -> IO ()

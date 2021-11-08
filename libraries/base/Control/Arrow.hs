@@ -52,7 +52,7 @@ module Control.Arrow (
     ArrowLoop(..)
     ) where
 
-import Data.Tuple ( fst, snd {-, uncurry-} )
+import Data.Tuple ( fst, snd , uncurry )
 import Data.Either
 import Control.Monad.Fix
 import Control.Category
@@ -191,16 +191,17 @@ instance Arrow (->) where
 newtype Kleisli m a b = Kleisli { runKleisli :: a -> m b }
 
 -- | @since 4.14.0.0
-deriving instance Generic (Kleisli m a b)
+deriving instance Total m => Generic (Kleisli m a b)
+
+-- -- | @since 4.14.0.0
+-- deriving instance Total m => Generic1 (Kleisli m a)
 
 -- | @since 4.14.0.0
-deriving instance Generic1 (Kleisli m a)
+instance (Total m, Functor m) => Functor (Kleisli m a) where
+  fmap f (Kleisli m) = Kleisli {runKleisli = \z -> fmap f (m z)}
 
 -- | @since 4.14.0.0
-deriving instance (Functor m) => Functor (Kleisli m a)
-
--- | @since 4.14.0.0
-instance (Total m, Applicative m) => Applicative (Kleisli m a) where
+instance (Total m, Applicative m, Total (Kleisli m a)) => Applicative (Kleisli m a) where
   pure = Kleisli . const . pure
   {-# INLINE pure #-}
   Kleisli f <*> Kleisli g = Kleisli $ \x -> f x <*> g x
@@ -211,38 +212,38 @@ instance (Total m, Applicative m) => Applicative (Kleisli m a) where
   {-# INLINE (<*) #-}
   
 -- | @since 4.14.0.0
-instance (Total m, Alternative m) => Alternative (Kleisli m a) where
+instance (Total m, Alternative m, Total (Kleisli m a)) => Alternative (Kleisli m a) where
   empty = Kleisli $ const empty
   {-# INLINE empty #-}
   Kleisli f <|> Kleisli g = Kleisli $ \x -> f x <|> g x
   {-# INLINE (<|>) #-}
 
 -- | @since 4.14.0.0
-instance (Total m, Monad m) => Monad (Kleisli m a) where
+instance (Total m, Monad m, Total (Kleisli m a)) => Monad (Kleisli m a) where
   Kleisli f >>= k = Kleisli $ \x -> f x >>= \a -> runKleisli (k a) x
   {-# INLINE (>>=) #-}
 
 -- | @since 4.14.0.0
-instance (Total m, MonadPlus m) => MonadPlus (Kleisli m a) where
+instance (Total m, MonadPlus m, Total (Kleisli m a)) => MonadPlus (Kleisli m a) where
   mzero = Kleisli $ const mzero
   {-# INLINE mzero #-}
   Kleisli f `mplus` Kleisli g = Kleisli $ \x -> f x `mplus` g x
   {-# INLINE mplus #-}
 
 -- | @since 3.0
-instance (Total m, Monad m) => Category (Kleisli m) where
+instance (Total m, Monad m, Total (Kleisli m)) => Category (Kleisli m) where
     id = Kleisli return
     (Kleisli f) . (Kleisli g) = Kleisli (\b -> g b >>= f)
-
+{-
 -- | @since 2.01
-instance (Total m, Monad m) => Arrow (Kleisli m) where
+instance (Total m, Monad m, Total (Kleisli m)) => Arrow (Kleisli m) where
     arr f = Kleisli (return . f)
     first (Kleisli f) = Kleisli (\ ~(b,d) -> f b >>= \c -> return (c,d))
     second (Kleisli f) = Kleisli (\ ~(d,b) -> f b >>= \c -> return (d,c))
     f &&& g = arr (\b -> (b,b)) >>> f *** g
     f *** g = first f >>> arr swap >>> first g >>> arr swap
       where swap ~(x,y) = (y,x)
-
+-}
 -- | The identity arrow, which plays the role of 'return' in arrow notation.
 returnA :: Arrow a => a b b
 returnA = arr id
@@ -265,20 +266,20 @@ f ^<< a = arr f <<< a
 
 class Arrow a => ArrowZero a where
     zeroArrow :: a b c
-
+{-
 -- | @since 2.01
-instance (Total m, MonadPlus m) => ArrowZero (Kleisli m) where
+instance (Total m, MonadPlus m, Total (Kleisli m)) => ArrowZero (Kleisli m) where
     zeroArrow = Kleisli (\_ -> mzero)
-
+-}
 -- | A monoid on arrows.
 class ArrowZero a => ArrowPlus a where
     -- | An associative operation with identity 'zeroArrow'.
     (<+>) :: a b c -> a b c -> a b c
-
+{-
 -- | @since 2.01
-instance (Total m, MonadPlus m) => ArrowPlus (Kleisli m) where
+instance (Total m, MonadPlus m, Total (Kleisli m)) => ArrowPlus (Kleisli m) where
     Kleisli f <+> Kleisli g = Kleisli (\x -> f x `mplus` g x)
-
+-}
 -- | Choice, for arrows that support it.  This class underlies the
 -- @if@ and @case@ constructs in arrow notation.
 --
@@ -377,14 +378,14 @@ instance ArrowChoice (->) where
     right f = id +++ f
     f +++ g = (Left . f) ||| (Right . g)
     (|||) = either
-
+{-
 -- | @since 2.01
-instance (Total m, Monad m) => ArrowChoice (Kleisli m) where
+instance (Total m, Monad m, Total (Kleisli m)) => ArrowChoice (Kleisli m) where
     left f = f +++ arr id
     right f = arr id +++ f
     f +++ g = (f >>> arr Left) ||| (g >>> arr Right)
     Kleisli f ||| Kleisli g = Kleisli (either f g)
-
+-}
 -- | Some arrows allow application of arrow inputs to other inputs.
 -- Instances should satisfy the following laws:
 --
@@ -402,41 +403,41 @@ class Arrow a => ArrowApply a where
 -- | @since 2.01
 instance ArrowApply (->) where
     app (f,x) = f x
-
+{-
 -- | @since 2.01
-instance (Total m, Monad m) => ArrowApply (Kleisli m) where
+instance (Total m, Monad m, Total (Kleisli m)) => ArrowApply (Kleisli m) where
     app = Kleisli (\(Kleisli f, x) -> f x)
-
+-}
 -- | The 'ArrowApply' class is equivalent to 'Monad': any monad gives rise
 --   to a 'Kleisli' arrow, and any instance of 'ArrowApply' defines a monad.
 
 newtype ArrowMonad a b = ArrowMonad (a () b)
-
--- -- | @since 4.6.0.0
--- instance (Total2 a, Arrow a) => Functor (ArrowMonad a) where
---     fmap f (ArrowMonad m) = ArrowMonad $ m >>> arr f
 {-
+-- -- | @since 4.6.0.0
+-- instance (Total a, Total (a ()), Arrow a, Total (ArrowMonad a)) => Functor (ArrowMonad a) where
+--     fmap f (ArrowMonad m) = ArrowMonad $ m >>> arr f
+
 -- | @since 4.6.0.0
-instance Arrow a => Applicative (ArrowMonad a) where
+instance (Total a, Arrow a, Total (ArrowMonad a)) => Applicative (ArrowMonad a) where
    pure x = ArrowMonad (arr (const x))
    ArrowMonad f <*> ArrowMonad x = ArrowMonad (f &&& x >>> arr (uncurry id))
 
 -- | @since 2.01
-instance ArrowApply a => Monad (ArrowMonad a) where
+instance (ArrowApply a, Total (ArrowMonad a)) => Monad (ArrowMonad a) where
     ArrowMonad m >>= f = ArrowMonad $
         m >>> arr (\x -> let ArrowMonad h = f x in (h, ())) >>> app
 
 -- | @since 4.6.0.0
-instance ArrowPlus a => Alternative (ArrowMonad a) where
+instance (ArrowPlus a, Total (ArrowMonad a)) => Alternative (ArrowMonad a) where
    empty = ArrowMonad zeroArrow
    ArrowMonad x <|> ArrowMonad y = ArrowMonad (x <+> y)
 
 -- | @since 4.6.0.0
-instance (ArrowApply a, ArrowPlus a) => MonadPlus (ArrowMonad a)
-
+instance (ArrowApply a, ArrowPlus a, Total (ArrowMonad a)) => MonadPlus (ArrowMonad a)
+-}
 -- | Any instance of 'ArrowApply' can be made into an instance of
 --   'ArrowChoice' by defining 'left' = 'leftApp'.
--}
+
 leftApp :: (ArrowApply a,
             a (Either b d) @@ (a () (Either c d), ()),
              a (a () (Either c d), ()) @@ Either c d,
@@ -485,12 +486,13 @@ class Arrow a => ArrowLoop a where
 -- | @since 2.01
 instance ArrowLoop (->) where
     loop f b = let (c,d) = f (b,d) in c
-
+{-
 -- | Beware that for many monads (those for which the '>>=' operation
 -- is strict) this instance will /not/ satisfy the right-tightening law
 -- required by the 'ArrowLoop' class.
 --
 -- @since 2.01
-instance (Total m, MonadFix m) => ArrowLoop (Kleisli m) where
+instance (Total m, MonadFix m, Total (Kleisli m)) => ArrowLoop (Kleisli m) where
     loop (Kleisli f) = Kleisli (liftM fst . mfix . f')
       where f' x y = f (x, snd y)
+-}

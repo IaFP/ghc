@@ -29,7 +29,7 @@ module GHC.IORef (
 import GHC.Base
 import GHC.STRef
 import GHC.IO
-
+import GHC.Types (Total)
 -- ---------------------------------------------------------------------------
 -- IORefs
 
@@ -39,6 +39,7 @@ newtype IORef a = IORef (STRef RealWorld a)
   -- ^ Pointer equality.
   --
   -- @since 4.0.0.0
+instance Total IORef
 
 -- |Build a new 'IORef'
 newIORef    :: a -> IO (IORef a)

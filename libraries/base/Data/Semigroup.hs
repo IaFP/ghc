@@ -119,7 +119,8 @@ import           Data.Bitraversable
 import           Data.Coerce
 import           Data.Data
 import           GHC.Generics
-                               
+import           GHC.Types (Total)
+
 -- | A generalization of 'Data.List.cycle' to an arbitrary 'Semigroup'.
 -- May fail to terminate for some values in some semigroups.
 cycle1 :: Semigroup m => m -> m
@@ -139,7 +140,7 @@ newtype Min a = Min { getMin :: a }
            , Generic  -- ^ @since 4.9.0.0
            , Generic1 -- ^ @since 4.9.0.0
            )
-
+instance Total Min
 -- | @since 4.9.0.0
 instance Enum a => Enum (Min a) where
   succ (Min a) = Min (succ a)
@@ -210,7 +211,7 @@ newtype Max a = Max { getMax :: a }
            , Generic  -- ^ @since 4.9.0.0
            , Generic1 -- ^ @since 4.9.0.0
            )
-
+instance Total Max
 -- | @since 4.9.0.0
 instance Enum a => Enum (Max a) where
   succ (Max a) = Max (succ a)
@@ -333,7 +334,7 @@ newtype First a = First { getFirst :: a }
            , Generic  -- ^ @since 4.9.0.0
            , Generic1 -- ^ @since 4.9.0.0
            )
-
+instance Total First
 -- | @since 4.9.0.0
 instance Enum a => Enum (First a) where
   succ (First a) = First (succ a)
@@ -391,7 +392,7 @@ newtype Last a = Last { getLast :: a }
            , Generic  -- ^ @since 4.9.0.0
            , Generic1 -- ^ @since 4.9.0.0
            )
-
+instance Total Last
 -- | @since 4.9.0.0
 instance Enum a => Enum (Last a) where
   succ (Last a) = Last (succ a)
@@ -505,7 +506,7 @@ newtype Option a = Option { getOption :: Maybe a }
            , Generic  -- ^ @since 4.9.0.0
            , Generic1 -- ^ @since 4.9.0.0
            )
-
+instance Total Option
 -- | @since 4.9.0.0
 instance Functor Option where
   fmap f (Option a) = Option (fmap f a)

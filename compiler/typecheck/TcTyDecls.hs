@@ -39,7 +39,6 @@ import TcEnv
 import TcBinds( tcValBinds )
 import TyCoRep( Type(..), Coercion(..), MCoercion(..), UnivCoProvenance(..) )
 import TcType
-import TcTyWF (genAtAtConstraints, flatten_atat_constraint)
 import Predicate
 import TysWiredIn( unitTy )
 import MkCore( rEC_SEL_ERROR_ID )
@@ -69,8 +68,6 @@ import Bag
 import FastString
 import FV
 import Module
-
-import qualified GHC.LanguageExtensions as LangExt
 
 import Control.Monad
 

@@ -134,7 +134,7 @@ import Text.Read( reads )
 import GHC.Types (type (@@), Total)
 
 -- Imports for the instances
-import Control.Applicative (WrappedArrow(..), WrappedMonad(..), ZipList(..))
+import Control.Applicative ({-WrappedArrow(..),-} WrappedMonad(..), ZipList(..))
        -- So we can give them Data instances
 import Data.Functor.Identity -- So we can give Data instance for Identity
 import Data.Int              -- So we can give Data instance for Int8, ...
@@ -1162,14 +1162,14 @@ instance Data a => Data [a] where
 
 
 ------------------------------------------------------------------------------
-
+{-
 -- | @since 4.14.0.0
 deriving instance (Typeable (a :: Type -> Type -> Type), Typeable b, Typeable c,
                    Data (a b c))
          => Data (WrappedArrow a b c)
-
+-}
 -- | @since 4.14.0.0
-deriving instance (Typeable (m :: Type -> Type), Typeable a, Data (m a))
+deriving instance (m @@ a, Typeable (m :: Type -> Type), Typeable a, Data (m a))
          => Data (WrappedMonad m a)
 
 -- | @since 4.14.0.0
@@ -1299,10 +1299,10 @@ deriving instance Data a => Data (First a)
 deriving instance Data a => Data (Last a)
 
 -- | @since 4.8.0.0
-deriving instance (Data (f a), Data a, Typeable f) => Data (Alt f a)
+deriving instance (f @@ a, Data (f a), Data a, Typeable f) => Data (Alt f a)
 
 -- | @since 4.12.0.0
-deriving instance (Data (f a), Data a, Typeable f) => Data (Ap f a)
+deriving instance (f @@ a, Data (f a), Data a, Typeable f) => Data (Ap f a)
 
 ----------------------------------------------------------------------------
 -- Data instances for GHC.Generics representations
@@ -1314,21 +1314,21 @@ deriving instance Data p => Data (U1 p)
 deriving instance Data p => Data (Par1 p)
 
 -- | @since 4.9.0.0
-deriving instance (Data (f p), Typeable f, Data p) => Data (Rec1 f p)
+deriving instance (f @@ p, Data (f p), Typeable f, Data p) => Data (Rec1 f p)
 
 -- | @since 4.9.0.0
 deriving instance (Typeable i, Data p, Data c) => Data (K1 i c p)
 
 -- | @since 4.9.0.0
-deriving instance (Data p, Data (f p), Typeable c, Typeable i, Typeable f)
+deriving instance (f @@ p, Data p, Data (f p), Typeable c, Typeable i, Typeable f)
     => Data (M1 i c f p)
 
 -- | @since 4.9.0.0
-deriving instance (Typeable f, Typeable g, Data p, Data (f p), Data (g p))
+deriving instance (f @@ p, g @@ p, Typeable f, Typeable g, Data p, Data (f p), Data (g p))
     => Data ((f :+: g) p)
 
 -- | @since 4.9.0.0
-deriving instance (Typeable (f :: Type -> Type), Typeable (g :: Type -> Type),
+deriving instance (f @@ g p, g @@ p, Typeable (f :: Type -> Type), Typeable (g :: Type -> Type),
           Data p, Data (f (g p)))
     => Data ((f :.: g) p)
 
@@ -1336,7 +1336,7 @@ deriving instance (Typeable (f :: Type -> Type), Typeable (g :: Type -> Type),
 deriving instance Data p => Data (V1 p)
 
 -- | @since 4.9.0.0
-deriving instance (Typeable f, Typeable g, Data p, Data (f p), Data (g p))
+deriving instance (f @@ p, g @@ p, Typeable f, Typeable g, Data p, Data (f p), Data (g p))
     => Data ((f :*: g) p)
 
 -- | @since 4.9.0.0

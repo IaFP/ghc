@@ -19,7 +19,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
-{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE NoPartialTypeConstructors #-}
 -- {-# LANGUAGE ConstrainedClassMethods #-}
 
 -----------------------------------------------------------------------------
@@ -199,7 +199,7 @@ data TypeRep a where
 
     -- | Invariant: Saturated arrow types (e.g. things of the form @a -> b@)
     -- are represented with @'TrFun' a b@, not @TrApp (TrApp funTyCon a) b@.
-    TrApp   :: forall k1 k2 (a :: k1 -> k2) (b :: k1).
+    TrApp   :: forall k1 k2 (a :: k1 -> k2) (b :: k1). () =>
                { -- See Note [TypeRep fingerprints]
                  trAppFingerprint :: {-# UNPACK #-} !Fingerprint
 
@@ -225,8 +225,9 @@ data TypeRep a where
             -> TypeRep (a -> b)
 
 instance Total TypeRep
-type instance TypeRep @@ k = ()
-
+type instance TypeRep @@ a = ()
+type instance TYPE @@ 'LiftedRep = ()
+-- instance Total TYPE
 {- Note [TypeRep fingerprints]
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 We store a Fingerprint of each TypeRep in its constructor. This allows
@@ -393,7 +394,7 @@ trLiftedRep = typeRep
 
 -- Note that this is known-key to the compiler, which uses it in desugar
 -- 'Typeable' evidence.
-mkTrApp :: forall k1 k2 (a :: k1 -> k2) (b :: k1).
+mkTrApp :: forall k1 k2 (a :: k1 -> k2) (b :: k1). () =>
            TypeRep (a :: k1 -> k2)
         -> TypeRep (b :: k1)
         -> TypeRep (a b)
@@ -419,8 +420,8 @@ mkTrApp a b -- See Note [Kind caching], Wrinkle 2
 -- | Construct a representation for a type application that
 -- may be a saturated arrow type. This is renamed to mkTrApp in
 -- Type.Reflection.Unsafe
-mkTrAppChecked :: forall k1 k2 (a :: k1 -> k2) (b :: k1).
-                  TypeRep (a :: k1 -> k2)
+mkTrAppChecked :: forall k1 k2 (a :: k1 -> k2) (b :: k1). ()
+               => TypeRep (a :: k1 -> k2)
                -> TypeRep (b :: k1)
                -> TypeRep (a b)
 mkTrAppChecked rep@(TrApp {trAppFun = p, trAppArg = x :: TypeRep x})
@@ -464,6 +465,8 @@ data AppOrCon (a :: k) where
     -- See Note [Con evidence]
     IsCon :: IsApplication a ~ "" => TyCon -> [SomeTypeRep] -> AppOrCon a
 
+instance Total AppOrCon
+
 type family IsApplication (x :: k) :: Symbol where
   IsApplication (_ _) = "An error message about this unifying with \"\" "
      `AppendSymbol` "means that you tried to match a TypeRep with Con or "
@@ -491,6 +494,8 @@ withTypeable rep k = unsafeCoerce k' rep
 
 -- | A helper to satisfy the type checker in 'withTypeable'.
 newtype Gift a (r :: TYPE rep) = Gift (Typeable a => r)
+
+instance Total (Gift a)
 
 -- | Pattern match on a type constructor
 pattern Con :: forall k (a :: k). ()
@@ -641,6 +646,8 @@ data SomeKindedTypeRep k where
     SomeKindedTypeRep :: forall k (a :: k). TypeRep a
                       -> SomeKindedTypeRep k
 
+instance Total SomeKindedTypeRep
+
 kApp :: SomeKindedTypeRep (k -> k')
      -> SomeKindedTypeRep k
      -> SomeKindedTypeRep k'
@@ -730,6 +737,8 @@ bareArrow _ = error "Data.Typeable.Internal.bareArrow: impossible"
 
 data IsTYPE (a :: Type) where
     IsTYPE :: forall (r :: RuntimeRep). TypeRep r -> IsTYPE (TYPE r)
+
+instance Total IsTYPE
 
 -- | Is a type of the form @TYPE rep@?
 isTYPE :: TypeRep (a :: Type) -> Maybe (IsTYPE a)

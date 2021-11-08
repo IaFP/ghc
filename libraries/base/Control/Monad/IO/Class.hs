@@ -1,5 +1,5 @@
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE PartialTypeConstructors, ConstrainedClassMethods #-}
+{-# LANGUAGE PartialTypeConstructors, ConstrainedClassMethods, UndecidableSuperClasses #-}
 
 
 -----------------------------------------------------------------------------

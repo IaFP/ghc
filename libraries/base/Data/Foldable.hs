@@ -6,7 +6,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE PartialTypeConstructors #-}
-{-# LANGUAGE TypeOperators, UndecidableInstances, ExplicitNamespaces #-}
+{-# LANGUAGE TypeOperators, UndecidableInstances, ExplicitNamespaces, DerivingStrategies, GeneralizedNewtypeDeriving #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -69,7 +69,7 @@ import GHC.Arr  ( Array(..), elems, numElements,
 import GHC.Base hiding ( foldr )
 import GHC.Generics
 import GHC.Num  ( Num(..) )
-import GHC.Types (type (@@)) 
+import GHC.Types (type (@@), Total) 
 
 infix  4 `elem`, `notElem`
 
@@ -271,14 +271,14 @@ class Foldable t where
     -- | The largest element of a non-empty structure.
     --
     -- @since 4.8.0.0
-    maximum :: forall a . (t @@ a, Ord a) => t a -> a
+    maximum :: forall a . (Total t, Ord a) => t a -> a
     maximum = fromMaybe (errorWithoutStackTrace "maximum: empty structure") .
        getMax . foldMap (Max #. (Just :: a -> Maybe a))
 
     -- | The least element of a non-empty structure.
     --
     -- @since 4.8.0.0
-    minimum :: forall a . (t @@ a, Ord a) => t a -> a
+    minimum :: forall a . (Total t, Ord a) => t a -> a
     minimum = fromMaybe (errorWithoutStackTrace "minimum: empty structure") .
        getMin . foldMap (Min #. (Just :: a -> Maybe a))
 
@@ -466,11 +466,11 @@ instance Foldable Last where
     foldMap f = foldMap f . getLast
 
 -- | @since 4.12.0.0
-instance (Foldable f) => Foldable (Alt f) where
+instance (Total f, Foldable f) => Foldable (Alt f) where
     foldMap f = foldMap f . getAlt
 
 -- | @since 4.12.0.0
-instance (Foldable f) => Foldable (Ap f) where
+instance (Total f, Foldable f) => Foldable (Ap f) where
     foldMap f = foldMap f . getAp
 
 -- Instances for GHC.Generics
@@ -496,47 +496,62 @@ instance Foldable U1 where
 deriving instance Foldable V1
 
 -- | @since 4.9.0.0
-deriving instance Foldable Par1
+deriving instance Foldable Par1--  where -- TODO: Why doesn't deriving work?
+  -- foldMap f = foldr (mappend . f) mempty 
 
 -- | @since 4.9.0.0
-deriving instance Foldable f => Foldable (Rec1 f)
+instance (Total f, Foldable f) => Foldable (Rec1 f) where
+  foldMap f = foldr (mappend . f) mempty   
 
 -- | @since 4.9.0.0
-deriving instance Foldable (K1 i c)
+instance Foldable (K1 i c) where
+  foldMap f = foldr (mappend . f) mempty   
 
 -- | @since 4.9.0.0
-deriving instance Foldable f => Foldable (M1 i c f)
+instance (Total f, Foldable f) => Foldable (M1 i c f) where
+  foldMap f = foldr (mappend . f) mempty   
 
 -- | @since 4.9.0.0
-deriving instance (Foldable f, Foldable g) => Foldable (f :+: g)
+instance (Total f, Total g, Foldable f, Foldable g) => Foldable (f :+: g) where
+  foldMap f = foldr (mappend . f) mempty   
+ 
+-- | @since 4.9.0.0
+instance (Total f, Total g, Foldable f, Foldable g) => Foldable (f :*: g) where
+  foldMap f = foldr (mappend . f) mempty 
 
 -- | @since 4.9.0.0
-deriving instance (Foldable f, Foldable g) => Foldable (f :*: g)
+instance (Total f, Total g, Foldable f, Foldable g) => Foldable (f :.: g) where
+  foldMap f = foldr (mappend . f) mempty 
 
 -- | @since 4.9.0.0
-deriving instance (Foldable f, Foldable g) => Foldable (f :.: g)
+instance Foldable UAddr where
+  foldMap f = foldr (mappend . f) mempty 
 
 -- | @since 4.9.0.0
-deriving instance Foldable UAddr
+instance Foldable UChar where
+  foldMap f = foldr (mappend . f) mempty 
 
 -- | @since 4.9.0.0
-deriving instance Foldable UChar
+instance Foldable UDouble where
+  foldMap f = foldr (mappend . f) mempty 
 
 -- | @since 4.9.0.0
-deriving instance Foldable UDouble
+instance Foldable UFloat where
+  foldMap f = foldr (mappend . f) mempty 
 
 -- | @since 4.9.0.0
-deriving instance Foldable UFloat
+instance Foldable UInt where
+  foldMap f = foldr (mappend . f) mempty 
 
 -- | @since 4.9.0.0
-deriving instance Foldable UInt
-
--- | @since 4.9.0.0
-deriving instance Foldable UWord
+instance Foldable UWord where
+  foldMap f = foldr (mappend . f) mempty 
 
 -- Instances for Data.Ord
 -- | @since 4.12.0.0
-deriving instance Foldable Down
+instance Foldable Down where
+  foldMap f = foldr (mappend . f) mempty 
+
 
 -- | Monadic fold over the elements of a structure,
 -- associating to the right, i.e. from right to left.
@@ -558,10 +573,12 @@ foldlM f z0 xs = foldr c return xs z0
 -- actions from left to right, and ignore the results. For a version
 -- that doesn't ignore the results see 'Data.Traversable.traverse'.
 traverse_ :: (Foldable t, Applicative f, f @@ (() -> ())) => (a -> f b) -> t a -> f ()
-traverse_ f = foldr c (pure ())
+traverse_ f = foldr (\ x k -> f x *> k) (pure ())
   -- See Note [List fusion and continuations in 'c']
-  where c x k = f x *> k
-        {-# INLINE c #-}
+  -- where TODO: What is wrong here?
+  --       c :: (Applicative f, Total f) => a -> f b -> f b
+  --       c x k = f x *> k
+  --       {-# INLINE c #-}
 
 -- | 'for_' is 'traverse_' with its arguments flipped. For a version
 -- that doesn't ignore the results see 'Data.Traversable.for'.
@@ -571,9 +588,21 @@ traverse_ f = foldr c (pure ())
 -- 2
 -- 3
 -- 4
-for_ :: (Foldable t, Applicative f, f @@ (() -> ())) => t a -> (a -> f b) -> f ()
+for_ :: (Foldable t, Applicative f, Total f) => t a -> (a -> f b) -> f ()
 {-# INLINE for_ #-}
 for_ = flip traverse_
+
+
+-- | Evaluate each action in the structure from left to right, and
+-- ignore the results. For a version that doesn't ignore the results
+-- see 'Data.Traversable.sequenceA'.
+sequenceA_ :: (Foldable t, Applicative f) => t (f a) -> f ()
+sequenceA_ = foldr (\m k -> m *> k) (pure ())
+  -- See Note [List fusion and continuations in 'c']
+  -- where
+  --   c :: (Applicative f, Total f) => f a -> f b -> f b
+  --   c m k = m *> k
+  --   {-# INLINE c #-}
 
 -- | Map each element of a structure to a monadic action, evaluate
 -- these actions from left to right, and ignore the results. For a
@@ -595,15 +624,6 @@ mapM_ f = foldr c (return ())
 forM_ :: (Foldable t, Monad m) => t a -> (a -> m b) -> m ()
 {-# INLINE forM_ #-}
 forM_ = flip mapM_
-
--- | Evaluate each action in the structure from left to right, and
--- ignore the results. For a version that doesn't ignore the results
--- see 'Data.Traversable.sequenceA'.
-sequenceA_ :: (Foldable t, Applicative f, f @@ (() -> ())) => t (f a) -> f ()
-sequenceA_ = foldr c (pure ())
-  -- See Note [List fusion and continuations in 'c']
-  where c m k = m *> k
-        {-# INLINE c #-}
 
 -- | Evaluate each monadic action in the structure from left to right,
 -- and ignore the results. For a version that doesn't ignore the

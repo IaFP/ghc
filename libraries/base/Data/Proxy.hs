@@ -28,7 +28,7 @@ import GHC.Show
 import GHC.Read
 import GHC.Enum
 import GHC.Arr
-
+import GHC.Types (Total)
 -- $setup
 -- >>> import Data.Void
 -- >>> import Prelude
@@ -57,11 +57,11 @@ import GHC.Arr
 data Proxy t = Proxy deriving ( Bounded -- ^ @since 4.7.0.0
                               , Read    -- ^ @since 4.7.0.0
                               )
-
+instance Total Proxy
 -- | A concrete, promotable proxy type, for use at the kind level.
 -- There are no instances for this because it is intended at the kind level only
 data KProxy (t :: Type) = KProxy
-
+instance Total KProxy
 -- It's common to use (undefined :: Proxy t) and (Proxy :: Proxy t)
 -- interchangeably, so all of these instances are hand-written to be
 -- lazy in Proxy arguments.

@@ -54,7 +54,7 @@ import GHC.Show
 import GHC.Read
 import GHC.Base
 import Data.Type.Bool
-
+import GHC.Types (Total)
 infix 4 :~:, :~~:
 
 -- | Propositional equality. If @a :~: b@ is inhabited by some terminating
@@ -66,6 +66,7 @@ infix 4 :~:, :~~:
 data a :~: b where  -- See Note [The equality types story] in TysPrim
   Refl :: a :~: a
 
+instance (Total (:~:))
 -- with credit to Conal Elliott for 'ty', Erik Hesselink & Martijn van
 -- Steenbergen for 'type-equality', Edward Kmett for 'eq', and Gabor Greif
 -- for 'type-eq'
@@ -127,6 +128,8 @@ deriving instance a ~ b => Bounded (a :~: b)
 type (:~~:) :: k1 -> k2 -> Type
 data a :~~: b where
    HRefl :: a :~~: a
+
+instance (Total (:~~:))
 
 -- | @since 4.10.0.0
 deriving instance Eq   (a :~~: b)

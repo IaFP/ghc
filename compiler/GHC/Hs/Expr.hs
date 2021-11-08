@@ -60,7 +60,7 @@ import Data.Maybe (isNothing)
 import GHCi.RemoteTypes ( ForeignRef )
 import qualified Language.Haskell.TH as TH (Q)
 #if MIN_VERSION_base(4,14,0)
-import GHC.Types ({-type (@@),-} Total)
+import GHC.Types (Total)
 #endif
 
 {-
@@ -115,9 +115,6 @@ type PostTcTable = [(Name, PostTcExpr)]
 data SyntaxExpr p = SyntaxExpr { syn_expr      :: HsExpr p
                                , syn_arg_wraps :: [HsWrapper]
                                , syn_res_wrap  :: HsWrapper }
--- #if MIN_VERSION_base(4,14,0)
--- type instance SyntaxExpr @@ p = ()
--- #endif
 
 -- | This is used for rebindable-syntax pieces that are too polymorphic
 -- for tcSyntaxOp (trS_fmap and the mzip in ParStmt)
@@ -553,7 +550,6 @@ data HsExpr p
 
   | XExpr       (XXExpr p) -- Note [Trees that Grow] extension constructor
 #if MIN_VERSION_base(4,14,0)
--- type instance HsExpr @@ p = ()
 instance Total HsExpr
 #endif
 
@@ -659,10 +655,6 @@ type instance XTickPragma    (GhcPass _) = NoExtField
 type instance XWrap          (GhcPass _) = NoExtField
 type instance XXExpr         (GhcPass _) = NoExtCon
 
--- #if MIN_VERSION_base(4,14,0)
--- type instance HsExpr @@ a = ()
--- #endif
-
 -- ---------------------------------------------------------------------
 
 -- | Located Haskell Tuple Argument
@@ -681,9 +673,6 @@ data HsTupArg id
   = Present (XPresent id) (LHsExpr id)     -- ^ The argument
   | Missing (XMissing id)    -- ^ The argument is missing, but this is its type
   | XTupArg (XXTupArg id)    -- ^ Note [Trees that Grow] extension point
--- #if MIN_VERSION_base(4,14,0)
--- type instance HsTupArg @@ id = ()
--- #endif
 
 type instance XPresent         (GhcPass _) = NoExtField
 
@@ -1317,7 +1306,6 @@ type instance XCmdWrap    (GhcPass _) = NoExtField
 type instance XXCmd       (GhcPass _) = NoExtCon
 
 #if MIN_VERSION_base(4,14,0)
--- type instance HsCmd @@ a = ()
 instance Total HsCmd
 #endif
 
@@ -1353,9 +1341,6 @@ type instance XXCmdTop (GhcPass _) = NoExtCon
 
 instance (OutputableBndrId p) => Outputable (HsCmd (GhcPass p)) where
     ppr cmd = pprCmd cmd
--- #if MIN_VERSION_base(4,14,0)
--- type instance HsCmdTop @@ p = ()
--- #endif
 
 -----------------------
 -- pprCmd and pprLCmd call pprDeeper;
@@ -1491,10 +1476,6 @@ data MatchGroup p body
      --      t1 -> ... -> tn -> tr
      -- where there are n patterns
   | XMatchGroup (XXMatchGroup p body)
--- #if MIN_VERSION_base(4,14,0)
--- type instance MatchGroup @@ p = ()
--- type instance MatchGroup p @@ body = ()
--- #endif
 
 data MatchGroupTc
   = MatchGroupTc
@@ -1530,10 +1511,6 @@ type instance XXMatch (GhcPass _) b = NoExtCon
 instance (OutputableBndrId pr, Outputable body)
             => Outputable (Match (GhcPass pr) body) where
   ppr = pprMatch
--- #if MIN_VERSION_base(4,14,0)
--- type instance Match @@ p = ()
--- type instance Match p @@ body = ()
--- #endif
 
 {-
 Note [m_ctxt in Match]
@@ -1619,10 +1596,6 @@ data GRHSs p body
       grhssLocalBinds :: LHsLocalBinds p -- ^ The where clause
     }
   | XGRHSs (XXGRHSs p body)
--- #if MIN_VERSION_base(4,14,0)
--- type instance GRHSs @@ p = ()
--- type instance GRHSs p @@ body = ()
--- #endif
 
 type instance XCGRHSs (GhcPass _) b = NoExtField
 type instance XXGRHSs (GhcPass _) b = NoExtCon
@@ -1638,10 +1611,6 @@ data GRHS p body = GRHS (XCGRHS p body)
 
 type instance XCGRHS (GhcPass _) b = NoExtField
 type instance XXGRHS (GhcPass _) b = NoExtCon
--- #if MIN_VERSION_base(4,14,0)
--- type instance GRHS @@ p = ()
--- type instance GRHS p @@ body = ()
--- #endif
 
 -- We know the list must have at least one @Match@ in it.
 
@@ -1888,11 +1857,6 @@ data StmtLR idL idR body -- body should always be (LHs**** idR)
      , recS_mfix_fn :: SyntaxExpr idR -- The mfix function
       }
   | XStmtLR (XXStmtLR idL idR body)
--- #if MIN_VERSION_base(4,14,0)
--- type instance StmtLR @@ idL = ()
--- type instance StmtLR idL @@ idR = ()
--- type instance StmtLR idL idR @@ body = ()
--- #endif
 
 -- Extra fields available post typechecking for RecStmt.
 data RecStmtTc =
@@ -1961,10 +1925,6 @@ data ParStmtBlock idL idR
 
 type instance XParStmtBlock  (GhcPass pL) (GhcPass pR) = NoExtField
 type instance XXParStmtBlock (GhcPass pL) (GhcPass pR) = NoExtCon
--- #if MIN_VERSION_base(4,14,0)
--- type instance ParStmtBlock @@ idL = ()
--- type instance ParStmtBlock idL @@ idR = ()
--- #endif
 
 -- | Applicative Argument
 data ApplicativeArg idL
@@ -1995,9 +1955,6 @@ data ApplicativeArg idL
 type instance XApplicativeArgOne  (GhcPass _) = NoExtField
 type instance XApplicativeArgMany (GhcPass _) = NoExtField
 type instance XXApplicativeArg    (GhcPass _) = NoExtCon
--- #if MIN_VERSION_base(4,14,0)
--- type instance ApplicativeArg @@ a = ()
--- #endif
 
 {-
 Note [The type of bind in Stmts]
@@ -2368,9 +2325,6 @@ data SpliceDecoration
 
 instance Outputable SpliceDecoration where
   ppr x = text $ show x
--- #if MIN_VERSION_base(4,14,0)
--- type instance HsSplice @@ a = ()
--- #endif
 
 
 isTypedSplice :: HsSplice id -> Bool
@@ -2413,10 +2367,6 @@ data HsSplicedThing id
     = HsSplicedExpr (HsExpr id) -- ^ Haskell Spliced Expression
     | HsSplicedTy   (HsType id) -- ^ Haskell Spliced Type
     | HsSplicedPat  (Pat id)    -- ^ Haskell Spliced Pattern
--- #if MIN_VERSION_base(4,14,0)
--- type instance HsSplicedThing @@ id = ()
--- #endif
-
 
 
 -- See Note [Pending Splices]
@@ -2582,10 +2532,6 @@ instance OutputableBndrId p
           => Outputable (HsBracket (GhcPass p)) where
   ppr = pprHsBracket
 
--- #if MIN_VERSION_base(4,14,0)
--- type instance HsBracket @@ a = ()
--- #endif
-
 pprHsBracket :: (OutputableBndrId p) => HsBracket (GhcPass p) -> SDoc
 pprHsBracket (ExpBr _ e)   = thBrackets empty (ppr e)
 pprHsBracket (PatBr _ p)   = thBrackets (char 'p') (ppr p)
@@ -2631,9 +2577,6 @@ data ArithSeqInfo id
                     (LHsExpr id)
                     (LHsExpr id)
 -- AZ: Sould ArithSeqInfo have a TTG extension?
--- #if MIN_VERSION_base(4,14,0)
--- type instance ArithSeqInfo @@ id = ()
--- #endif
 
 instance OutputableBndrId p
          => Outputable (ArithSeqInfo (GhcPass p)) where
@@ -2687,9 +2630,6 @@ data HsMatchContext id -- Not an extensible tag
   | PatSyn                 -- ^A pattern synonym declaration
   deriving Functor
 deriving instance (Data id) => Data (HsMatchContext id)
--- #if MIN_VERSION_base(4,14,0)
--- type instance HsMatchContext @@ a = ()
--- #endif
 
 instance OutputableBndr id => Outputable (HsMatchContext id) where
   ppr m@(FunRhs{})          = text "FunRhs" <+> ppr (mc_fun m) <+> ppr (mc_fixity m)
@@ -2727,9 +2667,6 @@ data HsStmtContext id
   | TransStmtCtxt (HsStmtContext id) -- ^A branch of a transform stmt
   deriving Functor
 deriving instance (Data id) => Data (HsStmtContext id)
--- #if MIN_VERSION_base(4,14,0)
--- type instance HsStmtContext @@ a = ()
--- #endif
 
 isComprehensionContext :: HsStmtContext id -> Bool
 -- Uses comprehension syntax [ e | quals ]

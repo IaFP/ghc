@@ -63,14 +63,14 @@ import qualified Text.ParserCombinators.ReadP as ReadP
 
 import GHC.Num( Num(..) )
 import GHC.Base
-
+import GHC.Types(Total)
 import qualified Control.Monad.Fail as MonadFail
 
 -- ---------------------------------------------------------------------------
 -- The readPrec type
 
 newtype ReadPrec a = P (Prec -> ReadP a)
-
+instance Total ReadPrec
 -- Functor, Monad, MonadPlus
 
 -- | @since 2.01
