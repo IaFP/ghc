@@ -126,6 +126,9 @@ data HsOverLit p
 
   | XOverLit
       (XXOverLit p)
+#if __GLASGOW_HASKELL__ >= 810
+type instance HsExpr @@ p = () -- becuase boot doesn't handle type family isntances 
+#endif
 
 data OverLitTc
   = OverLitTc {

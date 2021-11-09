@@ -1,11 +1,8 @@
 {-# LANGUAGE RankNTypes, ScopedTypeVariables, CPP #-}
 #if __GLASGOW_HASKELL__ >= 810
 {-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
-{-# LANGUAGE Trustworthy #-}
-#else
-{-# LANGUAGE Safe #-}
 #endif
-
+{-# LANGUAGE Safe #-}
 {- |
 Module : Language.Haskell.TH.Quote
 Description : Quasi-quoting support for Template Haskell
@@ -29,9 +26,6 @@ module Language.Haskell.TH.Quote(
 
 import Language.Haskell.TH.Syntax
 import Prelude
-#if MIN_VERSION_base(4,14,0)
-import GHC.Types (type (@@))
-#endif
 
 -- | The 'QuasiQuoter' type, a value @q@ of this type can be used
 -- in the syntax @[q| ... string to parse ...|]@.  In fact, for
@@ -57,19 +51,11 @@ data QuasiQuoter = QuasiQuoter {
 -- as an expression. Then if you define @asmq_f = quoteFile asmq@, then
 -- the quote [asmq_f|foo.s|] will take input from file @"foo.s"@ instead
 -- of the inline text
-quoteFile ::
-#if MIN_VERSION_base(4,14,0)
-     (Q @@ (), Q @@ String, Q @@ Exp, Q @@ Pat, Q @@ Type, Q @@ [Dec]) =>
-#endif
-     QuasiQuoter -> QuasiQuoter
+quoteFile :: QuasiQuoter -> QuasiQuoter
 quoteFile (QuasiQuoter { quoteExp = qe, quotePat = qp, quoteType = qt, quoteDec = qd }) 
   = QuasiQuoter { quoteExp = get qe, quotePat = get qp, quoteType = get qt, quoteDec = get qd }
   where
-   get ::
-#if MIN_VERSION_base(4,14,0)
-     (Q @@ (), Q @@ String) =>
-#endif
-     (String -> Q a) -> String -> Q a
+   get :: (String -> Q a) -> String -> Q a
    get old_quoter file_name = do { file_cts <- runIO (readFile file_name) 
                                  ; addDependentFile file_name
                                  ; old_quoter file_cts }

@@ -179,14 +179,13 @@ counter = unsafePerformIO (newIORef 0)
 --
 -----------------------------------------------------
 
-newtype Q a = Q { unQ :: forall m. (Quasi m
+newtype Q a = Q { unQ :: forall m. ( Quasi m
 #if MIN_VERSION_base(4,14,0)
-                                   , m @@ a
+                                   , Total m
 #endif
                                    ) => m a }
 #if MIN_VERSION_base(4,14,0)
 instance Total Q
-type instance Q @@ a = ()
 #endif
 
 -- \"Runs\" the 'Q' monad. Normal users of Template Haskell
@@ -200,7 +199,7 @@ type instance Q @@ a = ()
 -- queries, are not supported when running 'Q' in 'IO'; these operations
 -- simply fail at runtime. Indeed, the only operations guaranteed to succeed
 -- are 'newName', 'runIO', 'reportError' and 'reportWarning'.
-runQ :: (Quasi m
+runQ :: ( Quasi m
 #if MIN_VERSION_base(4,14,0)
         , Total m
 #endif
@@ -208,30 +207,23 @@ runQ :: (Quasi m
 runQ (Q m) = m
 
 instance Monad Q where
-  Q m >>= k  = Q (m >>= \x -> unQ (k x))
 #if MIN_VERSION_base(4,14,0)
+  Q m >>= k  = Q (m >>= \x -> unQ (k x))
 #else
+  Q m >>= k  = Q (m >>= \x -> unQ (k x))
   (>>) = (*>)
 #endif
 #if !MIN_VERSION_base(4,13,0)
   fail       = Fail.fail
 #endif
 
-instance
-#if MIN_VERSION_base(4,14,0)
-  Q @@ () => 
-#endif
-  Fail.MonadFail Q where
+instance Fail.MonadFail Q where
   fail s     = report True s >> Q (Fail.fail "Q monad failure")
 
 instance Functor Q where
   fmap f (Q x) = Q (fmap f x)
 
-instance
-#if MIN_VERSION_base(4,14,0)
-  Total Q => 
-#endif
-  Applicative Q where
+instance Applicative Q where
   pure x = Q (pure x)
   Q f <*> Q x = Q (f <*> x)
   Q m *> Q n = Q (m *> n)
@@ -289,9 +281,6 @@ instance Total TExp
 --
 -- Levity-polymorphic since /template-haskell-2.16.0.0/.
 unTypeQ :: forall (r :: RuntimeRep) (a :: TYPE r).
-#if MIN_VERSION_base(4,14,0)
-  (Q @@ TExp a, TExp @@ a, Q @@ Exp) =>
-#endif
   Q (TExp a) -> Q Exp
 unTypeQ m = do { TExp e <- m
                ; return e }
@@ -303,9 +292,6 @@ unTypeQ m = do { TExp e <- m
 --
 -- Levity-polymorphic since /template-haskell-2.16.0.0/.
 unsafeTExpCoerce :: forall (r :: RuntimeRep) (a :: TYPE r).
-#if MIN_VERSION_base(4,14,0)
-  (Q @@ TExp a, TExp @@ a, Q @@ Exp) =>
-#endif
   Q Exp -> Q (TExp a)
 unsafeTExpCoerce m = do { e <- m
                         ; return (TExp e) }
