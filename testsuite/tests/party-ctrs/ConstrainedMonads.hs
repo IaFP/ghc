@@ -1,3 +1,4 @@
+
 {-# LANGUAGE DatatypeContexts #-}
 {-# LANGUAGE PartialTypeConstructors #-}
 {-# LANGUAGE RankNTypes, GADTs #-}
@@ -79,7 +80,7 @@ notMember a = not . (member a)
 class Finite a where
   enumerate :: [a]
 
-newtype (Eq a, Finite a) => Vec a = Vec (a -> Complex Double)
+data (Eq a, Finite a) => Vec a = Vec (a -> Complex Double)
 
 returnVec :: a -> Vec a
 returnVec a = Vec $ \b -> if a == b then 1 else 0
@@ -106,7 +107,6 @@ instance Monad Vec where
 ------   Sunroof Example  -------
 ---------------------------------
 
-{-
 type JSString = String
 type JSBool = Bool
 
@@ -142,10 +142,10 @@ type JSCode = String
 type CompM a = State Int a
 
 newVar :: CompM a
-newVar = do s <- get
-            put (s+1)
-            return 
-
+newVar = undefined -- do s <- get
+                   --    put (s+1)
+                   --    return 
+  
 compileJS :: Sunroof a => JS a -> CompM (JSCode, a)
 compileJS (Prompt s) = do
   (decl, v) <- newVar
@@ -165,8 +165,8 @@ compileJS (If b ja1 ja2) = do
                  , "}"], v)
 
 instance Functor JS where
-  fmap _ _ = undefined
-
+  fmap = undefined
+  
 instance Applicative JS where
   pure         = Return
   liftA2 _ _ _ = undefined
@@ -174,4 +174,4 @@ instance Applicative JS where
   
 instance Monad JS where
   (>>=) = Bind
--}
+
