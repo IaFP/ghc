@@ -1,5 +1,5 @@
 -- The instance decl is illegal without UndecidableInstances
-
+{-# Language UndecidableInstances #-}
 module ShouldFail where
 
 data Rec f = In (f (Rec f))

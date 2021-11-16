@@ -1,17 +1,26 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DatatypeContexts #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
+#if __GLASGOW_HASKELL__ >= 810
 {-# LANGUAGE PartialTypeConstructors #-}
+#endif
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module BstADT where
+
+#if __GLASGOW_HASKELL__ >= 810
 import GHC.Types (type (@@))
+#endif
 
 
-data (Ord a) => BST a = Leaf | Node a (BST a) (BST a)
-                      deriving (Show)
 
-insert'bst :: BST @@ a => a -> BST a -> BST a
+data Ord a => BST a = Leaf | Node a (BST a) (BST a)
+
+deriving instance (Show a, Ord a) => Show (BST a)
+
+insert'bst :: a -> BST a -> BST a
 insert'bst v Leaf = Node v Leaf Leaf
 insert'bst v n@(Node h l r) =
   if (v == h)
@@ -54,4 +63,11 @@ instance Functor BST where
 -- bst1 :: BST Int
 bst1 = insert'bst (1::Int) (Leaf)
 
+emptyBST :: BST a
+emptyBST = Leaf -- Just a top level term declaration will give rise to ambiguous type error. (Why?)
 
+mkBST :: [a] -> BST a
+mkBST = foldr insert'bst Leaf
+
+-- bst2 :: BST Int
+bst2 = mkBST [1, 2, 3, 4]

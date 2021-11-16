@@ -5,6 +5,7 @@
 module T13098 where
 
 import Language.Haskell.TH
+import GHC.Types (type (@@))
 
 $( sequence [ dataD (cxt []) (mkName "T") [PlainTV (mkName "a")]
                      Nothing [normalC (mkName "T") []] []
@@ -16,7 +17,8 @@ $([d| class LL f where
       instance LL [] where
         go _ = ()
 
-      pattern T2 :: LL f => f a
+      pattern T2 :: (LL f, f @@ a) => f a
+      -- pattern T2 :: LL f => f a
       pattern T2 <- (go -> ())
 
       {-# COMPLETE T2 :: [] #-}

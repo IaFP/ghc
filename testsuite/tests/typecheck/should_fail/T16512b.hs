@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeFamilyDependencies #-}
+{-# LANGUAGE NoUndecidableInstances #-}
 
 module T16512b where
 

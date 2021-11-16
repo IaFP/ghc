@@ -48,7 +48,7 @@ import Data.Kind (Type)
 import Control.Monad (liftM, liftM2, when, ap)
 import Control.Monad.Fail (MonadFail(fail))
 -- import Control.Monad.Identity
-import GHC.Types (type (@@))
+import GHC.Types (type (@@), Total )
 import Debug.Trace (trace)
 
 
@@ -83,16 +83,8 @@ instance Monad Identity where
     return a = Identity a
     m >>= k  = k (runIdentity m)
 
-newtype Monad m => Trampoline m s r = Trampoline {bounce :: m (TrampolineState m s r)}
+newtype Trampoline m s r = Trampoline {bounce :: m (TrampolineState m s r)}
 data Monad m => TrampolineState m s r = Done r | Suspend !(s (Trampoline m s r))
-
-type instance Trampoline @@ m = (Monad m, TrampolineState @@ m)
-type instance Trampoline m @@ s = TrampolineState m @@ s
-type instance Trampoline m s @@ r = (TrampolineState m s @@ r, m @@ TrampolineState m s r)
-
-type instance TrampolineState @@ m = Monad m
-type instance TrampolineState m @@ s = ()
-type instance TrampolineState m s @@ r = ()
 
 
 instance (Monad m, Functor s) => Functor (Trampoline m s) where
@@ -105,8 +97,11 @@ instance (Monad m, Functor s) => Applicative (Trampoline m s) where
 instance (Monad m, Functor s) => Monad (Trampoline m s) where
    return x = Trampoline (return (Done x))
    t >>= f = Trampoline (bounce t >>= apply f)
-      where apply f (Done x) = bounce (f x)
-            apply f (Suspend s) = return (Suspend (fmap (>>= f) s))
+      where
+        apply :: forall r r1 m1 s1 r1 s2. (r -> Trampoline m1 s1 r1)
+                      -> TrampolineState m s2 r -> m1 (TrampolineState m1 s1 r1)
+        apply f (Done x) = bounce (f x)
+        apply f (Suspend s) = return (Suspend (fmap (>>= f) s))
 
 instance (Monad m, Functor s) => MonadFail (Trampoline m s) where
   fail = error

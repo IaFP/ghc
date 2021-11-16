@@ -16,7 +16,7 @@ import GHC.Types (type (@@))
 data PZero
 data PSucc p
 
-data IsPeano n ⇒ Peano n where
+data Peano n where
   PZero ∷ Peano PZero
   PSucc ∷ Peano p → Peano (PSucc p)
 
@@ -26,7 +26,7 @@ class IsPeano n where
 instance IsPeano PZero where
   peano = PZero
 
-instance IsPeano p ⇒ IsPeano (PSucc p) where
+instance (Peano @@ p, IsPeano p) ⇒ IsPeano (PSucc p) where
   peano = PSucc peano 
 
 class (n ~ PSucc (PPred n)) ⇒ PHasPred n where
@@ -60,12 +60,12 @@ data PAddResult n m r where
   PAddResult ∷ (PAdd n m, PAdd m n, (n :+: m) ~ r)
              ⇒ PAddResult n m r
 
-pAddLeftZero ∷ ∀ n . IsPeano n ⇒ PAddResult PZero n n
+pAddLeftZero ∷ ∀ n . (Peano @@ n, IsPeano n) ⇒ PAddResult PZero n n
 pAddLeftZero = case peano ∷ Peano n of
   PZero   → PAddResult
   PSucc _ → PAddResult
 
-pAddRightZero ∷ ∀ n . IsPeano n ⇒ PAddResult n PZero n
+pAddRightZero ∷ ∀ n . (IsPeano n, Peano @@ n) ⇒ PAddResult n PZero n
 pAddRightZero = case peano ∷ Peano n of
   PZero   → PAddResult
   PSucc _ → PAddResult

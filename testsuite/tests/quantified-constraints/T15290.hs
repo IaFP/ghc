@@ -5,6 +5,7 @@ module T15290 where
 
 import Prelude hiding ( Monad(..) )
 import Data.Coerce ( Coercible, coerce )
+import GHC.Types (Total)
 
 class Monad m where
   join  :: m (m a) -> m a
@@ -16,7 +17,7 @@ newtype IntStateT m a = IntStateT { runIntStateT :: StateT Int m a }
 instance Monad m => Monad (StateT s m) where
   join = error "urk"
 
-instance (Monad m, forall p q. Coercible p q => Coercible (m p) (m q))
+instance (Total m, Monad m, forall p q. Coercible p q => Coercible (m p) (m q))
       => Monad (IntStateT m) where
 
 --   Fails with the impredicative instantiation of coerce, succeeds without

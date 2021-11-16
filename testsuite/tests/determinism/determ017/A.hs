@@ -89,45 +89,43 @@ instance MonadFail Identity where
 
 newtype Trampoline m s r = Trampoline {bounce :: m (TrampolineState m s r)}
 
-type instance Trampoline @@ m = ()
-type instance Trampoline m @@ s = ()
-type instance Trampoline m s @@ r = (m @@ TrampolineState m s r)
-
 instance Total (Trampoline m s)
 
 data TrampolineState m s r = Done r | Suspend !(s (Trampoline m s r))
 instance Total (TrampolineState m s)
-type instance TrampolineState @@ m = ()
-type instance TrampolineState m @@ s = ()
-type instance TrampolineState m s @@ r = ()
 
 
-
-instance (Monad m, Functor s) => Functor (Trampoline m s) where
+instance (Total m, Monad m, Functor s) => Functor (Trampoline m s) where
   fmap = liftM
 
-instance (Monad m, Functor s) => Applicative (Trampoline m s) where
+instance (Total m, Monad m, Functor s) => Applicative (Trampoline m s) where
   pure  = return
   (<*>) = ap
 
-instance (Monad m, Functor s) => Monad (Trampoline m s) where
+instance (Total m, Monad m, Functor s) => Monad (Trampoline m s) where
    return x = Trampoline (return (Done x))
    t >>= f = Trampoline (bounce t >>= apply f)
       where apply f (Done x) = bounce (f x)
             apply f (Suspend s) = return (Suspend (fmap (>>= f) s))
 
-instance (MonadFail m, Functor s) => MonadFail (Trampoline m s) where
+instance (Total m, MonadFail m, Functor s) => MonadFail (Trampoline m s) where
    fail = error "Trampoline(fail)"
 
 data Yield x y = Yield !x y
+instance Total (Yield x)
+
 instance Functor (Yield x) where
    fmap f (Yield x y) = trace "fmap yield" $ Yield x (f y)
 
 data Await x y = Await !(x -> y)
+instance Total (Await x)
+
 instance Functor (Await x) where
    fmap f (Await g) = trace "fmap await" $ Await (f . g)
 
 data EitherFunctor l r x = LeftF (l x) | RightF (r x)
+instance Total (EitherFunctor l r)
+
 instance (Functor l, Functor r) => Functor (EitherFunctor l r) where
    fmap f v = trace "fmap Either" $
               case v of

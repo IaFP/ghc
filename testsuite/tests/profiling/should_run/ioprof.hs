@@ -2,10 +2,12 @@ import Control.Concurrent
 import Control.Exception
 import Control.Monad (ap, liftM)
 import Control.Applicative
+import GHC.Types (Total)
 
 type S = String
 
 newtype M s a = M { unM :: s -> (s,a) }
+instance Total (M s)
 
 instance Monad (M s) where
   (M m) >>= k = M $ \s -> case m s of

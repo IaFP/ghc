@@ -1,3 +1,4 @@
+{-# LANGUAGE NoConstrainedClassMethods #-}
 module ShouldFail where
 
 -- !!! constraining the type variable in a class head is illegal

@@ -21,6 +21,7 @@ import Data.Kind
 import Data.Monoid
 import GHC.Generics
 import GHC.TypeLits
+import GHC.Types (Total, type (@@))
 
 data Poly a b
   = PNil
@@ -58,7 +59,7 @@ instance Profunctor (->) where
   {-# INLINE (#.) #-}
 
 class HasParam (p :: Nat) s t a b | p t a -> s, p s b -> t, p s -> a, p t -> b where
-  param :: Applicative g => (a -> g b) -> s -> g t
+  param :: (Total g, Applicative g) => (a -> g b) -> s -> g t
 
 instance
   ( GenericN s
@@ -73,27 +74,29 @@ instance
   param = confusing (\f s -> toN <$> gparam @n f (fromN s))
   {-# INLINE param #-}
 
-confusing :: Applicative f => Traversal s t a b -> (a -> f b) -> s -> f t
+confusing :: (Total f, Applicative f) => Traversal s t a b -> (a -> f b) -> s -> f t
 confusing t = \f -> lowerYoneda . lowerCurried . t (liftCurriedYoneda . f)
 {-# INLINE confusing #-}
 
-newtype Yoneda f a = Yoneda { runYoneda :: forall b. (a -> b) -> f b }
+newtype Total f => Yoneda f a = Yoneda { runYoneda :: forall b. (a -> b) -> f b }
+instance Total (Yoneda f)
 
-instance Functor (Yoneda f) where
+instance Total f => Functor (Yoneda f) where
   fmap f m = Yoneda (\k -> runYoneda m (k . f))
 
-instance Applicative f => Applicative (Yoneda f) where
+instance (Total f, Applicative f) => Applicative (Yoneda f) where
   pure a = Yoneda (\f -> pure (f a))
   Yoneda m <*> Yoneda n = Yoneda (\f -> m (f .) <*> n id)
 
-newtype Curried f a =
+newtype Total f => Curried f a =
   Curried { runCurried :: forall r. f (a -> r) -> f r }
+instance Total (Curried f)
 
-instance Functor f => Functor (Curried f) where
+instance (Total f, Functor f) => Functor (Curried f) where
   fmap f (Curried g) = Curried (g . fmap (.f))
   {-# INLINE fmap #-}
 
-instance (Functor f) => Applicative (Curried f) where
+instance (Total f, Functor f) => Applicative (Curried f) where
   pure a = Curried (fmap ($ a))
   {-# INLINE pure #-}
   Curried mf <*> Curried ma = Curried (ma . mf . fmap (.))
@@ -114,10 +117,10 @@ yap (Yoneda k) fa = Yoneda (\ab_r -> k (ab_r .) <*> fa)
 {-# INLINE yap #-}
 
 type Traversal s t a b
-  = forall f. Applicative f => (a -> f b) -> s -> f t
+  = forall f. (Total f, Applicative f) => (a -> f b) -> s -> f t
 
 class GHasParam (p :: Nat) s t a b where
-  gparam :: forall g (x :: Type).  Applicative g => (a -> g b) -> s x -> g (t x)
+  gparam :: forall g (x :: Type).  (Total g, Applicative g) => (a -> g b) -> s x -> g (t x)
 
 instance (GHasParam p l l' a b, GHasParam p r r' a b) => GHasParam p (l :*: r) (l' :*: r') a b where
   gparam f (l :*: r) = (:*:) <$> gparam @p f l <*> gparam @p f r
@@ -141,7 +144,7 @@ instance {-# OVERLAPPABLE #-}
   gparam f (Rec (K1 x)) = Rec . K1 <$> gparamRec @(LookupParam si p) f x
 
 class GHasParamRec (param :: Maybe Nat) s t a b | param t a b -> s, param s a b -> t where
-  gparamRec :: forall g.  Applicative g => (a -> g b) -> s -> g t
+  gparamRec :: forall g.  (Total g, Applicative g) => (a -> g b) -> s -> g t
 
 instance GHasParamRec 'Nothing a a c d where
   gparamRec _ = pure
@@ -153,7 +156,7 @@ recIso :: Iso (Rec r a p) (Rec r b p) a b
 recIso = iso (unK1 . unRec) (Rec . K1)
 
 type Iso s t a b
-  = forall p f. (Profunctor p, Functor f) => p a (f b) -> p s (f t)
+  = forall p f. (Total f, Total p, Total (p a), Total (p s), Profunctor p, Functor f) => p a (f b) -> p s (f t)
 
 iso :: (s -> a) -> (b -> t) -> Iso s t a b
 iso sa bt = dimap sa (fmap bt)

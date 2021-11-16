@@ -17,6 +17,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DefaultSignatures #-}
 module DerivingViaCompile where
 
 import Data.Void
@@ -32,6 +33,7 @@ import Control.Applicative hiding (WrappedMonad(..))
 import Data.Bifunctor
 import Data.Monoid
 import Data.Kind
+import GHC.Types (Total, type (@@))
 
 type f ~> g = forall xx. f xx -> g xx
 
@@ -62,7 +64,7 @@ newtype Bar a = MkBar (Either a Int)
 -----
 -- Monad transformers
 -----
-
+{-
 type MTrans = (Type -> Type) -> (Type -> Type)
 
 -- From `constraints'
@@ -82,32 +84,43 @@ r \\ Sub Dict = r
 --    type LiftingMonad trans = Lifting Monad trans
 --
 class LiftingMonad (trans :: MTrans) where
-  proof :: Monad m :- Monad (trans m)
+  proof :: (Monad m) :- Monad (trans m)
 
 instance LiftingMonad (StateT s :: MTrans) where
-  proof :: Monad m :- Monad (StateT s m)
+  proof :: (Monad m) :- Monad (StateT s m)
   proof = Sub Dict
 
 instance Monoid w => LiftingMonad (WriterT w :: MTrans) where
-  proof :: Monad m :- Monad (WriterT w m)
+  proof :: (Monad m) :- Monad (WriterT w m)
   proof = Sub Dict
 
-instance (LiftingMonad trans, LiftingMonad trans') => LiftingMonad (ComposeT trans trans' :: MTrans) where
-  proof :: forall m. Monad m :- Monad (ComposeT trans trans' m)
+instance (LiftingMonad trans, LiftingMonad trans')
+         => LiftingMonad (ComposeT trans trans' :: MTrans) where
+  proof :: forall m. (Monad m) :- Monad (ComposeT trans trans' m)
   proof = Sub (Dict \\ proof @trans @(trans' m) \\ proof @trans' @m)
 
 newtype Stack :: MTrans where
   Stack :: ReaderT Int (StateT Bool (WriterT String m)) a -> Stack m a
-  deriving newtype
-    ( Functor
-    , Applicative
-    , Monad
-    , MonadReader Int
-    , MonadState Bool
-    , MonadWriter String
-    )
-  deriving (MonadTrans, MFunctor)
-       via (ReaderT Int `ComposeT` StateT Bool `ComposeT` WriterT String)
+  -- deriving newtype
+    -- ( Functor
+    -- , Applicative
+    -- , Monad
+    -- , MonadReader Int
+    -- , MonadState Bool
+    -- , MonadWriter String
+    -- )
+  -- deriving (MFunctor)
+  --      via (ReaderT Int `ComposeT` StateT Bool `ComposeT` WriterT String)
+
+deriving instance (Functor (Stack a))
+deriving instance (Applicative (Stack a))
+deriving instance (Monad (Stack a))
+deriving instance (MonadReader Int (Stack a))
+deriving instance (MonadState Bool (Stack a))
+deriving instance (MonadWriter String (Stack a))
+
+deriving instance (MonadTrans Stack)
+deriving instance (MFunctor Stack)
 
 class MFunctor (trans :: MTrans) where
   hoist :: Monad m => (m ~> m') -> (trans m ~> trans m')
@@ -127,7 +140,10 @@ instance MFunctor (WriterT w :: MTrans) where
 infixr 9 `ComposeT`
 newtype ComposeT :: MTrans -> MTrans -> MTrans where
   ComposeT :: { getComposeT :: f (g m) a } -> ComposeT f g m a
-  deriving newtype (Functor, Applicative, Monad)
+  -- deriving newtype (Functor, Applicative, Monad)
+deriving instance (Functor (ComposeT f g m))
+deriving instance (Applicative (ComposeT f g m))
+deriving instance (Monad (ComposeT f g m))
 
 instance (MonadTrans f, MonadTrans g, LiftingMonad g) => MonadTrans (ComposeT f g) where
   lift :: forall m. Monad m => m ~> ComposeT f g m
@@ -138,7 +154,7 @@ instance (MFunctor f, MFunctor g, LiftingMonad g) => MFunctor (ComposeT f g) whe
   hoist :: forall m m'. Monad m => (m ~> m') -> (ComposeT f g m ~> ComposeT f g m')
   hoist f = ComposeT . hoist (hoist f) . getComposeT
     \\ proof @g @m
-
+-}
 -----
 -- Using tuples in a `via` type
 -----
@@ -190,7 +206,7 @@ newtype f $ a = APP (f a) deriving newtype Show deriving newtype Functor
 newtype WrapApplicative f a = WrappedApplicative (f a)
   deriving (Functor, Applicative)
 
-instance (Applicative f, Num a) => Num (WrapApplicative f a) where
+instance (f @@ a, Applicative f, Num a) => Num (WrapApplicative f a) where
   (+)         = liftA2 (+)
   (*)         = liftA2 (*)
   negate      = fmap negate
@@ -198,11 +214,11 @@ instance (Applicative f, Num a) => Num (WrapApplicative f a) where
   abs         = fmap abs
   signum      = fmap signum
 
-instance (Applicative f, Fractional a) => Fractional (WrapApplicative f a) where
+instance (f @@ a, Applicative f, Fractional a) => Fractional (WrapApplicative f a) where
   recip        = fmap recip
   fromRational = pure . fromRational
 
-instance (Applicative f, Floating a) => Floating (WrapApplicative f a) where
+instance (f @@ a, Applicative f, Floating a) => Floating (WrapApplicative f a) where
   pi    = pure pi
   sqrt  = fmap sqrt
   exp   = fmap exp
@@ -218,10 +234,10 @@ instance (Applicative f, Floating a) => Floating (WrapApplicative f a) where
   atanh = fmap atanh
   acosh = fmap acosh
 
-instance (Applicative f, Semigroup s) => Semigroup (WrapApplicative f s) where
+instance (f @@ s, Applicative f, Semigroup s) => Semigroup (WrapApplicative f s) where
   (<>) = liftA2 (<>)
 
-instance (Applicative f, Monoid m) => Monoid (WrapApplicative f m) where
+instance (f @@ m, Applicative f, Monoid m) => Monoid (WrapApplicative f m) where
   mempty = pure mempty
 
 ----
@@ -233,10 +249,10 @@ class Pointed p where
 newtype WrapMonad f a = WrappedMonad (f a)
   deriving newtype (Pointed, Monad)
 
-instance (Monad m, Pointed m) => Functor (WrapMonad m) where
+instance (Total m, Monad m, Pointed m) => Functor (WrapMonad m) where
   fmap = liftM
 
-instance (Monad m, Pointed m) => Applicative (WrapMonad m) where
+instance (Total m, Monad m, Pointed m) => Applicative (WrapMonad m) where
   pure  = pointed
   (<*>) = ap
 
@@ -246,7 +262,7 @@ data Sorted a = Sorted a a a
     via (WrapMonad Sorted)
   deriving (Num, Fractional, Floating, Semigroup, Monoid)
     via (WrapApplicative Sorted a)
-
+instance Total Sorted
 
 instance Monad Sorted where
   (>>=) :: Sorted a -> (a -> Sorted b) -> Sorted b
@@ -309,7 +325,7 @@ instance Biapplicative (,) where
 newtype WrapBiapp p a b = WrapBiap (p a b)
   deriving newtype (Bifunctor, Biapplicative, Eq)
 
-instance (Biapplicative p, Num a, Num b) => Num (WrapBiapp p a b) where
+instance (p @@ a, p a @@ b, Biapplicative p, Num a, Num b) => Num (WrapBiapp p a b) where
   (+) = biliftA2 (+) (+)
   (-) = biliftA2 (*) (*)
   (*) = biliftA2 (*) (*)
@@ -416,6 +432,7 @@ class Additive (Diff p) => Affine p where
   (.-.) :: Num a => p a -> p a -> Diff p a
   (.+^) :: Num a => p a -> Diff p a -> p a
   (.-^) :: Num a => p a -> Diff p a -> p a
+  default (.-^) :: (Num a, Diff p @@ a) => p a -> Diff p a -> p a
   p .-^ v = p .+^ fmap negate v
 
 -- #define ADDITIVEC(CTX,T) instance CTX => Affine T where type Diff T = T ; \

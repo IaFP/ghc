@@ -67,12 +67,8 @@ instance Total (Pretext a b)
 -- Types
 -------------------------------------------------------------------------------
 
-type LensLike  f s t a b =
-                            (f @@ b, f @@ t) =>
-                            (a -> f b) -> s -> f t
-type LensLike' f s   a   =
-                            (f @@ a, f @@ s) =>
-                            (a -> f a) -> s -> f s
+type LensLike  f s t a b = (a -> f b) -> s -> f t
+type LensLike' f s   a   = (a -> f a) -> s -> f s
 
 type Lens      s t a b = forall f. (Functor f
                                    ) => LensLike f s t a b

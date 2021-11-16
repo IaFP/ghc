@@ -1,4 +1,4 @@
-
+{-# LANGUAGE NoTypeOperators #-}
 
 module ShouldFail where
 

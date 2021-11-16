@@ -1,8 +1,8 @@
 {-# LANGUAGE DatatypeContexts #-}
 {-# LANGUAGE PartialTypeConstructors #-}
 {-# LANGUAGE RankNTypes, GADTs #-}
-{-# LANGUAGE TypeFamilies, TypeOperators, FlexibleInstances, ExistentialQuantification #-}
-{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TypeFamilies, TypeOperators, FlexibleInstances, FlexibleContexts, ExistentialQuantification #-}
+{-# LANGUAGE DeriveFunctor, StandaloneDeriving #-}
 
 -- Some examples from constrained monads
 module ConstrainedMonads where
@@ -12,11 +12,15 @@ import GHC.Base (Applicative (..))
 import Data.Complex
 import Control.Monad.State
 
+
 -------------------------------
 ------     Set Example  -------
 -------------------------------
 data Ord a => Set a = Set (S.Set a)
-                    deriving (Show, Ord, Eq)    
+
+deriving instance (Ord a, Show a) => Show (Set a)
+deriving instance Ord a => Ord (Set a)
+deriving instance Ord a => Eq (Set a)
 
 
 map'set :: (a -> b) -> Set a -> Set b
@@ -67,7 +71,6 @@ notMember :: a -> Set a -> Bool
 notMember a = not . (member a)
 
 
-
 -------------------------------
 ------   Vector Example  -------
 -------------------------------
@@ -98,12 +101,12 @@ instance Applicative Vec where
 
 instance Monad Vec where
   (>>=) = bindVec
-  
+
 ---------------------------------
 ------   Sunroof Example  -------
 ---------------------------------
 
-
+{-
 type JSString = String
 type JSBool = Bool
 
@@ -171,3 +174,4 @@ instance Applicative JS where
   
 instance Monad JS where
   (>>=) = Bind
+-}

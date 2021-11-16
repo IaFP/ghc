@@ -9,6 +9,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+import GHC.Types (type (@@), Total)
+
 infixr 7 :*, .*
 infix  8 :*:, .*.
 
@@ -55,6 +57,9 @@ data HFromWitness n l where
   HFromNext  ∷ (HNonEmpty l, HFromClass p (HTail l),
                 HTail (HFrom (Next p) l) ~ HFrom (Next p) (HTail l))
              ⇒ HFromWitness (Next p) l
+
+type instance HFromWitness @@ a = ()
+type instance HFromWitness a @@ b = ()
 
 class HFromClass n l where
   type HFrom n l

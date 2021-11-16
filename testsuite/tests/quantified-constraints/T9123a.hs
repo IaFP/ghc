@@ -6,6 +6,7 @@
 module T9123a where
 
 import Data.Coerce
+import GHC.Types (Total)
 
 class MyMonad m where
   join :: m (m a) -> m a
@@ -22,7 +23,7 @@ newtype IntStateT m a = IntStateT (StateT Int m a)
 
 type role IntStateT representational nominal   -- as inferred
 
-instance (MyMonad m, forall p q. Coercible p q => Coercible (m p) (m q))
+instance (Total m, MyMonad m, forall p q. Coercible p q => Coercible (m p) (m q))
                => MyMonad (IntStateT m) where
   join :: forall a. IntStateT m (IntStateT m a) -> IntStateT m a
   join = coerce @(StateT Int m (StateT Int m a) -> StateT Int m a)

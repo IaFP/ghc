@@ -1,3 +1,4 @@
+
 {-# Language RankNTypes, ConstraintKinds, QuantifiedConstraints,
              PolyKinds, GADTs, MultiParamTypeClasses,
              DataKinds, FlexibleInstances #-}
@@ -8,7 +9,7 @@ import Data.Kind
 
 type Cat ob = ob -> ob -> Type
 
-data KLEISLI (m :: Type -> Type) :: Cat (KL_kind m) where
+data KLEISLI (m :: Type -> Type) :: (KL_kind m) -> (KL_kind m) -> Type where
   MkKLEISLI :: (a -> m b) -> KLEISLI(m) (KL a) (KL b)
 
 data KL_kind (m :: Type -> Type) = KL Type

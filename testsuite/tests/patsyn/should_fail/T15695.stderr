@@ -5,7 +5,7 @@ T15695.hs:39:14: warning: [-Wdeferred-type-errors (in -Wdefault)]
                          ctx ~~ (a2 ':&: (a3 ':&: 'E)), f a2 ~~ f1, f1 a3 ~~ a4)
         bound by a pattern with pattern synonym:
                    ASSO :: forall kind (a :: kind) (b :: Ctx kind).
-                           () =>
+                           (ApplyT kind a @@ b, ApplyT kind @@ a) =>
                            forall ks k (f :: k -> ks) (a1 :: k) ks1 k1 (f1 :: k1 -> ks1)
                                   (a2 :: k1) a3.
                            (kind ~ (k -> k1 -> *), a ~~ f, b ~~ (a1 ':&: (a2 ':&: 'E)),
@@ -16,7 +16,7 @@ T15695.hs:39:14: warning: [-Wdeferred-type-errors (in -Wdefault)]
       ‘a2’ is a rigid type variable bound by
         a pattern with pattern synonym:
           ASSO :: forall kind (a :: kind) (b :: Ctx kind).
-                  () =>
+                  (ApplyT kind a @@ b, ApplyT kind @@ a) =>
                   forall ks k (f :: k -> ks) (a1 :: k) ks1 k1 (f1 :: k1 -> ks1)
                          (a2 :: k1) a3.
                   (kind ~ (k -> k1 -> *), a ~~ f, b ~~ (a1 ':&: (a2 ':&: 'E)),

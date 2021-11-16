@@ -1,6 +1,8 @@
 
 T11039.hs:8:15: error:
-    • Couldn't match type ‘f’ with ‘A’
+    • Could not deduce: f ~ A
+      from the context: f @@ a
+        bound by the signature for pattern synonym ‘Q’ at T11039.hs:8:9
       ‘f’ is a rigid type variable bound by
         the signature for pattern synonym ‘Q’
         at T11039.hs:7:1-38

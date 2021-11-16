@@ -1,6 +1,6 @@
 
 T15067.hs:9:14: error:
-    • Could not deduce (Typeable (# 'GHC.Types.LiftedRep #))
+    • No instance for (Typeable (# 'GHC.Types.LiftedRep #))
         arising from a use of ‘typeRep’
         GHC can't yet do polykinded
           Typeable ((# 'GHC.Types.LiftedRep #) :: *
@@ -9,12 +9,5 @@ T15067.hs:9:14: error:
                                                        ('GHC.Types.SumRep
                                                           '[ 'GHC.Types.LiftedRep,
                                                              'GHC.Types.LiftedRep]))
-      from the context: ((# 'GHC.Types.LiftedRep | Bool #) @@ Int,
-                         (# 'GHC.Types.LiftedRep #) @@ Bool)
-        bound by the type signature for:
-                   floopadoop :: ((# 'GHC.Types.LiftedRep | Bool #) @@ Int,
-                                  (# 'GHC.Types.LiftedRep #) @@ Bool) =>
-                                 TypeRep (# Bool | Int #)
-        at T15067.hs:8:1-38
     • In the expression: typeRep
       In an equation for ‘floopadoop’: floopadoop = typeRep

@@ -39,10 +39,10 @@ type TreeIO = TreeMonad IO
 virtualTreeMonad :: (Functor m, Monad m) => TreeMonad m a -> Tree m -> m  (a, Tree m)  
 virtualTreeMonad action t = undefined
 
-applyToState :: forall p m x y. (Apply p, ApplyMonadTrans m (ApplyState p)
+applyToState :: forall p m x y. (Total m, Apply p, ApplyMonadTrans m (ApplyState p)
                                 , p @@ x, p x @@ y, m @@ ApplyState p m, ApplyState p @@ m
                                 ) => p x y -> (ApplyState p) m -> m ((ApplyState p) m)  
 applyToState _ _ = snd `fmap` runApplyMonad undefined undefined
 
-showContextSeries :: (Apply p, ApplyState p ~ Tree) => FL p x y -> TreeIO ()
+showContextSeries :: (Apply p, ApplyState p ~ Tree, p @@ x, Total (p x)) => FL p x y -> TreeIO ()
 showContextSeries (p:>:_) = (undefined >>= lift . applyToState p) >>  return ()

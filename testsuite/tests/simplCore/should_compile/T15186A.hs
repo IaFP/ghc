@@ -9,6 +9,7 @@
 module T15186A (Ctx, Assignment, pattern EmptyAssn, pattern (:>)) where
 
 import Data.Kind (Type)
+import GHC.Types (type (@@))
 
 data Ctx k
   = EmptyCtx
@@ -54,14 +55,17 @@ data BalancedTree h (f :: k -> Type) (p :: Ctx k) where
           -> BalancedTree ('Succ h) f (x <+> y)
 
 bal_drop :: forall h f x y
-          . BinomialTree h f x
+          . (BinomialTree @@ h, BinomialTree h @@ f, BinomialTree h f @@ x, BinomialTree h f @@ y, DropResult @@ f
+            , DropResult f @@ x, DropResult f @@ y)
+         => BinomialTree h f x
          -> BalancedTree h f y
          -> DropResult f (x <+> y)
 bal_drop t (BalLeaf e) = DropExt t e
 bal_drop _ (BalPair {}) = undefined
 
 bin_drop :: forall h f ctx
-          . BinomialTree h f ctx
+          . (BinomialTree @@ h, BinomialTree h @@ f, BinomialTree h f @@ ctx, DropResult @@ f, DropResult f @@ ctx)
+         => BinomialTree h f ctx
          -> DropResult f ctx
 bin_drop Empty = DropEmpty
 bin_drop (PlusZero _ u) = bin_drop u
@@ -71,7 +75,7 @@ bin_drop (PlusOne s t u) =
             _ -> PlusZero s t
    in bal_drop m u
 
-viewAssign :: forall f ctx . Assignment f ctx -> AssignView f ctx
+viewAssign :: forall f ctx . (Assignment @@ f, Assignment f @@ ctx) => Assignment f ctx -> AssignView f ctx
 viewAssign (Assignment x) =
   case bin_drop x of
     DropEmpty -> AssignEmpty

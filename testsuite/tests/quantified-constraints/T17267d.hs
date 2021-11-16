@@ -10,16 +10,18 @@
 
 module Main where
 
+import GHC.Types (Total)
+
 data Foo f a = Foo (f (Maybe a))
 deriving instance Show (f (Maybe a)) => Show (Foo f a)
-deriving instance Functor f => Functor (Foo f)
+deriving instance (Total f, Functor f) => Functor (Foo f)
 
 data Bar x a = Pure a | Bar (x (Bar x) a)
 -- This Show instance is knarly. Basically we ask @x f@ to preserve Show whenever @f@ preserves Show.
 deriving instance (forall f b. (Show b, forall c. Show c => Show (f c))
                             => Show (x f b), Show a)
                => Show (Bar x a)
-deriving instance (forall f. Functor f => Functor (x f))
+deriving instance (forall f. (Total x, Functor f) => Functor (x f))
                => Functor (Bar x)
 
 -- I should now be able to get Show and Functor for @Bar Foo@.

@@ -4,10 +4,10 @@ T15290b.hs:28:49: error:
                                with that of ‘f (T1 m b)’
         arising from the coercion of the method ‘traverse'’
           from type ‘forall (f :: * -> *) a b.
-                     Applicative' f =>
+                     (Applicative' f, f @@ b, m @@ a, f @@ m b, m @@ b) =>
                      (a -> f b) -> m a -> f (m b)’
             to type ‘forall (f :: * -> *) a b.
-                     Applicative' f =>
+                     (Applicative' f, f @@ b, T1 m @@ a, f @@ T1 m b, T1 m @@ b) =>
                      (a -> f b) -> T1 m a -> f (T1 m b)’
       NB: We cannot know what roles the parameters to ‘f’ have;
         we must assume that the role is nominal

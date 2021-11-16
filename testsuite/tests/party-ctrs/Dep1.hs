@@ -33,3 +33,10 @@ data N = Z | S N
 
 wacky :: Wacky Type N Type Bool
 wacky = W
+
+
+data T k (a :: k) (b :: Proxy k2) f c :: forall k3. Proxy k3 -> forall (k4 :: k5). Proxy k4 -> Type where
+    MkT :: f c -> T k a b f c d e
+
+data T2 (k :: Type) (a :: k) (b :: Proxy k2) (f :: k7 -> Type) (c :: k7) :: forall k3. Proxy k3 -> forall k5 (k4 :: k5). Proxy k4 -> Type where
+    MkT2 :: f c -> T2 k a b f c d e

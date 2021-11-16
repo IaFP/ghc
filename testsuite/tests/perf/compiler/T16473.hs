@@ -18,6 +18,7 @@ import           Data.Functor.Identity
 import           Data.Kind
 import           Data.Monoid
 import           Data.Tuple
+import GHC.Types (Total)
 
 main :: IO ()
 main = print $ badCore 100
@@ -38,10 +39,12 @@ absurdU = absurdU
 newtype Semantic r a = Semantic
   { runSemantic
         :: forall m
-         . Monad m
+         . (Total m, Monad m)
         => (forall x. Union r x -> m x)
         -> m a
   }
+
+instance Total (Semantic r)
 
 instance Functor (Semantic f) where
   fmap f (Semantic m) = Semantic $ \k -> fmap f $ m k

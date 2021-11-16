@@ -18,12 +18,15 @@ import Control.Category (Category (id), (>>>))
 
 import Prelude hiding (Monad (..), id)
 import qualified Prelude
+import GHC.Types (type (@@))
 
 newtype Identity a = Identity { runIdentity :: a }
 
 class Monad m where
-  (>>=) :: forall e ex x a b . m e ex a -> (a -> m ex x b) -> m e x b
-  (>>) :: forall e ex x a b . m e ex a -> m ex x b -> m e x b
+  (>>=) :: forall e ex x a b . (m @@ e, m e @@ ex, m e ex @@ a, m e ex @@ b, m e @@ x, m e x @@ b)
+           => m e ex a -> (a -> m ex x b) -> m e x b
+  (>>) :: forall e ex x a b . (m @@ e, m e @@ ex, m e ex @@ a, m e ex @@ b, m e @@ x, m e x @@ b)
+          => m e ex a -> m ex x b -> m e x b
   return :: a -> m ex ex a
 
   {-# INLINE (>>) #-}

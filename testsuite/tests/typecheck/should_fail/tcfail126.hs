@@ -15,7 +15,7 @@ import GHC.Types (type (@@), Total)
 import Control.Monad.Trans
 
 data Bar m
-  = forall t. (MonadTrans t, Monad (t m))
+  = forall t. (Total t, Total (t m), MonadTrans t, Monad (t m))
            => Bar (t m () -> m ()) (t m Int)
 
 data Foo = Foo (forall m. Monad m => Bar m)

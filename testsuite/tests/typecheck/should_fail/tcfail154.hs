@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NoUndecidableInstances #-}
 
 module ShouldFail where
 

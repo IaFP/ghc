@@ -1,3 +1,4 @@
+{-# language FlexibleInstances #-}
 -- | Check the source spans associated with the expansion of quasi-quotes
 module Main (main) where
 
@@ -16,9 +17,11 @@ import Control.Monad.Trans.State
 import Data.List (sortBy)
 import Data.Ord
 import Prelude hiding (traverse)
-
+import GHC.Types (Total)
+import Data.Functor.Identity (Identity)
+                             
 type Traverse a = State (SrcSpan, [(Name, SrcSpan)]) a
-
+instance Total (StateT (SrcSpan, [(Name, SrcSpan)]) Identity)
 traverse :: Data a => a -> Traverse a
 traverse a =
     skipNameSet (cast a) a $ do

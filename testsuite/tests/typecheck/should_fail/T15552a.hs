@@ -1,6 +1,6 @@
 {-# LANGUAGE DataKinds, ExistentialQuantification, GADTs, PolyKinds, TypeOperators #-}
 {-# LANGUAGE TypeInType, TypeFamilies #-}
-{-  # LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE NoUndecidableInstances #-}
 module T15552 where
 
 import Data.Kind

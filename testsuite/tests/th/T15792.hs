@@ -1,6 +1,7 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE NoPartialTypeConstructors #-}
 module T15792 where
 
 import Data.Kind

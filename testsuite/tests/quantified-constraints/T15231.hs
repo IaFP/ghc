@@ -2,6 +2,8 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE NoUndecidableInstances #-}
+
 module Bug where
 
 import Data.Kind

@@ -1,115 +1,20 @@
 
-T8331.hs:53:1: warning:
-    Forall'd constraint ‘ReaderT @@ Int’ is not bound in RULE lhs
-      Orig bndrs: [s, irred_a3Ql, irred_a3Qm, irred_a3Qn, irred_a3Qo]
-      Orig lhs: let {
-                  $dMonadAbstractIOST_a3Qr :: MonadAbstractIOST (ReaderT Int (ST s))
-                  [LclId]
-                  $dMonadAbstractIOST_a3Qr = Main.$fMonadAbstractIOSTReaderT @ s } in
-                let {
-                  $d(%%)_a3Yj :: () :: Constraint
-                  [LclId]
-                  $d(%%)_a3Yj
-                    = irred_a3Ql
-                      `cast` (Sub (Main.R:@@rm[0] <Int>_N <ST s>_N)
-                              :: Coercible (ReaderT Int @@ ST s) (() :: Constraint)) } in
-                let {
-                  irred_a3Qq :: ReaderT Int (ST s) @@ Int
-                  [LclId]
-                  irred_a3Qq
-                    = $d(%%)_a3Yj
-                      `cast` (Sub (Sym (Main.R:@@rma[0]
-                                            <Int>_N <ST s>_N <Int>_N ; GHC.ST.R:@@sa[0]
-                                                                           <s>_N <Int>_N))
-                              :: Coercible (() :: Constraint) (ReaderT Int (ST s) @@ Int)) } in
-                useAbstractMonad
-                  @ (ReaderT Int (ST s)) irred_a3Qq $dMonadAbstractIOST_a3Qr
-      optimised lhs: useAbstractMonad
-                       @ (ReaderT Int (ST s))
-                       ((irred_a3Ql
-                         `cast` (Sub (Main.R:@@rm[0] <Int>_N <ST s>_N)
-                                 :: Coercible (ReaderT Int @@ ST s) (() :: Constraint)))
-                        `cast` (Sub (Sym (GHC.ST.R:@@sa[0]
-                                              <s>_N <Int>_N)) ; Sub (Sym (Main.R:@@rma[0]
-                                                                              <Int>_N
-                                                                              <ST s>_N
-                                                                              <Int>_N))
-                                :: Coercible (() :: Constraint) (ReaderT Int (ST s) @@ Int)))
-                       $dMonadAbstractIOST_a3Qr
-    Forall'd constraint ‘ReaderT Int (ST s) @@ Int’
-    is not bound in RULE lhs
-      Orig bndrs: [s, irred_a3Ql, irred_a3Qm, irred_a3Qn, irred_a3Qo]
-      Orig lhs: let {
-                  $dMonadAbstractIOST_a3Qr :: MonadAbstractIOST (ReaderT Int (ST s))
-                  [LclId]
-                  $dMonadAbstractIOST_a3Qr = Main.$fMonadAbstractIOSTReaderT @ s } in
-                let {
-                  $d(%%)_a3Yj :: () :: Constraint
-                  [LclId]
-                  $d(%%)_a3Yj
-                    = irred_a3Ql
-                      `cast` (Sub (Main.R:@@rm[0] <Int>_N <ST s>_N)
-                              :: Coercible (ReaderT Int @@ ST s) (() :: Constraint)) } in
-                let {
-                  irred_a3Qq :: ReaderT Int (ST s) @@ Int
-                  [LclId]
-                  irred_a3Qq
-                    = $d(%%)_a3Yj
-                      `cast` (Sub (Sym (Main.R:@@rma[0]
-                                            <Int>_N <ST s>_N <Int>_N ; GHC.ST.R:@@sa[0]
-                                                                           <s>_N <Int>_N))
-                              :: Coercible (() :: Constraint) (ReaderT Int (ST s) @@ Int)) } in
-                useAbstractMonad
-                  @ (ReaderT Int (ST s)) irred_a3Qq $dMonadAbstractIOST_a3Qr
-      optimised lhs: useAbstractMonad
-                       @ (ReaderT Int (ST s))
-                       ((irred_a3Ql
-                         `cast` (Sub (Main.R:@@rm[0] <Int>_N <ST s>_N)
-                                 :: Coercible (ReaderT Int @@ ST s) (() :: Constraint)))
-                        `cast` (Sub (Sym (GHC.ST.R:@@sa[0]
-                                              <s>_N <Int>_N)) ; Sub (Sym (Main.R:@@rma[0]
-                                                                              <Int>_N
-                                                                              <ST s>_N
-                                                                              <Int>_N))
-                                :: Coercible (() :: Constraint) (ReaderT Int (ST s) @@ Int)))
-                       $dMonadAbstractIOST_a3Qr
-    Forall'd constraint ‘ST @@ s’ is not bound in RULE lhs
-      Orig bndrs: [s, irred_a3Ql, irred_a3Qm, irred_a3Qn, irred_a3Qo]
-      Orig lhs: let {
-                  $dMonadAbstractIOST_a3Qr :: MonadAbstractIOST (ReaderT Int (ST s))
-                  [LclId]
-                  $dMonadAbstractIOST_a3Qr = Main.$fMonadAbstractIOSTReaderT @ s } in
-                let {
-                  $d(%%)_a3Yj :: () :: Constraint
-                  [LclId]
-                  $d(%%)_a3Yj
-                    = irred_a3Ql
-                      `cast` (Sub (Main.R:@@rm[0] <Int>_N <ST s>_N)
-                              :: Coercible (ReaderT Int @@ ST s) (() :: Constraint)) } in
-                let {
-                  irred_a3Qq :: ReaderT Int (ST s) @@ Int
-                  [LclId]
-                  irred_a3Qq
-                    = $d(%%)_a3Yj
-                      `cast` (Sub (Sym (Main.R:@@rma[0]
-                                            <Int>_N <ST s>_N <Int>_N ; GHC.ST.R:@@sa[0]
-                                                                           <s>_N <Int>_N))
-                              :: Coercible (() :: Constraint) (ReaderT Int (ST s) @@ Int)) } in
-                useAbstractMonad
-                  @ (ReaderT Int (ST s)) irred_a3Qq $dMonadAbstractIOST_a3Qr
-      optimised lhs: useAbstractMonad
-                       @ (ReaderT Int (ST s))
-                       ((irred_a3Ql
-                         `cast` (Sub (Main.R:@@rm[0] <Int>_N <ST s>_N)
-                                 :: Coercible (ReaderT Int @@ ST s) (() :: Constraint)))
-                        `cast` (Sub (Sym (GHC.ST.R:@@sa[0]
-                                              <s>_N <Int>_N)) ; Sub (Sym (Main.R:@@rma[0]
-                                                                              <Int>_N
-                                                                              <ST s>_N
-                                                                              <Int>_N))
-                                :: Coercible (() :: Constraint) (ReaderT Int (ST s) @@ Int)))
-                       $dMonadAbstractIOST_a3Qr
-
 ==================== Tidy Core rules ====================
+"SPEC useAbstractMonad"
+    forall (@ s)
+           (irred :: ST @@ s)
+           ($dMonadAbstractIOST :: MonadAbstractIOST (ReaderT Int (ST s))).
+      useAbstractMonad @ (ReaderT Int (ST s))
+                       $dMonadAbstractIOST
+                       (irred
+                        `cast` (Sub (R:@@s[0] <s>_N) ; (Sub (Sym (R:@@sa[0]
+                                                                      <s>_N
+                                                                      <Int>_N)) ; Sub (Sym (R:@@rma[0]
+                                                                                                <Int>_N
+                                                                                                <ST
+                                                                                                   s>_N
+                                                                                                <Int>_N)))
+                                :: Coercible (ST @@ s) (ReaderT Int (ST s) @@ Int)))
+      = useAbstractMonad_$suseAbstractMonad @ s irred
 
 

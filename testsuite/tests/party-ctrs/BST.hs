@@ -10,11 +10,11 @@ data (Ord a) => BST a where
   Leaf :: BST a
   Node :: a -> BST a -> BST a -> BST a
 
--- instance (Show a{-, BST @@ a-}) => Show (BST a) where
---   show Leaf = "Leaf"
---   show (Node a lt rt) = "Node" ++ show a ++ (show lt) ++ (show rt)
+instance (Show a, BST @@ a) => Show (BST a) where
+  show Leaf = "Leaf"
+  show (Node a lt rt) = "Node" ++ show a ++ (show lt) ++ (show rt)
 
-deriving instance Show a => Show (BST a)
+-- deriving instance (Show a, Ord a) => Show (BST a)
 
 insert'bst :: a -> BST a -> BST a
 insert'bst v Leaf = Node v Leaf Leaf
