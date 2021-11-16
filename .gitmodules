@@ -110,11 +110,12 @@
 	path = utils/haddock
 	url = https://gitlab.haskell.org/ani/haddock.git
 	ignore = untracked
-	branch = ghc-head
+	branch = wip/party-ctrs
 [submodule "nofib"]
 	path = nofib
-	url = https://gitlab.haskell.org/ghc/nofib.git
+	url = https://gitlab.haskell.org/ani/nofib.git
 	ignore = untracked
+	branch = wip/party-ctrs
 [submodule "utils/hsc2hs"]
 	path = utils/hsc2hs
 	url = https://gitlab.haskell.org/ani/hsc2hs.git
