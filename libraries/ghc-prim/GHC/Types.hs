@@ -2,7 +2,8 @@
              MultiParamTypeClasses, RoleAnnotations, CPP, TypeOperators,
              PolyKinds, NegativeLiterals, DataKinds, ScopedTypeVariables,
              TypeApplications, StandaloneKindSignatures,
-             FlexibleInstances, UndecidableInstances #-}
+             FlexibleInstances, UndecidableInstances,
+             UndecidableSuperClasses, RankNTypes, ConstraintKinds, QuantifiedConstraints #-}
 -- NegativeLiterals: see Note [Fixity of (->)]
 -----------------------------------------------------------------------------
 -- |
@@ -37,6 +38,7 @@ module GHC.Types (
         type (~~), Coercible,
         TYPE, Levity(..), RuntimeRep(..),
         LiftedRep, UnliftedRep,
+        type (@), Total,
         Type, UnliftedType, Constraint,
           -- The historical type * should ideally be written as
           -- `type *`, without the parentheses. But that's a true
@@ -342,6 +344,30 @@ infix 4 ~, ~~
 --      @since 4.7.0.0
 class Coercible (a :: k) (b :: k)
   -- See also Note [The equality types story] in GHC.Builtin.Types.Prim
+
+{- *********************************************************************
+*                                                                      *
+                    (@@) and TyAt (Wellformed)
+
+*                                                                      *
+********************************************************************* -}
+-- |    The predicate that asserts type application is sound
+--      This is an implimentation of partial type constructor
+--      Mark P. Jones, J. Garrett Morris, and Richard A. Eisenberg. 2019.
+--      Partial type constructors: or, making ad hoc datatypes less ad hoc.
+--      Proc. ACM Program. Lang. 4, POPL, Article 40 (January 2020).
+--      DOI: <https://dl.acm.org/doi/10.1145/3371108>
+
+type family (@) (t :: k' -> k) (u :: k') :: Constraint
+
+-- class Total (f :: k' -> k)
+-- Total a = forall a. f @@ a
+class f @ a => Cheat f a
+instance f @ a => Cheat f a
+
+type Total f = forall a. Cheat f a
+
+
 
 {- *********************************************************************
 *                                                                      *

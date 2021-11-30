@@ -133,6 +133,7 @@ data Extension
    | EmptyCase
    | PatternSynonyms
    | PartialTypeSignatures
+   | PartialTypeConstructors
    | NamedWildCards
    | StaticPointers
    | TypeApplications

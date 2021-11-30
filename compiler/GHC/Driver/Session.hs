@@ -1351,6 +1351,8 @@ languageExtensions (Just GHC2021)
        LangExt.PatternGuards,
        LangExt.DoAndIfThenElse,
        LangExt.FieldSelectors,
+       LangExt.DatatypeContexts,
+       LangExt.PartialTypeConstructors,
        LangExt.RelaxedPolyRec,
        -- Now the new extensions (not in Haskell2010)
        LangExt.BangPatterns,
@@ -3513,10 +3515,10 @@ xFlagsDeps = [
   flagSpec "ConstrainedClassMethods"          LangExt.ConstrainedClassMethods,
   flagSpec "ConstraintKinds"                  LangExt.ConstraintKinds,
   flagSpec "DataKinds"                        LangExt.DataKinds,
-  depFlagSpecCond "DatatypeContexts"          LangExt.DatatypeContexts
-    id
-         ("It was widely considered a misfeature, " ++
-                     "and has been removed from the Haskell language."),
+  -- depFlagSpecCond "DatatypeContexts"          LangExt.DatatypeContexts
+  --   id
+  --        ("It was widely considered a misfeature, " ++
+  --                    "and has been removed from the Haskell language."),
   flagSpec "DefaultSignatures"                LangExt.DefaultSignatures,
   flagSpec "DeriveAnyClass"                   LangExt.DeriveAnyClass,
   flagSpec "DeriveDataTypeable"               LangExt.DeriveDataTypeable,
