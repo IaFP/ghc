@@ -1,7 +1,4 @@
 
-tcfail067.hs:1:14: warning: [-Wdeprecated-flags (in -Wdefault)]
-    -XDatatypeContexts is deprecated: It was widely considered a misfeature, and has been removed from the Haskell language.
-
 tcfail067.hs:12:16: error:
     • No instance for (Ord a) arising from a use of ‘SubRange’
       Possible fix:

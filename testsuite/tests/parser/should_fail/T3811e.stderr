@@ -1,4 +1,4 @@
 
-T3811e.hs:6:6:
+T3811e.hs:6:6: error:
     Illegal datatype context: (Show a, Read a) =>
     Suggested fix: Perhaps you intended to use DatatypeContexts

@@ -1,0 +1,3 @@
+Child process: 48205, real process: 48205
+Expected "HUP", received: "NHoU Ps"
+Expected ExitFailure 42, received ExitFailure 42

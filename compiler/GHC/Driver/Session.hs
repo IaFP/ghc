@@ -3515,6 +3515,7 @@ xFlagsDeps = [
   flagSpec "ConstrainedClassMethods"          LangExt.ConstrainedClassMethods,
   flagSpec "ConstraintKinds"                  LangExt.ConstraintKinds,
   flagSpec "DataKinds"                        LangExt.DataKinds,
+  flagSpec "DatatypeContexts"                 LangExt.DatatypeContexts,
   -- depFlagSpecCond "DatatypeContexts"          LangExt.DatatypeContexts
   --   id
   --        ("It was widely considered a misfeature, " ++
