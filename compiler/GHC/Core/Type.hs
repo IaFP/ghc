@@ -68,7 +68,7 @@ module GHC.Core.Type (
         isLitTy,
 
         isPredTy,
-
+        
         getRuntimeRep_maybe, kindRep_maybe, kindRep,
 
         mkCastTy, mkCoercionTy, splitCastTy_maybe,
@@ -128,7 +128,7 @@ module GHC.Core.Type (
         isAlgType, isDataFamilyAppType,
         isPrimitiveType, isStrictType,
         isLevityTy, isLevityVar,
-        isRuntimeRepTy, isRuntimeRepVar, isRuntimeRepKindedTy,
+        isRuntimeRepTy, isRuntimeRepVar, isRuntimeRepKindedTy, isTyKindPoly,
         dropRuntimeRepArgs,
         getRuntimeRep,
 
@@ -234,6 +234,8 @@ module GHC.Core.Type (
         isConstraintKindCon,
         classifiesTypeWithValues,
         isConcrete, isFixedRuntimeRepKind,
+
+        stableMergeTypes, mergeTypes, attachConstraints,
     ) where
 
 import GHC.Prelude
@@ -258,7 +260,7 @@ import GHC.Core.TyCon
 import GHC.Builtin.Types.Prim
 import {-# SOURCE #-} GHC.Builtin.Types
                                  ( charTy, naturalTy, listTyCon
-                                 , typeSymbolKind, liftedTypeKind, unliftedTypeKind
+                                 , typeSymbolKind, liftedTypeKind, liftedTypeKindTyCon, unliftedTypeKind
                                  , liftedRepTy, unliftedRepTy, zeroBitRepTy
                                  , constraintKind, zeroBitTypeKind
                                  , unrestrictedFunTyCon
@@ -1759,6 +1761,50 @@ mkTupleRepApp_maybe (TyConApp tc args)
     key = tyConUnique tc
 mkTupleRepApp_maybe _ = Nothing
 
+
+-- WARNING: This is to be used only for merging pred types
+mergeTypes :: [Type] -> [Type] -> [Type]
+mergeTypes p1s p2s = matc [] p1s p2s
+  where
+    matc acc [] []  = acc
+    matc acc cs1s [] = matc acc [] cs1s
+    matc acc cs1s (c2:c2s) =
+      if any (eqType c2) acc
+      then matc acc cs1s c2s
+      else matc (c2:acc) cs1s c2s
+
+-- The first argument list is preds (they are all unique)
+-- the second argument is a proper type broken into arguments
+-- We must add only those from the first list that don't exist in the second list.
+-- The second list is unchanged
+-- Example: [Ord a] [Ord a, a, Maybe a] = [Ord a, a, Maybe a]
+--          [Eq  a] [Ord a, a, Maybe a] = [Eq a, Ord a, a, Maybe a]
+stableMergeTypes  :: [Type] -> [Type] -> [Type]
+stableMergeTypes ty1s ty2s = matc [] ty1s ty2s
+  where
+    matc acc [] cs2 = (reverse acc) ++ cs2
+    matc acc (cs1':cs1s') cs2 = if any (eqType cs1') (acc ++ cs2)
+                                then matc acc cs1s' cs2
+                                else matc (cs1':acc) cs1s' cs2
+
+
+-- For the type signature
+-- theta => tau
+-- the elaboration will give
+-- (at'ats U theta) => tau
+-- -- We omit the at'ats that are already present in theta
+-- attachConstraints :: ThetaType -> Type -> Type
+-- attachConstraints constraints ty = 
+--   mkInvisFunTysMany theta' tau 
+--   where (theta, tau) = tcSplitPhiTy ty
+--         theta' = mergeAtAtConstraints theta constraints
+
+attachConstraints :: ThetaType -> Type -> Type
+attachConstraints constraints ty = 
+      mkSpecForAllTys vs $ mkVisFunTysMany constraints tau 
+      where (vs, tau) = splitForAllTyVars ty
+ 
+
 {- Note [Using synonyms to compress types]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Was: Prefer Type over TYPE (BoxedRep Lifted)]
@@ -3066,6 +3112,17 @@ tcIsBoxedTypeKind kind
 -- This considers 'Constraint' to be distinct from @*@.
 tcIsRuntimeTypeKind :: Kind -> Bool
 tcIsRuntimeTypeKind kind = isJust (tcKindRep_maybe kind)
+
+
+-- | does the type have a polymorphic kind?
+isTyKindPoly :: Type -> Bool
+isTyKindPoly ty = any (\t -> not $ star `eqType` t) (rk:arg_ks)
+  where
+    k = tcTypeKind ty
+    (arg_ks', rk) = splitFunTys k
+    arg_ks = fmap scaledThing arg_ks'
+    star = mkTyConTy liftedTypeKindTyCon -- Is there a better way?
+
 
 tcReturnsConstraintKind :: Kind -> Bool
 -- True <=> the Kind ultimately returns a Constraint

@@ -18,7 +18,7 @@ module GHC.Tc.Validity (
   checkValidTyFamEqn, checkValidAssocTyFamDeflt, checkConsistentFamInst,
   arityErr,
   checkTyConTelescope,
-  allDistinctTyVars
+  allDistinctTyVars, tyConArityErr
   ) where
 
 import GHC.Prelude

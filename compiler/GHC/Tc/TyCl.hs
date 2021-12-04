@@ -45,6 +45,7 @@ import GHC.Tc.Validity
 import GHC.Tc.Utils.Zonk
 import GHC.Tc.TyCl.Utils
 import GHC.Tc.TyCl.Class
+import GHC.Tc.TyWF 
 import {-# SOURCE #-} GHC.Tc.TyCl.Instance( tcInstDecls1 )
 import GHC.Tc.Deriv (DerivInfo(..))
 import GHC.Tc.Gen.HsType

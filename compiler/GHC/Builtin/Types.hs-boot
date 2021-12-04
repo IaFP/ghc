@@ -81,3 +81,5 @@ cTupleSelIdName :: ConTag -> Arity -> Name
 
 sumDataCon :: ConTag -> Arity -> DataCon
 sumTyCon :: Arity -> TyCon
+
+wfTyCon, totalTyCon :: TyCon

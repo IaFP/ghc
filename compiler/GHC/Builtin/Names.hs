@@ -1999,6 +1999,13 @@ unrestrictedFunTyConKey = mkPreludeTyConUnique 198
 multMulTyConKey :: Unique
 multMulTyConKey = mkPreludeTyConUnique 199
 
+
+wfTyConKey :: Unique
+wfTyConKey = mkPreludeTyConUnique 900
+
+totalTyConKey :: Unique
+totalTyConKey = mkPreludeTyConUnique 901
+
 ---------------- Template Haskell -------------------
 --      GHC.Builtin.Names.TH: USES TyConUniques 200-299
 -----------------------------------------------------
@@ -2103,6 +2110,9 @@ fingerprintDataConKey                   = mkPreludeDataConUnique 35
 
 srcLocDataConKey :: Unique
 srcLocDataConKey                        = mkPreludeDataConUnique 37
+
+totalDataConKey :: Unique
+totalDataConKey                         = mkPreludeDataConUnique 119
 
 trTyConDataConKey, trModuleDataConKey,
   trNameSDataConKey, trNameDDataConKey,
@@ -2481,10 +2491,11 @@ toDynIdKey            = mkPreludeMiscIdUnique 523
 bitIntegerIdKey :: Unique
 bitIntegerIdKey       = mkPreludeMiscIdUnique 550
 
-heqSCSelIdKey, eqSCSelIdKey, coercibleSCSelIdKey :: Unique
+heqSCSelIdKey, eqSCSelIdKey, coercibleSCSelIdKey, totalSCSelIdKey :: Unique
 eqSCSelIdKey        = mkPreludeMiscIdUnique 551
 heqSCSelIdKey       = mkPreludeMiscIdUnique 552
 coercibleSCSelIdKey = mkPreludeMiscIdUnique 553
+totalSCSelIdKey      = mkPreludeMiscIdUnique 702
 
 sappendClassOpKey :: Unique
 sappendClassOpKey = mkPreludeMiscIdUnique 554
