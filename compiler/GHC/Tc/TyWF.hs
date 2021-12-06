@@ -1,5 +1,5 @@
 {-# LANGUAGE CPP #-}
-module GHC.Core.TyWF (
+module GHC.Tc.TyWF (
 
   ------------------------------
   -- wellformed constraint generation

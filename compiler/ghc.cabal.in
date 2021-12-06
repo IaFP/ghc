@@ -637,6 +637,7 @@ Library
         GHC.Tc.Types.EvTerm
         GHC.Tc.Types.Origin
         GHC.Tc.Types.Rank
+        GHC.Tc.TyWF
         GHC.Tc.Utils.Backpack
         GHC.Tc.Utils.Concrete
         GHC.Tc.Utils.Env
