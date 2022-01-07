@@ -132,7 +132,3 @@
 	path = libraries/exceptions
 	url = git@github.com:IaFP/exceptions.git
 	branch = wip/party-ctrs
-[submodule "libraries/haddock"]
-	branch = wip/party-ctrs
-[submodule "libraries/hsc2hs"]
-	branch = wip/party-ctrs
