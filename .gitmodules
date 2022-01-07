@@ -1,46 +1,46 @@
 [submodule "libraries/binary"]
 	path = libraries/binary
-	url = https://gitlab.haskell.org/ani/binary.git
+	url = git@github.com:IaFP/binary.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/bytestring"]
 	path = libraries/bytestring
-	url = https://gitlab.haskell.org/ani/bytestring.git
+	url = git@github.com:IaFP/bytestring.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/Cabal"]
 	path = libraries/Cabal
-	url = https://gitlab.haskell.org/ani/Cabal.git
+	url = git@github.com:IaFP/Cabal.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/containers"]
 	path = libraries/containers
-	url = https://gitlab.haskell.org/ani/containers.git
+	url = git@github.com:IaFP/containers.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/haskeline"]
 	path = libraries/haskeline
-	url = https://gitlab.haskell.org/ani/haskeline.git
+	url = git@github.com:IaFP/haskeline.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/pretty"]
 	path = libraries/pretty
-	url = https://gitlab.haskell.org/ani/pretty.git
+	url = git@github.com:IaFP/pretty.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/terminfo"]
 	path = libraries/terminfo
-	url = https://gitlab.haskell.org/ani/terminfo.git
+	url = git@github.com:IaFP/terminfo.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/transformers"]
 	path = libraries/transformers
-	url = https://gitlab.haskell.org/ani/transformers.git
+	url = git@github.com:IaFP/transformers.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/xhtml"]
 	path = libraries/xhtml
-	url = https://gitlab.haskell.org/ani/xhtml.git
+	url = git@github.com:IaFP/xhtml.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/Win32"]
@@ -49,47 +49,47 @@
 	ignore = untracked
 [submodule "libraries/time"]
 	path = libraries/time
-	url = https://gitlab.haskell.org/ani/time.git
+	url = git@github.com:IaFP/time.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/array"]
 	path = libraries/array
-	url = https://gitlab.haskell.org/ani/array.git
+	url = git@github.com:IaFP/array.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/deepseq"]
 	path = libraries/deepseq
-	url = https://gitlab.haskell.org/ani/deepseq.git
+	url = git@github.com:IaFP/deepseq.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/directory"]
 	path = libraries/directory
-	url = https://gitlab.haskell.org/ani/directory.git
+	url = git@github.com:IaFP/directory.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/filepath"]
 	path = libraries/filepath
-	url = https://gitlab.haskell.org/ani/filepath.git
+	url = git@github.com:IaFP/filepath.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/hpc"]
 	path = libraries/hpc
-	url = https://gitlab.haskell.org/ani/hpc.git
+	url = git@github.com:IaFP/hpc.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/parsec"]
 	path = libraries/parsec
-	url = https://gitlab.haskell.org/ani/parsec.git
+	url = git@github.com:IaFP/parsec.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/text"]
 	path = libraries/text
-	url = https://gitlab.haskell.org/ani/text.git
+	url = git@github.com:IaFP/text.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/mtl"]
 	path = libraries/mtl
-	url = https://gitlab.haskell.org/ani/mtl.git
+	url = git@github.com:IaFP/mtl.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libraries/process"]
@@ -103,22 +103,22 @@
 	branch = 2.7
 [submodule "libraries/stm"]
 	path = libraries/stm
-	url = https://gitlab.haskell.org/ani/stm.git
+	url = git@github.com:IaFP/stm.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "utils/haddock"]
 	path = utils/haddock
-	url = https://gitlab.haskell.org/ani/haddock.git
+	url = git@github.com:IaFP/haddock.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "nofib"]
 	path = nofib
-	url = https://gitlab.haskell.org/ani/nofib.git
+	url = git@github.com:IaFP/nofib.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "utils/hsc2hs"]
 	path = utils/hsc2hs
-	url = https://gitlab.haskell.org/ani/hsc2hs.git
+	url = git@github.com:IaFP/hsc2hs.git
 	ignore = untracked
 	branch = wip/party-ctrs
 [submodule "libffi-tarballs"]
@@ -130,7 +130,7 @@
 	url = https://gitlab.haskell.org/ghc/gmp-tarballs.git
 [submodule "libraries/exceptions"]
 	path = libraries/exceptions
-	url = https://gitlab.haskell.org/ani/exceptions.git
+	url = git@github.com:IaFP/exceptions.git
 	branch = wip/party-ctrs
 [submodule "libraries/haddock"]
 	branch = wip/party-ctrs
