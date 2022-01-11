@@ -61,7 +61,7 @@
 	path = libraries/deepseq
 	url = git@github.com:IaFP/deepseq.git
 	ignore = untracked
-	branch = wip/party-ctrs
+	branch = wip/party-ctrs-ghc-9
 [submodule "libraries/directory"]
 	path = libraries/directory
 	url = git@github.com:IaFP/directory.git
@@ -106,11 +106,6 @@
 	url = git@github.com:IaFP/stm.git
 	ignore = untracked
 	branch = wip/party-ctrs
-[submodule "utils/haddock"]
-	path = utils/haddock
-	url = git@github.com:IaFP/haddock.git
-	ignore = untracked
-	branch = wip/party-ctrs
 [submodule "nofib"]
 	path = nofib
 	url = git@github.com:IaFP/nofib.git
@@ -131,4 +126,9 @@
 [submodule "libraries/exceptions"]
 	path = libraries/exceptions
 	url = git@github.com:IaFP/exceptions.git
+	branch = wip/party-ctrs
+[submodule "utils/haddock"]
+	path = utils/haddock
+	url = git@github.com:IaFP/haddock.git
+	ignore = untracked
 	branch = wip/party-ctrs
