@@ -42,6 +42,7 @@ module TyCon(
         mkDataTyConRhs,
         mkSynonymTyCon,
         mkFamilyTyCon,
+        mkWfFamilyTyCon,
         mkPromotedDataCon,
         mkTcTyCon,
         noTcTyConScopedTyVars,
@@ -845,9 +846,16 @@ data TyCon
                                       -- The class tycon in which the family is declared
                                       -- See Note [Associated families and their parent class]
 
-        famTcInj     :: Injectivity   -- ^ is this a type family injective in
+        famTcInj     :: Injectivity,  -- ^ is this a type family injective in
                                       -- its type variables? Nothing if no
                                       -- injectivity annotation was given
+                        
+        wfChild      :: Maybe TyCon   -- ^ type family for WF constraint,
+                                      -- e.g. type family F
+                                      --      type instance F [a] = Tree a
+                                      -- would have well-formedness child WF_F s.t.
+                                      --      type instance WF_F [a] = Tree @@ a
+                         
     }
 
   -- | Primitive types; cannot be defined in Haskell. This includes
@@ -1812,8 +1820,30 @@ mkFamilyTyCon name binders res_kind resVar flav parent inj
       , famTcFlav    = flav
       , famTcParent  = classTyCon <$> parent
       , famTcInj     = inj
+      , wfChild      = Nothing
+      }
+      
+mkWfFamilyTyCon :: Name -> [TyConBinder] -> Kind  -- ^ /result/ kind
+              -> Maybe Name -> FamTyConFlav
+              -> Maybe Class -> Injectivity -> Maybe TyCon -> TyCon
+mkWfFamilyTyCon name binders res_kind resVar flav parent inj wf_child
+  = FamilyTyCon
+      { tyConUnique  = nameUnique name
+      , tyConName    = name
+      , tyConBinders = binders
+      , tyConResKind = res_kind
+      , tyConKind    = mkTyConKind binders res_kind
+      , tyConArity   = length binders
+      , tyConTyVars  = binderVars binders
+      , famTcResVar  = resVar
+      , famTcFlav    = flav
+      , famTcParent  = classTyCon <$> parent
+      , famTcInj     = inj
+      , wfChild      = wf_child
       }
 
+-- mkWfChildTyCon :: TyCon -> TyCon
+-- mkWfChildTyCon ty{..} 
 
 -- | Create a promoted data constructor 'TyCon'
 -- Somewhat dodgily, we give it the same Name

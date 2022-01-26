@@ -420,7 +420,7 @@ atTyTyCon = mkFamilyTyCon atTyTyConName binders constraintKind (Just atTyTyConNa
   where
     binders = mkTemplateTyConBinders [liftedTypeKind, liftedTypeKind] (\[k1, k2] -> [(k1 `mkVisFunTy` k2), k1])
 
--- type (@@) :: k1 k2 (a :: k1 -> k2) (b :: k2)
+-- type (@@) :: k1 k2 (a :: k1 -> k2) (b :: k1)
 --   tyConBinders = [ Bndr (k1::*)   (NamedTCB Inferred)
 --                  , Bndr (k2::*)   (NamedTCB Inferred)
 --                  , Bndr (a::k1->k2) AnonTCB
