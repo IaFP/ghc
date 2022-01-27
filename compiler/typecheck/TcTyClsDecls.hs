@@ -264,11 +264,9 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                                                                     $$ text "WF child= " <> (ppr $ wfChild tc)
                                                                     ))  tfs))
                              ; debugTyFams "TFs before elaboration" tyFams
-                             -- FIXME: I'm going to hardwire this shit right in here,
-                             -- but any logic still here should be refactored to its own
-                             -- functions.
+                             -- Build WF children for each type Family.
                              ; wfChildren <- mapM mkWfChild tyFams
-                             -- will need to link these later
+                             -- Link wfChildren with their parents.
                              ; let elabTyFams = fmap (\ (child, parent) -> parent { wfChild = Just child }) (zip wfChildren tyFams)
                              ; debugTyFams "TFs after elaboration" elabTyFams
                              ; let elaborated = tyclss' ++ wfChildren ++ elabTyFams
