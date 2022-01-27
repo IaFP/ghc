@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE PartialTypeConstructors #-}
 
-module TreeTF1 where
+module TreeTF2 where
 
 import GHC.Types (Type)
 
@@ -14,6 +14,6 @@ type instance F [a] = Tree a
 
 -- The work done in TreeTF1.hs should happen
 -- at typechecking now, leaving g well typed.
-g :: a -> F [a]
-g = Leaf
+-- g :: a -> F [a]
+-- g = Leaf
 

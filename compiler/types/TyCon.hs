@@ -107,6 +107,7 @@ module TyCon(
         tyConBinders, tyConResKind, tyConTyVarBinders,
         tcTyConScopedTyVars, tcTyConIsPoly,
         mkTyConTagMap,
+        wfChild,
 
         -- ** Manipulating TyCons
         expandSynTyCon_maybe,

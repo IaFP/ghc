@@ -154,6 +154,23 @@ tcTyAndClassDecls tyclds_s
                       (deriv_info' ++ deriv_info)
                       tyclds_s }
 
+mkWfChild :: TyCon -> TcM TyCon
+mkWfChild tc = do
+  uniq <- newUnique
+  mod <- getModule
+  let parentName = occNameString . nameOccName . tyConName $ tc
+  let child = mkFamilyTyCon
+                name
+                (tyConBinders tc)
+                constraintKind
+                Nothing            -- Name of associated class
+                OpenSynFamilyTyCon -- Making all open for now
+                Nothing            -- Associated class
+                NotInjective       -- *shrug*
+        where
+          name = mkWiredInName mod (mkTcOcc $ "WF_" ++ parentName) uniq (ATyCon child) BuiltInSyntax
+  return child
+
 tcTyClGroup :: TyClGroup GhcRn
             -> TcM (TcGblEnv, [InstInfo GhcRn], [DerivInfo])
 -- Typecheck one strongly-connected component of type, class, and instance decls
@@ -235,13 +252,32 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                                                                      $$ text "worker ty=" <> (ppr $ varType (dataConWorkId dc)))
                                                          (tyConDataCons tc)))
                                               )  tyclss')
-
+                             ; let (tyFams, rest) = partition isFamilyTyCon tyclss2
+                             ; let debugTyFams = (\msg tfs -> traceTc msg
+                                                   (vcat $ fmap (\tc -> text "tycon=" <> ppr tc
+                                                                  <+> brackets (
+                                                                    text "tyConName= " <> (ppr $ tyConName tc)
+                                                                    $$ text "binders= " <> (ppr $ tyConBinders tc)
+                                                                    $$ text "TyVars= " <> (ppr $ tyConTyVars tc)
+                                                                    $$ text "Result Kind= " <> (ppr $ tyConResKind tc)
+                                                                    $$ text "Arity= " <> (ppr $ tyConArity tc)
+                                                                    $$ text "WF child= " <> (ppr $ wfChild tc)
+                                                                    ))  tfs))
+                             ; debugTyFams "TFs before elaboration" tyFams
+                             -- FIXME: I'm going to hardwire this shit right in here,
+                             -- but any logic still here should be refactored to its own
+                             -- functions.
+                             ; wfChildren <- mapM mkWfChild tyFams
+                             -- will need to link these later
+                             ; let elabTyFams = fmap (\ (child, parent) -> parent { wfChild = Just child }) (zip wfChildren tyFams)
+                             ; debugTyFams "TFs after elaboration" elabTyFams
+                             ; let elaborated = tyclss' ++ wfChildren ++ elabTyFams
                              -- Check that elaborated tycons are generated okay
-                             ; traceTc "Starting validity check post WF enrichment" (ppr tyclss')
-                             ; tyclss' <- concatMapM checkValidTyCl tyclss'
-                             ; traceTc "Done validity check post WF enrichment" (ppr tyclss')
+                             ; traceTc "Starting validity check post WF enrichment" (ppr elaborated)
+                             ; elaborated <- concatMapM checkValidTyCl elaborated
+                             ; traceTc "Done validity check post WF enrichment" (ppr elaborated)
 
-                             ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $ tyclss' ++ tyclss2)
+                             ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $ elaborated ++ rest)
                              }
                      -- else
                      --  if enblPCtrs && (length tyclds > 1)
