@@ -38,30 +38,6 @@ delete me later.
    
 ## [x] INPROGRESS: Populating WF constraints on type instances
 
-### Design choices...
-There is a possible ambiguity here. Namely, given
-
-```hs
-type family F a
-type instance F [a] = Tree a
-```
-
-we build (in the step above)
-
-```hs
-type family WF_F (a :: *) :: Constraint
-```
-
-The question is: should we add an instance to the syntax tree, e.g,
-
-```hs
-type instance WF_F [a] = Tree @@ a
-```
-
-Or should we just add the axiom that `WF_F [a] ~ Tree @@ a`? 
-I need to know a bit more about the internals here. I think
-for now it's probably wiser to go with the type instance route:
-
 1. First find type instances in `TcInstDecls.hs` that have WfChildren and print out
    the instances. Instances are checked in two passes -- should
    probably add new instances in the first pass.
@@ -73,6 +49,11 @@ for now it's probably wiser to go with the type instance route:
    we could need to generate something like `WF_F a b = Either @@ a, Either a @@ b`.
    Apoorv's logic should have this already.
 
+### Useful places
+- **compiler/typecheck/TcDeriv.hs:mk_atat_fam** has logic that Apoorv uses to build
+  a `type instance` clause.
+- **compiler/typecheck/FamInst.hs** has the helpers for building a type fam inst.
+- **compiler/typecheck/TcInstDcls.hs** Is the entry route to type checking fam instances.
 
 
 
