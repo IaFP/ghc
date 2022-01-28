@@ -22,10 +22,11 @@ delete me later.
 - **compiler/typecheck/TcTyWF.hs** is all of the well-formededness
   logic Apoorv has added. At some point I will want to reuse this logic
   to generate the additional WF constraint instances for each `WfChild` typelass.
+- **compiler/typecheck/TCInstDecls.hs** is where type family instances are checked.
   
 ## Steps
 
-### Adding type families
+### [x] DONE: Adding type families
 
 1. The first thing to do is just try to get the type families in
    `TcTyClsDecls.hs` and ~~shit~~ print them out. 
@@ -35,6 +36,46 @@ delete me later.
 4. Now worry about creating an appropriately named `WfChild` TF. See that it's
    added in tests.
    
-## Populating WF constraints on type instances
+## [x] INPROGRESS: Populating WF constraints on type instances
 
-Worry about this later.
+### Design choices...
+There is a possible ambiguity here. Namely, given
+
+```hs
+type family F a
+type instance F [a] = Tree a
+```
+
+we build (in the step above)
+
+```hs
+type family WF_F (a :: *) :: Constraint
+```
+
+The question is: should we add an instance to the syntax tree, e.g,
+
+```hs
+type instance WF_F [a] = Tree @@ a
+```
+
+Or should we just add the axiom that `WF_F [a] ~ Tree @@ a`? 
+I need to know a bit more about the internals here. I think
+for now it's probably wiser to go with the type instance route:
+
+1. First find type instances in `TcInstDecls.hs` that have WfChildren and print out
+   the instances. Instances are checked in two passes -- should
+   probably add new instances in the first pass.
+2. Add something useless as a type instance. Not sure what.
+   See that it's printed out.
+3. Now worry about reusing Apoorv's logic to generate
+   `WF_F [a] = Tree @@ a`. NOTE: It's not as simple as this
+   because of multi-param arguments, e.g,
+   we could need to generate something like `WF_F a b = Either @@ a, Either a @@ b`.
+   Apoorv's logic should have this already.
+
+
+
+
+
+
+

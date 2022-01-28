@@ -578,7 +578,7 @@ tcTyFamInstDecl mb_clsinfo (L loc decl@(TyFamInstDecl { tfid_eqn = eqn }))
          -- (2) check for validity
        ; checkConsistentFamInst mb_clsinfo fam_tc co_ax_branch
        ; checkValidCoAxBranch fam_tc co_ax_branch
-       ; if wfChild fam_tc /= Nothing then traceTc "I have found my long lost TF child" empty else return ()
+       ; if hasWfConstraintTc fam_tc then traceTc "I have found my long lost TF child" empty else return ()
 
          -- (3) construct coercion axiom
        ; rep_tc_name <- newFamInstAxiomName fam_lname [coAxBranchLHS co_ax_branch]

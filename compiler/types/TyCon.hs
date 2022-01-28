@@ -42,7 +42,6 @@ module TyCon(
         mkDataTyConRhs,
         mkSynonymTyCon,
         mkFamilyTyCon,
-        mkWfFamilyTyCon,
         mkPromotedDataCon,
         mkTcTyCon,
         noTcTyConScopedTyVars,
@@ -107,7 +106,8 @@ module TyCon(
         tyConBinders, tyConResKind, tyConTyVarBinders,
         tcTyConScopedTyVars, tcTyConIsPoly,
         mkTyConTagMap,
-        wfChild,
+        wfConstraintTc,
+        hasWfConstraintTc,
 
         -- ** Manipulating TyCons
         expandSynTyCon_maybe,
@@ -834,28 +834,28 @@ data TyCon
             -- tyConTyVars connect an associated family TyCon
             -- with its parent class; see TcValidity.checkConsistentFamInst
 
-        famTcResVar  :: Maybe Name,   -- ^ Name of result type variable, used
-                                      -- for pretty-printing with --show-iface
-                                      -- and for reifying TyCon in Template
-                                      -- Haskell
+        famTcResVar    :: Maybe Name,   -- ^ Name of result type variable, used
+                                        -- for pretty-printing with --show-iface
+                                        -- and for reifying TyCon in Template
+                                        -- Haskell
 
-        famTcFlav    :: FamTyConFlav, -- ^ Type family flavour: open, closed,
-                                      -- abstract, built-in. See comments for
-                                      -- FamTyConFlav
+        famTcFlav      :: FamTyConFlav, -- ^ Type family flavour: open, closed,
+                                        -- abstract, built-in. See comments for
+                                        -- FamTyConFlav
 
-        famTcParent  :: Maybe TyCon,  -- ^ For *associated* type/data families
-                                      -- The class tycon in which the family is declared
-                                      -- See Note [Associated families and their parent class]
+        famTcParent    :: Maybe TyCon,  -- ^ For *associated* type/data families
+                                        -- The class tycon in which the family is declared
+                                        -- See Note [Associated families and their parent class]
 
-        famTcInj     :: Injectivity,  -- ^ is this a type family injective in
-                                      -- its type variables? Nothing if no
-                                      -- injectivity annotation was given
+        famTcInj       :: Injectivity,  -- ^ is this a type family injective in
+                                        -- its type variables? Nothing if no
+                                        -- injectivity annotation was given
                         
-        wfChild      :: Maybe TyCon   -- ^ type family for WF constraint,
-                                      -- e.g. type family F
-                                      --      type instance F [a] = Tree a
-                                      -- would have well-formedness child WF_F s.t.
-                                      --      type instance WF_F [a] = Tree @@ a
+        wfConstraintTc :: Maybe TyCon   -- ^ type family for WF constraint,
+                                        -- e.g. type family F
+                                        --      type instance F [a] = Tree a
+                                        -- would have well-formedness child WF_F s.t.
+                                        --      type instance WF_F [a] = Tree @@ a
                          
     }
 
@@ -1810,41 +1810,24 @@ mkFamilyTyCon :: Name -> [TyConBinder] -> Kind  -- ^ /result/ kind
               -> Maybe Class -> Injectivity -> TyCon
 mkFamilyTyCon name binders res_kind resVar flav parent inj
   = FamilyTyCon
-      { tyConUnique  = nameUnique name
-      , tyConName    = name
-      , tyConBinders = binders
-      , tyConResKind = res_kind
-      , tyConKind    = mkTyConKind binders res_kind
-      , tyConArity   = length binders
-      , tyConTyVars  = binderVars binders
-      , famTcResVar  = resVar
-      , famTcFlav    = flav
-      , famTcParent  = classTyCon <$> parent
-      , famTcInj     = inj
-      , wfChild      = Nothing
-      }
-      
-mkWfFamilyTyCon :: Name -> [TyConBinder] -> Kind  -- ^ /result/ kind
-              -> Maybe Name -> FamTyConFlav
-              -> Maybe Class -> Injectivity -> Maybe TyCon -> TyCon
-mkWfFamilyTyCon name binders res_kind resVar flav parent inj wf_child
-  = FamilyTyCon
-      { tyConUnique  = nameUnique name
-      , tyConName    = name
-      , tyConBinders = binders
-      , tyConResKind = res_kind
-      , tyConKind    = mkTyConKind binders res_kind
-      , tyConArity   = length binders
-      , tyConTyVars  = binderVars binders
-      , famTcResVar  = resVar
-      , famTcFlav    = flav
-      , famTcParent  = classTyCon <$> parent
-      , famTcInj     = inj
-      , wfChild      = wf_child
+      { tyConUnique    = nameUnique name
+      , tyConName      = name
+      , tyConBinders   = binders
+      , tyConResKind   = res_kind
+      , tyConKind      = mkTyConKind binders res_kind
+      , tyConArity     = length binders
+      , tyConTyVars    = binderVars binders
+      , famTcResVar    = resVar
+      , famTcFlav      = flav
+      , famTcParent    = classTyCon <$> parent
+      , famTcInj       = inj
+      , wfConstraintTc = Nothing
       }
 
--- mkWfChildTyCon :: TyCon -> TyCon
--- mkWfChildTyCon ty{..} 
+hasWfConstraintTc :: TyCon -> Bool
+hasWfConstraintTc (FamilyTyCon { wfConstraintTc = Just _ } ) = True
+hasWfConstraintTc _ = False
+
 
 -- | Create a promoted data constructor 'TyCon'
 -- Somewhat dodgily, we give it the same Name

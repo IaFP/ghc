@@ -261,15 +261,15 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                                                                     $$ text "TyVars= " <> (ppr $ tyConTyVars tc)
                                                                     $$ text "Result Kind= " <> (ppr $ tyConResKind tc)
                                                                     $$ text "Arity= " <> (ppr $ tyConArity tc)
-                                                                    $$ text "WF child= " <> (ppr $ wfChild tc)
+                                                                    $$ text "WF Constraint TF= " <> (ppr $ wfConstraintTc tc)
                                                                     ))  tfs))
                              ; debugTyFams "TFs before elaboration" tyFams
                              -- Build WF children for each type Family.
-                             ; wfChildren <- mapM mkWfChild tyFams
-                             -- Link wfChildren with their parents.
-                             ; let elabTyFams = fmap (\ (child, parent) -> parent { wfChild = Just child }) (zip wfChildren tyFams)
+                             ; wfTfs <- mapM mkWfChild tyFams
+                             -- Link wfTfs with their parents.
+                             ; let elabTyFams = fmap (\ (child, parent) -> parent { wfConstraintTc = Just child }) (zip wfTfs tyFams)
                              ; debugTyFams "TFs after elaboration" elabTyFams
-                             ; let elaborated = tyclss' ++ wfChildren ++ elabTyFams
+                             ; let elaborated = tyclss' ++ wfTfs ++ elabTyFams
                              -- Check that elaborated tycons are generated okay
                              ; traceTc "Starting validity check post WF enrichment" (ppr elaborated)
                              ; elaborated <- concatMapM checkValidTyCl elaborated
