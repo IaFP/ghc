@@ -383,7 +383,8 @@ tcInstDecls1 inst_decls
        ; let (local_infos_s, fam_insts_s, datafam_deriv_infos) = unzip3 stuff
              fam_insts   = concat fam_insts_s
              local_infos = concat local_infos_s
-
+             
+       ; fam_insts <- elabWfFamInsts fam_insts
        ; gbl_env <- addClsInsts local_infos $
                     addFamInsts fam_insts   $
                     getGblEnv
@@ -391,6 +392,28 @@ tcInstDecls1 inst_decls
        ; return ( gbl_env
                 , local_infos
                 , concat datafam_deriv_infos ) }
+
+
+-- Goal:
+-- - Extract WfConstraint fam from FamInst
+-- - return new FamInst for that type family s.t.
+-- - something something Apoorv's code.
+--
+-- Intermediate goal: just produce
+-- *Any* new FamInst
+elabWfFamInst :: FamInst -> FamInst
+elabWfFamInst = id
+
+elabWfFamInsts :: [FamInst] -> TcM [FamInst]
+elabWfFamInsts fam_insts
+  = do {
+       ; traceTc "Here are the fam_insts:" (ppr fam_insts)
+       ; let tfs = fmap famInstTyCon fam_insts
+       ; traceTc "Here are the type families:" (ppr tfs)
+       ; let wfConstraints = map wfConstraintTc $ filter hasWfConstraintTc tfs
+       ; traceTc "Here are the WF Constraint TFs:" (ppr $ wfConstraints)
+       ; return $ map elabWfFamInst fam_insts
+       }
 
 -- | Use DerivInfo for data family instances (produced by tcInstDecls1),
 --   datatype declarations (TyClDecl), and standalone deriving declarations
@@ -578,7 +601,6 @@ tcTyFamInstDecl mb_clsinfo (L loc decl@(TyFamInstDecl { tfid_eqn = eqn }))
          -- (2) check for validity
        ; checkConsistentFamInst mb_clsinfo fam_tc co_ax_branch
        ; checkValidCoAxBranch fam_tc co_ax_branch
-       ; if hasWfConstraintTc fam_tc then traceTc "I have found my long lost TF child" empty else return ()
 
          -- (3) construct coercion axiom
        ; rep_tc_name <- newFamInstAxiomName fam_lname [coAxBranchLHS co_ax_branch]
