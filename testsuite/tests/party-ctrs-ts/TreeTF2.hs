@@ -17,3 +17,16 @@ type instance F [a] = Tree a
 -- g :: a -> F [a]
 -- g = Leaf
 
+-- Testing elaboration
+g :: F [a] -> Bool
+g x = True
+
+g' :: Tree a -> Bool
+g' x = True
+
+
+h :: a -> F [a]
+h = Leaf
+
+h' :: a -> Tree a
+h' = Leaf

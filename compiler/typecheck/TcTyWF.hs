@@ -28,7 +28,7 @@ import Type hiding (attachConstraints)
 import TysWiredIn
 import VarSet
 
-import TcRnMonad (failWithTc)
+import TcRnMonad (failWithTc, traceTc)
 import Data.List (partition)
 import MonadUtils
 import Util
@@ -310,24 +310,29 @@ tyConGenAtsTcM eTycons ts tycon args -- TODO isUnliftedType??
        --                                           <+> text "extra_args " <> ppr extra_args)
        ; recGenAts' tycon extra_args (map fst args') [] ts
        }
-  | not (saneTyConForElab tycon)
-  = do { elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM (tycon:eTycons) ts) args
-       ; let (_, css) = unzip elabtys_and_css
-       ; return $ foldl mergeAtAtConstraints [] css
-       }
   | isTypeFamilyTyCon tycon
     || isDataFamilyTyCon tycon
-  = do { elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM eTycons ts) args
+  = do {
+       traceTc "Here is my type fam" (ppr tycon)
+       ; elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM eTycons ts) args
+       ; traceTc "elabtys_and_css: " (ppr elabtys_and_css) 
        ; let (_, css) = unzip elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
+       ; traceTc "co_ty_mb: " (ppr co_ty_mb)
        ; case co_ty_mb of
+           -- This happens if F *doesn't* elaborate to anything
            Nothing -> return $ foldl mergeAtAtConstraints [] css
+           -- If F *does* elaborate we are fine
            Just (_, ty) -> do {
              ; (_, cs) <- genAtAtConstraints ty
              ; return $ foldl mergeAtAtConstraints cs css
              }
        }
-    
+  | not (saneTyConForElab tycon)
+  = do { elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM (tycon:eTycons) ts) args
+       ; let (_, css) = unzip elabtys_and_css
+       ; return $ foldl mergeAtAtConstraints [] css
+       }
   | otherwise = recGenAts tycon args ts
 
 
