@@ -313,16 +313,22 @@ tyConGenAtsTcM eTycons ts tycon args -- TODO isUnliftedType??
   | isTypeFamilyTyCon tycon
     || isDataFamilyTyCon tycon
   = do {
-       traceTc "Here is my type fam" (ppr tycon)
        ; elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM eTycons ts) args
-       ; traceTc "elabtys_and_css: " (ppr elabtys_and_css) 
        ; let (_, css) = unzip elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
        ; traceTc "co_ty_mb: " (ppr co_ty_mb)
        ; case co_ty_mb of
-           -- This happens if F *doesn't* elaborate to anything
-           Nothing -> return $ foldl mergeAtAtConstraints [] css
-           -- If F *does* elaborate we are fine
+           -- This happens if the type fam application *doesn't* elaborate to anything
+           Nothing -> do {
+             ; traceTc "type args: " (ppr args)
+             ; let initial = case wfConstraintTc tycon of
+                               Nothing -> []
+                               -- Just wf -> [mkTyConApp wf  $ (map tcTypeKind args) ++ args]
+                               Just wf -> [mkTyConApp wf args]
+             ; return $ foldl mergeAtAtConstraints initial css
+             }
+                      
+           -- If TF app *does* elaborate we are fine
            Just (_, ty) -> do {
              ; (_, cs) <- genAtAtConstraints ty
              ; return $ foldl mergeAtAtConstraints cs css
@@ -400,7 +406,6 @@ recGenAts' tyc ((hd, (bndr, role)) : tl) tycargs' acc ts
                    else [(TyConApp tyc (tycargs')) `at'at` hd]
        ; recGenAts' tyc tl (tycargs' ++ [hd]) (mergeAtAtConstraints acc atc) ts
        }
-
 
 -- takes in type arguments ty1 ty2 and returns the constraint ty1 @@ ty2
 -- we do have to provide the kinds for ty1 and ty2 so
