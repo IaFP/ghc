@@ -320,7 +320,6 @@ tyConGenAtsTcM eTycons ts tycon args -- TODO isUnliftedType??
        ; case co_ty_mb of
            -- This happens if the type fam application *doesn't* elaborate to anything
            Nothing -> do {
-             ; traceTc "type args: " (ppr args)
              ; let initial = case wfConstraintTc tycon of
                                Nothing -> []
                                -- Just wf -> [mkTyConApp wf  $ (map tcTypeKind args) ++ args]

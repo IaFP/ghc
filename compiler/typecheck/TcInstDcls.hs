@@ -408,8 +408,13 @@ elabWfFamInst fam_inst
        ; let tf = famInstTyCon fam_inst
        ; traceTc "here is its axiom:" (ppr .  famInstAxiom $ fam_inst)
        ; traceTc "Here is its TF:" (ppr tf)
+       ; let wfTc = fromJust . wfConstraintTc $ tf
        ; traceTc "Here is its WF TF:" (ppr $ wfConstraintTc tf)
-       ; return fam_inst
+       ; let inst_name = undefined
+             tyvarsd'  = undefined
+             mpred = undefined
+             axiom = mkSingleCoAxiom Nominal inst_name tyvarsd' [] [] wfTc [] mpred
+       ; newFamInst SynFamilyInst axiom
        }
 
 

@@ -162,10 +162,10 @@ mkWfChild tc = do
   let child = mkFamilyTyCon
                 name
                 (tyConBinders tc)
-                constraintKind
-                Nothing            -- Name of associated class
-                OpenSynFamilyTyCon -- Making all open for now
-                Nothing            -- Associated class
+                constraintKind                    
+                Nothing                               -- Name of associated class
+                (fromJust . famTyConFlav_maybe $ tc)  -- give WFChild same flavor -- only important really for open vs closed.
+                Nothing                               -- Associated class
                 NotInjective       -- *shrug*
         where
           name = mkWiredInName mod (mkTcOcc $ "WF_" ++ parentName) uniq (ATyCon child) BuiltInSyntax

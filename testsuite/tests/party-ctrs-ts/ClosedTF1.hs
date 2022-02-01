@@ -1,3 +1,4 @@
+
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE PartialTypeConstructors #-}
 
@@ -7,11 +8,11 @@ import GHC.Types (Type)
 
 data Ord a => Tree a = Leaf a | Node (Tree a) (Tree a)
 
-type family F (a :: Type) :: Type where
+type family F a where
   F [a] = Tree a
-  F  a  = Bool
+  F a = [a]
 
-g :: a -> F [a]
-g = Leaf
+f :: a -> F a
+f = undefined
 
 
