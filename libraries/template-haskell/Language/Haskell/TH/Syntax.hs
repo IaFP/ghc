@@ -4,6 +4,9 @@
              MagicHash, KindSignatures, PolyKinds, TypeApplications, DataKinds,
              GADTs, UnboxedTuples, UnboxedSums, TypeInType,
              Trustworthy, DeriveFunctor #-}
+#if MIN_VERSION_base(4,16,0)
+{-# LANGUAGE TypeOperators, ExplicitNamespaces, QuantifiedConstraints #-}
+#endif
 
 {-# OPTIONS_GHC -fno-warn-inline-rule-shadowing #-}
 
@@ -64,6 +67,9 @@ import Foreign.C.Types
 #if __GLASGOW_HASKELL__ >= 901
 import GHC.Types ( Levity(..) )
 #endif
+#if __GLASGOW_HASKELL__ >= 903
+import GHC.Types ( type (@), Total )
+#endif
 
 -----------------------------------------------------
 --
@@ -71,7 +77,11 @@ import GHC.Types ( Levity(..) )
 --
 -----------------------------------------------------
 
-class (MonadIO m, MonadFail m) => Quasi m where
+class (
+#if MIN_VERSION_base(4,16,0)
+      Total m, 
+#endif
+      MonadIO m, MonadFail m) => Quasi m where
   qNewName :: String -> m Name
         -- ^ Fresh names
 
@@ -190,7 +200,11 @@ counter = unsafePerformIO (newIORef 0)
 --
 -----------------------------------------------------
 
-newtype Q a = Q { unQ :: forall m. Quasi m => m a }
+newtype Q a = Q { unQ :: forall m. (
+#if MIN_VERSION_base(4,16,0)
+                                    Total m,
+#endif
+                                    Quasi m) => m a }
 
 -- \"Runs\" the 'Q' monad. Normal users of Template Haskell
 -- should not need this function, as the splice brackets @$( ... )@
@@ -203,7 +217,11 @@ newtype Q a = Q { unQ :: forall m. Quasi m => m a }
 -- queries, are not supported when running 'Q' in 'IO'; these operations
 -- simply fail at runtime. Indeed, the only operations guaranteed to succeed
 -- are 'newName', 'runIO', 'reportError' and 'reportWarning'.
-runQ :: Quasi m => Q a -> m a
+runQ :: (
+#if MIN_VERSION_base(4,16,0)
+         Total m,
+#endif
+         Quasi m) => Q a -> m a
 runQ (Q m) = m
 
 instance Monad Q where
@@ -267,7 +285,11 @@ instance MonadFix Q where
 -- For many years the type of a quotation was fixed to be `Q Exp` but by
 -- more precisely specifying the minimal interface it enables the `Exp` to
 -- be extracted purely from the quotation without interacting with `Q`.
-class Monad m => Quote m where
+class (
+#if MIN_VERSION_base(4,16,0)
+       Total m,
+#endif
+       Monad m) => Quote m where
   {- |
   Generate a fresh name, which cannot be captured.
 
@@ -877,7 +899,11 @@ instance Quasi Q where
 -- desugaring brackets. They are not necessary for the user, who can use
 -- ordinary return and (>>=) etc
 
-sequenceQ :: forall m . Monad m => forall a . [m a] -> m [a]
+sequenceQ :: forall m a. (
+#if __GLASGOW_HASKELL__ >= 903
+  Total m,
+#endif
+  Monad m) => [m a] -> m [a]
 sequenceQ = sequence
 
 
@@ -917,8 +943,14 @@ sequenceQ = sequence
 class Lift (t :: TYPE r) where
   -- | Turn a value into a Template Haskell expression, suitable for use in
   -- a splice.
-  lift :: Quote m => t -> m Exp
-#if __GLASGOW_HASKELL__ >= 901
+  lift :: (
+#if __GLASGOW_HASKELL__ >= 903
+          Total m,
+#endif
+          Quote m) => t -> m Exp
+#if __GLASGOW_HASKELL__ >= 903
+  default lift :: (r ~ ('BoxedRep 'Lifted), Quote m, Total m) => t -> m Exp
+#elif __GLASGOW_HASKELL__ >= 901 && __GLASGOW_HASKELL__ < 903
   default lift :: (r ~ ('BoxedRep 'Lifted), Quote m) => t -> m Exp
 #else
   default lift :: (r ~ 'LiftedRep, Quote m) => t -> m Exp
@@ -929,7 +961,11 @@ class Lift (t :: TYPE r) where
   -- in a typed splice.
   --
   -- @since 2.16.0.0
-  liftTyped :: Quote m => t -> Code m t
+  liftTyped :: (
+#if __GLASGOW_HASKELL__ >= 903
+                Total m,
+#endif
+                Quote m) => t -> Code m t
 
 
 -- If you add any instances here, consider updating test th/TH_Lift
@@ -1392,12 +1428,19 @@ liftData = dataToExpQ (const Nothing)
 -- | 'dataToPatQ' converts a value to a 'Pat' representation of the same
 -- value, in the SYB style. It takes a function to handle type-specific cases,
 -- alternatively, pass @const Nothing@ to get default behavior.
-dataToPatQ  ::  (Quote m, Data a)
+dataToPatQ  ::  (
+#if __GLASGOW_HASKELL__ >= 903
+                Total m,
+#endif
+                Quote m, Data a)
             =>  (forall b . Data b => b -> Maybe (m Pat))
             ->  a
             ->  m Pat
 dataToPatQ = dataToQa id litP conP
     where litP l = return (LitP l)
+#if __GLASGOW_HASKELL__ >= 903
+          conP :: (Total m, Monad m) => Name -> [m Pat] -> m Pat
+#endif
           conP n ps =
             case nameSpace n of
                 Just DataName -> do

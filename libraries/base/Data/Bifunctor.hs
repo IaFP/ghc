@@ -1,5 +1,6 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE TypeOperators, DefaultSignatures #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -19,7 +20,7 @@ module Data.Bifunctor
 
 import Control.Applicative  ( Const(..) )
 import GHC.Generics ( K1(..) )
-
+import GHC.Types (type (@))
 -- $setup
 -- >>> import Prelude
 -- >>> import Data.Char (toUpper)
@@ -82,6 +83,7 @@ class Bifunctor p where
     -- >>> bimap toUpper (+1) (Right 3)
     -- Right 4
     bimap :: (a -> b) -> (c -> d) -> p a c -> p b d
+    default bimap :: (p a @ d) => (a -> b) -> (c -> d) -> p a c -> p b d
     bimap f g = first f . second g
 
 

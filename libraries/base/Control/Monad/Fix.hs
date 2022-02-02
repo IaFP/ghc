@@ -1,6 +1,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -36,6 +37,7 @@ import GHC.List ( head, tail )
 import GHC.Tuple (Solo (..))
 import Control.Monad.ST.Imp
 import System.IO
+import GHC.Types (Total)
 
 -- | Monads having fixed points with a \'knot-tying\' semantics.
 -- Instances of 'MonadFix' should satisfy the following laws:
@@ -130,11 +132,11 @@ instance MonadFix Last where
     mfix f   = Last (mfix (getLast . f))
 
 -- | @since 4.8.0.0
-instance MonadFix f => MonadFix (Alt f) where
+instance (Total f, MonadFix f) => MonadFix (Alt f) where
     mfix f   = Alt (mfix (getAlt . f))
 
 -- | @since 4.12.0.0
-instance MonadFix f => MonadFix (Ap f) where
+instance (Total f, MonadFix f) => MonadFix (Ap f) where
     mfix f   = Ap (mfix (getAp . f))
 
 -- Instances for GHC.Generics
@@ -143,15 +145,15 @@ instance MonadFix Par1 where
     mfix f = Par1 (fix (unPar1 . f))
 
 -- | @since 4.9.0.0
-instance MonadFix f => MonadFix (Rec1 f) where
+instance (Total f, MonadFix f) => MonadFix (Rec1 f) where
     mfix f = Rec1 (mfix (unRec1 . f))
 
 -- | @since 4.9.0.0
-instance MonadFix f => MonadFix (M1 i c f) where
+instance (Total f, MonadFix f) => MonadFix (M1 i c f) where
     mfix f = M1 (mfix (unM1. f))
 
 -- | @since 4.9.0.0
-instance (MonadFix f, MonadFix g) => MonadFix (f :*: g) where
+instance (Total f, Total g, MonadFix f, MonadFix g) => MonadFix (f :*: g) where
     mfix f = (mfix (fstP . f)) :*: (mfix (sndP . f))
       where
         fstP (a :*: _) = a

@@ -21,6 +21,10 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE LinearTypes #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE NoPartialTypeConstructors #-}
+#endif
 
 -----------------------------------------------------------------------------
 -- |

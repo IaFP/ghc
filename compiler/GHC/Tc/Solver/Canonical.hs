@@ -38,11 +38,13 @@ import GHC.Tc.Instance.Family ( tcTopNormaliseNewTypeTF_maybe )
 import GHC.Types.Var
 import GHC.Types.Var.Env( mkInScopeSet )
 import GHC.Types.Var.Set( delVarSetList, anyVarSet )
+import GHC.Types.Unique ( hasKey )
 import GHC.Utils.Outputable
 import GHC.Utils.Panic
 import GHC.Utils.Panic.Plain
 import GHC.Builtin.Types ( anyTypeOfKind )
 import GHC.Builtin.Types.Prim ( concretePrimTyCon )
+import GHC.Builtin.Names (wfTyConKey)
 import GHC.Types.Name.Set
 import GHC.Types.Name.Reader
 import GHC.Hs.Type( HsIPName(..) )
@@ -3269,13 +3271,21 @@ unifyWanted loc role orig_ty1 orig_ty2
            ; co_t <- unifyWanted loc role t1 t2
            ; co_w <- unifyWanted loc Nominal w1 w2
            ; return (mkFunCo role co_w co_s co_t) }
+
+    -- go (TyConApp tc1 tys1) (TyConApp tc2 tys2)
+    --   | tc1 == tc2, tys1 `equalLength` tys2
+    --   , tc1 `hasKey` wfTyConKey -- @'s are special
+    --   = do { cos <- zipWith3M (unifyWanted loc)
+    --                           (tyConRolesX Representational tc1) tys1 tys2
+    --        ; return (mkTyConAppCo role tc1 cos) }
+      
     go (TyConApp tc1 tys1) (TyConApp tc2 tys2)
       | tc1 == tc2, tys1 `equalLength` tys2
       , isInjectiveTyCon tc1 role -- don't look under newtypes at Rep equality
       = do { cos <- zipWith3M (unifyWanted loc)
                               (tyConRolesX role tc1) tys1 tys2
            ; return (mkTyConAppCo role tc1 cos) }
-
+        
     go ty1@(TyVarTy tv) ty2
       = do { mb_ty <- isFilledMetaTyVar_maybe tv
            ; case mb_ty of
@@ -3320,10 +3330,17 @@ unify_derived loc role    orig_ty1 orig_ty2
       = do { unify_derived loc role s1 s2
            ; unify_derived loc role t1 t2
            ; unify_derived loc Nominal w1 w2 }
+
+    go (TyConApp tc1 tys1) (TyConApp tc2 tys2)
+      | tc1 == tc2, tys1 `equalLength` tys2
+      , tc1 `hasKey` wfTyConKey -- @'s are special
+      = unifyDeriveds loc (tyConRolesX role tc1) tys1 tys2
+
     go (TyConApp tc1 tys1) (TyConApp tc2 tys2)
       | tc1 == tc2, tys1 `equalLength` tys2
       , isInjectiveTyCon tc1 role
       = unifyDeriveds loc (tyConRolesX role tc1) tys1 tys2
+      
     go ty1@(TyVarTy tv) ty2
       = do { mb_ty <- isFilledMetaTyVar_maybe tv
            ; case mb_ty of

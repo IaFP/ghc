@@ -1,6 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-
+{-# LANGUAGE DefaultSignatures, TypeOperators, QuantifiedConstraints #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Bitraversable
@@ -33,6 +33,7 @@ import Data.Coerce
 import Data.Functor.Identity (Identity(..))
 import Data.Functor.Utils (StateL(..), StateR(..))
 import GHC.Generics (K1(..))
+import GHC.Types (type (@), Total)
 
 -- $setup
 -- >>> import Prelude
@@ -126,19 +127,20 @@ class (Bifunctor t, Bifoldable t) => Bitraversable t where
   -- Nothing
   --
   -- @since 4.10.0.0
-  bitraverse :: Applicative f => (a -> f c) -> (b -> f d) -> t a b -> f (t c d)
+  bitraverse :: (Total f, Applicative f) => (a -> f c) -> (b -> f d) -> t a b -> f (t c d)
+  default bitraverse :: (Total f, Applicative f, t @ f c, t (f c) @ f d) => (a -> f c) -> (b -> f d) -> t a b -> f (t c d)
   bitraverse f g = bisequenceA . bimap f g
 
 -- | Alias for 'bisequence'.
 --
 -- @since 4.10.0.0
-bisequenceA :: (Bitraversable t, Applicative f) => t (f a) (f b) -> f (t a b)
+bisequenceA :: (Total f, Bitraversable t, Applicative f) => t (f a) (f b) -> f (t a b)
 bisequenceA = bisequence
 
 -- | Alias for 'bitraverse'.
 --
 -- @since 4.10.0.0
-bimapM :: (Bitraversable t, Applicative f)
+bimapM :: (Total f, Bitraversable t, Applicative f)
        => (a -> f c) -> (b -> f d) -> t a b -> f (t c d)
 bimapM = bitraverse
 
@@ -162,7 +164,7 @@ bimapM = bitraverse
 -- [(1,4),(1,5),(2,4),(2,5),(3,4),(3,5)]
 --
 -- @since 4.10.0.0
-bisequence :: (Bitraversable t, Applicative f) => t (f a) (f b) -> f (t a b)
+bisequence :: (Total f, Bitraversable t, Applicative f) => t (f a) (f b) -> f (t a b)
 bisequence = bitraverse id id
 
 -- | @since 4.10.0.0
@@ -226,14 +228,14 @@ instance Bitraversable (K1 i) where
 -- Nothing
 --
 -- @since 4.10.0.0
-bifor :: (Bitraversable t, Applicative f)
+bifor :: (Total f, Bitraversable t, Applicative f)
       => t a b -> (a -> f c) -> (b -> f d) -> f (t c d)
 bifor t f g = bitraverse f g t
 
 -- | Alias for 'bifor'.
 --
 -- @since 4.10.0.0
-biforM :: (Bitraversable t, Applicative f)
+biforM :: (Total f, Bitraversable t, Applicative f)
        => t a b -> (a -> f c) -> (b -> f d) -> f (t c d)
 biforM = bifor
 
@@ -280,7 +282,7 @@ bimapAccumR f g s t
 --     'runIdentity' . 'bitraverse' ('Identity' . f) ('Identity' . g)@
 --
 -- @since 4.10.0.0
-bimapDefault :: forall t a b c d . Bitraversable t
+bimapDefault :: forall t a b c d .  (Bitraversable t, t @ a, t a @ c, t b @ d, t @ b)
              => (a -> b) -> (c -> d) -> t a c -> t b d
 -- See Note [Function coercion] in Data.Functor.Utils.
 bimapDefault = coerce
@@ -295,7 +297,7 @@ bimapDefault = coerce
 --    'getConst' . 'bitraverse' ('Const' . f) ('Const' . g)@
 --
 -- @since 4.10.0.0
-bifoldMapDefault :: forall t m a b . (Bitraversable t, Monoid m)
+bifoldMapDefault :: forall t m a b . (Bitraversable t, Monoid m, t @ a, t a @ b, t () @ (), t @ ())
                  => (a -> m) -> (b -> m) -> t a b -> m
 -- See Note [Function coercion] in Data.Functor.Utils.
 bifoldMapDefault = coerce

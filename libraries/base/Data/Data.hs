@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -10,6 +11,11 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE QuantifiedConstraints #-}
+-- #if __GLASGOW_HASKELL__ >= 903
+-- {-# LANGUAGE NoPartialTypeConstructors #-}
+-- #endif
+
 
 -----------------------------------------------------------------------------
 -- |
@@ -131,7 +137,7 @@ import GHC.Read
 import GHC.Show
 import GHC.Tuple (Solo (..))
 import Text.Read( reads )
-
+--import GHC.Types (Total)
 -- Imports for the instances
 import Control.Applicative (WrappedArrow(..), WrappedMonad(..), ZipList(..))
        -- So we can give them Data instances
@@ -152,6 +158,9 @@ import GHC.Arr               -- So we can give Data instance for Array
 import qualified GHC.Generics as Generics (Fixity(..))
 import GHC.Generics hiding (Fixity(..))
                              -- So we can give Data instance for U1, V1, ...
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total, type (@), Total2)
+#endif
 
 ------------------------------------------------------------------------------
 --
@@ -237,7 +246,8 @@ class Typeable a => Data a where
   --
   -- The default definition for 'gfoldl' is @'const' 'id'@, which is
   -- suitable for abstract datatypes with no substructures.
-  gfoldl  :: (forall d b. Data d => c (d -> b) -> d -> c b)
+  gfoldl  :: forall c. Total c
+          => (forall d b. Data d => c (d -> b) -> d -> c b)
                 -- ^ defines how nonempty constructor applications are
                 -- folded.  It takes the folded tail of the constructor
                 -- application and its head, i.e., an immediate subterm,
@@ -258,7 +268,8 @@ class Typeable a => Data a where
   gfoldl _ z = z
 
   -- | Unfolding constructor applications
-  gunfold :: (forall b r. Data b => c (b -> r) -> c r)
+  gunfold :: forall c. Total c
+          => (forall b r. Data b => c (b -> r) -> c r)
           -> (forall r. r -> c r)
           -> Constr
           -> c a
@@ -293,7 +304,11 @@ class Typeable a => Data a where
   --
   -- The default definition is @'const' 'Nothing'@, which is appropriate
   -- for instances of other forms.
-  dataCast1 :: Typeable t
+  dataCast1 :: (
+#if MIN_VERSION_base(4,16,0)
+                Total c, Total t,
+#endif
+                Typeable t )
             => (forall d. Data d => c (t d))
             -> Maybe (c a)
   dataCast1 _ = Nothing
@@ -310,7 +325,11 @@ class Typeable a => Data a where
   --
   -- The default definition is @'const' 'Nothing'@, which is appropriate
   -- for instances of other forms.
-  dataCast2 :: Typeable t
+  dataCast2 :: (
+#if MIN_VERSION_base(4,16,0)
+                Total c, Total2 t,
+#endif
+               Typeable t )
             => (forall d e. (Data d, Data e) => c (t d e))
             -> Maybe (c a)
   dataCast2 _ = Nothing
@@ -380,7 +399,7 @@ class Typeable a => Data a where
   -- The default definition instantiates the type constructor @c@ in
   -- the type of 'gfoldl' to the monad datatype constructor, defining
   -- injection and projection using 'return' and '>>='.
-  gmapM :: forall m. Monad m => (forall d. Data d => d -> m d) -> a -> m a
+  gmapM :: forall m. (Total m, Monad m) => (forall d. Data d => d -> m d) -> a -> m a
 
   -- Use immediately the monad datatype constructor
   -- to instantiate the type constructor c in the type of gfoldl,
@@ -395,7 +414,7 @@ class Typeable a => Data a where
 
 
   -- | Transformation of at least one immediate subterm does not fail
-  gmapMp :: forall m. MonadPlus m => (forall d. Data d => d -> m d) -> a -> m a
+  gmapMp :: forall m. (Total m, MonadPlus m) => (forall d. Data d => d -> m d) -> a -> m a
 
 {-
 
@@ -418,7 +437,7 @@ this end, we couple the monadic computation with a Boolean.
              )
 
   -- | Transformation of one immediate subterm with success
-  gmapMo :: forall m. MonadPlus m => (forall d. Data d => d -> m d) -> a -> m a
+  gmapMo :: forall m. (Total m, MonadPlus m) => (forall d. Data d => d -> m d) -> a -> m a
 
 {-
 
@@ -484,7 +503,7 @@ fromConstrB f = runIdentity . gunfold k z
 
 
 -- | Monadic variation on 'fromConstrB'
-fromConstrM :: forall m a. (Monad m, Data a)
+fromConstrM :: forall m a. (Monad m, Data a, Total m)
             => (forall d. Data d => m d)
             -> Constr
             -> m a

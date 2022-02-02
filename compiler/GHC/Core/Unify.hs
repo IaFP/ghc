@@ -52,6 +52,7 @@ import GHC.Exts( oneShot )
 import GHC.Utils.Panic
 import GHC.Utils.Panic.Plain
 import GHC.Data.FastString
+import GHC.Builtin.Names (wfTyConKey)
 
 import Data.Data ( Data )
 import Data.List ( mapAccumL )
@@ -1104,6 +1105,9 @@ unify_ty env ty1 ty2 _kco
                       = case tyConInjectivityInfo tc1 of
                                NotInjective -> repeat False
                                Injective bs -> bs
+                      | tc1 `hasKey` wfTyConKey -- @ type family constructor is special.
+                                                -- Its not injective but you can split it as it is regular
+                      = repeat True
                       | otherwise
                       = repeat False
 

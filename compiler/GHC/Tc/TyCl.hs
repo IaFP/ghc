@@ -45,9 +45,9 @@ import GHC.Tc.Validity
 import GHC.Tc.Utils.Zonk
 import GHC.Tc.TyCl.Utils
 import GHC.Tc.TyCl.Class
-import GHC.Tc.TyWF 
+-- import GHC.Tc.TyWF 
 import {-# SOURCE #-} GHC.Tc.TyCl.Instance( tcInstDecls1 )
-import GHC.Tc.Deriv (DerivInfo(..))
+import GHC.Tc.Deriv (DerivInfo(..), mk_atat_fam, mk_atat_fam_except_units, elabTyCons, saneTyConForElab)
 import GHC.Tc.Gen.HsType
 import GHC.Tc.Instance.Class( AssocInstInfo(..) )
 import GHC.Tc.Utils.TcMType
@@ -217,7 +217,59 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
            -- Step 3: Add the implicit things;
            -- we want them in the environment because
            -- they may be mentioned in interface files
-       ; (gbl_env, th_bndrs) <- addTyConsToGblEnv tyclss
+       ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
+       ; (gbl_env, th_bndrs) <-
+           if enblPCtrs 
+           then do { let locs::[SrcSpan] = map (locA . getLoc) tyclds
+                             -- ; let tAndR = thisAndRest tyclss
+                   ; let locsAndTcs = zip locs tyclss
+                             
+                   ; fam_insts <-  if (length tyclds == 1)
+                                                -- for now we can only reason about non-circular datatypes
+                                   then concatMapM (\(l, tc) -> mk_atat_fam l tc)
+                                                  locsAndTcs
+                                                  -- should generate T @@ a ~ () axioms here
+                                                  -- for all the co-dependent datatypes
+                                                  -- thats the best we can do atm
+                                   else concatMapM (\(l, tc) -> mk_atat_fam_except_units l tc tyclss)
+                                                  locsAndTcs
+                                                  
+                             -- ; tcExtendLocalFamInstEnv fam_insts (return ())
+                             -- ; traceTc "adding generated @@ fam instances" (vcat (map ppr fam_insts))
+                             -- fist add all the newly generated wf constraint equations in the env
+                             -- Then update each of the datacons of data types with elaborated context
+                             -- we update the env first so that we can simplify the atat constraints
+                             -- eagerly in the next step.
+                   ; let (tyclss1, tyclss2) = partition (\tc -> (isDataTyCon tc || isTypeSynonymTyCon tc)
+                                                                -- && saneTyConForElab tc
+                                                                && not (isNewTyCon tc
+                                                                         || isPromotedDataCon tc)) tyclss
+                   ; traceTc "selected for WF enrichment" (ppr tyclss1)
+
+                   ; tyclss' <- mapM (\t -> fixM $ do \_ ->
+                                                        tcExtendLocalFamInstEnv fam_insts
+                                                        $ do elabTyCons t) tyclss1
+                                -- do { mapM elabTcDataConsCtxt tyclss1 }
+                   ; traceTc "enriched WF datacons for"
+                     (vcat $ fmap pprtc tyclss')
+
+                             -- Check that elaborated tycons are generated okay
+                   ; traceTc "Starting validity check post WF enrichment" (ppr tyclss')
+                   ; tyclss' <- concatMapM checkValidTyCl tyclss'
+                   ; traceTc "Done validity check post WF enrichment" (ppr tyclss')
+
+                   ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $ tyclss' ++ tyclss2)
+                   }
+                     -- else
+                     --  if enblPCtrs && (length tyclds > 1)
+                     --  then do { let locs = map getLoc tyclds
+                     --          ; let tycls_and_others = fmap (\e -> (e, filter (/= e) tyclss)) tyclss
+                     --          ; let locsAndTcs = zip locs (tycls_and_others)
+                     --          ; fam_insts_list <- mapM (\(l, (tc, ntcs)) -> mk_atat_fam_except l tc ntcs) locsAndTcs
+                     --          ; let fam_insts = concat fam_insts_list
+                     --          ; traceTc "adding generated @@ fam instances" (vcat (map ppr fam_insts))
+                     --          ; tcExtendLocalFamInstEnv (fam_insts) $ addTyConsToGblEnv tyclss }
+           else do { addTyConsToGblEnv tyclss }
 
            -- Step 4: check instance declarations
        ; (gbl_env', inst_info, datafam_deriv_info, th_bndrs') <-
@@ -229,6 +281,25 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                 { tcg_ksigs = tcg_ksigs gbl_env' `unionNameSet` kindless }
        ; return (gbl_env'', inst_info, deriv_info, class_scoped_tv_env,
                  th_bndrs' `plusNameEnv` th_bndrs) }
+
+pprtc :: TyCon -> SDoc
+pprtc tc
+  | isDataTyCon tc =  text "tycon=" <> ppr tc
+            <+> brackets (vcat (fmap (\dc ->
+                                        vcat [ ppr dc
+                                             , text "Datacon wrapper type:" <+> ppr (dataConWrapperType dc)
+                                             , text "Datacon rep type:" <+> ppr (dataConRepType dc)
+                                             , text "Datacon display type:" <+> ppr (dataConDisplayType True dc)
+                                             , text "Rep typcon binders:" <+> ppr (tyConBinders (dataConTyCon dc))
+                                             , (case tyConFamInst_maybe (dataConTyCon dc) of
+                                                  Nothing -> text "not family"
+                                                  Just (f, _) -> ppr (tyConBinders f))
+                                             ]) (tyConDataCons tc)))
+  | isTypeSynonymTyCon tc = text "tycon=" <> ppr tc
+                             <+> text "TypeSyn RHS" <+> ppr (synTyConRhs_maybe tc)
+                             <+> text "isFamFree" <+> ppr (isFamFreeTyCon tc)
+  | otherwise = text "tycon=" <> ppr tc
+                <+> text "No enrichment"
 
 -- Gives the kind for every TyCon that has a standalone kind signature
 type KindSigEnv = NameEnv Kind

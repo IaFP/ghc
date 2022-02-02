@@ -1129,7 +1129,7 @@ check_eq_pred env dflags pred
 check_quant_pred :: TidyEnv -> DynFlags -> UserTypeCtxt
                  -> PredType -> ThetaType -> PredType -> TcM ()
 check_quant_pred env dflags ctxt pred theta head_pred
-  = addErrCtxt (text "In the quantified constraint" <+> quotes (ppr pred)) $
+  = addErrCtxt (text "In the quantified constraint" <+> quotes (ppr pred) <+> brackets (ppr theta <+> ppr head_pred)) $
     do { -- Check the instance head
          case classifyPredType head_pred of
                                  -- SigmaCtxt tells checkValidInstHead that
@@ -1141,7 +1141,8 @@ check_quant_pred env dflags ctxt pred theta head_pred
                                -- NB: checks for the context are covered by the check_type
                                -- in check_pred_ty
             IrredPred {}      | hasTyVarHead head_pred
-                              -> return ()
+                                || (xopt LangExt.PartialTypeConstructors dflags -- make an exception for f @ t predicates
+                                    && isWfPred head_pred) -> return ()
             _                 -> failWithTcM (env, TcRnBadQuantPredHead (tidyType env pred))
 
          -- Check for termination

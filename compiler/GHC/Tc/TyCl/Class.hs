@@ -51,6 +51,7 @@ import GHC.Core.Coercion ( pprCoAxiom )
 import GHC.Driver.Session
 import GHC.Tc.Instance.Family
 import GHC.Core.FamInstEnv
+-- import GHC.Core.TyWF (elabAtAtConstraintsTcM)
 import GHC.Types.Error
 import GHC.Types.Id
 import GHC.Types.Name
@@ -72,6 +73,7 @@ import GHC.Utils.Misc
 
 import Control.Monad
 import Data.List ( mapAccumL, partition )
+-- import qualified GHC.LanguageExtensions as LangExt
 
 {-
 Dictionary handling
@@ -166,6 +168,13 @@ tcClassSigs clas sigs def_methods
       = do { traceTc "ClsSig 1" (ppr op_names)
            ; op_ty <- tcClassSigType op_names op_hs_ty
                    -- Class tyvars already in scope
+           -- ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+           -- ; op_ty <- if partyCtrs
+           --            then do { ty' <- elabAtAtConstraintsTcM op_ty
+           --                    ; traceTc "tc_sig before elaborating: " (ppr op_ty)
+           --                    ; traceTc "tc_sig elaborated signature: " (ppr ty')
+           --                    ; return ty' }
+           --            else return op_ty
 
            ; traceTc "ClsSig 2" (ppr op_names $$ ppr op_ty)
            ; return [ (op_name, op_ty, f op_name) | L _ op_name <- op_names ] }
@@ -178,6 +187,13 @@ tcClassSigs clas sigs def_methods
                       -> IOEnv (Env TcGblEnv TcLclEnv) [(Name, (SrcSpan, Type))] -- AZ temp
     tc_gen_sig (op_names, gen_hs_ty)
       = do { gen_op_ty <- tcClassSigType op_names gen_hs_ty
+           -- ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+           -- ; gen_op_ty <- if partyCtrs
+           --                then do { ty' <- elabAtAtConstraintsTcM gen_op_ty
+           --                        ; traceTc "tc_gen_sig before elaborating: " (ppr gen_op_ty)
+           --                        ; traceTc "tc_gen_sig elaborated signature: " (ppr ty')
+           --                        ; return ty' }
+           --                else return gen_op_ty
            ; return [ (op_name, (locA loc, gen_op_ty))
                                                  | L loc op_name <- op_names ] }
 

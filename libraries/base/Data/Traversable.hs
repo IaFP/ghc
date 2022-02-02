@@ -6,6 +6,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE QuantifiedConstraints, FlexibleContexts #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -111,7 +112,7 @@ import GHC.Base ( Applicative(..), Monad(..), Monoid, Maybe(..), NonEmpty(..),
 import GHC.Generics
 import qualified GHC.List as List ( foldr )
 import GHC.Tuple (Solo (..))
-
+import GHC.Types (type (@), Total)
 -- $setup
 -- >>> import Prelude
 -- >>> import Data.Maybe (catMaybes, mapMaybe)
@@ -166,7 +167,7 @@ class (Functor t, Foldable t) => Traversable t where
     -- >>> traverse id [Right 1, Right 2, Right 3, Right 4, Left 0]
     -- Left 0
     --
-    traverse :: Applicative f => (a -> f b) -> t a -> f (t b)
+    traverse :: (t @ f b, Total f, Applicative f) => (a -> f b) -> t a -> f (t b)
     {-# INLINE traverse #-}  -- See Note [Inline default methods]
     traverse f = sequenceA . fmap f
 
@@ -197,7 +198,7 @@ class (Functor t, Foldable t) => Traversable t where
     -- >>> sequenceA [Right 1, Right 2, Right 3, Left 4]
     -- Left 4
     --
-    sequenceA :: Applicative f => t (f a) -> f (t a)
+    sequenceA :: (Total f, Applicative f) => t (f a) -> f (t a)
     {-# INLINE sequenceA #-}  -- See Note [Inline default methods]
     sequenceA = traverse id
 
@@ -211,7 +212,7 @@ class (Functor t, Foldable t) => Traversable t where
     -- to 'Monad'. Its implementation may be more efficient due to additional
     -- power of 'Monad'.
     --
-    mapM :: Monad m => (a -> m b) -> t a -> m (t b)
+    mapM :: (Total m, t @ m b, Monad m) => (a -> m b) -> t a -> m (t b)
     {-# INLINE mapM #-}  -- See Note [Inline default methods]
     mapM = traverse
 
@@ -241,7 +242,7 @@ class (Functor t, Foldable t) => Traversable t where
     -- >>> sequence $ [Left 0, Right 1,Right 2,Right 3,Right 4]
     -- Left 0
     --
-    sequence :: Monad m => t (m a) -> m (t a)
+    sequence :: (Total m, Monad m) => t (m a) -> m (t a)
     {-# INLINE sequence #-}  -- See Note [Inline default methods]
     sequence = sequenceA
 
@@ -355,11 +356,11 @@ instance Traversable Last where
     traverse f (Last x) = Last <$> traverse f x
 
 -- | @since 4.12.0.0
-instance (Traversable f) => Traversable (Alt f) where
+instance (Total f, Traversable f) => Traversable (Alt f) where
     traverse f (Alt x) = Alt <$> traverse f x
 
 -- | @since 4.12.0.0
-instance (Traversable f) => Traversable (Ap f) where
+instance (Total f, Traversable f) => Traversable (Ap f) where
     traverse f (Ap x) = Ap <$> traverse f x
 
 -- | @since 4.9.0.0
@@ -389,22 +390,22 @@ deriving instance Traversable V1
 deriving instance Traversable Par1
 
 -- | @since 4.9.0.0
-deriving instance Traversable f => Traversable (Rec1 f)
+deriving instance (Total f, Traversable f) => Traversable (Rec1 f)
 
 -- | @since 4.9.0.0
 deriving instance Traversable (K1 i c)
 
 -- | @since 4.9.0.0
-deriving instance Traversable f => Traversable (M1 i c f)
+deriving instance (Total f, Traversable f) => Traversable (M1 i c f)
 
 -- | @since 4.9.0.0
-deriving instance (Traversable f, Traversable g) => Traversable (f :+: g)
+deriving instance (Total f, Total g, Traversable f, Traversable g) => Traversable (f :+: g)
 
 -- | @since 4.9.0.0
-deriving instance (Traversable f, Traversable g) => Traversable (f :*: g)
+deriving instance (Total f, Total g, Traversable f, Traversable g) => Traversable (f :*: g)
 
 -- | @since 4.9.0.0
-deriving instance (Traversable f, Traversable g) => Traversable (f :.: g)
+deriving instance (Total f, Total g, Traversable f, Traversable g) => Traversable (f :.: g)
 
 -- | @since 4.9.0.0
 deriving instance Traversable UAddr
@@ -432,13 +433,13 @@ deriving instance Traversable Down
 
 -- | 'for' is 'traverse' with its arguments flipped. For a version
 -- that ignores the results see 'Data.Foldable.for_'.
-for :: (Traversable t, Applicative f) => t a -> (a -> f b) -> f (t b)
+for :: (Traversable t, Applicative f, Total f, t @ f b) => t a -> (a -> f b) -> f (t b)
 {-# INLINE for #-}
 for = flip traverse
 
 -- | 'forM' is 'mapM' with its arguments flipped. For a version that
 -- ignores the results see 'Data.Foldable.forM_'.
-forM :: (Traversable t, Monad m) => t a -> (a -> m b) -> m (t b)
+forM :: (Traversable t, Monad m, Total m, t @ m b) => t a -> (a -> m b) -> m (t b)
 {-# INLINE forM #-}
 forM = flip mapM
 
@@ -457,8 +458,8 @@ forM = flip mapM
 -- >>> mapAccumL (\a b -> (a <> show b, a)) "0" [1..5]
 -- ("012345",["0","01","012","0123","01234"])
 --
-mapAccumL :: forall t s a b. Traversable t
-          => (s -> a -> (s, b)) -> s -> t a -> (s, t b)
+mapAccumL :: forall t s a b. (Traversable t, Coercible a b, Coercible (t a) (t b), t @ StateL s a)
+          => (s -> a -> (s, b)) -> s -> t a -> (s, t b) 
 -- See Note [Function coercion] in Data.Functor.Utils.
 mapAccumL f s t = coerce (traverse @t @(StateL s) @a @b) (flip f) t s
 
@@ -477,7 +478,7 @@ mapAccumL f s t = coerce (traverse @t @(StateL s) @a @b) (flip f) t s
 -- >>> mapAccumR (\a b -> (a <> show b, a)) "0" [1..5]
 -- ("054321",["05432","0543","054","05","0"])
 --
-mapAccumR :: forall t s a b. Traversable t
+mapAccumR :: forall t s a b. (Traversable t, Coercible a b, Coercible (t a) (t b), t @ StateR s a)
           => (s -> a -> (s, b)) -> s -> t a -> (s, t b)
 -- See Note [Function coercion] in Data.Functor.Utils.
 mapAccumR f s t = coerce (traverse @t @(StateR s) @a @b) (flip f) t s
@@ -490,8 +491,8 @@ mapAccumR f s t = coerce (traverse @t @(StateR s) @a @b) (flip f) t s
 -- @
 -- 'fmapDefault' f ≡ 'runIdentity' . 'traverse' ('Identity' . f)
 -- @
-fmapDefault :: forall t a b . Traversable t
-            => (a -> b) -> t a -> t b
+fmapDefault :: forall t a b . (Traversable t, Coercible a b, Coercible (t a) (t b), t @ Identity b, t @ Identity a)
+            => (a -> b) -> t a -> t b 
 {-# INLINE fmapDefault #-}
 -- See Note [Function coercion] in Data.Functor.Utils.
 fmapDefault = coerce (traverse @t @Identity @a @b)
@@ -502,7 +503,8 @@ fmapDefault = coerce (traverse @t @Identity @a @b)
 -- @
 -- 'foldMapDefault' f ≡ 'getConst' . 'traverse' ('Const' . f)
 -- @
-foldMapDefault :: forall t m a . (Traversable t, Monoid m)
+foldMapDefault :: forall t m a . (Traversable t, Monoid m, Coercible a (), Coercible (t a) (t ())
+                                 , t @ (), t @ Const m a)
                => (a -> m) -> t a -> m
 {-# INLINE foldMapDefault #-}
 -- See Note [Function coercion] in Data.Functor.Utils.

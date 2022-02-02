@@ -103,6 +103,7 @@ import GHC.Types.Name.Reader( lookupLocalRdrOcc )
 import GHC.Types.Var
 import GHC.Types.Var.Set
 import GHC.Core.TyCon
+import GHC.Core.TyWF (elabAtAtConstraintsTcM)
 import GHC.Core.ConLike
 import GHC.Core.DataCon
 import GHC.Core.Class
@@ -395,6 +396,13 @@ tcClassSigType names sig_ty
   = addSigCtxt sig_ctxt sig_ty $
     do { (implic, ty) <- tc_lhs_sig_type skol_info sig_ty (TheKind liftedTypeKind)
        ; emitImplication implic
+       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+       ; ty <- if partyCtrs
+               then do { eTy <- elabAtAtConstraintsTcM False ty
+                       ; traceTc "tcClassSigType before elaborating: " (ppr ty)
+                       ; traceTc "tcClassSigType elaborated signature: " (ppr $ eTy)
+                       ; return $ eTy }
+               else return ty
        ; return ty }
        -- Do not zonk-to-Type, nor perform a validity check
        -- We are in a knot with the class and associated types
@@ -420,6 +428,23 @@ tcHsSigType :: UserTypeCtxt -> LHsSigType GhcRn -> TcM Type
 -- Does validity checking
 -- See Note [Recipe for checking a signature]
 tcHsSigType ctxt sig_ty
+  | (ForSigCtxt _) <- ctxt -- we don't know what to do with the extra () constraints after rewriting f @ b while interfacing with foreign functions
+  = addSigCtxt ctxt sig_ty $
+    do { traceTc "tcHsSigType {" (ppr sig_ty)
+          -- Generalise here: see Note [Kind generalisation]
+       ; (implic, ty) <- tc_lhs_sig_type skol_info sig_ty  (expectedKindInCtxt ctxt)
+
+       -- Float out constraints, failing fast if not possible
+       -- See Note [Failure in local type signatures] in GHC.Tc.Solver
+       ; traceTc "tcHsSigType 2" (ppr implic)
+       ; simplifyAndEmitFlatConstraints (mkImplicWC (unitBag implic))
+
+       ; ty <- zonkTcType ty
+       ; checkValidType ctxt ty
+     
+       ; traceTc "end tcHsSigType }" (ppr ty)
+       ; return ty }
+  | otherwise
   = addSigCtxt ctxt sig_ty $
     do { traceTc "tcHsSigType {" (ppr sig_ty)
 
@@ -432,7 +457,16 @@ tcHsSigType ctxt sig_ty
        ; simplifyAndEmitFlatConstraints (mkImplicWC (unitBag implic))
 
        ; ty <- zonkTcType ty
+       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+       ; ty <- if partyCtrs
+               then do { elabTy <- elabAtAtConstraintsTcM False ty
+                       ; traceTc "tc_hs_sig_type before elaborating: " (ppr ty)
+                       ; traceTc "tc_hs_sig_type elaborated signature: " (ppr elabTy)
+                       ; return elabTy }
+               else return ty
+       
        ; checkValidType ctxt ty
+
        ; traceTc "end tcHsSigType }" (ppr ty)
        ; return ty }
   where
@@ -605,6 +639,13 @@ tc_top_lhs_type tyki ctxt (L loc sig_ty@(HsSig { sig_bndrs = hs_outer_bndrs
 
        ; ze       <- mkEmptyZonkEnv NoFlexi
        ; final_ty <- zonkTcTypeToTypeX ze (mkInfForAllTys kvs ty1)
+       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors       
+       ; final_ty <- if partyCtrs
+               then do { eTy <- elabAtAtConstraintsTcM False final_ty
+                       ; traceTc "tc_hs_sig_type before elaborating: " (ppr ty)
+                       ; traceTc "tc_hs_sig_type elaborated signature: " (ppr eTy)
+                       ; return eTy }
+               else return final_ty
        ; traceTc "tc_top_lhs_type }" (vcat [ppr sig_ty, ppr final_ty])
        ; return final_ty }
   where

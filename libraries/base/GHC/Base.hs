@@ -72,6 +72,10 @@ Other Prelude modules are much easier with fewer complex dependencies.
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE Unsafe #-}
+-- #if __GLASGOW_HASKELL__ >= 910
+{-# LANGUAGE TypeFamilies,
+             TypeOperators, DefaultSignatures #-}
+-- #endif
 
 -- -Wno-orphans is needed for things like:
 -- Orphan rule: "x# -# x#" ALWAYS forall x# :: Int# -# x# x# = 0
@@ -203,6 +207,73 @@ otherwise = True
 build = errorWithoutStackTrace "urk"
 foldr = errorWithoutStackTrace "urk"
 #endif
+
+-- #if __GLASGOW_HASKELL__ >= 910
+-- instance Total IO
+-- instance Total []
+-- instance Total NonEmpty
+type instance IO @ a = ()
+
+type instance [] @ a = ()
+type instance (->) @ a = ()
+type instance (->) a @ b = ()
+
+type instance (,) @ a = ()
+type instance (,) b @ a = ()
+
+type instance (,,) @ a = ()
+type instance (,,) b @ a = ()
+type instance (,,) c b @ a = ()
+
+type instance (,,,) @ a = ()
+type instance (,,,) b @ a = ()
+type instance (,,,) c b @ a = ()
+type instance (,,,) d c b @ a = ()
+
+type instance (,,,,) @ a = ()
+type instance (,,,,) b @ a = ()
+type instance (,,,,) c b @ a = ()
+type instance (,,,,) d c b @ a = ()
+type instance (,,,,) e d c b @ a = ()
+
+type instance (,,,,,) @ a = ()
+type instance (,,,,,) b @ a = ()
+type instance (,,,,,) c b @ a = ()
+type instance (,,,,,) d c b @ a = ()
+type instance (,,,,,) e d c b @ a = ()
+type instance (,,,,,) f e d c b @ a = ()
+
+type instance (,,,,,,) @ a = ()
+type instance (,,,,,,) b @ a = ()
+type instance (,,,,,,) c b @ a = ()
+type instance (,,,,,,) d c b @ a = ()
+type instance (,,,,,,) e d c b @ a = ()
+type instance (,,,,,,) f e d c b @ a = ()
+type instance (,,,,,,) g f e d c b @ a = ()
+
+type instance (,,,,,,,) @ a = ()
+type instance (,,,,,,,) b @ a = ()
+type instance (,,,,,,,) c b @ a = ()
+type instance (,,,,,,,) d c b @ a = ()
+type instance (,,,,,,,) e d c b @ a = ()
+type instance (,,,,,,,) f e d c b @ a = ()
+type instance (,,,,,,,) g f e d c b @ a = ()
+type instance (,,,,,,,) h g f e d c b @ a = ()
+
+type instance (,,,,,,,,) @ a = ()
+type instance (,,,,,,,,) b @ a = ()
+type instance (,,,,,,,,) c b @ a = ()
+type instance (,,,,,,,,) d c b @ a = ()
+type instance (,,,,,,,,) e d c b @ a = ()
+type instance (,,,,,,,,) f e d c b @ a = ()
+type instance (,,,,,,,,) g f e d c b @ a = ()
+type instance (,,,,,,,,) h g f e d c b @ a = ()
+type instance (,,,,,,,,) i h g f e d c b @ a = ()
+
+type instance (->) @ a = ()
+type instance (->) b @ a = ()
+
+
 
 infixr 6 <>
 
@@ -691,6 +762,7 @@ class Functor f => Applicative f where
     -- Just (3,5)
 
     liftA2 :: (a -> b -> c) -> f a -> f b -> f c
+    default liftA2 :: f @ (b -> c) => (a -> b -> c) -> f a -> f b -> f c
     liftA2 f x = (<*>) (fmap f x)
 
     -- | Sequence actions, discarding the value of the first argument.
@@ -716,6 +788,7 @@ class Functor f => Applicative f where
     -- [("Simon","")]
 
     (*>) :: f a -> f b -> f b
+    default (*>) :: f @ (b -> b) => f a -> f b -> f b
     a1 *> a2 = (id <$ a1) <*> a2
 
     -- This is essentially the same as liftA2 (flip const), but if the
@@ -730,6 +803,7 @@ class Functor f => Applicative f where
     -- | Sequence actions, discarding the value of the second argument.
     --
     (<*) :: f a -> f b -> f a
+    default (<*) :: f @ (a -> b) => f a -> f b -> f a
     (<*) = liftA2 const
 
 -- | A variant of '<*>' with the arguments reversed.
@@ -756,14 +830,14 @@ class Functor f => Applicative f where
 -- >>> liftA (+1) (Just 3)
 -- Just 4
 
-liftA :: Applicative f => (a -> b) -> f a -> f b
+liftA :: (Applicative f, f @ (a -> b)) => (a -> b) -> f a -> f b
 liftA f a = pure f <*> a
 -- Caution: since this may be used for `fmap`, we can't use the obvious
 -- definition of liftA = fmap.
 
 -- | Lift a ternary function to actions.
 
-liftA3 :: Applicative f => (a -> b -> c -> d) -> f a -> f b -> f c -> f d
+liftA3 :: (Applicative f, f @ (c -> d)) => (a -> b -> c -> d) -> f a -> f b -> f c -> f d
 liftA3 f a b c = liftA2 f a b <*> c
 
 

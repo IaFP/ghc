@@ -46,8 +46,8 @@ class Category cat where
                 id . p = p
 "identity/right"        forall p .
                 p . id = p
-"association"   forall p q r .
-                (p . q) . r = p . (q . r)
+-- "association"   forall p q r .
+--                 (p . q) . r = p . (q . r)
  #-}
 
 -- | @since 3.0

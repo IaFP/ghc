@@ -3,6 +3,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving, QuantifiedConstraints, TypeOperators #-}
 
 -- | Auxiliary definitions for 'Semigroup'
 --
@@ -28,6 +29,7 @@ import GHC.Read
 import GHC.Show
 import GHC.Generics
 import GHC.Real
+import GHC.Types (type (@))
 
 -- | This is a valid definition of 'stimes' for an idempotent 'Semigroup'.
 --
@@ -310,18 +312,22 @@ newtype Alt f a = Alt {getAlt :: f a}
            , Ord         -- ^ @since 4.8.0.0
            , Num         -- ^ @since 4.8.0.0
            , Enum        -- ^ @since 4.8.0.0
-           , Monad       -- ^ @since 4.8.0.0
-           , MonadPlus   -- ^ @since 4.8.0.0
-           , Applicative -- ^ @since 4.8.0.0
-           , Alternative -- ^ @since 4.8.0.0
-           , Functor     -- ^ @since 4.8.0.0
+           -- , Monad       -- ^ @since 4.8.0.0
+           -- , MonadPlus   -- ^ @since 4.8.0.0
+           -- , Applicative -- ^ @since 4.8.0.0
+           -- , Alternative -- ^ @since 4.8.0.0
+           -- , Functor     -- ^ @since 4.8.0.0
            )
+deriving instance (Total f, Monad f) => Monad (Alt f)
+deriving instance (Total f, MonadPlus f) => MonadPlus (Alt f)
+deriving instance (Total f, Applicative f) => Applicative (Alt f)
+deriving instance (Total f, Alternative f) => Alternative (Alt f)
+deriving instance (Total f, Functor f) => Functor (Alt f)
 
--- | @since 4.9.0.0
-instance Alternative f => Semigroup (Alt f a) where
+instance (f @ a, Alternative f) => Semigroup (Alt f a) where
     (<>) = coerce ((<|>) :: f a -> f a -> f a)
     stimes = stimesMonoid
 
 -- | @since 4.8.0.0
-instance Alternative f => Monoid (Alt f a) where
+instance (f @ a, Alternative f) => Monoid (Alt f a) where
     mempty = Alt empty

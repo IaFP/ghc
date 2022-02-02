@@ -5,7 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeOperators #-}
-
+{-# LANGUAGE QuantifiedConstraints #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Typeable
@@ -151,7 +151,7 @@ gcast1 :: forall c t t' a. (Typeable t, Typeable t')
 gcast1 x = fmap (\Refl -> x) (eqT :: Maybe (t :~: t'))
 
 -- | Cast over @k1 -> k2 -> k3@
-gcast2 :: forall c t t' a b. (Typeable t, Typeable t')
+gcast2 :: forall c t t' a b. (Total c, Total (t a), Total (t' a), Typeable t, Typeable t')
        => c (t a b) -> Maybe (c (t' a b))
 gcast2 x = fmap (\Refl -> x) (eqT :: Maybe (t :~: t'))
 

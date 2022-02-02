@@ -1,6 +1,6 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeOperators #-}
-
+{-# LANGUAGE DefaultSignatures, QuantifiedConstraints #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Zip
@@ -26,6 +26,7 @@ import Data.Proxy
 import qualified Data.List.NonEmpty as NE
 import GHC.Generics
 import GHC.Tuple (Solo (..))
+import GHC.Types (type (@), Total)
 
 -- | Instances should satisfy the laws:
 --
@@ -47,6 +48,7 @@ class Monad m => MonadZip m where
     mzip = mzipWith (,)
 
     mzipWith :: (a -> b -> c) -> m a -> m b -> m c
+    default mzipWith :: (m @ (a, b)) => (a -> b -> c) -> m a -> m b -> m c
     mzipWith f ma mb = liftM (uncurry f) (mzip ma mb)
 
     munzip :: m (a,b) -> (m a, m b)
@@ -103,7 +105,7 @@ instance MonadZip Last where
     mzipWith = liftM2
 
 -- | @since 4.8.0.0
-instance MonadZip f => MonadZip (Alt f) where
+instance (Total f, MonadZip f) => MonadZip (Alt f) where
     mzipWith f (Alt ma) (Alt mb) = Alt (mzipWith f ma mb)
 
 -- | @since 4.9.0.0
@@ -120,15 +122,15 @@ instance MonadZip Par1 where
     mzipWith = liftM2
 
 -- | @since 4.9.0.0
-instance MonadZip f => MonadZip (Rec1 f) where
+instance (Total f, MonadZip f) => MonadZip (Rec1 f) where
     mzipWith f (Rec1 fa) (Rec1 fb) = Rec1 (mzipWith f fa fb)
 
 -- | @since 4.9.0.0
-instance MonadZip f => MonadZip (M1 i c f) where
+instance (Total f, MonadZip f) => MonadZip (M1 i c f) where
     mzipWith f (M1 fa) (M1 fb) = M1 (mzipWith f fa fb)
 
 -- | @since 4.9.0.0
-instance (MonadZip f, MonadZip g) => MonadZip (f :*: g) where
+instance (Total f, Total g, MonadZip f, MonadZip g) => MonadZip (f :*: g) where
     mzipWith f (x1 :*: y1) (x2 :*: y2) = mzipWith f x1 x2 :*: mzipWith f y1 y2
 
 -- instances for Data.Ord

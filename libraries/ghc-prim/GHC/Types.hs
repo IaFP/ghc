@@ -38,7 +38,7 @@ module GHC.Types (
         type (~~), Coercible,
         TYPE, Levity(..), RuntimeRep(..),
         LiftedRep, UnliftedRep,
-        type (@), Total,
+        type (@), Total, Total2,
         Type, UnliftedType, Constraint,
           -- The historical type * should ideally be written as
           -- `type *`, without the parentheses. But that's a true
@@ -362,11 +362,15 @@ type family (@) (t :: k' -> k) (u :: k') :: Constraint
 
 -- class Total (f :: k' -> k)
 -- Total a = forall a. f @@ a
-class f @ a => Cheat f a
-instance f @ a => Cheat f a
+class f @ a => Cheat (f :: k' -> k) (a :: k')
+instance f @ a => Cheat (f :: k' -> k) (a :: k')
 
-type Total f = forall a. Cheat f a
+class (f @ a, f a @ b) => Cheat2 (f::k''-> k' -> k) (a::k'') (b:: k')
+instance (f @ a, f a @ b) => Cheat2 (f::k''-> k' -> k) (a::k'') (b:: k')
 
+
+type Total (f::k' -> k) = forall (a:: k'). Cheat f a
+type Total2 (f:: k'' -> k' -> k) = forall (a::k'') (b::k'). Cheat2 f a b
 
 
 {- *********************************************************************

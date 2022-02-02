@@ -6,6 +6,7 @@
            , ScopedTypeVariables
            , UnboxedTuples
   #-}
+{-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
@@ -48,7 +49,6 @@ import GHC.Exception
 import GHC.Show
 import GHC.IO.Unsafe
 import Unsafe.Coerce ( unsafeCoerce )
-
 import {-# SOURCE #-} GHC.IO.Exception ( userError, IOError )
 
 -- ---------------------------------------------------------------------------

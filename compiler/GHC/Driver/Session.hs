@@ -3598,6 +3598,7 @@ xFlagsDeps = [
   flagSpec "ParallelArrays"                   LangExt.ParallelArrays,
   flagSpec "ParallelListComp"                 LangExt.ParallelListComp,
   flagSpec "PartialTypeSignatures"            LangExt.PartialTypeSignatures,
+  flagSpec "PartialTypeConstructors"          LangExt.PartialTypeConstructors,
   flagSpec "PatternGuards"                    LangExt.PatternGuards,
   depFlagSpec' "PatternSignatures"            LangExt.ScopedTypeVariables
     (deprecatedForExtension "ScopedTypeVariables"),

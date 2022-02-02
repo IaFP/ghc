@@ -1,4 +1,5 @@
 {-# LANGUAGE Trustworthy #-}
+{-# Language QuantifiedConstraints, FlexibleContexts #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 -----------------------------------------------------------------------------

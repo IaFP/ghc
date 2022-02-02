@@ -4,6 +4,7 @@
 {-# LANGUAGE PolyKinds                  #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE Trustworthy                #-}
+{-# LANGUAGE StandaloneDeriving, QuantifiedConstraints, TypeOperators #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -85,7 +86,7 @@ import GHC.Generics
 import GHC.Num
 import GHC.Read
 import GHC.Show
-
+import GHC.Types (type (@))
 import Control.Monad.Fail (MonadFail)
 
 import Data.Semigroup.Internal
@@ -185,31 +186,38 @@ instance Monoid (Last a) where
 --
 -- @since 4.12.0.0
 newtype Ap f a = Ap { getAp :: f a }
-        deriving ( Alternative -- ^ @since 4.12.0.0
-                 , Applicative -- ^ @since 4.12.0.0
-                 , Enum        -- ^ @since 4.12.0.0
+        deriving ( -- Alternative -- ^ @since 4.12.0.0
+                 -- , Applicative -- ^ @since 4.12.0.0
+                  Enum        -- ^ @since 4.12.0.0
                  , Eq          -- ^ @since 4.12.0.0
-                 , Functor     -- ^ @since 4.12.0.0
+                 -- , Functor     -- ^ @since 4.12.0.0
                  , Generic     -- ^ @since 4.12.0.0
                  , Generic1    -- ^ @since 4.12.0.0
-                 , Monad       -- ^ @since 4.12.0.0
-                 , MonadFail   -- ^ @since 4.12.0.0
-                 , MonadPlus   -- ^ @since 4.12.0.0
+                 -- , Monad       -- ^ @since 4.12.0.0
+                 -- , MonadFail   -- ^ @since 4.12.0.0
+                 --, MonadPlus   -- ^ @since 4.12.0.0
                  , Ord         -- ^ @since 4.12.0.0
                  , Read        -- ^ @since 4.12.0.0
                  , Show        -- ^ @since 4.12.0.0
                  )
+deriving instance (Total f, Monad f) => Monad (Ap f)
+deriving instance (Total f, MonadPlus f) => MonadPlus (Ap f)
+deriving instance (Total f, MonadFail f) => MonadFail (Ap f)
+deriving instance (Total f, Applicative f) => Applicative (Ap f)
+deriving instance (Total f, Alternative f) => Alternative (Ap f)
+deriving instance (Total f, Functor f) => Functor (Ap f)
+
 
 -- | @since 4.12.0.0
-instance (Applicative f, Semigroup a) => Semigroup (Ap f a) where
+instance (f @ a, Applicative f, Semigroup a) => Semigroup (Ap f a) where
         (Ap x) <> (Ap y) = Ap $ liftA2 (<>) x y
 
 -- | @since 4.12.0.0
-instance (Applicative f, Monoid a) => Monoid (Ap f a) where
+instance (f @ a, Applicative f, Monoid a) => Monoid (Ap f a) where
         mempty = Ap $ pure mempty
 
 -- | @since 4.12.0.0
-instance (Applicative f, Bounded a) => Bounded (Ap f a) where
+instance (Total f, Applicative f, Bounded a) => Bounded (Ap f a) where
   minBound = pure minBound
   maxBound = pure maxBound
 
@@ -240,7 +248,7 @@ instance (Applicative f, Bounded a) => Bounded (Ap f a) where
 -- Ap {getAp = [7,11,10,14]}
 --
 -- @since 4.12.0.0
-instance (Applicative f, Num a) => Num (Ap f a) where
+instance (Total f, Applicative f, Num a) => Num (Ap f a) where
   (+)         = liftA2 (+)
   (*)         = liftA2 (*)
   negate      = fmap negate

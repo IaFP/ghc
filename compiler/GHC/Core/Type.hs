@@ -235,7 +235,7 @@ module GHC.Core.Type (
         classifiesTypeWithValues,
         isConcrete, isFixedRuntimeRepKind,
 
-        stableMergeTypes, mergeTypes, attachConstraints,
+        stableMergeTypes, stableMergeScaledTypes, mergeTypes, attachConstraints,
     ) where
 
 import GHC.Prelude
@@ -1787,6 +1787,15 @@ stableMergeTypes ty1s ty2s = matc [] ty1s ty2s
                                 then matc acc cs1s' cs2
                                 else matc (cs1':acc) cs1s' cs2
 
+stableMergeScaledTypes  :: [Scaled Type] -> [Scaled Type] -> [Scaled Type]
+stableMergeScaledTypes ty1s ty2s = matc [] ty1s ty2s
+  where
+    matc :: [Scaled Type] -> [Scaled Type] -> [Scaled Type] -> [Scaled Type]
+    matc acc [] cs2 = (reverse acc) ++ cs2
+    matc acc (cs1':cs1s') cs2 = if any (eqType (scaledThing cs1')) $ fmap scaledThing (acc ++ cs2)
+                                then matc acc cs1s' cs2
+                                else matc (cs1':acc) cs1s' cs2
+
 
 -- For the type signature
 -- theta => tau
@@ -1801,7 +1810,7 @@ stableMergeTypes ty1s ty2s = matc [] ty1s ty2s
 
 attachConstraints :: ThetaType -> Type -> Type
 attachConstraints constraints ty = 
-      mkSpecForAllTys vs $ mkVisFunTysMany constraints tau 
+      mkSpecForAllTys vs $ mkInvisFunTysMany constraints tau 
       where (vs, tau) = splitForAllTyVars ty
  
 

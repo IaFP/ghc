@@ -1,5 +1,6 @@
 {-# LANGUAGE Unsafe #-}
 {-# LANGUAGE NoImplicitPrelude, MagicHash, UnboxedTuples, RankNTypes #-}
+{-# LANGUAGE QuantifiedConstraints, FlexibleContexts #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 -----------------------------------------------------------------------------
@@ -27,7 +28,6 @@ module GHC.ST (
 import GHC.Base
 import GHC.Show
 import Control.Monad.Fail
-
 default ()
 
 -- The 'ST' monad proper.  By default the monad is strict;

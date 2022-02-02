@@ -349,6 +349,7 @@ Library
         GHC.Core.TyCo.Subst
         GHC.Core.TyCo.Tidy
         GHC.Core.Type
+        GHC.Core.TyWF
         GHC.Core.Unfold
         GHC.Core.Unfold.Make
         GHC.Core.Unify
@@ -637,7 +638,6 @@ Library
         GHC.Tc.Types.EvTerm
         GHC.Tc.Types.Origin
         GHC.Tc.Types.Rank
-        GHC.Tc.TyWF
         GHC.Tc.Utils.Backpack
         GHC.Tc.Utils.Concrete
         GHC.Tc.Utils.Env

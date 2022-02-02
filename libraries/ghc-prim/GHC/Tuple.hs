@@ -1,5 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude, DeriveGeneric #-}
+{-# LANGUAGE PartialTypeConstructors #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  GHC.Tuple

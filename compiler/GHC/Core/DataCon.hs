@@ -50,6 +50,8 @@ module GHC.Core.DataCon (
         dataConImplicitTyThings,
         dataConRepStrictness, dataConImplBangs, dataConBoxer,
 
+        updateDataCon,
+        
         splitDataProductType_maybe,
 
         -- ** Predicates on DataCons
@@ -78,10 +80,11 @@ import {-# SOURCE #-} GHC.Types.TyThing
 import GHC.Types.FieldLabel
 import GHC.Types.SourceText
 import GHC.Core.Class
-import GHC.Types.Name
+import GHC.Types.Name hiding (varName)
 import GHC.Builtin.Names
 import GHC.Core.Predicate
 import GHC.Types.Var
+import {-# SOURCE #-} GHC.Types.Id.Make (mkDataConWorkId, updateDataConRep)
 import GHC.Types.Var.Env
 import GHC.Types.Basic
 import GHC.Data.FastString
@@ -91,6 +94,7 @@ import GHC.Utils.Binary
 import GHC.Types.Unique.FM ( UniqFM )
 import GHC.Types.Unique.Set
 import GHC.Builtin.Uniques( mkAlphaTyVarUnique )
+import GHC.Types.Unique.Supply (UniqSupply)
 
 
 import GHC.Utils.Outputable
@@ -1703,3 +1707,44 @@ splitDataProductType_maybe ty
   = Just (tycon, ty_args, con, dataConInstArgTys con ty_args)
   | otherwise
   = Nothing
+
+
+
+-- | Enriches the well formed theta information in the rep type of the datacon
+-- There are 3 things we need to update here:
+-- 1. The data con itself
+-- 2. The wrapper
+-- 3. The worker
+updateDataCon :: UniqSupply -> DataCon -> ThetaType ->  DataCon
+updateDataCon _ dc [] = dc
+updateDataCon us dc wfth = new_dc
+
+  where
+    -- dcRepType
+    --      forall a x y. (a~(x,y), x~y, Ord x) =>
+    --        x -> y -> T a
+    -- we update the dcRepType as we want the linter to be happy
+    -- ([a, x, y], ((a~(x,y), x~y, Ord x) => x -> y -> T a))
+    (covars, tau) = splitForAllTyCoVarBinders (dcRepType dc)
+    -- ([(a~(x,y), x~y, Ord x), x,  y],  T a)
+    (argTys, rty) = splitFunTys tau
+
+    argTys' = stableMergeTypes wfth (fmap scaledThing argTys)
+
+    new_rep_ty = mkForAllTys covars $ mkVisFunTysMany argTys' rty
+
+    new_dcRepArity = length argTys'
+
+    s_th = dcStupidTheta dc
+
+    new_rep_dc = updateDataConRep us dc (dcRep dc) wfth new_rep_ty
+
+    work_id = mkDataConWorkId (varName (dataConWorkId dc)) new_dc
+    -- also set the new iddetails
+    new_dc = dc { -- dcOtherTheta = mergeTypes wfth (dcOtherTheta dc)
+                  dcRep = new_rep_dc
+                , dcRepType = new_rep_ty
+                , dcRepArity = new_dcRepArity
+                , dcStupidTheta = stableMergeTypes wfth s_th
+                , dcWorkId = work_id
+                }

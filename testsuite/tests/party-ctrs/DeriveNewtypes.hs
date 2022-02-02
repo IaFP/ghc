@@ -1,0 +1,4 @@
+module DeriveNewtypes where
+
+newtype First a = First {getFirst :: Maybe a}
+  deriving {Functor, Applicative}

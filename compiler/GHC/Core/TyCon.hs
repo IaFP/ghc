@@ -46,7 +46,9 @@ module GHC.Core.TyCon(
         mkPromotedDataCon,
         mkTcTyCon,
         noTcTyConScopedTyVars,
-
+        updateAlgTyCon,
+        updateSynonymTyConRhs,
+        
         -- ** Predicates on TyCons
         isAlgTyCon, isVanillaAlgTyCon, isConstraintKindCon,
         isClassTyCon, isFamInstTyCon,
@@ -65,6 +67,7 @@ module GHC.Core.TyCon(
         isNewTyCon, isAbstractTyCon,
         isFamilyTyCon, isOpenFamilyTyCon,
         isTypeFamilyTyCon, isDataFamilyTyCon,
+        isWfTyCon,
         isOpenTypeFamilyTyCon, isClosedSynFamilyTyConWithAxiom_maybe,
         tyConInjectivityInfo,
         isBuiltInSynFamTyCon_maybe,
@@ -1870,6 +1873,11 @@ mkAlgTyCon name binders res_kind roles cType stupid rhs parent gadt_syn
           }
     in tc
 
+updateAlgTyCon :: TyCon -> AlgTyConRhs -> TyCon
+updateAlgTyCon tc@(AlgTyCon {}) rhs = tc { algTcRhs = rhs }
+updateAlgTyCon tc _ = tc
+
+
 -- | Simpler specialization of 'mkAlgTyCon' for classes
 mkClassTyCon :: Name -> [TyConBinder]
              -> [Role] -> AlgTyConRhs -> Class
@@ -2041,6 +2049,10 @@ mkSynonymTyCon name binders res_kind roles rhs is_tau is_fam_free is_forgetful
               synIsForgetful = is_forgetful
           }
     in tc
+
+
+updateSynonymTyConRhs :: TyCon -> Type -> Bool -> TyCon
+updateSynonymTyConRhs tc nty ffree = tc {synTcRhs = nty, synIsFamFree = ffree }
 
 -- | Create a type family 'TyCon'
 mkFamilyTyCon :: Name -> [TyConBinder] -> Kind  -- ^ /result/ kind
@@ -2285,6 +2297,9 @@ isEnumerationTyCon _ = False
 isFamilyTyCon :: TyCon -> Bool
 isFamilyTyCon (FamilyTyCon {}) = True
 isFamilyTyCon _                = False
+
+isWfTyCon :: TyCon -> Bool
+isWfTyCon tc = tc `hasKey` wfTyConKey
 
 -- | Is this a 'TyCon', synonym or otherwise, that defines a family with
 -- instances?
