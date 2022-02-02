@@ -9,7 +9,8 @@ module TcTyWF (
   genAtAtConstraints, genAtAtConstraintsTcM, genAtAtConstraintsExcept, genAtAtConstraintsExceptTcM,
   attachConstraints, mergeAtAtConstraints,
   elabAtAtConstraintsTcM, elabWithAtAtConstraintsTopTcM,-- unelabAtAtConstraints, unelabAtAtConstraintsM, 
-  predTyArgs, predTyVars, flatten_atat_constraint, saneTyConForElab 
+  predTyArgs, predTyVars, flatten_atat_constraint, saneTyConForElab,
+  at'at
   ) where
 
 import FamInst (tcGetFamInstEnvs)

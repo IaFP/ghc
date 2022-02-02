@@ -51,7 +51,7 @@ import Type
 import TcEvidence
 import TyCon
 import TyCoRep
-import TysWiredIn ( cTupleTyConName, atTyTyCon )
+import TysWiredIn ( cTupleTyConName )
 import CoAxiom
 import DataCon
 import ConLike
@@ -71,6 +71,7 @@ import NameSet
 import Outputable
 import SrcLoc
 import Util
+import TcTyWF
 import BooleanFormula ( isUnsatisfied, pprBooleanFormulaNice )
 import qualified GHC.LanguageExtensions as LangExt
 
@@ -410,18 +411,19 @@ elabWfFamInst fam_inst
        ; let (tfTc, ts) = famInstSplitLHS fam_inst
        ; let rhs = famInstRHS fam_inst
        ; let wfTc = fromJust . wfConstraintTc $ tfTc
-       ; ctupleTyCon <- tcLookupTyCon (cTupleTyConName 0)
        ; let loc = getSrcSpan fam_inst
        ; inst_name <- newFamInstTyConName (L loc (tyConName wfTc)) ts
+       ; (_, preds) <- genAtAtConstraintsTcM rhs
+       ; let n = length preds
+       ; rhs_ty <- if n == 1 then return . head $ preds
+                   else do { ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
+                           ; return $ mkTyConApp ctupleTyCon preds
+                           }
        -- Todo:
        -- if RHS is type var, should just
        -- make unit.
        ; let tvs     = []
              lhs_tys = ts
-             unit    = mkTyConTy ctupleTyCon
-             rhs_ty  = case rhs of
-                         TyConApp tc' tys' -> mkTyConApp atTyTyCon ((mkTyConTy tc') : tys')
-                         _                 -> unit
              axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wfTc lhs_tys rhs_ty
        ; newFamInst SynFamilyInst axiom
        }
