@@ -50,6 +50,8 @@ import CoreUnfold ( mkInlineUnfoldingWithArity, mkDFunUnfolding )
 import Type
 import TcEvidence
 import TyCon
+import TyCoRep
+import TysWiredIn ( cTupleTyConName, atTyTyCon )
 import CoAxiom
 import DataCon
 import ConLike
@@ -386,7 +388,7 @@ tcInstDecls1 inst_decls
              
        ; wfFamInsts <- elabWfFamInsts (filter (hasWfConstraintTc . famInstTyCon) fam_insts)
        ; gbl_env <- addClsInsts local_infos $
-                    addFamInsts fam_insts   $
+                    addFamInsts (fam_insts ++ wfFamInsts)   $
                     getGblEnv
 
        ; return ( gbl_env
@@ -401,19 +403,26 @@ tcInstDecls1 inst_decls
 --
 -- Intermediate goal: just produce
 -- *Any* new FamInst
+
 elabWfFamInst :: FamInst -> TcM FamInst
 elabWfFamInst fam_inst
   = do {
-       ; traceTc "elaborating fam_inst" (pprFamInst fam_inst)
-       ; let tf = famInstTyCon fam_inst
-       ; traceTc "here is its axiom:" (ppr .  famInstAxiom $ fam_inst)
-       ; traceTc "Here is its TF:" (ppr tf)
-       ; let wfTc = fromJust . wfConstraintTc $ tf
-       ; traceTc "Here is its WF TF:" (ppr $ wfConstraintTc tf)
-       ; let inst_name = undefined
-             tyvarsd'  = undefined
-             mpred = undefined
-             axiom = mkSingleCoAxiom Nominal inst_name tyvarsd' [] [] wfTc [] mpred
+       ; let (tfTc, ts) = famInstSplitLHS fam_inst
+       ; let rhs = famInstRHS fam_inst
+       ; let wfTc = fromJust . wfConstraintTc $ tfTc
+       ; ctupleTyCon <- tcLookupTyCon (cTupleTyConName 0)
+       ; let loc = getSrcSpan fam_inst
+       ; inst_name <- newFamInstTyConName (L loc (tyConName wfTc)) ts
+       -- Todo:
+       -- if RHS is type var, should just
+       -- make unit.
+       ; let tvs     = []
+             lhs_tys = ts
+             unit    = mkTyConTy ctupleTyCon
+             rhs_ty  = case rhs of
+                         TyConApp tc' tys' -> mkTyConApp atTyTyCon ((mkTyConTy tc') : tys')
+                         _                 -> unit
+             axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wfTc lhs_tys rhs_ty
        ; newFamInst SynFamilyInst axiom
        }
 

@@ -2421,7 +2421,7 @@ mk_atat_datacon_except loc tycon skip_tcs dc =
     isGoodTyArg tc (TyConApp tyc _) = not (tc == tyc)
     isGoodTyArg _ _ = True
 
-
+-- data Ord a => Tree a = Leaf a
 mk_atat_fam :: SrcSpan -> TyCon -> TcM [FamInst]
 mk_atat_fam loc tc = mk_atat_fam_except loc tc []
 

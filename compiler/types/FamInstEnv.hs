@@ -9,7 +9,7 @@
 #endif
 
 module FamInstEnv (
-        FamInst(..), FamFlavor(..), famInstAxiom, famInstTyCon, famInstRHS,
+        FamInst(..), FamFlavor(..), famInstAxiom, famInstSplitLHS, famInstTyCon, famInstRHS,
         famInstsRepTyCons, famInstRepTyCon_maybe, dataFamInstRepTyCon,
         pprFamInst, pprFamInsts,
         mkImportedFamInst,
