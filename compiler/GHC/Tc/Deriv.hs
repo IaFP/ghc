@@ -55,8 +55,9 @@ import GHC.Types.Name.Reader
 import GHC.Types.Name
 import GHC.Types.Name.Set as NameSet
 import GHC.Core.TyCon
-import GHC.Core.TyWF (WfElabTypeDetails(..), genAtAtConstraintsExceptTcM, genAtAtConstraintsTcM, mergeAtAtConstraints
-                     , predTyArgs, flatten_atat_constraint, saneTyConForElab)
+import GHC.Core.TyWF (WfElabTypeDetails(..), genAtAtConstraintsExceptTcM
+                     , genAtAtConstraintsTcM, mergeAtAtConstraints
+                     , predTyArgs, predTyVars, flatten_atat_constraint, saneTyConForElab)
 import GHC.Tc.Utils.TcType
 import GHC.Types.Var as Var
 import GHC.Types.Var.Env
@@ -2274,10 +2275,10 @@ mk_atat_fam' loc acc tc uTys (tyd, ty:tyl) (tyvarsd, (tyvar, shouldInc):tyvarsl)
                      resK = piResultTy fk argK
                      axiom = mkSingleCoAxiom Nominal inst_name tyvarsd' [] [] wfTyCon
                                [argK, resK, f, ty] mpred
-               ; traceTc "building axiom " (ppr f <> dcolon <> ppr fk
-                                             <+> ppr wfTyCon
-                                             <+> ppr ty <> dcolon <> ppr argK
-                                             <+> (text " isForallTy ") <> ppr (isForAllTy argK))
+               ; traceTc "building axiom " (vcat [ parens (ppr f <> dcolon <> ppr fk)
+                                                  <+> ppr wfTyCon
+                                                  <+> parens (ppr ty <> dcolon <> ppr argK)
+                                                , text "isForallTy: " <> ppr (isForAllTy argK)])
 
                ; fam <- newFamInst SynFamilyInst axiom
                -- ; traceTc "matching predicates for "
@@ -2297,8 +2298,8 @@ mk_atat_fam' _ acc _ _ _ _ _ = return acc
 --      MkT1 :: f -> p -> T f g p
 --      MkT2 :: g -> p -> T f g p
 -- We don't want (f @@ g p) to creap in hence this bad_bndr dance, as k1 and k2 are specified binders
-mk_atat_datacon_except :: SrcSpan -> TyCon -> [TyCon] -> DataCon -> TcM ThetaType
-mk_atat_datacon_except loc tycon skip_tcs dc =
+mk_atat_datacon_except :: TyCon -> [TyCon] -> DataCon -> TcM ThetaType
+mk_atat_datacon_except tycon skip_tcs dc =
   do { let arg_tys' = fmap scaledThing $ dataConOrigArgTys dc
            -- univ_roles = zip (dataConUnivTyVars dc) (tyConRoles tycon)
            -- bad_tys = map (TyVarTy . fst) (filter (\(_, r) -> r == Nominal) univ_roles)
@@ -2336,7 +2337,7 @@ mk_atat_fam_except loc tc skip_tcs
   -- we don't want class tycons to creep in
   -- maybe simplify to isDataTyCon?
   = do {
-      ; atatss <- mapM (mk_atat_datacon_except loc tc skip_tcs) dcs
+      ; atatss <- mapM (mk_atat_datacon_except tc skip_tcs) dcs
       ; let atats = foldl mergeAtAtConstraints [] atatss
       ; mk_atat_fam' loc [] tc univTys ([], tyargs) ([], tyvars_binder_type) (atats ++ dt_ctx)
       }
@@ -2538,8 +2539,12 @@ elabTySynRhs tc = do
   { d <- case synTyConRhs_maybe tc of
              Just ty -> genAtAtConstraintsTcM False ty
              Nothing -> pprPanic "Shouldn't happen while elaborating type synonym" (ppr tc)
+  ; let np = filter (\p -> f (predTyArgs p) (fmap mkTyVarTy $ tyConTyVars tc)) (newPreds d) -- make sure we don't escape scope
   ; return $ updateSynonymTyConRhs tc
-                    (attachConstraints (newPreds d) (elabTy d))
-                    (not $ null (newPreds d)) -- this should ideally check for type families but because we flatten them out I guess
+                    (attachConstraints np (elabTy d))
+                    (null np) -- this should ideally check for type families but because we flatten them out I guess
                                      -- we don't need to do a detailed check.
   }
+  where
+    f :: [Type] -> [Type] -> Bool
+    f candidates should'exist = and [any (c `eqType`) should'exist | c <- candidates ]

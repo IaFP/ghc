@@ -9,11 +9,6 @@ type That f a b = a -> f b
 type This a = forall f. (Applicative f, Total f) => That f a a
 
 data PA a = PA a
-instance Functor PA where
-  fmap f (PA a) = PA $ f a
-instance Applicative PA where
-  pure = PA
-  (PA f) <*> (PA a) = PA (f a)
 
 data D = D1 | D2 | D3
 
@@ -28,3 +23,6 @@ x = (wr y)
 
 y :: Blah a
 y = undefined
+
+data T a b c = T a b c
+type Syn a = T a
