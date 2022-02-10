@@ -67,7 +67,7 @@ module GHC.Core.Type (
         mkCharLitTy, isCharLitTy,
         isLitTy,
 
-        isPredTy,
+        isPredTy, isWfPredTy,
         
         getRuntimeRep_maybe, kindRep_maybe, kindRep,
 
@@ -3074,6 +3074,9 @@ isPredTy :: HasDebugCallStack => Type -> Bool
 -- See Note [Types for coercions, predicates, and evidence] in GHC.Core.TyCo.Rep
 isPredTy ty = tcIsConstraintKind (tcTypeKind ty)
 
+isWfPredTy :: HasDebugCallStack => Type -> Bool
+isWfPredTy ty@(TyConApp tc _) = isPredTy ty && tc `hasKey` wfTyConKey
+isWfPredTy _ = False
 -- tcIsConstraintKind stuff only makes sense in the typechecker
 -- After that Constraint = Type
 -- See Note [coreView vs tcView]

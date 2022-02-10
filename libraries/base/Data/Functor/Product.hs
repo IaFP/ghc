@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE ExplicitNamespaces, QuantifiedConstraints #-}
+{-# LANGUAGE ExplicitNamespaces, QuantifiedConstraints, PolyKinds, DataKinds, StandaloneDeriving #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Functor.Product
@@ -30,13 +30,15 @@ import Data.Data (Data)
 import Data.Functor.Classes
 import GHC.Generics (Generic, Generic1)
 import Text.Read (Read(..), readListDefault, readListPrecDefault)
-import GHC.Types (type (@), Total)
+import GHC.Types (type (@), Total, Type)
 -- | Lifted product of functors.
 data Product f g a = Pair (f a) (g a)
   deriving ( Data     -- ^ @since 4.9.0.0
-           , Generic  -- ^ @since 4.9.0.0
-           , Generic1 -- ^ @since 4.9.0.0
+           -- , Generic  -- ^ @since 4.9.0.0
+           -- , Generic1 -- ^ @since 4.9.0.0
            )
+deriving instance (Total f, Total g) => Generic (Product f g a)
+deriving instance (Total f, Total g) => Generic1 (Product f g)
 
 -- | @since 4.9.0.0
 instance (Total f, Total g, Eq1 f, Eq1 g) => Eq1 (Product f g) where
@@ -107,7 +109,9 @@ instance (Total f, Total g, Alternative f, Alternative g) => Alternative (Produc
 instance (Total f, Total g, Monad f, Monad g) => Monad (Product f g) where
     Pair m n >>= f = Pair (m >>= fstP . f) (n >>= sndP . f)
       where
+        fstP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p::k'). (Total f', Total g') => (Product f' g') p -> f' p
         fstP (Pair a _) = a
+        sndP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p ::k'). (Total f', Total g') => (Product f' g') p -> g' p
         sndP (Pair _ b) = b
 
 -- | @since 4.9.0.0
@@ -119,7 +123,9 @@ instance (Total f, Total g, MonadPlus f, MonadPlus g) => MonadPlus (Product f g)
 instance (Total f, Total g, MonadFix f, MonadFix g) => MonadFix (Product f g) where
     mfix f = Pair (mfix (fstP . f)) (mfix (sndP . f))
       where
+        fstP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p::k'). (Total f', Total g') => (Product f' g') p -> f' p
         fstP (Pair a _) = a
+        sndP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p ::k'). (Total f', Total g') => (Product f' g') p -> g' p
         sndP (Pair _ b) = b
 
 -- | @since 4.9.0.0

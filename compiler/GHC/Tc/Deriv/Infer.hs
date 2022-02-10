@@ -14,7 +14,9 @@ module GHC.Tc.Deriv.Infer
    )
 where
 
-import GHC.Prelude
+import GHC.Prelude hiding (mapM)
+import GHC.Base (mapM)
+import GHC.Driver.Session
 
 import GHC.Data.Bag
 import GHC.Types.Basic
@@ -46,11 +48,13 @@ import GHC.Tc.Validity (validDerivPred)
 import GHC.Tc.Utils.Unify (buildImplicationFor, checkConstraints)
 import GHC.Builtin.Types (typeToTypeKind)
 import GHC.Core.Unify (tcUnifyTy)
+import GHC.Core.TyWF (genWfConstraints)
 import GHC.Utils.Misc
 import GHC.Types.Var
 import GHC.Types.Var.Set
+import qualified GHC.LanguageExtensions as LangExt
 
-import Control.Monad
+import Control.Monad hiding (mapM)
 import Control.Monad.Trans.Class  (lift)
 import Control.Monad.Trans.Reader (ask)
 import Data.List                  (sortBy)
@@ -165,68 +169,16 @@ inferConstraintsStock dit@(DerivInstTys { dit_cls_tys     = cls_tys
                 , denv_cls      = main_cls
                 , denv_inst_tys = inst_tys } <- ask
        wildcard <- isStandaloneWildcardDeriv
-
-       let inst_ty    = mkTyConApp tc tc_args
+       dflags <- getDynFlags
+       
+       let partyCtrs = xopt LangExt.PartialTypeConstructors dflags
+           inst_ty    = mkTyConApp tc tc_args
            tc_binders = tyConBinders rep_tc
            choose_level bndr
              | isNamedTyConBinder bndr = KindLevel
              | otherwise               = TypeLevel
            t_or_ks = map choose_level tc_binders ++ repeat TypeLevel
               -- want to report *kind* errors when possible
-
-              -- Constraints arising from the arguments of each constructor
-           con_arg_constraints
-             :: (CtOrigin -> TypeOrKind
-                          -> Type
-                          -> [([PredOrigin], Maybe TCvSubst)])
-             -> ([ThetaOrigin], [TyVar], [TcType], DerivInstTys)
-           con_arg_constraints get_arg_constraints
-             = let -- Constraints from the fields of each data constructor.
-                   (predss, mbSubsts) = unzip
-                     [ preds_and_mbSubst
-                     | data_con <- tyConDataCons rep_tc
-                     , (arg_n, arg_t_or_k, arg_ty)
-                         <- zip3 [1..] t_or_ks $
-                            derivDataConInstArgTys data_con dit
-                       -- No constraints for unlifted types
-                       -- See Note [Deriving and unboxed types]
-                     , not (isUnliftedType arg_ty)
-                     , let orig = DerivOriginDC data_con arg_n wildcard
-                     , preds_and_mbSubst
-                         <- get_arg_constraints orig arg_t_or_k arg_ty
-                     ]
-                   -- Stupid constraints from DatatypeContexts. Note that we
-                   -- must gather these constraints from the data constructors,
-                   -- not from the parent type constructor, as the latter could
-                   -- lead to redundant constraints due to thinning.
-                   -- See Note [The stupid context] in GHC.Core.DataCon.
-                   stupid_theta =
-                     [ substTyWith (dataConUnivTyVars data_con)
-                                   (dataConInstUnivs data_con rep_tc_args)
-                                   stupid_pred
-                     | data_con <- tyConDataCons rep_tc
-                     , stupid_pred <- dataConStupidTheta data_con
-                     ]
-
-                   preds = concat predss
-                   -- If the constraints require a subtype to be of kind
-                   -- (* -> *) (which is the case for functor-like
-                   -- constraints), then we explicitly unify the subtype's
-                   -- kinds with (* -> *).
-                   -- See Note [Inferring the instance context]
-                   subst        = foldl' composeTCvSubst
-                                         emptyTCvSubst (catMaybes mbSubsts)
-                   unmapped_tvs = filter (\v -> v `notElemTCvSubst` subst
-                                             && not (v `isInScope` subst)) tvs
-                   (subst', _)  = substTyVarBndrs subst unmapped_tvs
-                   stupid_theta_origin = mkThetaOrigin deriv_origin TypeLevel [] [] [] $
-                                         substTheta subst' stupid_theta
-                   preds'       = map (substPredOrigin subst') preds
-                   inst_tys'    = substTys subst' inst_tys
-                   dit'         = substDerivInstTys subst' dit
-                   tvs'         = tyCoVarsOfTypesWellScoped inst_tys'
-               in ( [stupid_theta_origin, mkThetaOriginFromPreds preds']
-                  , tvs', inst_tys', dit' )
 
            is_generic  = main_cls `hasKey` genClassKey
            is_generic1 = main_cls `hasKey` gen1ClassKey
@@ -235,42 +187,23 @@ inferConstraintsStock dit@(DerivInstTys { dit_cls_tys     = cls_tys
                           || is_generic1
 
            get_gen1_constraints :: Class -> CtOrigin -> TypeOrKind -> Type
-                                -> [([PredOrigin], Maybe TCvSubst)]
+                                -> DerivM [([PredOrigin], Maybe TCvSubst)]
            get_gen1_constraints functor_cls orig t_or_k ty
-              = mk_functor_like_constraints orig t_or_k functor_cls $
+              = mk_functor_like_constraints orig t_or_k functor_cls mk_cls_pred $
                 get_gen1_constrained_tys last_tv ty
 
            get_std_constrained_tys :: CtOrigin -> TypeOrKind -> Type
-                                   -> [([PredOrigin], Maybe TCvSubst)]
+                                   -> DerivM [([PredOrigin], Maybe TCvSubst)]
            get_std_constrained_tys orig t_or_k ty
                | is_functor_like
-               = mk_functor_like_constraints orig t_or_k main_cls $
+               = mk_functor_like_constraints orig t_or_k main_cls mk_cls_pred $
                  deepSubtypesContaining last_tv ty
                | otherwise
-               = [( [mk_cls_pred orig t_or_k main_cls ty]
-                  , Nothing )]
+               = do { wfcts <- if partyCtrs then do {genWfConstraints ty} else return []
+                    ; return [( [mk_cls_pred orig t_or_k main_cls ty] ++ fmap (mkPredOrigin orig TypeLevel) wfcts
+                              , Nothing )]
+                   }
 
-           mk_functor_like_constraints :: CtOrigin -> TypeOrKind
-                                       -> Class -> [Type]
-                                       -> [([PredOrigin], Maybe TCvSubst)]
-           -- 'cls' is usually main_cls (Functor or Traversable etc), but if
-           -- main_cls = Generic1, then 'cls' can be Functor; see
-           -- get_gen1_constraints
-           --
-           -- For each type, generate two constraints,
-           -- [cls ty, kind(ty) ~ (*->*)], and a kind substitution that results
-           -- from unifying  kind(ty) with * -> *. If the unification is
-           -- successful, it will ensure that the resulting instance is well
-           -- kinded. If not, the second constraint will result in an error
-           -- message which points out the kind mismatch.
-           -- See Note [Inferring the instance context]
-           mk_functor_like_constraints orig t_or_k cls
-              = map $ \ty -> let ki = tcTypeKind ty in
-                             ( [ mk_cls_pred orig t_or_k cls ty
-                               , mkPredOrigin orig KindLevel
-                                   (mkPrimEqPred ki typeToTypeKind) ]
-                             , tcUnifyTy ki typeToTypeKind
-                             )
 
            rep_tc_tvs      = tyConTyVars rep_tc
            last_tv         = last rep_tc_tvs
@@ -293,6 +226,7 @@ inferConstraintsStock dit@(DerivInstTys { dit_cls_tys     = cls_tys
                  | otherwise
                  = []
 
+           mk_cls_pred :: CtOrigin -> TypeOrKind -> Class -> Type -> PredOrigin
            mk_cls_pred orig t_or_k cls ty
                 -- Don't forget to apply to cls_tys' too
               = mkPredOrigin orig t_or_k (mkClassPred cls (cls_tys' ++ [ty]))
@@ -301,7 +235,7 @@ inferConstraintsStock dit@(DerivInstTys { dit_cls_tys     = cls_tys
                       -- empty, since we are applying the class Functor.
 
                     | otherwise   = cls_tys
-
+                    
            deriv_origin = mkDerivOrigin wildcard
 
        if    -- Generic constraints are easy
@@ -315,19 +249,102 @@ inferConstraintsStock dit@(DerivInstTys { dit_cls_tys     = cls_tys
               -- Generic1 has a single kind variable
               assert (cls_tys `lengthIs` 1) $
               do { functorClass <- lift $ tcLookupClass functorClassName
-                 ; pure $ con_arg_constraints
-                        $ get_gen1_constraints functorClass }
+                 ; con_arg_constraints dit rep_tc inst_tys tvs rep_tc_args t_or_ks
+                   $ get_gen1_constraints functorClass
+                 }
 
              -- The others are a bit more complicated
           |  otherwise
-           -> do { let (arg_constraints, tvs', inst_tys', dit')
-                         = con_arg_constraints get_std_constrained_tys
+           -> do { (arg_constraints, tvs', inst_tys', dit')
+                         <- con_arg_constraints dit rep_tc inst_tys tvs rep_tc_args t_or_ks get_std_constrained_tys
                  ; lift $ traceTc "inferConstraintsStock" $ vcat
                         [ ppr main_cls <+> ppr inst_tys'
                         , ppr arg_constraints
                         ]
                  ; return ( extra_constraints ++ arg_constraints
                           , tvs', inst_tys', dit' ) }
+
+-- 'cls' is usually main_cls (Functor or Traversable etc), but if
+-- main_cls = Generic1, then 'cls' can be Functor; see
+-- get_gen1_constraints
+--
+-- For each type, generate two constraints,
+-- [cls ty, kind(ty) ~ (*->*)], and a kind substitution that results
+-- from unifying  kind(ty) with * -> *. If the unification is
+-- successful, it will ensure that the resulting instance is well
+-- kinded. If not, the second constraint will result in an error
+-- message which points out the kind mismatch.
+-- See Note [Inferring the instance context]
+mk_functor_like_constraints :: CtOrigin -> TypeOrKind
+                            -> Class -> (CtOrigin -> TypeOrKind -> Class -> Type -> PredOrigin) 
+                            -> [Type] -> DerivM [([PredOrigin], Maybe TCvSubst)]
+mk_functor_like_constraints orig t_or_k cls mk_cls_pred tys
+  = mapM mk_functor_constraints_aux tys
+  where
+    mk_functor_constraints_aux :: Type -> DerivM ([PredOrigin], Maybe TCvSubst)
+    mk_functor_constraints_aux ty =
+      do { dflags <- getDynFlags
+         ; let partyCtrs = xopt LangExt.PartialTypeConstructors dflags
+         ; wfcts <- if partyCtrs then genWfConstraints ty
+                    else return []
+         ; let ki = tcTypeKind ty
+         ; return $ ([ mk_cls_pred orig t_or_k cls ty
+                     , mkPredOrigin orig KindLevel (mkPrimEqPred ki typeToTypeKind)
+                     ] ++ fmap (mkPredOrigin orig TypeLevel) wfcts
+                    , tcUnifyTy ki typeToTypeKind )
+         }
+-- Constraints arising from the arguments of each constructor
+con_arg_constraints :: DerivInstTys -> TyCon -> [Type] -> [Var] -> [Type] -> [TypeOrKind]
+                    -> (CtOrigin -> TypeOrKind -> Type  -> DerivM [([PredOrigin], Maybe TCvSubst)])
+                    -> DerivM ([ThetaOrigin], [TyVar], [TcType], DerivInstTys)
+con_arg_constraints dit rep_tc inst_tys tvs rep_tc_args t_or_ks get_arg_constraints
+  = do { wildcard <- isStandaloneWildcardDeriv
+       ; let input = [  (orig, arg_t_or_k, arg_ty)
+                     | data_con <- tyConDataCons rep_tc
+                     , (arg_n, arg_t_or_k, arg_ty) <- zip3 [1..] t_or_ks $
+                                                      derivDataConInstArgTys data_con dit
+                       -- No constraints for unlifted types
+                       -- See Note [Deriving and unboxed types]
+                     , not (isUnliftedType arg_ty)
+                     , let orig = DerivOriginDC data_con arg_n wildcard
+                     ]
+       ; preds_and_mSubst <- mapM (\(o, tok, ty) -> get_arg_constraints o tok ty) input
+       ; let (predss, mbSubsts) = unzip $ concat preds_and_mSubst
+             deriv_origin = mkDerivOrigin wildcard
+
+       -- Stupid constraints from DatatypeContexts. Note that we
+       -- must gather these constraints from the data constructors,
+       -- not from the parent type constructor, as the latter could
+       -- lead to redundant constraints due to thinning.
+       -- See Note [The stupid context] in GHC.Core.DataCon.
+       -- ANI: TODO i suspect we no longer need this as we don't do thinning
+       ; let stupid_theta =
+               [ substTyWith (dataConUnivTyVars data_con)
+                 (dataConInstUnivs data_con rep_tc_args)
+                 stupid_pred
+               | data_con <- tyConDataCons rep_tc
+               , stupid_pred <- dataConStupidTheta data_con
+               ]
+
+             preds = concat predss
+             -- If the constraints require a subtype to be of kind
+             -- (* -> *) (which is the case for functor-like
+             -- constraints), then we explicitly unify the subtype's
+             -- kinds with (* -> *).
+             -- See Note [Inferring the instance context]
+             subst        = foldl' composeTCvSubst emptyTCvSubst (catMaybes mbSubsts)
+             unmapped_tvs = filter (\v -> v `notElemTCvSubst` subst
+                                          && not (v `isInScope` subst)) tvs
+             (subst', _)  = substTyVarBndrs subst unmapped_tvs
+             stupid_theta_origin = mkThetaOrigin deriv_origin TypeLevel [] [] [] $
+                                   substTheta subst' stupid_theta
+             preds'       = map (substPredOrigin subst') preds
+             inst_tys'    = substTys subst' inst_tys
+             dit'         = substDerivInstTys subst' dit
+             tvs'         = tyCoVarsOfTypesWellScoped inst_tys'
+       ; return ( [stupid_theta_origin, mkThetaOriginFromPreds preds'], tvs', inst_tys', dit' )
+       }
+             
 
 -- | Like 'inferConstraints', but used only in the case of @DeriveAnyClass@,
 -- which gathers its constraints based on the type signatures of the class's
@@ -337,32 +354,34 @@ inferConstraintsStock dit@(DerivInstTys { dit_cls_tys     = cls_tys
 -- for an explanation of how these constraints are used to determine the
 -- derived instance context.
 inferConstraintsAnyclass :: DerivM [ThetaOrigin]
-inferConstraintsAnyclass
-  = do { DerivEnv { denv_cls      = cls
+inferConstraintsAnyclass = do
+  { DerivEnv { denv_cls      = cls
                   , denv_inst_tys = inst_tys } <- ask
-       ; wildcard <- isStandaloneWildcardDeriv
+  ; wildcard <- isStandaloneWildcardDeriv
+  ; dflags <- getDynFlags
+  ; let partyCtrs = xopt LangExt.PartialTypeConstructors dflags
+        gen_dms = [ (sel_id, dm_ty)
+                  | (sel_id, Just (_, GenericDM dm_ty)) <- classOpItems cls ]
 
-       ; let gen_dms = [ (sel_id, dm_ty)
-                       | (sel_id, Just (_, GenericDM dm_ty)) <- classOpItems cls ]
+        cls_tvs = classTyVars cls
 
-             cls_tvs = classTyVars cls
-
-             do_one_meth :: (Id, Type) -> TcM ThetaOrigin
+        do_one_meth :: (Id, Type) -> TcM ThetaOrigin
                -- (Id,Type) are the selector Id and the generic default method type
                -- NB: the latter is /not/ quantified over the class variables
                -- See Note [Gathering and simplifying constraints for DeriveAnyClass]
-             do_one_meth (sel_id, gen_dm_ty)
-               = do { let (sel_tvs, _cls_pred, meth_ty)
-                                   = tcSplitMethodTy (varType sel_id)
-                          meth_ty' = substTyWith sel_tvs inst_tys meth_ty
-                          (meth_tvs, meth_theta, meth_tau)
-                                   = tcSplitNestedSigmaTys meth_ty'
-
-                          gen_dm_ty' = substTyWith cls_tvs inst_tys gen_dm_ty
-                          (dm_tvs, dm_theta, dm_tau)
-                                     = tcSplitNestedSigmaTys gen_dm_ty'
-                          tau_eq     = mkPrimEqPred meth_tau dm_tau
-                    ; return (mkThetaOrigin (mkDerivOrigin wildcard) TypeLevel
+        do_one_meth (sel_id, gen_dm_ty)
+          = do { let (sel_tvs, _cls_pred, meth_ty)
+                                = tcSplitMethodTy (varType sel_id)
+                     meth_ty'   = substTyWith sel_tvs inst_tys meth_ty
+                     (meth_tvs, meth_theta', meth_tau)
+                                = tcSplitNestedSigmaTys meth_ty'
+               ; wfcts <- if partyCtrs then do { genWfConstraints meth_tau } else return []
+               ; let gen_dm_ty' = substTyWith cls_tvs inst_tys gen_dm_ty
+                     meth_theta = stableMergeTypes wfcts meth_theta'
+                     (dm_tvs, dm_theta, dm_tau)
+                                = tcSplitNestedSigmaTys gen_dm_ty'
+                     tau_eq     = mkPrimEqPred meth_tau dm_tau
+               ; return (mkThetaOrigin (mkDerivOrigin wildcard) TypeLevel
                                 meth_tvs dm_tvs meth_theta (tau_eq:dm_theta)) }
 
        ; lift $ mapM do_one_meth gen_dms }

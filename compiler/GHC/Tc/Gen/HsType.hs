@@ -641,11 +641,9 @@ tc_top_lhs_type tyki ctxt (L loc sig_ty@(HsSig { sig_bndrs = hs_outer_bndrs
        ; final_ty <- zonkTcTypeToTypeX ze (mkInfForAllTys kvs ty1)
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors       
        ; final_ty <- if partyCtrs
-               then do { eTy <- elabAtAtConstraintsTcM False final_ty
-                       ; traceTc "tc_hs_sig_type before elaborating: " (ppr ty)
-                       ; traceTc "tc_hs_sig_type elaborated signature: " (ppr eTy)
-                       ; return eTy }
-               else return final_ty
+                     then elabAtAtConstraintsTcM False final_ty
+                     else return final_ty
+
        ; traceTc "tc_top_lhs_type }" (vcat [ppr sig_ty, ppr final_ty])
        ; return final_ty }
   where

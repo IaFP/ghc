@@ -9,13 +9,10 @@
 
 module BstADT where
 
-#if __GLASGOW_HASKELL__ >= 810
 import GHC.Types (type (@))
-#endif
-
-
 
 data Ord a => BST a = Leaf | Node a (BST a) (BST a)
+newtype Ord a => OList a = OList [a]
 
 deriving instance Show a => Show (BST a)
 
@@ -36,10 +33,14 @@ unflatten'bst :: [a] -> BST a
 unflatten'bst []  =  Leaf
 unflatten'bst lst = (Node h l r)
   where
+    pvt :: Int
     pvt = (length lst) `div` 2
     fs = splitAt pvt lst
+    l :: BST a
     l = unflatten'bst (fst fs)
+    r :: BST a
     r = unflatten'bst $ init (snd fs)
+    h :: a
     h = head (fst fs)
 
 merge :: BST a -> BST a -> BST a

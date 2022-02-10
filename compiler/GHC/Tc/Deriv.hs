@@ -57,7 +57,7 @@ import GHC.Types.Name.Set as NameSet
 import GHC.Core.TyCon
 import GHC.Core.TyWF (WfElabTypeDetails(..), genAtAtConstraintsExceptTcM
                      , genAtAtConstraintsTcM, mergeAtAtConstraints
-                     , predTyArgs, predTyVars, flatten_atat_constraint, saneTyConForElab)
+                     , predTyArgs, flatten_atat_constraint, saneTyConForElab)
 import GHC.Tc.Utils.TcType
 import GHC.Types.Var as Var
 import GHC.Types.Var.Env
@@ -2337,24 +2337,25 @@ mk_atat_fam_except loc tc skip_tcs
   -- we don't want class tycons to creep in
   -- maybe simplify to isDataTyCon?
   = do {
-      ; atatss <- mapM (mk_atat_datacon_except tc skip_tcs) dcs
-      ; let atats = foldl mergeAtAtConstraints [] atatss
-      ; mk_atat_fam' loc [] tc univTys ([], tyargs) ([], tyvars_binder_type) (atats ++ dt_ctx)
+      -- ; atatss <- mapM (mk_atat_datacon_except tc skip_tcs) dcs -- We are not going to fish out constraints from datacons
+      -- ; let atats = foldl mergeAtAtConstraints [] atatss
+      ; mk_atat_fam' loc [] tc univTys ([], tyargs) ([], tyvars_binder_type) dt_ctx {-(stableMergeTypes atats dt_ctx)-}
       }
+  | isDataFamilyTyCon tc = mk_atat_fam_units loc tc
   | otherwise = return []
   where
     dcs = visibleDataCons $ algTyConRhs tc
     univTys = mkTyVarTys $ concatMap dataConExTyCoVars dcs
     dt_ctx = tyConStupidTheta tc
     tyvars = tyConTyVars tc
-    roles = tyConRoles tc
+    -- roles = tyConRoles tc
     binders = tyConBinders tc
-    tyvar_binder_roles = zip3 tyvars binders roles
-    tyvars_binder_type = map (\(t, b, r) ->
+    tyvar_binder = zip tyvars binders
+    tyvars_binder_type = map (\(t, b) ->
                                  (t, (isVisibleTyConBinder b
                                        && not (isNamedTyConBinder b)))
                                        -- && not (r == Nominal)))
-                             ) tyvar_binder_roles
+                             ) tyvar_binder
     tyargs = mkTyVarTys tyvars
 
 -- | TODO: Can optimize and skip on the matching pred funtion call, but meh.
@@ -2370,14 +2371,14 @@ mk_atat_fam_except_units loc tc skip_tcs
     univTys = mkTyVarTys $ concatMap dataConExTyCoVars dcs
     -- dt_ctx = []
     tyvars = tyConTyVars tc
-    roles = tyConRoles tc
+    -- roles = tyConRoles tc
     binders = tyConBinders tc
-    tyvar_binder_roles = zip3 tyvars binders roles
-    tyvars_binder_type = map (\(t, b, r) ->
+    tyvar_binder = zip tyvars binders
+    tyvars_binder_type = map (\(t, b) ->
                                  (t, (isVisibleTyConBinder b
                                        && not (isNamedTyConBinder b)))
                                        -- && not (r == Nominal)))
-                             ) tyvar_binder_roles
+                             ) tyvar_binder
     tyargs = mkTyVarTys tyvars
 
 
@@ -2417,9 +2418,9 @@ getMatchingPredicates' tv tvs preds =
 
 elabTyCons :: TyCon -> TcM TyCon
 elabTyCons tc
-  | isDataTyCon tc = elabTcDataConsCtxt tc
-  | isTypeSynonymTyCon tc = elabTySynRhs tc
-  | otherwise = pprPanic "Cannot elaborate this tycon" (ppr tc)
+  -- | isDataTyCon tc =  -- elabTcDataConsCtxt tc
+  -- | isTypeSynonymTyCon tc = elabTySynRhs tc
+  | otherwise = return tc 
 
 
 -- | Go into each of the datacons of the tycon and elaborate their context with wf(res_type)
@@ -2537,7 +2538,7 @@ elabDataConCtxt tc dc =
 elabTySynRhs :: TyCon -> TcM TyCon
 elabTySynRhs tc = do
   { d <- case synTyConRhs_maybe tc of
-             Just ty -> genAtAtConstraintsTcM False ty
+             Just ty -> genAtAtConstraintsTcM True ty
              Nothing -> pprPanic "Shouldn't happen while elaborating type synonym" (ppr tc)
   ; let np = filter (\p -> f (predTyArgs p) (fmap mkTyVarTy $ tyConTyVars tc)) (newPreds d) -- make sure we don't escape scope
   ; return $ updateSynonymTyConRhs tc

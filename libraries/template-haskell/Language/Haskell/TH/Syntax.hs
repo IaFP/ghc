@@ -5,7 +5,7 @@
              GADTs, UnboxedTuples, UnboxedSums, TypeInType,
              Trustworthy, DeriveFunctor #-}
 #if MIN_VERSION_base(4,16,0)
-{-# LANGUAGE TypeOperators, ExplicitNamespaces, QuantifiedConstraints #-}
+{-# LANGUAGE TypeOperators, ExplicitNamespaces, QuantifiedConstraints, FlexibleContexts, TypeFamilies #-}
 #endif
 
 {-# OPTIONS_GHC -fno-warn-inline-rule-shadowing #-}
@@ -205,6 +205,9 @@ newtype Q a = Q { unQ :: forall m. (
                                     Total m,
 #endif
                                     Quasi m) => m a }
+#if MIN_VERSION_base(4,16,0)
+type instance Q @ a = ()
+#endif
 
 -- \"Runs\" the 'Q' monad. Normal users of Template Haskell
 -- should not need this function, as the splice brackets @$( ... )@
@@ -228,7 +231,11 @@ instance Monad Q where
   Q m >>= k  = Q (m >>= \x -> unQ (k x))
   (>>) = (*>)
 
-instance MonadFail Q where
+instance
+#if MIN_VERSION_base(4,16,0)
+  Total Q => 
+#endif
+  MonadFail Q where
   fail s     = report True s >> Q (fail "Q monad failure")
 
 instance Functor Q where
@@ -443,13 +450,21 @@ hoistCode f (Code a) = Code (f a)
 
 -- | Variant of (>>=) which allows effectful computations to be injected
 -- into code generation.
-bindCode :: forall m a (r :: RuntimeRep) (b :: TYPE r) . Monad m
+bindCode :: forall m a (r :: RuntimeRep) (b :: TYPE r) . (
+#if MIN_VERSION_base(4,16,0)
+  m @ TExp b,
+#endif
+  Monad m)
          => m a -> (a -> Code m b) -> Code m b
 bindCode q k = liftCode (q >>= examineCode . k)
 
 -- | Variant of (>>) which allows effectful computations to be injected
 -- into code generation.
-bindCode_ :: forall m a (r :: RuntimeRep) (b :: TYPE r) . Monad m
+bindCode_ :: forall m a (r :: RuntimeRep) (b :: TYPE r) . (
+#if MIN_VERSION_base(4,16,0)
+  m @ TExp b,
+#endif
+  Monad m)
           => m a -> Code m b -> Code m b
 bindCode_ q c = liftCode ( q >> examineCode c)
 
@@ -460,7 +475,11 @@ bindCode_ q c = liftCode ( q >> examineCode c)
 --   x <- someSideEffect
 --   return (makeCodeWith x)
 -- @
-joinCode :: forall m (r :: RuntimeRep) (a :: TYPE r) . Monad m
+joinCode :: forall m (r :: RuntimeRep) (a :: TYPE r) . (
+#if MIN_VERSION_base(4,16,0)
+  m @ TExp a,
+#endif
+  Monad m)
          => m (Code m a) -> Code m a
 joinCode = flip bindCode id
 

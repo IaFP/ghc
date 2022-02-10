@@ -22,7 +22,7 @@
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE QuantifiedConstraints      #-}
-
+ 
 
 -----------------------------------------------------------------------------
 -- |
@@ -861,16 +861,18 @@ deriving instance Monoid p => Monoid (Par1 p)
 
 -- | Recursive calls of kind @* -> *@ (or kind @k -> *@, when @PolyKinds@
 -- is enabled)
-newtype Rec1 (f :: k -> Type) (p :: k) = Rec1 { unRec1 :: f p }
+newtype f @ p => Rec1 (f :: k -> Type) (p :: k) = Rec1 { unRec1 :: f p }
   deriving ( Eq       -- ^ @since 4.7.0.0
            , Ord      -- ^ @since 4.7.0.0
            , Read     -- ^ @since 4.7.0.0
            , Show     -- ^ @since 4.7.0.0
-           -- , Functor  -- ^ @since 4.9.0.0
-           , Generic  -- ^ @since 4.7.0.0
-           , Generic1 -- ^ @since 4.9.0.0
+           , Functor  -- ^ @since 4.9.0.0
+           -- , Generic  -- ^ @since 4.7.0.0
+           -- , Generic1 -- ^ @since 4.9.0.0
            )
-deriving instance (Total f, Functor f) => Functor (Rec1 f)
+-- deriving instance (Total f, Functor f) => Functor (Rec1 f)
+deriving instance (Total f, Functor f) => Generic (Rec1 f a)
+deriving instance (Total f, Functor f) => Generic1 (Rec1 f)
 
 -- | @since 4.9.0.0
 deriving instance (Total f, Applicative f) => Applicative (Rec1 f)
@@ -933,43 +935,49 @@ deriving instance Semigroup (f p) => Semigroup (M1 i c f p)
 deriving instance Monoid (f p) => Monoid (M1 i c f p)
 
 -- | Meta-information (constructor names, etc.)
-newtype M1 (i :: Type) (c :: Meta) (f :: k -> Type) (p :: k) =
+newtype f @ p => M1 (i :: Type) (c :: Meta) (f :: k -> Type) (p :: k) =
     M1 { unM1 :: f p }
   deriving ( Eq       -- ^ @since 4.7.0.0
            , Ord      -- ^ @since 4.7.0.0
            , Read     -- ^ @since 4.7.0.0
            , Show     -- ^ @since 4.7.0.0
-           -- , Functor  -- ^ @since 4.9.0.0
-           , Generic  -- ^ @since 4.7.0.0
-           , Generic1 -- ^ @since 4.9.0.0
+           , Functor  -- ^ @since 4.9.0.0
+           -- , Generic  -- ^ @since 4.7.0.0
+           -- , Generic1 -- ^ @since 4.9.0.0
            )
-deriving instance (Total f, Functor f) => Functor (M1 i c f)
+-- deriving instance (Total f, Functor f) => Functor (M1 i c f)
+deriving instance (Total f, Functor f) => Generic (M1 i c f p)
+deriving instance (Total f, Functor f) => Generic1 (M1 i c f)
 
 -- | Sums: encode choice between constructors
 infixr 5 :+:
-data (:+:) (f :: k -> Type) (g :: k -> Type) (p :: k) = L1 (f p) | R1 (g p)
+data (f @ p, g @ p) => (:+:) (f :: k -> Type) (g :: k -> Type) (p :: k) = L1 (f p) | R1 (g p)
   deriving ( Eq       -- ^ @since 4.7.0.0
            , Ord      -- ^ @since 4.7.0.0
            , Read     -- ^ @since 4.7.0.0
            , Show     -- ^ @since 4.7.0.0
            -- , Functor  -- ^ @since 4.9.0.0
-           , Generic  -- ^ @since 4.7.0.0
-           , Generic1 -- ^ @since 4.9.0.0
+           -- , Generic  -- ^ @since 4.7.0.0
+           -- , Generic1 -- ^ @since 4.9.0.0
            )
 deriving instance (Total f, Total g, Functor f, Functor g) => Functor (f :+: g)
+deriving instance (Total f, Total g, Functor f, Functor g) => Generic ((f :+: g) p)
+deriving instance (Total f, Total g, Functor f, Functor g) => Generic1 (f :+: g)
 
 -- | Products: encode multiple arguments to constructors
 infixr 6 :*:
-data (:*:) (f :: k -> Type) (g :: k -> Type) (p :: k) = f p :*: g p
+data (f @ p, g @ p) => (:*:) (f :: k -> Type) (g :: k -> Type) (p :: k) = f p :*: g p
   deriving ( Eq       -- ^ @since 4.7.0.0
            , Ord      -- ^ @since 4.7.0.0
            , Read     -- ^ @since 4.7.0.0
            , Show     -- ^ @since 4.7.0.0
            -- , Functor  -- ^ @since 4.9.0.0
-           , Generic  -- ^ @since 4.7.0.0
-           , Generic1 -- ^ @since 4.9.0.0
+           -- , Generic  -- ^ @since 4.7.0.0
+           -- , Generic1 -- ^ @since 4.9.0.0
            )
 deriving instance (Total f, Total g, Functor f, Functor g) => Functor (f :*: g)
+deriving instance (Total f, Total g, Functor f, Functor g) => Generic ((f :*: g) p)
+deriving instance (Total f, Total g, Functor f, Functor g) => Generic1 (f :*: g)
 
 -- | @since 4.9.0.0
 instance (Total f, Total g, Applicative f, Applicative g) => Applicative (f :*: g) where
@@ -986,33 +994,37 @@ instance (Total f, Total g, Alternative f, Alternative g) => Alternative (f :*: 
 instance (Total f, Total g, Monad f, Monad g) => Monad (f :*: g) where
   (m :*: n) >>= f = (m >>= \a -> fstP (f a)) :*: (n >>= \a -> sndP (f a))
     where
+      fstP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p::k'). (Total f', Total g') => (f' :*: g') p -> f' p
       fstP (a :*: _) = a
+      sndP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p ::k'). (Total f', Total g') => (f' :*: g') p -> g' p
       sndP (_ :*: b) = b
 
 -- | @since 4.9.0.0
 instance (Total f, Total g, MonadPlus f, MonadPlus g) => MonadPlus (f :*: g)
 
 -- | @since 4.12.0.0
-instance (Semigroup (f p), Semigroup (g p)) => Semigroup ((f :*: g) p) where
+instance (f @ p, g @ p, Semigroup (f p), Semigroup (g p)) => Semigroup ((f :*: g) p) where
   (x1 :*: y1) <> (x2 :*: y2) = (x1 <> x2) :*: (y1 <> y2)
 
 -- | @since 4.12.0.0
-instance (Monoid (f p), Monoid (g p)) => Monoid ((f :*: g) p) where
+instance (f @ p, g @ p, Monoid (f p), Monoid (g p)) => Monoid ((f :*: g) p) where
   mempty = mempty :*: mempty
 
 -- | Composition of functors
 infixr 7 :.:
-newtype (:.:) (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) =
+newtype -- (f @ g p, f @ p) =>
+  (:.:) (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) =
     Comp1 { unComp1 :: f (g p) }
   deriving ( Eq       -- ^ @since 4.7.0.0
            , Ord      -- ^ @since 4.7.0.0
            , Read     -- ^ @since 4.7.0.0
            , Show     -- ^ @since 4.7.0.0
            -- , Functor  -- ^ @since 4.9.0.0
-           , Generic  -- ^ @since 4.7.0.0
+           -- , Generic  -- ^ @since 4.7.0.0
            -- , Generic1 -- ^ @since 4.9.0.0
            )
 deriving instance (Total f, Total g, Functor f, Functor g) => Functor (f :.: g)
+deriving instance (Total f, Total g, Functor f, Functor g) => Generic ((f :.: g) p)
 deriving instance (Total f, Total g, Functor f, Functor g) => Generic1 (f :.: g)
 -- | @since 4.9.0.0
 instance (Total f, Total g, Applicative f, Applicative g) => Applicative (f :.: g) where
@@ -1030,12 +1042,13 @@ instance (Total f, Total g, Alternative f, Applicative g) => Alternative (f :.: 
 deriving instance Semigroup (f (g p)) => Semigroup ((f :.: g) p)
 
 -- | @since 4.12.0.0
-deriving instance Monoid (f (g p)) => Monoid ((f :.: g) p)
+deriving instance (Monoid (f (g p))) => Monoid ((f :.: g) p)
 
 -- | Constants of unlifted kinds
 --
 -- @since 4.9.0.0
 data family URec (a :: Type) (p :: k)
+type instance URec a @ p = ()
 
 -- | Used for marking occurrences of 'Addr#'
 --

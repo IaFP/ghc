@@ -4,6 +4,7 @@
 {-# LANGUAGE PolyKinds         #-}
 {-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE Trustworthy       #-}
+{-# LANGUAGE NoPartialTypeConstructors  #-}
 
 {-# OPTIONS_HADDOCK not-home #-}
 -- we hide this module from haddock to enforce GHC.Stack as the main

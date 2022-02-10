@@ -813,8 +813,8 @@ cond_stdOK deriv_ctxt permissive dflags
       = bad DerivErrBadConIsGADT
       | not (null ex_tvs) -- 3.
       = bad DerivErrBadConHasExistentials
-      | not (null theta) -- 4.
-      = bad DerivErrBadConHasConstraints
+      -- | not (null theta) -- 4.
+      -- = bad DerivErrBadConHasConstraints
       | not (permissive || all isTauTy (derivDataConInstArgTys con dit)) -- 5.
       = bad DerivErrBadConHasHigherRankType
       | otherwise
@@ -896,17 +896,18 @@ cond_functorOK :: Bool -> Bool -> Condition
 --            (b) don't use argument contravariantly
 --            (c) don't use argument in the wrong place, e.g. data T a = T (X a a)
 --            (d) optionally: don't use function types
---            (e) no "stupid context" on data type
+--            (e) no "stupid context" on data type -- ANI: We challenge this assumption
 cond_functorOK allowFunctions allowExQuantifiedLastTyVar _
                dit@(DerivInstTys{dit_rep_tc = rep_tc})
   | null tc_tvs
   = NotValid $ DerivErrMustHaveSomeParameters rep_tc
 
+    -- ANI: Why not?
     -- We can't handle stupid contexts that mention the last type argument,
     -- so error out if we encounter one.
     -- See Note [The stupid context] in GHC.Core.DataCon.
-  | not (null bad_stupid_theta)
-  = NotValid $ DerivErrMustNotHaveClassContext rep_tc bad_stupid_theta
+  -- | not (null bad_stupid_theta)
+  -- = NotValid $ DerivErrMustNotHaveClassContext rep_tc bad_stupid_theta
 
   | otherwise
   = allValid (map check_con data_cons)
@@ -927,7 +928,8 @@ cond_functorOK allowFunctions allowExQuantifiedLastTyVar _
                 -- in GHC.Tc.Deriv.Functor
       | Just tv <- getTyVar_maybe (last (tyConAppArgs (dataConOrigResTy con)))
       , tv `elem` dataConUnivTyVars con
-      , not (tv `elemVarSet` exactTyCoVarsOfTypes (dataConTheta con))
+      -- , not (tv `elemVarSet` exactTyCoVarsOfTypes (dataConTheta con))
+        -- || (tv `elemVarSet` exactTyCoVarsOfTypes (dataConStupidTheta con)) -- This is no longer true in party-ctrs world
       = IsValid   -- See Note [Check that the type variable is truly universal]
       | otherwise
       = NotValid $ DerivErrBadConstructor Nothing [DerivErrBadConExistential con]

@@ -47,7 +47,7 @@ import GHC.Tc.TyCl.Utils
 import GHC.Tc.TyCl.Class
 -- import GHC.Tc.TyWF 
 import {-# SOURCE #-} GHC.Tc.TyCl.Instance( tcInstDecls1 )
-import GHC.Tc.Deriv (DerivInfo(..), mk_atat_fam, mk_atat_fam_except_units, elabTyCons, saneTyConForElab)
+import GHC.Tc.Deriv (DerivInfo(..), mk_atat_fam, mk_atat_fam_except_units, elabTyCons)
 import GHC.Tc.Gen.HsType
 import GHC.Tc.Instance.Class( AssocInstInfo(..) )
 import GHC.Tc.Utils.TcMType
@@ -228,8 +228,8 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                                                 -- for now we can only reason about non-circular datatypes
                                    then concatMapM (\(l, tc) -> mk_atat_fam l tc)
                                                   locsAndTcs
-                                                  -- should generate T @@ a ~ () axioms here
-                                                  -- for all the co-dependent datatypes
+                                                  -- We generate T @@ a ~ () axioms here
+                                                  -- for all the mutually recursive datatypes
                                                   -- thats the best we can do atm
                                    else concatMapM (\(l, tc) -> mk_atat_fam_except_units l tc tyclss)
                                                   locsAndTcs
@@ -240,10 +240,9 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                              -- Then update each of the datacons of data types with elaborated context
                              -- we update the env first so that we can simplify the atat constraints
                              -- eagerly in the next step.
-                   ; let (tyclss1, tyclss2) = partition (\tc -> (isDataTyCon tc || isTypeSynonymTyCon tc)
+                   ; let (tyclss1, tyclss2) = partition (\tc -> (isAlgTyCon tc || isTypeSynonymTyCon tc)
                                                                 -- && saneTyConForElab tc
-                                                                && not (isNewTyCon tc
-                                                                         || isPromotedDataCon tc)) tyclss
+                                                                && not (isPromotedDataCon tc)) tyclss
                    ; traceTc "selected for WF enrichment" (ppr tyclss1)
 
                    ; tyclss' <- mapM (\t -> fixM $ do \_ ->
@@ -284,22 +283,33 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
 
 pprtc :: TyCon -> SDoc
 pprtc tc
-  | isDataTyCon tc =  text "tycon=" <> ppr tc
-            <+> brackets (vcat (fmap (\dc ->
-                                        vcat [ ppr dc
-                                             , text "Datacon wrapper type:" <+> ppr (dataConWrapperType dc)
-                                             , text "Datacon rep type:" <+> ppr (dataConRepType dc)
-                                             , text "Datacon display type:" <+> ppr (dataConDisplayType True dc)
-                                             , text "Rep typcon binders:" <+> ppr (tyConBinders (dataConTyCon dc))
-                                             , (case tyConFamInst_maybe (dataConTyCon dc) of
-                                                  Nothing -> text "not family"
-                                                  Just (f, _) -> ppr (tyConBinders f))
-                                             ]) (tyConDataCons tc)))
-  | isTypeSynonymTyCon tc = text "tycon=" <> ppr tc
-                             <+> text "TypeSyn RHS" <+> ppr (synTyConRhs_maybe tc)
-                             <+> text "isFamFree" <+> ppr (isFamFreeTyCon tc)
-  | otherwise = text "tycon=" <> ppr tc
-                <+> text "No enrichment"
+  | isDataTyCon tc || isNewTyCon tc =
+    text "tycon=" <> ppr tc
+    <+> ppr (zip (tyConBinders tc) (tyConRoles tc))
+    <+> brackets (vcat (fmap (\dc ->
+                                 vcat [ ppr dc
+                                      , text "Datacon wrapper type:"
+                                        <+> ppr (dataConWrapperType dc)
+                                        <+> parens (ppr $ dataConSourceArity dc)
+                                      , text "Datacon rep type:"
+                                        <+> ppr (dataConRepType dc)
+                                        <+> parens (ppr $ dataConRepArity dc)
+                                      , text "Datacon display type:"
+                                        <+> ppr (dataConDisplayType True dc)
+                                      , text "Rep typcon binders:"
+                                        <+> ppr (tyConBinders (dataConTyCon dc))
+                                      , (case tyConFamInst_maybe (dataConTyCon dc) of
+                                            Nothing -> text "not family"
+                                            Just (f, _) -> ppr (tyConBinders f))
+                                      ]) (tyConDataCons tc)))
+  | isTypeSynonymTyCon tc =
+    text "tycon=" <> ppr tc
+    <+> ppr (zip (tyConBinders tc) (tyConRoles tc))
+    <+> text "TypeSyn RHS" <+> ppr (synTyConRhs_maybe tc)
+    <+> text "isFamFree" <+> ppr (isFamFreeTyCon tc)
+  | otherwise =
+    text "tycon=" <> ppr tc
+    <+> text "No enrichment"
 
 -- Gives the kind for every TyCon that has a standalone kind signature
 type KindSigEnv = NameEnv Kind
@@ -868,7 +878,7 @@ swizzleTcTyConBndrs tc_infos
        ; return tc_infos }
 
   | otherwise
-  = do { check_duplicate_tc_binders
+  = do { check_duplicate_tc_binders -- ANI: i don't think this is doing the right thing. messes up datatype contexts
 
        ; traceTc "swizzleTcTyConBndrs" $
          vcat [ text "before" <+> ppr_infos tc_infos
@@ -4191,7 +4201,7 @@ checkValidTyCl tc
     recoverM recovery_code     $
     do { traceTc "Starting validity for tycon" (ppr tc)
        ; checkValidTyCon tc
-       ; traceTc "Done validity for tycon" (ppr tc)
+       ; traceTc "Done validity for tycon" (ppr tc <+> ppr (zip (tyConBinders tc) (tyConRoles tc)))
        ; return [tc] }
   where
     recovery_code -- See Note [Recover from validity error]
@@ -4584,8 +4594,8 @@ checkNewDataCon con
           text "A newtype constructor must have a return type of form T a1 ... an"
                 -- Return type is (T a b c)
 
-        ; check_con (null theta) $
-          text "A newtype constructor cannot have a context in its type"
+        -- ; check_con (null theta) $
+        --   text "A newtype constructor cannot have a context in its type"
 
         ; check_con (null ex_tvs) $
           text "A newtype constructor cannot have existential type variables"

@@ -1,5 +1,7 @@
 {-# LANGUAGE CPP, MagicHash, ScopedTypeVariables #-}
-
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 -- Get definitions for the structs, constants & config etc.
 #include "Rts.h"
 
@@ -25,6 +27,9 @@ import Control.Monad.Fail
 import qualified Data.ByteString as BS
 import GHC.Platform.Host (hostPlatformArch)
 import GHC.Platform.ArchOS
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type (@))
+#endif
 
 -- NOTE: Must return a pointer acceptable for use in the header of a closure.
 -- If tables_next_to_code is enabled, then it must point the 'code' field.
@@ -315,7 +320,11 @@ pokeConItbl tables_next_to_code wr_ptr _ex_ptr itbl = do
       pokeByteOff wr_ptr itblSize (conDesc itbl)
   pokeItbl (wr_ptr `plusPtr` (#offset StgConInfoTable, i)) (infoTable itbl)
 
-sizeOfEntryCode :: MonadFail m => Bool -> m Int
+sizeOfEntryCode :: (
+#if MIN_VERSION_base(4,16,0)
+  m @ ItblCodes, 
+#endif
+  MonadFail m) => Bool -> m Int
 sizeOfEntryCode tables_next_to_code
   | not tables_next_to_code = pure 0
   | otherwise = do

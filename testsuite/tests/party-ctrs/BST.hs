@@ -1,10 +1,10 @@
 {-# LANGUAGE DatatypeContexts #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE PartialTypeConstructors, TypeOperators, UndecidableInstances, StandaloneDeriving #-}
+{-# LANGUAGE PartialTypeConstructors, ExplicitNamespaces, TypeOperators, UndecidableInstances, StandaloneDeriving #-}
 
 module BST where
 
-import GHC.Types (type (@@))
+import GHC.Types (type (@))
 
 data (Ord a) => BST a where
   Leaf :: BST a

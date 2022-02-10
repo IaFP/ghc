@@ -185,27 +185,28 @@ instance Monoid (Last a) where
 -- 'Applicative' pointwise.
 --
 -- @since 4.12.0.0
-newtype Ap f a = Ap { getAp :: f a }
-        deriving ( -- Alternative -- ^ @since 4.12.0.0
-                 -- , Applicative -- ^ @since 4.12.0.0
-                  Enum        -- ^ @since 4.12.0.0
+newtype f @ a => Ap f a = Ap { getAp :: f a }
+        deriving ( Alternative -- ^ @since 4.12.0.0
+                 , Applicative -- ^ @since 4.12.0.0
+                 , Enum        -- ^ @since 4.12.0.0
                  , Eq          -- ^ @since 4.12.0.0
-                 -- , Functor     -- ^ @since 4.12.0.0
-                 , Generic     -- ^ @since 4.12.0.0
-                 , Generic1    -- ^ @since 4.12.0.0
-                 -- , Monad       -- ^ @since 4.12.0.0
-                 -- , MonadFail   -- ^ @since 4.12.0.0
-                 --, MonadPlus   -- ^ @since 4.12.0.0
+                 , Functor     -- ^ @since 4.12.0.0
+                 -- , Generic     -- ^ @since 4.12.0.0
+                 -- , Generic1    -- ^ @since 4.12.0.0
+                 , Monad       -- ^ @since 4.12.0.0
+                 , MonadFail   -- ^ @since 4.12.0.0
+                 , MonadPlus   -- ^ @since 4.12.0.0
                  , Ord         -- ^ @since 4.12.0.0
                  , Read        -- ^ @since 4.12.0.0
                  , Show        -- ^ @since 4.12.0.0
                  )
-deriving instance (Total f, Monad f) => Monad (Ap f)
-deriving instance (Total f, MonadPlus f) => MonadPlus (Ap f)
-deriving instance (Total f, MonadFail f) => MonadFail (Ap f)
-deriving instance (Total f, Applicative f) => Applicative (Ap f)
-deriving instance (Total f, Alternative f) => Alternative (Ap f)
-deriving instance (Total f, Functor f) => Functor (Ap f)
+-- deriving instance (Total f, Monad f) => Monad (Ap f)
+-- deriving instance (Total f, MonadPlus f) => MonadPlus (Ap f)
+-- deriving instance (Total f, MonadFail f) => MonadFail (Ap f)
+-- deriving instance (Total f, Applicative f) => Applicative (Ap f)
+-- deriving instance (Total f, Alternative f) => Alternative (Ap f)
+deriving instance (Total f, Functor f) => Generic1 (Ap f)
+deriving instance (f @ a, Functor f) => Generic (Ap f a)
 
 
 -- | @since 4.12.0.0

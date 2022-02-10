@@ -26,3 +26,6 @@ y = undefined
 
 data T a b c = T a b c
 type Syn a = T a
+
+type App f a = Ap (f a)
+newtype Ap p = Ap p 

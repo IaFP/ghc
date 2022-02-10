@@ -1,7 +1,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE QuantifiedConstraints, KindSignatures, PolyKinds #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -37,7 +37,7 @@ import GHC.List ( head, tail )
 import GHC.Tuple (Solo (..))
 import Control.Monad.ST.Imp
 import System.IO
-import GHC.Types (Total)
+import GHC.Types (Total, Type)
 
 -- | Monads having fixed points with a \'knot-tying\' semantics.
 -- Instances of 'MonadFix' should satisfy the following laws:
@@ -156,7 +156,9 @@ instance (Total f, MonadFix f) => MonadFix (M1 i c f) where
 instance (Total f, Total g, MonadFix f, MonadFix g) => MonadFix (f :*: g) where
     mfix f = (mfix (fstP . f)) :*: (mfix (sndP . f))
       where
+        fstP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p::k'). (Total f', Total g') => (f' :*: g') p -> f' p
         fstP (a :*: _) = a
+        sndP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p ::k'). (Total f', Total g') => (f' :*: g') p -> g' p
         sndP (_ :*: b) = b
 
 -- Instances for Data.Ord

@@ -12,10 +12,11 @@
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances, IncoherentInstances #-}
 
 module RecordField where
 
-import GHC.Types (type (@@), Total)
+import GHC.Types (type (@), Total)
 import Data.Data
 
 type SrcSpan = (Int, Int)
@@ -48,7 +49,7 @@ instance (Foldable (HsRecFields p)) where
 instance (Traversable (HsRecFields p)) where
   traverse f = sequenceA . fmap f
 
-instance Total (HsRecFields p)
+-- instance Total (HsRecFields p)
 
 data HsRecField' id arg = HsRecField {
         hsRecFieldLbl :: Located id,
@@ -62,5 +63,5 @@ instance Foldable (HsRecField' id) where
 instance Traversable (HsRecField' id) where
   traverse f = sequenceA . fmap f
 
-instance Total (HsRecField' id)
+-- instance Total (HsRecField' id)
 

@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE QuantifiedConstraints, StandaloneDeriving #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -33,9 +33,11 @@ import GHC.Types (Total)
 -- | Lifted sum of functors.
 data Sum f g a = InL (f a) | InR (g a)
   deriving ( Data     -- ^ @since 4.9.0.0
-           , Generic  -- ^ @since 4.9.0.0
-           , Generic1 -- ^ @since 4.9.0.0
+           -- , Generic  -- ^ @since 4.9.0.0
+           -- , Generic1 -- ^ @since 4.9.0.0
            )
+deriving instance (Total f, Total g) => Generic (Sum f g a)
+deriving instance (Total f, Total g) => Generic1 (Sum f g)
 
 -- | @since 4.9.0.0
 instance (Total f, Total g, Eq1 f, Eq1 g) => Eq1 (Sum f g) where

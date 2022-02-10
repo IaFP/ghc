@@ -1,7 +1,15 @@
 { 
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, TypeFamilies #-}
+#endif
 module HpcParser where
 
 import HpcLexer
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type (@))
+#endif
+  
 }
 
 %name parser
@@ -103,4 +111,9 @@ hpcParser filename = do
   return $ parser tokens  	
 
 happyError e = error $ show (take 10 e)
+
+#if MIN_VERSION_base(4,16,0)
+type instance HappyIdentity @ a = ()
+#endif
+    
 }

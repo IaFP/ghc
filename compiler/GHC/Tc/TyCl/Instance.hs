@@ -61,6 +61,7 @@ import GHC.Core.Coercion.Axiom
 import GHC.Core.DataCon
 import GHC.Core.ConLike
 import GHC.Core.Class
+import GHC.Core.TyWF (elabAtAtConstraintsTcM)
 import GHC.Types.Error
 import GHC.Types.Var as Var
 import GHC.Types.Var.Env
@@ -1920,7 +1921,9 @@ tcMethodBodyHelp hs_sig_fn sel_id local_meth_id meth_bind
                    ; checkTc inst_sigs (misplacedInstSig sel_name hs_sig_ty)
                    ; let ctxt = FunSigCtxt sel_name NoRRC
                    ; sig_ty  <- tcHsSigType ctxt hs_sig_ty
-                   ; let local_meth_ty = idType local_meth_id
+                   ; let local_meth_ty' = idType local_meth_id
+                   ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+                   ; local_meth_ty <- if partyCtrs then elabAtAtConstraintsTcM False local_meth_ty' else return local_meth_ty'
                                 -- False <=> do not report redundant constraints when
                                 --           checking instance-sig <= class-meth-sig
                                 -- The instance-sig is the focus here; the class-meth-sig

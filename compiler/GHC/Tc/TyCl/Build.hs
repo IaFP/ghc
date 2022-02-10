@@ -197,7 +197,8 @@ buildDataCon fam_envs src_name declared_infix prom_info src_bangs impl_bangs
 mkDataConStupidTheta :: TyCon -> [Type] -> [TyVar] -> [PredType]
 mkDataConStupidTheta tycon arg_tys univ_tvs
   | null stupid_theta = []      -- The common case
-  | otherwise         = filter in_arg_tys stupid_theta
+  | otherwise         = stupid_theta -- filter in_arg_tys stupid_theta
+      
   where
     tc_subst     = zipTvSubst (tyConTyVars tycon)
                               (mkTyVarTys univ_tvs)

@@ -1226,7 +1226,7 @@ dataConKindEqSpec (MkData {dcExTyCoVars = ex_tcvs})
 -- | The *full* constraints on the constructor type, including dependent GADT
 -- equalities.
 dataConTheta :: DataCon -> ThetaType
-dataConTheta con@(MkData { dcEqSpec = eq_spec, dcOtherTheta = theta })
+dataConTheta con@(MkData { dcEqSpec = eq_spec, dcOtherTheta = theta {-, dcStupidTheta = s_th-} })
   = eqSpecPreds (dataConKindEqSpec con ++ eq_spec) ++ theta
 
 -- | Get the Id of the 'DataCon' worker: a function that is the "actual"
@@ -1371,7 +1371,7 @@ dataConInstSig con@(MkData { dcUnivTyVars = univ_tvs, dcExTyCoVars = ex_tvs
 dataConFullSig :: DataCon
                -> ([TyVar], [TyCoVar], [EqSpec], ThetaType, [Scaled Type], Type)
 dataConFullSig (MkData {dcUnivTyVars = univ_tvs, dcExTyCoVars = ex_tvs,
-                        dcEqSpec = eq_spec, dcOtherTheta = theta,
+                        dcEqSpec = eq_spec, dcOtherTheta = theta,  -- dcStupidTheta = s_theta,
                         dcOrigArgTys = arg_tys, dcOrigResTy = res_ty})
   = (univ_tvs, ex_tvs, eq_spec, theta, arg_tys, res_ty)
 
@@ -1437,6 +1437,7 @@ dataConWrapperType :: DataCon -> Type
 -- mentions the family tycon, not the internal one.
 dataConWrapperType (MkData { dcUserTyVarBinders = user_tvbs,
                              dcOtherTheta = theta, dcOrigArgTys = arg_tys,
+                             dcStupidTheta = s_theta,
                              dcOrigResTy = res_ty })
   = mkInvisForAllTys user_tvbs $
     mkInvisFunTysMany theta $
@@ -1445,7 +1446,7 @@ dataConWrapperType (MkData { dcUserTyVarBinders = user_tvbs,
 
 dataConNonlinearType :: DataCon -> Type
 dataConNonlinearType (MkData { dcUserTyVarBinders = user_tvbs,
-                               dcOtherTheta = theta, dcOrigArgTys = arg_tys,
+                               dcOtherTheta = theta, dcStupidTheta = s_theta, dcOrigArgTys = arg_tys,
                                dcOrigResTy = res_ty })
   = let arg_tys' = map (\(Scaled w t) -> Scaled (case w of One -> Many; _ -> w) t) arg_tys
     in mkInvisForAllTys user_tvbs $
@@ -1713,7 +1714,7 @@ splitDataProductType_maybe ty
 -- | Enriches the well formed theta information in the rep type of the datacon
 -- There are 3 things we need to update here:
 -- 1. The data con itself
--- 2. The wrapper
+-- 2. The wrapper  -- if it exists
 -- 3. The worker
 updateDataCon :: UniqSupply -> DataCon -> ThetaType ->  DataCon
 updateDataCon _ dc [] = dc
@@ -1729,8 +1730,8 @@ updateDataCon us dc wfth = new_dc
     -- ([(a~(x,y), x~y, Ord x), x,  y],  T a)
     (argTys, rty) = splitFunTys tau
 
-    argTys' = stableMergeTypes wfth (fmap scaledThing argTys)
-
+    -- argTys' = stableMergeTypes wfth (fmap scaledThing argTys)
+    argTys' = fmap scaledThing argTys
     new_rep_ty = mkForAllTys covars $ mkVisFunTysMany argTys' rty
 
     new_dcRepArity = length argTys'
@@ -1742,9 +1743,9 @@ updateDataCon us dc wfth = new_dc
     work_id = mkDataConWorkId (varName (dataConWorkId dc)) new_dc
     -- also set the new iddetails
     new_dc = dc { -- dcOtherTheta = mergeTypes wfth (dcOtherTheta dc)
-                  dcRep = new_rep_dc
-                , dcRepType = new_rep_ty
-                , dcRepArity = new_dcRepArity
-                , dcStupidTheta = stableMergeTypes wfth s_th
-                , dcWorkId = work_id
+                -- , dcRep = new_rep_dc
+                -- , dcRepType = new_rep_ty -- TODO: Do we really need to store the dictonary in here?
+                -- , dcRepArity = new_dcRepArity
+                  dcStupidTheta = stableMergeTypes wfth s_th
+                -- , dcWorkId = work_id
                 }

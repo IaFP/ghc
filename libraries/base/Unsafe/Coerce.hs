@@ -11,6 +11,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE Unsafe #-}
+{-# LANGUAGE NoPartialTypeConstructors #-}
+
 
 module Unsafe.Coerce
   ( unsafeCoerce, unsafeCoerceUnlifted, unsafeCoerceAddr

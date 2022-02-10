@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE QuantifiedConstraints, StandaloneDeriving #-}
+{-# LANGUAGE QuantifiedConstraints, StandaloneDeriving, ExplicitNamespaces, TypeOperators #-}
 
 
 -----------------------------------------------------------------------------
@@ -65,16 +65,20 @@ import GHC.Generics
 import GHC.List (repeat, zipWith)
 import GHC.Read (Read)
 import GHC.Show (Show)
-import GHC.Types (Total)
+import GHC.Types (Total, type (@))
 -- $setup
 -- >>> import Prelude
 
-newtype WrappedMonad m a = WrapMonad { unwrapMonad :: m a }
-                         deriving ( Generic  -- ^ @since 4.7.0.0
-                                  , Generic1 -- ^ @since 4.7.0.0
-                                  -- , Monad    -- ^ @since 4.7.0.0
-                                  )
+newtype m @ a => WrappedMonad m a = WrapMonad { unwrapMonad :: m a }
+                         -- deriving ( -- Generic  -- ^ @since 4.7.0.0
+                         --          -- , Generic1 -- ^ @since 4.7.0.0
+                         --            Functor
+                         --          , Monad    -- ^ @since 4.7.0.0
+                         --          )
+                                  
 deriving instance (Total m, Monad m) => Monad (WrappedMonad m)
+deriving instance (Total m, Functor m) => Generic1 (WrappedMonad m)
+deriving instance (Total m, Functor m) => Generic (WrappedMonad m a)
 
 -- | @since 2.01
 instance (Total m, Monad m) => Functor (WrappedMonad m) where
@@ -91,10 +95,12 @@ instance (Total m, MonadPlus m) => Alternative (WrappedMonad m) where
     empty = WrapMonad mzero
     WrapMonad u <|> WrapMonad v = WrapMonad (u `mplus` v)
 
-newtype WrappedArrow a b c = WrapArrow { unwrapArrow :: a b c }
-                           deriving ( Generic  -- ^ @since 4.7.0.0
-                                    , Generic1 -- ^ @since 4.7.0.0
-                                    )
+newtype (a @ b, a b @ c) => WrappedArrow a b c = WrapArrow { unwrapArrow :: a b c }
+                           -- deriving ( Generic  -- ^ @since 4.7.0.0
+                           --          , Generic1 -- ^ @since 4.7.0.0
+                           --          )
+deriving instance (Total2 a, Functor (a b)) => Generic1 (WrappedArrow a b)
+deriving instance (Total2 a, Functor (a b)) => Generic (WrappedArrow a b c)
 {-
 -- | @since 2.01
 instance Arrow a => Functor (WrappedArrow a b) where

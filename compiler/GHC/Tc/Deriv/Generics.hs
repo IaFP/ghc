@@ -158,11 +158,12 @@ canDoGenerics :: DerivInstTys -> Validity' [DeriveGenericsErrReason]
 canDoGenerics dit@(DerivInstTys{dit_rep_tc = tc})
   = mergeErrors (
           -- Check (b) from Note [Requirements for deriving Generic and Rep].
-              (if (not (null (tyConStupidTheta tc)))
-                then (NotValid $ DerivErrGenericsMustNotHaveDatatypeContext tc_name)
-                else IsValid)
+              -- (if (not (null (tyConStupidTheta tc)))
+              --   then (NotValid $ DerivErrGenericsMustNotHaveDatatypeContext tc_name)
+              --   else IsValid)
           -- See comment below
-            : (map bad_con (tyConDataCons tc)))
+            -- :
+            (map bad_con (tyConDataCons tc)))
   where
     -- The tc can be a representation tycon. When we want to display it to the
     -- user (in an error message) we should print its parent

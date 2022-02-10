@@ -187,7 +187,7 @@ instance Arrow (->) where
     (***) f g ~(x,y) = (f x, g y)
 
 -- | Kleisli arrows of a monad.
-newtype Kleisli m a b = Kleisli { runKleisli :: a -> m b }
+newtype m @ b => Kleisli m a b = Kleisli { runKleisli :: a -> m b }
 
 -- | @since 4.14.0.0
 deriving instance Generic (Kleisli m a b)

@@ -6,6 +6,9 @@
 {-# LANGUAGE UnliftedFFITypes #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE TypeFamilies, ExplicitNamespaces, TypeOperators #-}
+#endif
 
 module GHC.Exts.Heap.Closures (
     -- * Closures

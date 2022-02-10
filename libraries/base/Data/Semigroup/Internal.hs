@@ -303,31 +303,33 @@ instance Monad Product where
 -- Just 24
 --
 -- @since 4.8.0.0
-newtype Alt f a = Alt {getAlt :: f a}
-  deriving ( Generic     -- ^ @since 4.8.0.0
-           , Generic1    -- ^ @since 4.8.0.0
-           , Read        -- ^ @since 4.8.0.0
+newtype f @ a => Alt f a = Alt {getAlt :: f a}
+  deriving (--  Generic     -- ^ @since 4.8.0.0
+           -- , Generic1    -- ^ @since 4.8.0.0
+             Read        -- ^ @since 4.8.0.0
            , Show        -- ^ @since 4.8.0.0
            , Eq          -- ^ @since 4.8.0.0
            , Ord         -- ^ @since 4.8.0.0
            , Num         -- ^ @since 4.8.0.0
            , Enum        -- ^ @since 4.8.0.0
-           -- , Monad       -- ^ @since 4.8.0.0
-           -- , MonadPlus   -- ^ @since 4.8.0.0
-           -- , Applicative -- ^ @since 4.8.0.0
-           -- , Alternative -- ^ @since 4.8.0.0
-           -- , Functor     -- ^ @since 4.8.0.0
+           , Monad       -- ^ @since 4.8.0.0
+           , MonadPlus   -- ^ @since 4.8.0.0
+           , Applicative -- ^ @since 4.8.0.0
+           , Alternative -- ^ @since 4.8.0.0
+           , Functor     -- ^ @since 4.8.0.0
            )
-deriving instance (Total f, Monad f) => Monad (Alt f)
-deriving instance (Total f, MonadPlus f) => MonadPlus (Alt f)
-deriving instance (Total f, Applicative f) => Applicative (Alt f)
-deriving instance (Total f, Alternative f) => Alternative (Alt f)
-deriving instance (Total f, Functor f) => Functor (Alt f)
+-- deriving instance (Total f, Monad f) => Monad (Alt f)
+-- deriving instance (Total f, MonadPlus f) => MonadPlus (Alt f)
+-- deriving instance (Total f, Applicative f) => Applicative (Alt f)
+-- deriving instance (Total f, Alternative f) => Alternative (Alt f)
+-- deriving instance (Total f, Functor f) => Functor (Alt f)
+deriving instance (Total f, Functor f) => Generic1 (Alt f)
+deriving instance (Total f, Functor f) => Generic (Alt f a)
 
-instance (f @ a, Alternative f) => Semigroup (Alt f a) where
+instance (Alternative f) => Semigroup (Alt f a) where
     (<>) = coerce ((<|>) :: f a -> f a -> f a)
     stimes = stimesMonoid
 
 -- | @since 4.8.0.0
-instance (f @ a, Alternative f) => Monoid (Alt f a) where
+instance (Alternative f) => Monoid (Alt f a) where
     mempty = Alt empty

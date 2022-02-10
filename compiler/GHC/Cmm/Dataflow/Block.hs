@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GADTs #-}
@@ -39,6 +40,9 @@ module GHC.Cmm.Dataflow.Block
     ) where
 
 import GHC.Prelude
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total2)
+#endif
 
 -- -----------------------------------------------------------------------------
 -- Shapes: Open and Closed
@@ -246,7 +250,11 @@ mapBlock f (BSnoc b n)     = BSnoc   (mapBlock f b)  (f n)
 mapBlock f (BCons n b)     = BCons   (f n)  (mapBlock f b)
 
 -- | A strict 'mapBlock'
-mapBlock' :: (forall e x. n e x -> n' e x) -> (Block n e x -> Block n' e x)
+mapBlock' ::
+#if MIN_VERSION_base(4,16,0)
+  (Total2 n, Total2 n') =>
+#endif
+  (forall e x. n e x -> n' e x) -> (Block n e x -> Block n' e x)
 mapBlock' f = mapBlock3' (f, f, f)
 
 -- | map over a block, with different functions to apply to first nodes,

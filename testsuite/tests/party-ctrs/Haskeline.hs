@@ -14,7 +14,7 @@
 
 module Haskeline where
 
-import GHC.Types (type (@@), Total)
+import GHC.Types (type (@), Total)
 import qualified Control.Monad.Trans.Writer as Writer
 import Control.Monad.Trans.Reader
 import qualified Data.IntMap as Map
@@ -23,7 +23,7 @@ import Control.Monad.Catch
 -- import Control.Monad.Trans
 -- import Control.Monad.State
 -- import Control.Monad.Reader
-import System.Console.Haskeline.Monads
+-- import System.Console.Haskeline.Monads
 
 class Term (n:: * -> *)
 
@@ -120,38 +120,38 @@ data Handles = Handles {hIn, hOut :: Int
                         , closeHandles :: IO ()}
 
 
-instance Total (ReaderT Handles m)
+-- instance Total (ReaderT Handles m)
 
-newtype Draw m a = Draw {unDraw :: (ReaderT Actions
-                                     (ReaderT Terminal
-                                       (StateT TermRows
-                                         (StateT TermPos
-                                           (PosixT m))))) a}
-    deriving (Functor
-              -- , Applicative , Monad
-              , MonadIO
-              , MonadThrow
-              , MonadMask
-              , MonadCatch
-              , MonadReader Actions, MonadReader Terminal, MonadState TermPos,
-              MonadState TermRows, MonadReader Handles)
+-- newtype Draw m a = Draw {unDraw :: (ReaderT Actions
+--                                      (ReaderT Terminal
+--                                        (StateT TermRows
+--                                          (StateT TermPos
+--                                            (PosixT m))))) a}
+--     deriving (Functor
+--               -- , Applicative , Monad
+--               , MonadIO
+--               , MonadThrow
+--               , MonadMask
+--               , MonadCatch
+--               , MonadReader Actions, MonadReader Terminal, MonadState TermPos,
+--               MonadState TermRows, MonadReader Handles)
 
--- newtype ReaderT r m a = ReaderT { runReaderT :: r -> m a }
-liftReaderT :: m a -> ReaderT r m a
-liftReaderT m = ReaderT (const m)
-{-# INLINE liftReaderT #-}
+-- -- newtype ReaderT r m a = ReaderT { runReaderT :: r -> m a }
+-- liftReaderT :: m a -> ReaderT r m a
+-- liftReaderT m = ReaderT (const m)
+-- {-# INLINE liftReaderT #-}
   
-instance (Total m, Monad m) => Applicative (Draw m) where
-  pure a = Draw ((liftReaderT . pure) a)
-  (Draw f) <*> (Draw a) = Draw (f <*> a) 
+-- instance (Total m, Monad m) => Applicative (Draw m) where
+--   pure a = Draw ((liftReaderT . pure) a)
+--   (Draw f) <*> (Draw a) = Draw (f <*> a) 
 
-instance (Total m, Monad m) => Monad (Draw m) where
-  return = pure 
-  m >>= f = Draw $ do m' <- unDraw m
-                      m'' <- unDraw (f m')
-                      return m''
+-- instance (Total m, Monad m) => Monad (Draw m) where
+--   return = pure 
+--   m >>= f = Draw $ do m' <- unDraw m
+--                       m'' <- unDraw (f m')
+--                       return m''
                       
 
-instance MonadTrans Draw where
-    -- lift :: m a -> Draw m a
-    lift = Draw . lift . lift . lift . lift . lift
+-- instance MonadTrans Draw where
+--     -- lift :: m a -> Draw m a
+--     lift = Draw . lift . lift . lift . lift . lift
