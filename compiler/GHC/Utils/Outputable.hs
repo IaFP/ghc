@@ -5,7 +5,10 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, TypeFamilies #-}
+#endif
 {-
 (c) The University of Glasgow 2006-2012
 (c) The GRASP Project, Glasgow University, 1992-1998
@@ -104,7 +107,11 @@ module GHC.Utils.Outputable (
 
 import GHC.Prelude
 
-import {-# SOURCE #-}   GHC.Unit.Types ( Unit, Module, moduleName )
+import {-# SOURCE #-}   GHC.Unit.Types ( Unit, Module, moduleName, 
+#if MIN_VERSION_base(4,16,0)
+                                         GenModule, GenUnit
+#endif
+                                       )
 import {-# SOURCE #-}   GHC.Unit.Module.Name( ModuleName )
 import {-# SOURCE #-}   GHC.Types.Name.Occurrence( OccName )
 
@@ -142,6 +149,15 @@ import GHC.Fingerprint
 import GHC.Show         ( showMultiLineString )
 import GHC.Utils.Exception
 import GHC.Exts (oneShot)
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type (@))
+#endif
+
+#if MIN_VERSION_base(4,16,0)
+-- Need to do this as boot files can't handle type family instances
+type instance GenModule @ a = ()
+type instance GenUnit @ a = ()
+#endif
 
 {-
 ************************************************************************

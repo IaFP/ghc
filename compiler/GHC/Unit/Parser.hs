@@ -40,12 +40,12 @@ parseHoleyModule = parseModuleVar <++ parseModule
         _ <- Parse.char '<'
         modname <- parseModuleName
         _ <- Parse.char '>'
-        return (Module HoleUnit modname)
+        return (mkModule HoleUnit modname)
       parseModule = do
         uid <- parseUnit
         _ <- Parse.char ':'
         modname <- parseModuleName
-        return (Module uid modname)
+        return (mkModule uid modname)
 
 parseModSubst :: ReadP [(ModuleName, Module)]
 parseModSubst = Parse.between (Parse.char '[') (Parse.char ']')

@@ -8,7 +8,10 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE DataKinds #-}
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, UndecidableSuperClasses #-}
+#endif
 {-# OPTIONS_GHC -Wno-incomplete-record-updates #-}
 
 --
@@ -159,7 +162,9 @@ import Text.ParserCombinators.ReadP as ReadP
 import Data.Char
 import Data.Data       ( dataTypeOf, fromConstr, dataTypeConstrs )
 import Data.Kind       ( Type )
-
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total, type(@), Total2)
+#endif
 {- **********************************************************************
 
   Construction functions for Rdr stuff
@@ -1406,7 +1411,11 @@ checkMonadComp = do
 --    P (forall b. DisambECP b => PV (Located b))
 --
 newtype ECP =
-  ECP { unECP :: forall b. DisambECP b => PV (LocatedA b) }
+  ECP { unECP :: forall b. (
+-- #if MIN_VERSION_base(4,16,0)
+--                     forall x. (Body b) @ x, -- make it fail on mightEqualLater finds an unbound cbv
+-- #endif
+                    DisambECP b) => PV (LocatedA b) }
 
 ecpFromExp :: LHsExpr GhcPs -> ECP
 ecpFromExp a = ECP (ecpFromExp' a)
@@ -1449,7 +1458,11 @@ type AnnoBody b
 -- | Disambiguate constructs that may appear when we do not know ahead of time whether we are
 -- parsing an expression, a command, or a pattern.
 -- See Note [Ambiguous syntactic categories]
-class (b ~ (Body b) GhcPs, AnnoBody b) => DisambECP b where
+class (
+#if __GLASGOW_HASKELL__ >= 903
+  Body b @ GhcPs,
+#endif
+  b ~ (Body b) GhcPs, AnnoBody b) => DisambECP b where
   -- | See Note [Body in DisambECP]
   type Body b :: Type -> Type
   -- | Return a command without ambiguity, or fail in a non-command context.

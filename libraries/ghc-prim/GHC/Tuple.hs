@@ -1,6 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude, DeriveGeneric #-}
-{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE TypeFamilies, ExplicitNamespaces, TypeOperators #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  GHC.Tuple
@@ -20,7 +20,7 @@ module GHC.Tuple where
 import GHC.CString ()  -- Make sure we do it first, so that the
                        -- implicit Typeable stuff can see GHC.Types.TyCon
                        -- and unpackCString# etc
-
+import GHC.Types (type (@))
 default () -- Double and Integer aren't available yet
 
 -- | The unit datatype @()@ has one non-undefined member, the nullary
@@ -79,6 +79,7 @@ data () = ()
 -- strict-spined data structure traversals, and for unifying the
 -- implementations of lazy and strict mapping functions.
 data Solo a = Solo a
+type instance Solo @ a = ()
 
 getSolo :: Solo a -> a
 -- getSolo is a standalone function, rather than a record field of Solo,

@@ -1,4 +1,7 @@
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE TypeFamilies, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-# LANGUAGE FlexibleInstances  #-}
 {-# LANGUAGE LambdaCase         #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -141,7 +144,11 @@ import GHC.Prelude
 import GHC.Platform
 
 import {-# SOURCE #-} GHC.Core.TyCo.Rep
-   ( Kind, Type, PredType, mkForAllTy, mkFunTyMany, mkNakedTyConTy )
+   ( Kind, Type, PredType, mkForAllTy, mkFunTyMany, mkNakedTyConTy
+#if __GLASGOW_HASKELL__ >= 903
+    , Scaled
+#endif
+   )
 import {-# SOURCE #-} GHC.Core.TyCo.Ppr
    ( pprType )
 import {-# SOURCE #-} GHC.Builtin.Types
@@ -176,8 +183,15 @@ import GHC.Settings.Constants
 import GHC.Utils.Misc
 import GHC.Types.Unique.Set
 import GHC.Unit.Module
-
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type (@))
+#endif
 import qualified Data.Data as Data
+
+#if __GLASGOW_HASKELL__ >= 903
+type instance Scaled @ Type = ()
+#endif
+
 
 {-
 -----------------------------------------------

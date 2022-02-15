@@ -1,5 +1,9 @@
 {-# LANGUAGE DeriveFunctor, DerivingVia, RankNTypes #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, UndecidableSuperClasses #-}
+#endif
 -- -----------------------------------------------------------------------------
 --
 -- (c) The University of Glasgow, 2010
@@ -52,6 +56,10 @@ import Control.Monad
 import Control.Monad.Catch as MC
 import Control.Monad.Trans.Reader
 import Data.IORef
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@), Total)
+import Control.Monad.Trans.Class (MonadTrans, lift)
+#endif
 
 -- -----------------------------------------------------------------------------
 -- | A monad that has all the features needed by GHC API calls.
@@ -69,12 +77,16 @@ import Data.IORef
 -- If you do not use 'Ghc' or 'GhcT', make sure to call 'GHC.initGhcMonad'
 -- before any call to the GHC API functions can occur.
 --
-class (Functor m, ExceptionMonad m, HasDynFlags m, HasLogger m ) => GhcMonad m where
+class (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif 
+  Functor m, ExceptionMonad m, HasDynFlags m, HasLogger m ) => GhcMonad m where
   getSession :: m HscEnv
   setSession :: HscEnv -> m ()
 
 -- | Call the argument with the current session.
-withSession :: GhcMonad m => (HscEnv -> m a) -> m a
+withSession :: (GhcMonad m) => (HscEnv -> m a) -> m a
 withSession f = getSession >>= f
 
 -- | Grabs the DynFlags from the Session
@@ -212,30 +224,87 @@ reifyGhc act = Ghc $ act
 -- | A monad transformer to add GHC specific features to another monad.
 --
 -- Note that the wrapped monad must support IO and handling of exceptions.
-newtype GhcT m a = GhcT { unGhcT :: Session -> m a }
+newtype
+#if MIN_VERSION_base(4,16,0)
+  m @ a => 
+#endif
+  GhcT m a = GhcT { unGhcT :: Session -> m a }
+#if MIN_VERSION_base(4,16,0)
+instance (Total m, Functor m) => Functor (GhcT m) where
+  fmap f m = GhcT $ (fmap f) . unGhcT m
+    
+instance MonadTrans GhcT where
+  lift x = GhcT $ const x
+  
+instance (Total m,  MonadThrow m) => MonadThrow (GhcT m) where
+  throwM e = lift $ throwM e
+
+instance (Total m, MonadCatch m) => MonadCatch (GhcT m) where
+  catch (GhcT m) c = GhcT $ \r -> m r `MC.catch` \e -> unGhcT (c e) r
+
+instance (Total m, MonadMask m) => MonadMask (GhcT m) where
+  mask a = GhcT $ \e -> MC.mask $ \u -> unGhcT (a $ q u) e
+    where q :: (m a -> m a) -> GhcT m a -> GhcT m a
+          q u (GhcT b) = GhcT (u . b)
+  uninterruptibleMask a =
+    GhcT $ \e -> MC.uninterruptibleMask $ \u -> unGhcT (a $ q u) e
+      where q :: (m a -> m a) -> GhcT m a -> GhcT m a
+            q u (GhcT b) = GhcT (u . b)
+
+  generalBracket acquire release use = GhcT $ \r ->
+    generalBracket
+      (unGhcT acquire r)
+      (\resource exitCase -> unGhcT (release resource exitCase) r)
+      (\resource -> unGhcT (use resource) r)
+#else
   deriving (Functor)
   deriving (MonadThrow, MonadCatch, MonadMask) via (ReaderT Session m)
-
+#endif
+                                                    
 liftGhcT :: m a -> GhcT m a
 liftGhcT m = GhcT $ \_ -> m
 
-instance Applicative m => Applicative (GhcT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Applicative m) => Applicative (GhcT m) where
   pure x  = GhcT $ \_ -> pure x
   g <*> m = GhcT $ \s -> unGhcT g s <*> unGhcT m s
 
-instance Monad m => Monad (GhcT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m) => Monad (GhcT m) where
   m >>= k  = GhcT $ \s -> do a <- unGhcT m s; unGhcT (k a) s
 
-instance MonadIO m => MonadIO (GhcT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  MonadIO m) => MonadIO (GhcT m) where
   liftIO ioA = GhcT $ \_ -> liftIO ioA
 
-instance MonadIO m => HasDynFlags (GhcT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  MonadIO m) => HasDynFlags (GhcT m) where
   getDynFlags = GhcT $ \(Session r) -> liftM hsc_dflags (liftIO $ readIORef r)
 
-instance MonadIO m => HasLogger (GhcT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  MonadIO m) => HasLogger (GhcT m) where
   getLogger = GhcT $ \(Session r) -> liftM hsc_logger (liftIO $ readIORef r)
 
-instance ExceptionMonad m => GhcMonad (GhcT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  ExceptionMonad m) => GhcMonad (GhcT m) where
   getSession = GhcT $ \(Session r) -> liftIO $ readIORef r
   setSession s' = GhcT $ \(Session r) -> liftIO $ writeIORef r s'
 
@@ -250,7 +319,11 @@ printException err = do
   liftIO $ printMessages logger diag_opts (srcErrorMessages err)
 
 -- | A function called to log warnings and errors.
-type WarnErrLogger = forall m. (HasDynFlags m , MonadIO m, HasLogger m) => Maybe SourceError -> m ()
+type WarnErrLogger = forall m. (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  HasDynFlags m , MonadIO m, HasLogger m) => Maybe SourceError -> m ()
 
 defaultWarnErrLogger :: WarnErrLogger
 defaultWarnErrLogger Nothing  = return ()

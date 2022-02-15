@@ -16,7 +16,10 @@
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ApplicativeDo #-}
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 -- -----------------------------------------------------------------------------
 --
 -- (c) The University of Glasgow, 2011
@@ -151,7 +154,9 @@ import Control.Concurrent.STM
 import Control.Monad.Trans.Maybe
 import GHC.Runtime.Loader
 import GHC.Rename.Names
-
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 
 -- -----------------------------------------------------------------------------
 -- Loading the program
@@ -2343,17 +2348,25 @@ runParPipelines n_jobs plugin_hsc_env mHscMessager all_pipelines = do
 
 withLocalTmpFS :: RunMakeM a -> RunMakeM a
 withLocalTmpFS act = do
-  let initialiser = do
+  MC.bracket initialiser finaliser $ \lcl_hsc_env -> local (\env -> env { hsc_env = lcl_hsc_env}) act
+  where
+    initialiser = do
         MakeEnv{..} <- ask
         lcl_tmpfs <- liftIO $ forkTmpFsFrom (hsc_tmpfs hsc_env)
         return $ hsc_env { hsc_tmpfs  = lcl_tmpfs }
-      finaliser lcl_env = do
+        
+    finaliser :: (
+#if MIN_VERSION_base(4,16,0)
+      Total m,
+#endif
+      MonadIO m) => HscEnv -> ReaderT MakeEnv m ()
+    finaliser = \lcl_env -> do
         gbl_env <- ask
         liftIO $ mergeTmpFsInto (hsc_tmpfs lcl_env) (hsc_tmpfs (hsc_env gbl_env))
        -- Add remaining files which weren't cleaned up into local tmp fs for
        -- clean-up later.
        -- Clear the logQueue if this node had it's own log queue
-  MC.bracket initialiser finaliser $ \lcl_hsc_env -> local (\env -> env { hsc_env = lcl_hsc_env}) act
+
 
 -- | Run the given actions and then wait for them all to finish.
 runAllPipelines :: Int -> MakeEnv -> [MakeAction] -> IO ()

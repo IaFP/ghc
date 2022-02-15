@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, UndecidableSuperClasses #-}
+#endif
 -- | A global typecheckable-thing, essentially anything that has a name.
 module GHC.Types.TyThing
    ( TyThing (..)
@@ -48,6 +52,9 @@ import GHC.Utils.Panic
 import Control.Monad ( liftM )
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Class
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@), Total)
+#endif
 
 {-
 Note [ATyCon for classes]
@@ -298,7 +305,11 @@ tyThingId other                       = pprPanic "tyThingId" (ppr other)
 -- to lookup a 'TyThing' in the monadic environment by 'Name'. Provides
 -- a number of related convenience functions for accessing particular
 -- kinds of 'TyThing'
-class Monad m => MonadThings m where
+class (
+#if MIN_VERSION_base(4,16,0)
+  m @ TyThing, m @ Id, m @ DataCon, m @ TyCon,
+#endif
+  Monad m) => MonadThings m where
         lookupThing :: Name -> m TyThing
 
         lookupId :: Name -> m Id
@@ -311,5 +322,9 @@ class Monad m => MonadThings m where
         lookupTyCon = liftM tyThingTyCon . lookupThing
 
 -- Instance used in GHC.HsToCore.Quote
-instance MonadThings m => MonadThings (ReaderT s m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  MonadThings m) => MonadThings (ReaderT s m) where
   lookupThing = lift . lookupThing

@@ -1,6 +1,10 @@
 -- (c) The University of Glasgow 2006
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-# OPTIONS_GHC -fno-warn-orphans #-}  -- instance MonadThings is necessarily an
                                        -- orphan
 {-# LANGUAGE UndecidableInstances #-} -- Wrinkle in Note [Trees That Grow]
@@ -136,6 +140,10 @@ import Data.IORef
 import Data.List (intercalate)
 import Control.Monad
 import GHC.Driver.Env.KnotVars
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
+
 
 {- *********************************************************************
 *                                                                      *
@@ -1121,7 +1129,11 @@ mkStableIdFromString str sig_ty loc occ_wrapper = do
 mkStableIdFromName :: Name -> Type -> SrcSpan -> (OccName -> OccName) -> TcM TcId
 mkStableIdFromName nm = mkStableIdFromString (getOccString nm)
 
-mkWrapperName :: (MonadIO m, HasModule m)
+mkWrapperName :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  MonadIO m, HasModule m)
               => IORef (ModuleEnv Int) -> String -> String -> m FastString
 -- ^ @mkWrapperName ref what nameBase@
 --

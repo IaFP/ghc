@@ -379,7 +379,9 @@ checkFamInstConsistency directlyImpMods
         --   See also Note [ModuleEnv performance and determinism].
     check hpt_fam_insts m1 m2
       = do { env1' <- getFamInsts hpt_fam_insts m1
+           ; traceTc "getFamInsts env1" empty
            ; env2' <- getFamInsts hpt_fam_insts m2
+           ; traceTc "getFamInsts env2" empty
            -- We're checking each element of env1 against env2.
            -- The cost of that is dominated by the size of env1, because
            -- for each instance in env1 we look it up in the type family
@@ -461,8 +463,12 @@ getFamInsts hpt_fam_insts mod
   | Just env <- lookupModuleEnv hpt_fam_insts mod = return env
   | otherwise = do { _ <- initIfaceTcRn (loadSysInterface doc mod)
                    ; eps <- getEps
-                   ; return (expectJust "checkFamInstConsistency" $
-                             lookupModuleEnv (eps_mod_fam_inst_env eps) mod) }
+                   ; traceTc "[[=== getFamInsts Module env[" (ppr  $ moduleEnvToList (eps_mod_fam_inst_env eps))
+                   ; traceTc "===]]" empty
+                   -- ; return (expectJust ("checkFamInstConsistency, "  ++ (show $ moduleName mod)) $
+                   --           lookupModuleEnv (eps_mod_fam_inst_env eps) mod) 
+                   ; return (fromMaybe emptyFamInstEnv $
+                         lookupModuleEnv (eps_mod_fam_inst_env eps) mod) }
   where
     doc = ppr mod <+> text "is a family-instance module"
 

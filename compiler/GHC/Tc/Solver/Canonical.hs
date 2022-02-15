@@ -3331,10 +3331,10 @@ unify_derived loc role    orig_ty1 orig_ty2
            ; unify_derived loc role t1 t2
            ; unify_derived loc Nominal w1 w2 }
 
-    go (TyConApp tc1 tys1) (TyConApp tc2 tys2)
-      | tc1 == tc2, tys1 `equalLength` tys2
-      , tc1 `hasKey` wfTyConKey -- @'s are special
-      = unifyDeriveds loc (tyConRolesX role tc1) tys1 tys2
+    -- go (TyConApp tc1 tys1) (TyConApp tc2 tys2)
+    --   | tc1 == tc2, tys1 `equalLength` tys2
+    --   , tc1 `hasKey` wfTyConKey -- @'s are special
+    --   = unifyDeriveds loc (tyConRolesX role tc1) tys1 tys2
 
     go (TyConApp tc1 tys1) (TyConApp tc2 tys2)
       | tc1 == tc2, tys1 `equalLength` tys2

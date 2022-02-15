@@ -7,6 +7,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators, ExplicitNamespaces, QuantifiedConstraints #-}
+
 module GHC.Cmm.Dataflow.Block
     ( Extensibility (..)
     , O
@@ -283,11 +285,17 @@ mapBlock3' (f, m, l) b = go b
 -- | Fold a function over every node in a block, forward or backward.
 -- The fold function must be polymorphic in the shape of the nodes.
 foldBlockNodesF3 :: forall n a b c .
+#if MIN_VERSION_base(4,16,0)
+  (Total2 n) =>
+#endif  
                    ( n C O       -> a -> b
                    , n O O       -> b -> b
                    , n O C       -> b -> c)
                  -> (forall e x . Block n e x -> IndexedCO e a b -> IndexedCO x c b)
 foldBlockNodesF  :: forall n a .
+#if MIN_VERSION_base(4,16,0)
+  (Total2 n) =>
+#endif  
                     (forall e x . n e x       -> a -> a)
                  -> (forall e x . Block n e x -> IndexedCO e a a -> IndexedCO x a a)
 foldBlockNodesB3 :: forall n a b c .
@@ -296,6 +304,9 @@ foldBlockNodesB3 :: forall n a b c .
                    , n O C       -> a -> b)
                  -> (forall e x . Block n e x -> IndexedCO x a b -> IndexedCO e c b)
 foldBlockNodesB  :: forall n a .
+#if MIN_VERSION_base(4,16,0)
+  (Total2 n) =>
+#endif  
                     (forall e x . n e x       -> a -> a)
                  -> (forall e x . Block n e x -> IndexedCO x a a -> IndexedCO e a a)
 

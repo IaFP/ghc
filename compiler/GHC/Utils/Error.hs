@@ -1,7 +1,10 @@
 {-# LANGUAGE BangPatterns    #-}
 {-# LANGUAGE RankNTypes      #-}
 {-# LANGUAGE ViewPatterns    #-}
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-
 (c) The AQUA Project, Glasgow University, 1994-1998
 
@@ -86,6 +89,9 @@ import Control.Monad.IO.Class
 import Control.Monad.Catch as MC (handle)
 import GHC.Conc         ( getAllocationCounter )
 import System.CPUTime
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 
 data DiagOpts = DiagOpts
   { diag_warning_flags       :: !(EnumSet WarningFlag) -- ^ Enabled warnings
@@ -322,7 +328,11 @@ data PrintTimings = PrintTimings | DontPrintTimings
 -- requested, the result is only forced when timings are enabled.
 --
 -- See Note [withTiming] for more.
-withTiming :: MonadIO m
+withTiming :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  MonadIO m)
            => Logger
            -> SDoc         -- ^ The name of the phase
            -> (a -> ())    -- ^ A function to force the result
@@ -337,7 +347,11 @@ withTiming logger what force action =
 --
 --   See Note [withTiming] for more.
 withTimingSilent
-  :: MonadIO m
+  :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+    MonadIO m)
   => Logger
   -> SDoc       -- ^ The name of the phase
   -> (a -> ())  -- ^ A function to force the result
@@ -348,7 +362,11 @@ withTimingSilent logger what force action =
   withTiming' logger what force DontPrintTimings action
 
 -- | Worker for 'withTiming' and 'withTimingSilent'.
-withTiming' :: MonadIO m
+withTiming' :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  MonadIO m)
             => Logger
             -> SDoc         -- ^ The name of the phase
             -> (a -> ())    -- ^ A function to force the result

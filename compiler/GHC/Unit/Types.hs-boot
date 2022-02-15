@@ -1,4 +1,8 @@
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE NoPartialTypeConstructors #-}
+#endif
 module GHC.Unit.Types where
 
 import GHC.Prelude ()

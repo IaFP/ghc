@@ -49,7 +49,10 @@
 {-# LANGUAGE UnboxedSums #-}
 {-# LANGUAGE UnliftedNewtypes #-}
 {-# LANGUAGE PatternSynonyms #-}
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
@@ -90,7 +93,9 @@ import Data.List (stripPrefix, isInfixOf, partition)
 import Data.Maybe
 import Data.Word
 import Debug.Trace (trace)
-
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 import GHC.Data.EnumSet as EnumSet
 
 -- ghc-boot
@@ -2908,7 +2913,11 @@ initParserState options buf loc =
 -- MonadP grants us convenient overloading. The other option is to have separate operations
 -- for each monad: addErrorP vs addErrorPV, getBitP vs getBitPV, and so on.
 --
-class Monad m => MonadP m where
+class (
+#if MIN_VERSION_base(4,16,0)
+ Total m,
+#endif
+  Monad m) => MonadP m where
   -- | Add a non-fatal error. Use this when the parser can produce a result
   --   despite the error.
   --

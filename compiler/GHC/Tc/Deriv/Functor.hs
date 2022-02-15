@@ -2,8 +2,10 @@
 (c) The University of Glasgow 2011
 
 -}
-
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -45,6 +47,9 @@ import GHC.Types.Id.Make (coerceId)
 import GHC.Builtin.Types (true_RDR, false_RDR)
 
 import Data.Maybe (catMaybes, isJust)
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 
 {-
 ************************************************************************
@@ -246,7 +251,11 @@ gen_Functor_binds loc dit@(DerivInstTys{ dit_rep_tc = tycon
                  , ft_co_var = panic "contravariant in ft_replace" }
 
     -- Con a1 a2 ... -> Con (f1 a1) (f2 a2) ...
-    match_for_con :: Monad m
+    match_for_con :: (
+#if MIN_VERSION_base(4,16,0)
+      Total m,
+#endif
+      Monad m)
                   => HsMatchContext GhcPs
                   -> [LPat GhcPs] -> DataCon
                   -> [LHsExpr GhcPs -> m (LHsExpr GhcPs)]
@@ -808,7 +817,7 @@ gen_Foldable_binds loc dit@(DerivInstTys{ dit_rep_tc = tycon
   = (listToBag [foldr_bind, foldMap_bind, null_bind], emptyBag)
   where
     data_cons = getPossibleDataCons tycon tycon_args
-
+    foldr_name :: LIdP GhcPs
     foldr_name = L (noAnnSrcSpan loc) foldable_foldr_RDR
 
     foldr_bind = mkRdrFunBind (L (noAnnSrcSpan loc) foldable_foldr_RDR) eqns
@@ -817,8 +826,10 @@ gen_Foldable_binds loc dit@(DerivInstTys{ dit_rep_tc = tycon
       = evalState (match_foldr z_Expr [f_Pat,z_Pat] con =<< parts) bs_RDRs
       where
         parts = sequence $ foldDataConArgs ft_foldr con dit
+    foldr_match_ctxt :: HsMatchContext GhcPs
     foldr_match_ctxt = mkPrefixFunRhs foldr_name
 
+    foldMap_name :: LIdP GhcPs
     foldMap_name = L (noAnnSrcSpan loc) foldMap_RDR
 
     -- See Note [EmptyDataDecls with Functor, Foldable, and Traversable]
@@ -831,6 +842,7 @@ gen_Foldable_binds loc dit@(DerivInstTys{ dit_rep_tc = tycon
       = evalState (match_foldMap [f_Pat] con =<< parts) bs_RDRs
       where
         parts = sequence $ foldDataConArgs ft_foldMap con dit
+    foldMap_match_ctxt :: HsMatchContext GhcPs
     foldMap_match_ctxt = mkPrefixFunRhs foldMap_name
 
     -- Given a list of NullM results, produce Nothing if any of
@@ -881,7 +893,11 @@ gen_Foldable_binds loc dit@(DerivInstTys{ dit_rep_tc = tycon
            , ft_fun     = panic "function in ft_foldr"
            , ft_bad_app = panic "in other argument in ft_foldr" }
 
-    match_foldr :: Monad m
+    match_foldr :: (
+#if MIN_VERSION_base(4,16,0)
+     Total m,
+#endif
+      Monad m)
                 => LHsExpr GhcPs
                 -> [LPat GhcPs]
                 -> DataCon
@@ -912,7 +928,11 @@ gen_Foldable_binds loc dit@(DerivInstTys{ dit_rep_tc = tycon
            , ft_fun = panic "function in ft_foldMap"
            , ft_bad_app = panic "in other argument in ft_foldMap" }
 
-    match_foldMap :: Monad m
+    match_foldMap :: (
+#if MIN_VERSION_base(4,16,0)
+                     Total m,
+#endif
+                     Monad m)
                   => [LPat GhcPs]
                   -> DataCon
                   -> [Maybe (LHsExpr GhcPs)]
@@ -961,7 +981,11 @@ gen_Foldable_binds loc dit@(DerivInstTys{ dit_rep_tc = tycon
            , ft_fun = panic "function in ft_null"
            , ft_bad_app = panic "in other argument in ft_null" }
 
-    match_null :: Monad m
+    match_null :: (
+#if MIN_VERSION_base(4,16,0)
+                  Total m,
+#endif
+                  Monad m)
                => [LPat GhcPs]
                -> DataCon
                -> [Maybe (LHsExpr GhcPs)]
@@ -1038,7 +1062,7 @@ gen_Traversable_binds loc dit@(DerivInstTys{ dit_rep_tc = tycon
   = (unitBag traverse_bind, emptyBag)
   where
     data_cons = getPossibleDataCons tycon tycon_args
-
+    traverse_name :: LIdP GhcPs
     traverse_name = L (noAnnSrcSpan loc) traverse_RDR
 
     -- See Note [EmptyDataDecls with Functor, Foldable, and Traversable]
@@ -1049,6 +1073,7 @@ gen_Traversable_binds loc dit@(DerivInstTys{ dit_rep_tc = tycon
       = evalState (match_for_con [f_Pat] con =<< parts) bs_RDRs
       where
         parts = sequence $ foldDataConArgs ft_trav con dit
+    traverse_match_ctxt :: HsMatchContext GhcPs
     traverse_match_ctxt = mkPrefixFunRhs traverse_name
 
     -- Yields 'Just' an expression if we're folding over a type that mentions
@@ -1075,7 +1100,11 @@ gen_Traversable_binds loc dit@(DerivInstTys{ dit_rep_tc = tycon
 
     -- Con a1 a2 ... -> liftA2 (\b1 b2 ... -> Con b1 b2 ...) (g1 a1)
     --                    (g2 a2) <*> ...
-    match_for_con :: Monad m
+    match_for_con :: (
+#if MIN_VERSION_base(4,16,0)
+      Total m,
+#endif
+      Monad m)
                   => [LPat GhcPs]
                   -> DataCon
                   -> [Maybe (LHsExpr GhcPs)]

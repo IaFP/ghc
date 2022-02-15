@@ -7,6 +7,9 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE MagicHash #-}
+#if MIN_VERSION_base(4,16,0)
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif  
 
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
@@ -153,6 +156,9 @@ import qualified Data.IntMap as IM
 import qualified Data.Set as Set
 
 import Data.Time
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@))
+#endif
 
 infixr 9 `thenCmp`
 
@@ -1294,7 +1300,11 @@ fileHashIfExists f =
 -- as otherwise a partially written file (e.g. due to crash or Ctrl+C)
 -- also results in a skip.
 
-withAtomicRename :: (MonadIO m) => FilePath -> (FilePath -> m a) -> m a
+withAtomicRename :: (
+#if MIN_VERSION_base(4,16,0)
+  m @ (),
+#endif  
+  MonadIO m) => FilePath -> (FilePath -> m a) -> m a
 withAtomicRename targetFile f = do
   -- The temp file must be on the same file system (mount) as the target file
   -- to result in an atomic move on most platforms.

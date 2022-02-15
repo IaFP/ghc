@@ -1,4 +1,7 @@
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -46,6 +49,9 @@ import Control.Monad.Trans.RWS.Strict ( RWST, runRWST )
 import qualified Control.Monad.Trans.RWS.Strict as RWS
 import Control.Monad.Trans.Cont ( ContT (..) )
 import Data.ByteString ( ByteString )
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 
 -- | @uncurry 'mkStgBinding' . 'decomposeStgBinding' = id@
 decomposeStgBinding :: GenStgBinding pass -> (RecFlag, [(BinderP pass, GenStgRhs pass)])
@@ -256,7 +262,11 @@ withSubstBndr bndr inner = LiftM $ do
   RWS.local (\e -> e { e_subst = subst' }) (unwrapLiftM (inner bndr'))
 
 -- | See 'withSubstBndr'.
-withSubstBndrs :: Traversable f => f Id -> (f Id -> LiftM a) -> LiftM a
+withSubstBndrs :: (
+#if MIN_VERSION_base(4,16,0)
+  Total f,
+#endif
+  Traversable f) => f Id -> (f Id -> LiftM a) -> LiftM a
 withSubstBndrs = runContT . traverse (ContT . withSubstBndr)
 
 -- | Similarly to 'withSubstBndr', this function takes a set of variables to
@@ -284,7 +294,11 @@ withLiftedBndr abs_ids bndr inner = do
     (unwrapLiftM (inner bndr'))
 
 -- | See 'withLiftedBndr'.
-withLiftedBndrs :: Traversable f => DIdSet -> f Id -> (f Id -> LiftM a) -> LiftM a
+withLiftedBndrs :: (
+#if MIN_VERSION_base(4,16,0)
+  Total f,
+#endif
+  Traversable f) => DIdSet -> f Id -> (f Id -> LiftM a) -> LiftM a
 withLiftedBndrs abs_ids = runContT . traverse (ContT . withLiftedBndr abs_ids)
 
 -- | Substitutes a binder /occurrence/, which was brought in scope earlier by

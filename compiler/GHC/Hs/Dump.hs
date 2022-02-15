@@ -4,6 +4,10 @@
 -}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 
 -- | Contains a debug function to dump parts of the GHC.Hs AST. It uses a syb
 -- traversal which falls back to displaying based on the constructor name, so
@@ -34,6 +38,9 @@ import GHC.Utils.Outputable
 
 import Data.Data hiding (Fixity)
 import qualified Data.ByteString as B
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total, Total2)
+#endif
 
 data BlankSrcSpan = BlankSrcSpan | BlankSrcSpanFile | NoBlankSrcSpan
                   deriving (Eq,Show)
@@ -327,7 +334,11 @@ extQ :: ( Typeable a
 extQ f g a = maybe (f a) g (cast a)
 
 -- | Type extension of queries for type constructors
-ext1Q :: (Data d, Typeable t)
+ext1Q :: (
+#if MIN_VERSION_base(4,16,0)
+    Total t,
+#endif
+  Data d, Typeable t)
       => (d -> q)
       -> (forall e. Data e => t e -> q)
       -> d -> q
@@ -335,14 +346,22 @@ ext1Q def ext = unQ ((Q def) `ext1` (Q ext))
 
 
 -- | Type extension of queries for type constructors
-ext2Q :: (Data d, Typeable t)
+ext2Q :: (
+#if MIN_VERSION_base(4,16,0)
+    Total2 t,
+#endif
+  Data d, Typeable t)
       => (d -> q)
       -> (forall d1 d2. (Data d1, Data d2) => t d1 d2 -> q)
       -> d -> q
 ext2Q def ext = unQ ((Q def) `ext2` (Q ext))
 
 -- | Flexible type extension
-ext1 :: (Data a, Typeable t)
+ext1 :: (
+#if MIN_VERSION_base(4,16,0)
+  Total t, Total c,
+#endif
+  Data a, Typeable t)
      => c a
      -> (forall d. Data d => c (t d))
      -> c a
@@ -351,7 +370,11 @@ ext1 def ext = maybe def id (dataCast1 ext)
 
 
 -- | Flexible type extension
-ext2 :: (Data a, Typeable t)
+ext2 :: (
+#if MIN_VERSION_base(4,16,0)
+  Total2 t, Total c, 
+#endif
+  Data a, Typeable t)
      => c a
      -> (forall d1 d2. (Data d1, Data d2) => c (t d1 d2))
      -> c a

@@ -2,6 +2,9 @@
 {-# LANGUAGE TupleSections, RecordWildCards #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE LambdaCase #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 
 --
 --  (c) The University of Glasgow 2002-2006
@@ -110,7 +113,9 @@ import System.FilePath
 import System.Directory
 import System.IO.Unsafe
 import System.Environment (lookupEnv)
-
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 #if defined(mingw32_HOST_OS)
 import System.Win32.Info (getSystemDirectory)
 #endif
@@ -234,7 +239,11 @@ loadDependencies interp hsc_env pls span needed_mods = do
 
 -- | Temporarily extend the loaded env.
 withExtendedLoadedEnv
-  :: (ExceptionMonad m)
+  :: (
+#if __GLASGOW_HASKELL__ >= 903
+    Total m,
+#endif
+    ExceptionMonad m)
   => Interp
   -> [(Name,ForeignHValue)]
   -> m a

@@ -1,4 +1,8 @@
 {-# LANGUAGE GADTs, BangPatterns, ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 
 module GHC.Cmm.CommonBlockElim
   ( elimCommonBlocks
@@ -28,6 +32,9 @@ import qualified GHC.Data.TrieMap as TM
 import GHC.Types.Unique.FM
 import GHC.Types.Unique
 import Control.Arrow (first, second)
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 
 -- -----------------------------------------------------------------------------
 -- Eliminate common blocks
@@ -305,6 +312,9 @@ groupByLabel :: [(Key, DistinctBlocks)] -> [(Key, [DistinctBlocks])]
 groupByLabel =
   go (TM.emptyTM :: TM.ListMap (TM.GenMap LabelMap) (Key, [DistinctBlocks]))
     where
+#if MIN_VERSION_base(4,16,0)
+      go :: (Total m, TM.TrieMap m) => m (TM.Key m, [a]) -> [(TM.Key m, a)] -> [(TM.Key m, [a])]
+#endif
       go !m [] = TM.foldTM (:) m []
       go !m ((k,v) : entries) = go (TM.alterTM k adjust m) entries
         where --k' = map (getKey . getUnique) k

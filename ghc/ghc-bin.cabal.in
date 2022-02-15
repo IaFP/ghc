@@ -44,6 +44,9 @@ Executable ghc
                    ghc-boot   == @ProjectVersionMunged@,
                    ghc        == @ProjectVersionMunged@
 
+    if impl(ghc>=9.0.3)
+       Build-Depends: ghc-prim >= 0.8.0
+
     if os(windows)
         Build-Depends: Win32  >= 2.3 && < 2.13
     else

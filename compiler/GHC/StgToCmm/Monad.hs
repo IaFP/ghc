@@ -2,6 +2,10 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 
 -----------------------------------------------------------------------------
 --
@@ -91,6 +95,9 @@ import GHC.Exts (oneShot)
 
 import Control.Monad
 import Data.List (mapAccumL)
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@))
+#endif
 
 
 --------------------------------------------------------
@@ -481,7 +488,11 @@ newUnique = do
         setState $ state { cgs_uniqs = us' }
         return u
 
-newTemp :: MonadUnique m => CmmType -> m LocalReg
+newTemp :: (
+#if MIN_VERSION_base(4,16,0)
+  m @ Unique,
+#endif
+  MonadUnique m) => CmmType -> m LocalReg
 newTemp rep = do { uniq <- getUniqueM
                  ; return (LocalReg uniq rep) }
 

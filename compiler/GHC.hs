@@ -3,6 +3,9 @@
 {-# LANGUAGE TupleSections, NamedFieldPuns #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 
 -- -----------------------------------------------------------------------------
 --
@@ -15,7 +18,7 @@
 module GHC (
         -- * Initialisation
         defaultErrorHandler,
-        defaultCleanupHandler,
+        -- defaultCleanupHandler,
         prettyPrintGhcErrors,
         withSignalHandlers,
         withCleanupSession,
@@ -425,6 +428,9 @@ import System.IO.Error  ( isDoesNotExistError )
 import System.Environment ( getEnv, getProgName )
 import System.Directory
 import Data.List (isPrefixOf)
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 
 
 -- %************************************************************************
@@ -477,12 +483,20 @@ defaultErrorHandler fm (FlushOut flushOut) inner =
             ) $
   inner
 
--- | This function is no longer necessary, cleanup is now done by
--- runGhc/runGhcT.
-{-# DEPRECATED defaultCleanupHandler "Cleanup is now done by runGhc/runGhcT" #-}
-defaultCleanupHandler :: (ExceptionMonad m) => DynFlags -> m a -> m a
-defaultCleanupHandler _ m = m
- where _warning_suppression = m `MC.onException` undefined
+-- -- | This function is no longer necessary, cleanup is now done by
+-- -- runGhc/runGhcT.
+-- {-# DEPRECATED defaultCleanupHandler "Cleanup is now done by runGhc/runGhcT" #-}
+-- defaultCleanupHandler :: (
+-- #if MIN_VERSION_base(4,16,0)
+--     Total m,
+-- #endif
+--   ExceptionMonad m) => DynFlags -> m a -> m a
+-- defaultCleanupHandler _ m = m
+--  where
+-- #if MIN_VERSION_base(4,16,0)
+--    _warning_suppression :: Total m => m a
+-- #endif
+--    _warning_suppression = m `MC.onException` undefined
 
 
 -- %************************************************************************
@@ -516,7 +530,11 @@ runGhc mb_top_dir ghc = do
 -- to this function will create a new session which should not be shared among
 -- several threads.
 
-runGhcT :: ExceptionMonad m =>
+runGhcT :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+    ExceptionMonad m) =>
            Maybe FilePath  -- ^ See argument to 'initGhcMonad'.
         -> GhcT m a        -- ^ The action to perform.
         -> m a
@@ -577,11 +595,15 @@ initGhcMonad mb_top_dir
 -- version where this bug is fixed.
 -- See https://sourceware.org/bugzilla/show_bug.cgi?id=16177 and
 -- https://gitlab.haskell.org/ghc/ghc/issues/4210#note_78333
-checkBrokenTablesNextToCode :: MonadIO m => Logger -> DynFlags -> m ()
+checkBrokenTablesNextToCode :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  MonadIO m) => Logger -> DynFlags -> m ()
 checkBrokenTablesNextToCode logger dflags
   = do { broken <- checkBrokenTablesNextToCode' logger dflags
-       ; when broken
-         $ do { _ <- liftIO $ throwIO $ mkApiErr dflags invalidLdErr
+       ; when broken 
+         $ do { (_:: ()) <- liftIO $ throwIO $ mkApiErr dflags invalidLdErr
               ; liftIO $ fail "unsupported linker"
               }
        }

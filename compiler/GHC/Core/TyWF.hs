@@ -1,4 +1,8 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 module GHC.Core.TyWF (
 
   ------------------------------
@@ -38,9 +42,10 @@ import GHC.Tc.Utils.Monad
 import GHC.Utils.Panic (pprPanic)
 import GHC.Utils.Outputable
 import GHC.Utils.Misc(lengthAtLeast)
--- #if __GLASGOW_HASKELL__ >= 810
--- import GHC.Types (type (@))
--- #endif
+
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 
 -------------------------------------------------------------------------
 {-
@@ -381,21 +386,22 @@ tuplesToList ty
 
 -- This is never called in Tycon Defining phase. so look break all barriers
 -- Generates all the f @@ a constraints
-genWfConstraints :: (Monad m
--- #if __GLASGOW_HASKELL__ >= 810
---                        , m @@ ThetaType, m @@ [(Type, ThetaType)]
--- #endif
+genWfConstraints :: (
+#if MIN_VERSION_base(4,16,0)
+                     Total m,
+#endif
+                      Monad m
                       ) => Type ->  m ThetaType
 genWfConstraints ty = do d <- genAtAtConstraintsExcept [] [] ty
                          return $ newPreds d
 
 
 -- Generates f @@ a constraints unless tycon passed in appears in LHS
-genAtAtConstraintsExcept :: (Monad m
--- #if __GLASGOW_HASKELL__ >= 810
---                             , m @@ ThetaType, m @@ [(Type, ThetaType)]
--- #endif
-                            ) => [TyCon] -> [Type] -> Type ->  m WfElabTypeDetails
+genAtAtConstraintsExcept :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m) => [TyCon] -> [Type] -> Type ->  m WfElabTypeDetails
 genAtAtConstraintsExcept tycons ts ty
   -- | isLiftedRuntimeRep ty || isLiftedTypeKind ty = return (ty, []) -- i don't think we need this now.
   -- it  generates (->) @@ a and (a ->) @@ b and recursively generates constraints for a and b
@@ -477,12 +483,12 @@ genAtAtConstraintsExcept tycons ts ty
 
 -- recursively generates @@ constraints for a type constructor
 -- Doesn't rewrite type family constructors
-tyConGenAts :: (Monad m
--- #if __GLASGOW_HASKELL__ >= 810
---                , m @@ ThetaType, m @@ [(Type, ThetaType)]
---                , m @@ (Type, ThetaType)
--- #endif
-               )  => [TyCon]
+tyConGenAts :: (
+#if MIN_VERSION_base(4,16,0)
+                Total m,
+#endif
+               Monad m)
+            => [TyCon]
             -> [Type] -- things to ignore
             -> TyCon -> [Type] -> m ThetaType
 tyConGenAts eTycons ts tycon args -- TODO isUnliftedType??

@@ -2,6 +2,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, UndecidableSuperClasses #-}
+#endif
 
 {-
 (c) The University of Glasgow, 2004-2006
@@ -51,6 +55,9 @@ import GHC.Unit.Module.Name
 import GHC.Unit.Module.Location
 import GHC.Unit.Module.Env
 import GHC.Utils.Misc
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@))
+#endif
 
 -- | A 'Module' is definite if it has no free holes.
 moduleIsDefinite :: Module -> Bool
@@ -75,7 +82,11 @@ stableModuleCmp (Module p1 n1) (Module p2 n2)
 class ContainsModule t where
     extractModule :: t -> Module
 
-class HasModule m where
+class
+#if MIN_VERSION_base(4,16,0)
+  m @ Module =>
+#endif
+  HasModule m where
     getModule :: m Module
 
 

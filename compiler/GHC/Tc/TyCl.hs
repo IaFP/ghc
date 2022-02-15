@@ -217,9 +217,12 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
            -- Step 3: Add the implicit things;
            -- we want them in the environment because
            -- they may be mentioned in interface files
+         -- TODO: donot call mk_atat_fam if we are in boot files
+         -- That information should be accesible from TcM but i don't know whats the best
+         -- way to get it..
        ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
        ; (gbl_env, th_bndrs) <-
-           if enblPCtrs 
+           if enblPCtrs
            then do { let locs::[SrcSpan] = map (locA . getLoc) tyclds
                              -- ; let tAndR = thisAndRest tyclss
                    ; let locsAndTcs = zip locs tyclss

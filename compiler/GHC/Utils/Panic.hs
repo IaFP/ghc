@@ -6,7 +6,9 @@
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ScopedTypeVariables, LambdaCase #-}
-
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 -- | Defines basic functions for printing error messages.
 --
 -- It's hard to put these functions anywhere else without causing
@@ -69,6 +71,9 @@ import GHC.ConsoleHandler as S
 #endif
 
 import System.Mem.Weak  ( deRefWeak )
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 
 -- | GHC's own exception type
 --   error messages all take the form:
@@ -227,7 +232,11 @@ signalHandlersRefCount = unsafePerformIO $ newMVar (0,Nothing)
 
 -- | Temporarily install standard signal handlers for catching ^C, which just
 -- throw an exception in the current thread.
-withSignalHandlers :: ExceptionMonad m => m a -> m a
+withSignalHandlers :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  ExceptionMonad m) => m a -> m a
 withSignalHandlers act = do
   main_thread <- liftIO myThreadId
   wtid <- liftIO (mkWeakThreadId main_thread)

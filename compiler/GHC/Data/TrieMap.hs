@@ -3,6 +3,10 @@
 {-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 
 {-
 (c) The University of Glasgow 2006
@@ -39,7 +43,9 @@ import qualified Data.IntMap as IntMap
 import GHC.Utils.Outputable
 import Control.Monad( (>=>) )
 import Data.Kind( Type )
-
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@), Total)
+#endif
 import qualified Data.Semigroup as S
 
 {-
@@ -69,8 +75,16 @@ type XT a = Maybe a -> Maybe a  -- How to alter a non-existent elt (Nothing)
 class TrieMap m where
    type Key m :: Type
    emptyTM  :: m a
-   lookupTM :: forall b. Key m -> m b -> Maybe b
-   alterTM  :: forall b. Key m -> XT b -> m b -> m b
+   lookupTM :: forall b.
+#if MIN_VERSION_base(4,16,0)
+               Total m =>
+#endif
+               Key m -> m b -> Maybe b
+   alterTM  :: forall b.
+#if MIN_VERSION_base(4,16,0)
+               Total m =>
+#endif
+               Key m -> XT b -> m b -> m b
    mapTM    :: (a->b) -> m a -> m b
    filterTM :: (a -> Bool) -> m a -> m a
 
@@ -79,10 +93,18 @@ class TrieMap m where
       -- it easy to compose calls to foldTM;
       -- see for example fdE below
 
-insertTM :: TrieMap m => Key m -> a -> m a -> m a
+insertTM :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  TrieMap m) => Key m -> a -> m a -> m a
 insertTM k v m = alterTM k (\_ -> Just v) m
 
-deleteTM :: TrieMap m => Key m -> m a -> m a
+deleteTM :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  TrieMap m) => Key m -> m a -> m a
 deleteTM k m = alterTM k (\_ -> Nothing) m
 
 foldMapTM :: (TrieMap m, Monoid r) => (a -> r) -> m a -> r
@@ -233,7 +255,11 @@ If              m is a map from k -> val
 then (MaybeMap m) is a map from (Maybe k) -> val
 -}
 
-data MaybeMap m a = MM { mm_nothing  :: Maybe a, mm_just :: m a }
+data
+#if MIN_VERSION_base(4,16,0)
+  m @ a => 
+#endif
+  MaybeMap m a = MM { mm_nothing  :: Maybe a, mm_just :: m a }
 
 instance TrieMap m => TrieMap (MaybeMap m) where
    type Key (MaybeMap m) = Maybe (Key m)
@@ -251,12 +277,20 @@ mapMb :: TrieMap m => (a->b) -> MaybeMap m a -> MaybeMap m b
 mapMb f (MM { mm_nothing = mn, mm_just = mj })
   = MM { mm_nothing = fmap f mn, mm_just = mapTM f mj }
 
-lkMaybe :: (forall b. k -> m b -> Maybe b)
+lkMaybe ::
+#if MIN_VERSION_base(4,16,0)
+  Total m =>
+#endif
+  (forall b. k -> m b -> Maybe b)
         -> Maybe k -> MaybeMap m a -> Maybe a
 lkMaybe _  Nothing  = mm_nothing
 lkMaybe lk (Just x) = mm_just >.> lk x
 
-xtMaybe :: (forall b. k -> XT b -> m b -> m b)
+xtMaybe ::
+#if MIN_VERSION_base(4,16,0)
+  Total m => 
+#endif
+  (forall b. k -> XT b -> m b -> m b)
         -> Maybe k -> XT a -> MaybeMap m a -> MaybeMap m a
 xtMaybe _  Nothing  f m = m { mm_nothing  = f (mm_nothing m) }
 xtMaybe tr (Just x) f m = m { mm_just = mm_just m |> tr x f }
@@ -286,11 +320,19 @@ filterMaybe f input@(Just x) | f x       = input
 ************************************************************************
 -}
 
-data ListMap m a
+data
+#if MIN_VERSION_base(4,16,0)
+  m @ ListMap m a =>
+#endif
+  ListMap m a
   = LM { lm_nil  :: Maybe a
        , lm_cons :: m (ListMap m a) }
 
-instance TrieMap m => TrieMap (ListMap m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+          TrieMap m) => TrieMap (ListMap m) where
    type Key (ListMap m) = [Key m]
    emptyTM  = LM { lm_nil = Nothing, lm_cons = emptyTM }
    lookupTM = lkList lookupTM
@@ -299,32 +341,60 @@ instance TrieMap m => TrieMap (ListMap m) where
    mapTM    = mapList
    filterTM = ftList
 
-instance TrieMap m => Foldable (ListMap m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  TrieMap m) => Foldable (ListMap m) where
   foldMap = foldMapTM
 
-instance (TrieMap m, Outputable a) => Outputable (ListMap m a) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  TrieMap m, Outputable a) => Outputable (ListMap m a) where
   ppr m = text "List elts" <+> ppr (foldTM (:) m [])
 
-mapList :: TrieMap m => (a->b) -> ListMap m a -> ListMap m b
+mapList :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  TrieMap m) => (a->b) -> ListMap m a -> ListMap m b
 mapList f (LM { lm_nil = mnil, lm_cons = mcons })
   = LM { lm_nil = fmap f mnil, lm_cons = mapTM (mapTM f) mcons }
 
-lkList :: TrieMap m => (forall b. k -> m b -> Maybe b)
+lkList :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m, 
+#endif
+  TrieMap m) => (forall b. k -> m b -> Maybe b)
         -> [k] -> ListMap m a -> Maybe a
 lkList _  []     = lm_nil
 lkList lk (x:xs) = lm_cons >.> lk x >=> lkList lk xs
 
-xtList :: TrieMap m => (forall b. k -> XT b -> m b -> m b)
+xtList :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m, 
+#endif
+  TrieMap m) => (forall b. k -> XT b -> m b -> m b)
         -> [k] -> XT a -> ListMap m a -> ListMap m a
 xtList _  []     f m = m { lm_nil  = f (lm_nil m) }
 xtList tr (x:xs) f m = m { lm_cons = lm_cons m |> tr x |>> xtList tr xs f }
 
-fdList :: forall m a b. TrieMap m
+fdList :: forall m a b. (
+#if MIN_VERSION_base(4,16,0)
+    Total m, 
+#endif
+    TrieMap m)
        => (a -> b -> b) -> ListMap m a -> b -> b
 fdList k m = foldMaybe k          (lm_nil m)
            . foldTM    (fdList k) (lm_cons m)
 
-ftList :: TrieMap m => (a -> Bool) -> ListMap m a -> ListMap m a
+ftList :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  TrieMap m) => (a -> Bool) -> ListMap m a -> ListMap m a
 ftList f (LM { lm_nil = mnil, lm_cons = mcons })
   = LM { lm_nil = filterMaybe f mnil, lm_cons = mapTM (filterTM f) mcons }
 
@@ -370,7 +440,11 @@ Compressed triemaps are heavily used by GHC.Core.Map.Expr. So we have to mark so
 as INLINEABLE to permit specialization.
 -}
 
-data GenMap m a
+data
+#if MIN_VERSION_base(4,16,0)
+  m @ a =>
+#endif
+  GenMap m a
    = EmptyMap
    | SingletonMap (Key m) a
    | MultiMap (m a)
@@ -381,7 +455,11 @@ instance (Outputable a, Outputable (m a)) => Outputable (GenMap m a) where
   ppr (MultiMap m) = ppr m
 
 -- TODO undecidable instance
-instance (Eq (Key m), TrieMap m) => TrieMap (GenMap m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  Eq (Key m), TrieMap m) => TrieMap (GenMap m) where
    type Key (GenMap m) = Key m
    emptyTM  = EmptyMap
    lookupTM = lkG
@@ -390,21 +468,33 @@ instance (Eq (Key m), TrieMap m) => TrieMap (GenMap m) where
    mapTM    = mapG
    filterTM = ftG
 
-instance (Eq (Key m), TrieMap m) => Foldable (GenMap m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  Eq (Key m), TrieMap m) => Foldable (GenMap m) where
   foldMap = foldMapTM
 
 --We want to be able to specialize these functions when defining eg
 --tries over (GenMap CoreExpr) which requires INLINEABLE
 
 {-# INLINEABLE lkG #-}
-lkG :: (Eq (Key m), TrieMap m) => Key m -> GenMap m a -> Maybe a
+lkG :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  Eq (Key m), TrieMap m) => Key m -> GenMap m a -> Maybe a
 lkG _ EmptyMap                         = Nothing
 lkG k (SingletonMap k' v') | k == k'   = Just v'
                            | otherwise = Nothing
 lkG k (MultiMap m)                     = lookupTM k m
 
 {-# INLINEABLE xtG #-}
-xtG :: (Eq (Key m), TrieMap m) => Key m -> XT a -> GenMap m a -> GenMap m a
+xtG :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  Eq (Key m), TrieMap m) => Key m -> XT a -> GenMap m a -> GenMap m a
 xtG k f EmptyMap
     = case f Nothing of
         Just v  -> SingletonMap k v

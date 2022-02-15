@@ -2,6 +2,10 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 
 {-# OPTIONS_GHC -Wno-incomplete-record-updates #-}
 
@@ -41,6 +45,9 @@ import GHC.Data.Maybe
 import GHC.Data.TrieMap
 import GHC.Utils.Outputable
 import GHC.Utils.Panic
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 
 import Data.Foldable
 import Data.List.NonEmpty ( NonEmpty(..), nonEmpty, cons )
@@ -181,6 +188,9 @@ addDictsByClass :: DictMap Ct -> Class -> Bag Ct -> DictMap Ct
 addDictsByClass m cls items
   = extendDTyConEnv m (classTyCon cls) (foldr add emptyTM items)
   where
+#if MIN_VERSION_base(4,16,0)
+    add :: (Total m, Key m ~ [Xi], TrieMap m) => Ct -> m Ct -> m Ct    
+#endif
     add ct@(CDictCan { cc_tyargs = tys }) tm = insertTM tys ct tm
     add ct _ = pprPanic "addDictsByClass" (ppr ct)
 

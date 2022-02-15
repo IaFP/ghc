@@ -3,6 +3,9 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 
 -- | Interacting with the iserv interpreter, whether it is running on an
 -- external process or in the current process.
@@ -119,6 +122,9 @@ import System.Posix as Posix
 import System.Directory
 import System.Process
 import GHC.Conc (pseq, par)
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 
 {- Note [Remote GHCi]
 
@@ -211,7 +217,11 @@ interpCmd interp msg = case interpInstance interp of
 -- | Grab a lock on the 'IServ' and do something with it.
 -- Overloaded because this is used from TcM as well as IO.
 withIServ
-  :: (ExceptionMonad m)
+  :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+    ExceptionMonad m)
   => IServConfig -> IServ -> (IServInstance -> m (IServInstance, a)) -> m a
 withIServ conf (IServ mIServState) action =
   MC.mask $ \restore -> do
@@ -239,7 +249,11 @@ withIServ conf (IServ mIServState) action =
     return a
 
 withIServ_
-  :: (MonadIO m, ExceptionMonad m)
+  :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+    MonadIO m, ExceptionMonad m)
   => IServConfig -> IServ -> (IServInstance -> m a) -> m a
 withIServ_ conf iserv action = withIServ conf iserv $ \inst ->
    (inst,) <$> action inst

@@ -5,6 +5,10 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 module GHC.Cmm.Dataflow.Graph
     ( Body
     , Graph
@@ -26,7 +30,9 @@ import GHC.Utils.Misc
 import GHC.Cmm.Dataflow.Label
 import GHC.Cmm.Dataflow.Block
 import GHC.Cmm.Dataflow.Collections
-
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total2, type(@))
+#endif
 import Data.Kind
 
 -- | A (possibly empty) collection of closed/closed blocks
@@ -42,7 +48,11 @@ class NonLocal thing where
   entryLabel :: thing C x -> Label   -- ^ The label of a first node or block
   successors :: thing e C -> [Label] -- ^ Gives control-flow successors
 
-instance NonLocal n => NonLocal (Block n) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  Total2 n,
+#endif
+  NonLocal n) => NonLocal (Block n) where
   entryLabel (BlockCO f _)   = entryLabel f
   entryLabel (BlockCC f _ _) = entryLabel f
 
@@ -111,7 +121,11 @@ mapGraphBlocks f = map
 -- -----------------------------------------------------------------------------
 -- Extracting Labels from graphs
 
-labelsDefined :: forall block n e x . NonLocal (block n) => Graph' block n e x
+labelsDefined :: forall block n e x . (
+#if MIN_VERSION_base(4,16,0)
+  Total2 block, block n C @ O, 
+#endif
+  NonLocal (block n)) => Graph' block n e x
               -> LabelSet
 labelsDefined GNil      = setEmpty
 labelsDefined (GUnit{}) = setEmpty

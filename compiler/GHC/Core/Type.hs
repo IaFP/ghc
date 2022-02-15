@@ -6,7 +6,10 @@
 {-# LANGUAGE FlexibleContexts, PatternSynonyms, ViewPatterns, MultiWayIf #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -Wno-incomplete-record-updates #-}
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 -- | Main functions for manipulating types and type-related things
 module GHC.Core.Type (
         -- Note some of this is just re-exports from TyCon..
@@ -288,6 +291,9 @@ import GHC.Data.FastString
 import GHC.Data.Pair
 import GHC.Data.List.SetOps
 import GHC.Types.Unique ( nonDetCmpUnique )
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif 
 
 import GHC.Data.Maybe   ( orElse, expectJust )
 import Data.Maybe       ( isJust )
@@ -868,7 +874,11 @@ data TyCoMapper env m
       }
 
 {-# INLINE mapTyCo #-}  -- See Note [Specialising mappers]
-mapTyCo :: Monad m => TyCoMapper () m
+mapTyCo :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  Monad m) => TyCoMapper () m
          -> ( Type       -> m Type
             , [Type]     -> m [Type]
             , Coercion   -> m Coercion
@@ -879,7 +889,11 @@ mapTyCo mapper
         -> (go_ty (), go_tys (), go_co (), go_cos ())
 
 {-# INLINE mapTyCoX #-}  -- See Note [Specialising mappers]
-mapTyCoX :: Monad m => TyCoMapper env m
+mapTyCoX :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  Monad m) => TyCoMapper env m
          -> ( env -> Type       -> m Type
             , env -> [Type]     -> m [Type]
             , env -> Coercion   -> m Coercion

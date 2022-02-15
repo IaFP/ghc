@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, UndecidableSuperClasses #-}
+#endif
 {-# LANGUAGE RankNTypes #-}
 
 -- | Logger
@@ -101,6 +105,9 @@ import Control.Monad
 import Control.Concurrent.MVar
 import System.IO.Unsafe
 import Debug.Trace (trace)
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@))
+#endif
 
 ---------------------------------------------------------------
 -- Log flags
@@ -596,7 +603,11 @@ touchDumpFile :: Logger -> DumpFlag -> IO ()
 touchDumpFile logger flag =
     withDumpFileHandle (generated_dumps logger) (logFlags logger) flag (const (return ()))
 
-class HasLogger m where
+class
+#if MIN_VERSION_base(4,16,0)
+    m @ Logger =>
+#endif
+  HasLogger m where
     getLogger :: m Logger
 
 class ContainsLogger t where

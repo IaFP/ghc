@@ -8,6 +8,9 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE UnboxedTuples #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, UndecidableSuperClasses #-}
+#endif
 
 module GHC.Types.Unique.Supply (
         -- * Main data type
@@ -45,7 +48,9 @@ import GHC.Exts( Ptr(..), noDuplicate#, oneShot )
 import GHC.Exts( Int(..), word2Int#, fetchAddWordAddr#, plusWord#, readWordOffAddr# )
 #endif
 import Foreign.Storable
-
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@))
+#endif
 #include "Unique.h"
 
 {-
@@ -355,7 +360,11 @@ getUs :: UniqSM UniqSupply
 getUs = mkUniqSM (\us0 -> case splitUniqSupply us0 of (us1,us2) -> UniqResult us1 us2)
 
 -- | A monad for generating unique identifiers
-class Monad m => MonadUnique m where
+class (
+#if MIN_VERSION_base(4,16,0)
+  m @ UniqSupply, m @ Unique, m @ [Unique],
+#endif
+  Monad m) => MonadUnique m where
     -- | Get a new UniqueSupply
     getUniqueSupplyM :: m UniqSupply
     -- | Get a new unique identifier

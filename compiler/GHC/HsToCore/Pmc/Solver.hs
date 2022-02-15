@@ -1,4 +1,7 @@
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns        #-}
@@ -95,6 +98,9 @@ import Data.Monoid   (Any(..))
 import Data.List     (sortBy, find)
 import qualified Data.List.NonEmpty as NE
 import Data.Ord      (comparing)
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 
 import GHC.Utils.Trace
 _ = pprTrace -- to silence unused import warnings
@@ -112,7 +118,11 @@ addPhiCtsNablas nablas cts = liftNablasM (\d -> addPhiCts d cts) nablas
 addPhiCtNablas :: Nablas -> PhiCt -> DsM Nablas
 addPhiCtNablas nablas ct = addPhiCtsNablas nablas (unitBag ct)
 
-liftNablasM :: Monad m => (Nabla -> m (Maybe Nabla)) -> Nablas -> m Nablas
+liftNablasM :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m) => (Nabla -> m (Maybe Nabla)) -> Nablas -> m Nablas
 liftNablasM f (MkNablas ds) = MkNablas . catBagMaybes <$> (traverse f ds)
 
 -- | Test if any of the 'Nabla's is inhabited. Currently this is pure, because
@@ -1171,7 +1181,11 @@ markDirty :: Id -> Nabla -> Nabla
 markDirty x nabla@MkNabla{nabla_tm_st = ts@TmSt{ts_dirty = dirty} } =
   nabla{ nabla_tm_st = ts{ ts_dirty = extendDVarSet dirty x } }
 
-traverseDirty :: Monad m => (VarInfo -> m VarInfo) -> TmState -> m TmState
+traverseDirty :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m) => (VarInfo -> m VarInfo) -> TmState -> m TmState
 traverseDirty f ts@TmSt{ts_facts = env, ts_dirty = dirty} =
   go (uniqDSetToList dirty) env
   where
@@ -1180,7 +1194,11 @@ traverseDirty f ts@TmSt{ts_facts = env, ts_dirty = dirty} =
       vi' <- f (lookupVarInfo ts x)
       go xs (addToUSDFM env x vi')
 
-traverseAll :: Monad m => (VarInfo -> m VarInfo) -> TmState -> m TmState
+traverseAll :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m) => (VarInfo -> m VarInfo) -> TmState -> m TmState
 traverseAll f ts@TmSt{ts_facts = env} = do
   env' <- traverseUSDFM f env
   pure ts{ts_facts = env'}

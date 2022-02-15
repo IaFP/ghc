@@ -11,7 +11,10 @@
 {-# LANGUAGE UndecidableInstances   #-}
 
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 -----------------------------------------------------------------------------
 --
 -- (c) The University of Glasgow 2006
@@ -95,6 +98,9 @@ import Data.List (sort, sortBy)
 import Data.Function
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Class
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@), Total)
+#endif
 
 data MetaWrappers = MetaWrappers {
       -- Applies its argument to a type argument `m` and dictionary `Quote m`
@@ -2252,7 +2258,11 @@ rep2M = rep2X lift (asks monadWrapper)
 rep2_nw n xs = lift (rep2_nwDsM n xs)
 rep2_nwDsM = rep2X id (return id)
 
-rep2X :: Monad m => (forall z . DsM z -> m z)
+rep2X :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  Monad m) => (forall z . DsM z -> m z)
       -> m (CoreExpr -> CoreExpr)
       -> Name
       -> [ CoreExpr ]
@@ -2977,7 +2987,11 @@ nonEmptyCoreList []           = panic "coreList: empty argument"
 nonEmptyCoreList xs@(MkC x:_) = MkC (mkListExpr (exprType x) (map unC xs))
 
 
-coreStringLit :: MonadThings m => String -> m (Core String)
+coreStringLit :: (
+#if MIN_VERSION_base(4,16,0)
+  m @ CoreExpr,
+#endif
+  MonadThings m) => String -> m (Core String)
 coreStringLit s = do { z <- mkStringExpr s; return(MkC z) }
 
 ------------------- Maybe ------------------

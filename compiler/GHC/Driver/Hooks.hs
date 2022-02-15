@@ -4,7 +4,10 @@
 --     refer to *types*, rather than *code*
 
 {-# LANGUAGE RankNTypes, TypeFamilies #-}
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, UndecidableSuperClasses #-}
+#endif
 module GHC.Driver.Hooks
    ( Hooks
    , HasHooks (..)
@@ -71,6 +74,9 @@ import GHC.Data.Bag
 
 import qualified Data.Kind
 import System.Process
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@))
+#endif
 
 {-
 ************************************************************************
@@ -150,7 +156,11 @@ data Hooks = Hooks
                                  -> IO (Stream IO RawCmmGroup a)))
   }
 
-class HasHooks m where
+class
+#if MIN_VERSION_base(4,16,0)
+ m @ Hooks =>
+#endif
+  HasHooks m where
     getHooks :: m Hooks
 
 class ContainsHooks a where

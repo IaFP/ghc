@@ -7,6 +7,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 
 {-# OPTIONS_GHC -Wno-incomplete-record-updates #-}
 
@@ -37,11 +41,18 @@ import qualified Data.Map as M
 import Data.Maybe
 import Data.Semigroup
 import GHC.IORef (readIORef)
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 
 -- | Extract docs from renamer output.
 -- This is monadic since we need to be able to read documentation added from
 -- Template Haskell's @putDoc@, which is stored in 'tcg_th_docs'.
-extractDocs :: MonadIO m
+extractDocs ::(
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+    MonadIO m)
             => TcGblEnv
             -> m (Maybe HsDocString, DeclDocMap, ArgDocMap)
             -- ^

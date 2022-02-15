@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, UndecidableSuperClasses #-}
+#endif
 {-
   This module handles generation of position independent code and
   dynamic-linking related issues for the native code generator.
@@ -70,6 +74,9 @@ import GHC.Utils.Outputable
 import GHC.Utils.Panic
 
 import GHC.Data.FastString
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@))
+#endif
 
 
 
@@ -92,7 +99,11 @@ data ReferenceKind
         | JumpReference
         deriving(Eq)
 
-class Monad m => CmmMakeDynamicReferenceM m where
+class (
+#if MIN_VERSION_base(4,16,0)
+  m @ (),
+#endif
+  Monad m) => CmmMakeDynamicReferenceM m where
     addImport :: CLabel -> m ()
 
 instance CmmMakeDynamicReferenceM NatM where

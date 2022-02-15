@@ -1,7 +1,9 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
-
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, UndecidableSuperClasses #-}
+#endif
 -------------------------------------------------------------------------------
 --
 -- | Dynamic flags
@@ -283,7 +285,9 @@ import qualified GHC.Data.EnumSet as EnumSet
 
 import GHC.Foreign (withCString, peekCString)
 import qualified GHC.LanguageExtensions as LangExt
-
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total, type(@))
+#endif
 -- Note [Updating flag description in the User's Guide]
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 --
@@ -720,7 +724,11 @@ data DynFlags = DynFlags {
   cfgWeights            :: Weights
 }
 
-class HasDynFlags m where
+class
+#if MIN_VERSION_base(4,16,0)
+   m @ DynFlags =>
+#endif
+  HasDynFlags m where
     getDynFlags :: m DynFlags
 
 {- It would be desirable to have the more generalised
@@ -732,16 +740,32 @@ instance definition. However, that definition would overlap with the
 `HasDynFlags (GhcT m)` instance. Instead we define instances for a
 couple of common Monad transformers explicitly. -}
 
-instance (Monoid a, Monad m, HasDynFlags m) => HasDynFlags (WriterT a m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  Monoid a, Monad m, HasDynFlags m) => HasDynFlags (WriterT a m) where
     getDynFlags = lift getDynFlags
 
-instance (Monad m, HasDynFlags m) => HasDynFlags (ReaderT a m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  Monad m, HasDynFlags m) => HasDynFlags (ReaderT a m) where
     getDynFlags = lift getDynFlags
 
-instance (Monad m, HasDynFlags m) => HasDynFlags (MaybeT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  Monad m, HasDynFlags m) => HasDynFlags (MaybeT m) where
     getDynFlags = lift getDynFlags
 
-instance (Monad m, HasDynFlags m) => HasDynFlags (ExceptT e m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  Monad m, HasDynFlags m) => HasDynFlags (ExceptT e m) where
     getDynFlags = lift getDynFlags
 
 class ContainsDynFlags t where
@@ -1804,7 +1828,11 @@ updOptLevel n dfs
 -- the parsed 'DynFlags', the left-over arguments, and a list of warnings.
 -- Throws a 'UsageError' if errors occurred during parsing (such as unknown
 -- flags or missing arguments).
-parseDynamicFlagsCmdLine :: MonadIO m => DynFlags -> [Located String]
+parseDynamicFlagsCmdLine :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  MonadIO m) => DynFlags -> [Located String]
                          -> m (DynFlags, [Located String], [Warn])
                             -- ^ Updated 'DynFlags', left-over arguments, and
                             -- list of warnings.
@@ -1814,7 +1842,11 @@ parseDynamicFlagsCmdLine = parseDynamicFlagsFull flagsAll True
 -- | Like 'parseDynamicFlagsCmdLine' but does not allow the package flags
 -- (-package, -hide-package, -ignore-package, -hide-all-packages, -package-db).
 -- Used to parse flags set in a modules pragma.
-parseDynamicFilePragma :: MonadIO m => DynFlags -> [Located String]
+parseDynamicFilePragma :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  MonadIO m) => DynFlags -> [Located String]
                        -> m (DynFlags, [Located String], [Warn])
                           -- ^ Updated 'DynFlags', left-over arguments, and
                           -- list of warnings.
@@ -1825,7 +1857,11 @@ parseDynamicFilePragma = parseDynamicFlagsFull flagsDynamic False
 -- the dynamic flag parser that the other methods simply wrap. It allows
 -- saying which flags are valid flags and indicating if we are parsing
 -- arguments from the command line or from a file pragma.
-parseDynamicFlagsFull :: MonadIO m
+parseDynamicFlagsFull :: (
+#if MIN_VERSION_base(4,16,0)
+                    Total m,
+#endif
+                     MonadIO m)
                   => [Flag (CmdLineP DynFlags)]    -- ^ valid flags to match against
                   -> Bool                          -- ^ are the arguments from the command line?
                   -> DynFlags                      -- ^ current dynamic flags
@@ -3077,7 +3113,11 @@ mkFlag turn_on flagPrefix f (dep, (FlagSpec name flag extra_action mode))
        Flag (flagPrefix ++ name) (NoArg (f flag >> extra_action turn_on)) mode)
 
 -- here to avoid module cycle with GHC.Driver.CmdLine
-deprecate :: Monad m => String -> EwM m ()
+deprecate :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  Monad m) => String -> EwM m ()
 deprecate s = do
     arg <- getArg
     addFlagWarn (WarningWithFlag Opt_WarnDeprecatedFlags) (arg ++ " is deprecated: " ++ s)

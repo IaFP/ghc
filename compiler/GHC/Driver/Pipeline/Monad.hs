@@ -1,6 +1,11 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
+
 -- | The 'TPipelineClass' and 'MonadUse' classes and associated types
 module GHC.Driver.Pipeline.Monad (
   TPipelineClass, MonadUse(..)
@@ -14,13 +19,24 @@ import Control.Monad.IO.Class
 import qualified Data.Kind as K
 import GHC.Driver.Phases
 import GHC.Utils.TmpFs
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 
 -- The interface that the pipeline monad must implement.
 type TPipelineClass (f :: K.Type -> K.Type) (m :: K.Type -> K.Type)
-  = (Functor m, MonadIO m, Applicative m, Monad m, MonadUse f m)
+  = (
+-- #if MIN_VERSION_base(4,16,0)
+--     Total m,                  -- Type synonyms are lame
+-- #endif
+    Functor m, MonadIO m, Applicative m, Monad m, MonadUse f m)
 
 -- | Lift a `f` action into an `m` action.
-class MonadUse f m where
+class
+#if MIN_VERSION_base(4,16,0)
+  (Total f, Total m) =>
+#endif
+  MonadUse f m where
   use :: f a -> m a
 
 -- PipeEnv: invariant information passed down through the pipeline

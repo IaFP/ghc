@@ -2,6 +2,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}  -- instance MonadThings is necessarily an orphan
 
@@ -110,6 +114,9 @@ import qualified GHC.Data.Strict as Strict
 import Data.IORef
 import GHC.Driver.Env.KnotVars
 
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 {-
 ************************************************************************
 *                                                                      *
@@ -226,7 +233,11 @@ initDs hsc_env tcg_env thing_inside
        }
 
 -- | Build a set of desugarer environments derived from a 'TcGblEnv'.
-mkDsEnvsFromTcGbl :: MonadIO m
+mkDsEnvsFromTcGbl :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  MonadIO m)
                   => HscEnv -> IORef (Messages DsMessage) -> TcGblEnv
                   -> m (DsGblEnv, DsLclEnv)
 mkDsEnvsFromTcGbl hsc_env msg_var tcg_env

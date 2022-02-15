@@ -1,6 +1,9 @@
 
 {-# LANGUAGE DeriveFunctor #-}
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 -------------------------------------------------------------------------------
 --
 -- | Command-line parser
@@ -39,6 +42,9 @@ import Data.Function
 import Data.List (sortBy, intercalate, stripPrefix)
 
 import Control.Monad (liftM, ap)
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@), Total)
+#endif
 
 --------------------------------------------------------
 --         The Flag and OptKind types
@@ -116,18 +122,34 @@ type Warns = Bag Warn
 
 -- EwM ("errors and warnings monad") is a monad
 -- transformer for m that adds an (err, warn) state
-newtype EwM m a = EwM { unEwM :: Located String -- Current parse arg
+newtype
+#if MIN_VERSION_base(4,16,0)
+ m @ (Errs, Warns, a) =>
+#endif
+  EwM m a = EwM { unEwM :: Located String -- Current parse arg
                               -> Errs -> Warns
                               -> m (Errs, Warns, a) }
 
-instance Monad m => Functor (EwM m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  Monad m) => Functor (EwM m) where
     fmap = liftM
 
-instance Monad m => Applicative (EwM m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  Monad m) => Applicative (EwM m) where
     pure v = EwM (\_ e w -> return (e, w, v))
     (<*>) = ap
 
-instance Monad m => Monad (EwM m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  Total m, 
+#endif
+  Monad m) => Monad (EwM m) where
     (EwM f) >>= k = EwM (\l e w -> do (e', w', r) <- f l e w
                                       unEwM (k r) l e' w')
 
@@ -185,7 +207,11 @@ putCmdLineState s = CmdLineP $ \_ -> ((),s)
 --         Processing arguments
 --------------------------------------------------------
 
-processArgs :: Monad m
+processArgs :: (
+#if MIN_VERSION_base(4,16,0)
+                 Total m,
+#endif
+                 Monad m)
             => [Flag m]               -- cmdline parser spec
             -> [Located String]       -- args
             -> m ( [Located String],  -- spare args

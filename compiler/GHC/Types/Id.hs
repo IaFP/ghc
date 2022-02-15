@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-
 (c) The University of Glasgow 2006
 (c) The GRASP/AQUA Project, Glasgow University, 1992-1998
@@ -163,6 +167,9 @@ import GHC.Utils.Panic
 import GHC.Utils.Panic.Plain
 import GHC.Utils.GlobalVars
 import GHC.Utils.Trace
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@))
+#endif
 
 -- infixl so you can say (id `set` a `set` b)
 infixl  1 `setIdUnfolding`,
@@ -344,10 +351,18 @@ mkSysLocalOrCoVar :: FastString -> Unique -> Mult -> Type -> Id
 mkSysLocalOrCoVar fs uniq w ty
   = mkLocalIdOrCoVar (mkSystemVarName uniq fs) w ty
 
-mkSysLocalM :: MonadUnique m => FastString -> Mult -> Type -> m Id
+mkSysLocalM :: (
+#if MIN_VERSION_base(4,16,0)
+  m @ Unique,
+#endif
+  MonadUnique m) => FastString -> Mult -> Type -> m Id
 mkSysLocalM fs w ty = getUniqueM >>= (\uniq -> return (mkSysLocal fs uniq w ty))
 
-mkSysLocalOrCoVarM :: MonadUnique m => FastString -> Mult -> Type -> m Id
+mkSysLocalOrCoVarM :: (
+#if MIN_VERSION_base(4,16,0)
+  m @ Unique,
+#endif
+  MonadUnique m) => FastString -> Mult -> Type -> m Id
 mkSysLocalOrCoVarM fs w ty
   = getUniqueM >>= (\uniq -> return (mkSysLocalOrCoVar fs uniq w ty))
 

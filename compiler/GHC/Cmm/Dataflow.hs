@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
@@ -49,6 +53,9 @@ import GHC.Cmm.Dataflow.Block
 import GHC.Cmm.Dataflow.Graph
 import GHC.Cmm.Dataflow.Collections
 import GHC.Cmm.Dataflow.Label
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total2)
+#endif
 
 type family   Fact (x :: Extensibility) f :: Type
 type instance Fact C f = FactBase f
@@ -269,7 +276,11 @@ we'll propagate (x=4) to L4, and nuke the otherwise-good rewriting of L4.
 -- postorder for a forward analysis. For the backward one, we simply reverse
 -- that (see Note [Backward vs forward analysis]).
 sortBlocks
-    :: NonLocal n
+    :: (
+#if MIN_VERSION_base(4,16,0)
+       Total2 n,
+#endif
+       NonLocal n)
     => Direction -> Label -> LabelMap (Block n C C) -> [Block n C C]
 sortBlocks direction entry blockmap =
     case direction of
@@ -423,7 +434,10 @@ foldRewriteNodesBwdOO rewriteOO initBlock initFacts = go initBlock initFacts
     go (BCat blockA1 blockB1) !fact1 = (go blockA1 `comp` go blockB1) fact1
     go (BMiddle node) !fact1 = rewriteOO node fact1
     go BNil !fact = return (BNil, fact)
-
+#if MIN_VERSION_base(4,16,0)
+    comp :: (Total2 n, Monad m) => 
+      (t -> m (Block n O O, b)) -> (t1 -> m (Block n O O, t)) -> t1 -> m (Block n O O, b)
+#endif
     comp rew1 rew2 = \f1 -> do
         (b, f2) <- rew2 f1
         (a, !f3) <- rew1 f2
@@ -432,7 +446,11 @@ foldRewriteNodesBwdOO rewriteOO initBlock initFacts = go initBlock initFacts
     {-# INLINE comp #-}
 {-# INLINABLE foldRewriteNodesBwdOO #-}
 
-joinBlocksOO :: Block n O O -> Block n O O -> Block n O O
+joinBlocksOO ::
+#if MIN_VERSION_base(4,16,0)
+  (Total2 n) => 
+#endif
+  Block n O O -> Block n O O -> Block n O O
 joinBlocksOO BNil b = b
 joinBlocksOO b BNil = b
 joinBlocksOO (BMiddle n) b = blockCons n b

@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 
 -- (those who have too heavy dependencies for GHC.Tc.Types.Evidence)
 module GHC.Tc.Types.EvTerm
@@ -22,6 +26,9 @@ import GHC.Core.Utils
 
 import GHC.Types.SrcLoc
 import GHC.Types.TyThing
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 
 -- Used with Opt_DeferTypeErrors
 -- See Note [Deferring coercion errors to runtime]
@@ -35,7 +42,11 @@ evDelayedError ty msg
        -- c.f. mkErrorAppDs in GHC.HsToCore.Utils
 
 -- Dictionary for CallStack implicit parameters
-evCallStack :: (MonadThings m, HasModule m, HasDynFlags m) =>
+evCallStack :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m, 
+#endif
+  MonadThings m, HasModule m, HasDynFlags m) =>
     EvCallStack -> m EvExpr
 -- See Note [Overview of implicit CallStacks] in GHC.Tc.Types.Evidence
 evCallStack cs = do

@@ -4,7 +4,10 @@
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE PatternSynonyms            #-}
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, TypeFamilies #-}
+#endif
 {-
 (c) The University of Glasgow 2006-2012
 (c) The GRASP Project, Glasgow University, 1992-2002
@@ -174,6 +177,10 @@ import GHCi.RemoteTypes
 
 import qualified Language.Haskell.TH as TH
 import GHC.Driver.Env.KnotVars
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@))
+#endif
+
 
 -- | A 'NameShape' is a substitution on 'Name's that can be used
 -- to refine the identities of a hole while we are renaming interfaces
@@ -1673,6 +1680,9 @@ type TcPluginRewriter
 -- | 'TcPluginM' is the monad in which type-checking plugins operate.
 newtype TcPluginM a = TcPluginM { runTcPluginM :: TcM a }
   deriving newtype (Functor, Applicative, Monad, MonadFail)
+#if MIN_VERSION_base(4,16,0)
+type instance TcPluginM @ a = ()
+#endif
 
 -- | This function provides an escape for direct access to
 -- the 'TcM` monad.  It should not be used lightly, and

@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -15,6 +19,9 @@ import GHC.Types.Id.Info
 import GHC.Types.Name
 import GHC.Types.Unique
 import GHC.Types.Unique.Supply
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@))
+#endif
 
 import GHC.Cmm.Dataflow.Label (Label, mkHooplLabel)
 
@@ -35,7 +42,11 @@ type BlockId = Label
 mkBlockId :: Unique -> BlockId
 mkBlockId unique = mkHooplLabel $ getKey unique
 
-newBlockId :: MonadUnique m => m BlockId
+newBlockId :: (
+#if MIN_VERSION_base(4,16,0)
+  m @ Unique, 
+#endif
+  MonadUnique m) => m BlockId
 newBlockId = mkBlockId <$> getUniqueM
 
 blockLbl :: BlockId -> CLabel
