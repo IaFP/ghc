@@ -463,8 +463,8 @@ getFamInsts hpt_fam_insts mod
   | Just env <- lookupModuleEnv hpt_fam_insts mod = return env
   | otherwise = do { _ <- initIfaceTcRn (loadSysInterface doc mod)
                    ; eps <- getEps
-                   ; traceTc "[[=== getFamInsts Module env[" (ppr  $ moduleEnvToList (eps_mod_fam_inst_env eps))
-                   ; traceTc "===]]" empty
+                   -- ; traceTc "[[=== getFamInsts Module env[" (ppr  $ moduleEnvToList (eps_mod_fam_inst_env eps))
+                   -- ; traceTc "===]]" empty
                    -- ; return (expectJust ("checkFamInstConsistency, "  ++ (show $ moduleName mod)) $
                    --           lookupModuleEnv (eps_mod_fam_inst_env eps) mod) 
                    ; return (fromMaybe emptyFamInstEnv $

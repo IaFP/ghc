@@ -443,7 +443,11 @@ unTypeCode = unTypeQ . examineCode
 --  handleState :: Code (StateT Int Q) a -> Code Q a
 --  handleState = hoistCode (flip runState 0)
 -- @
-hoistCode :: forall m n (r :: RuntimeRep) (a :: TYPE r) . Monad m
+hoistCode :: forall m n (r :: RuntimeRep) (a :: TYPE r) . (Monad m
+#if MIN_VERSION_base(4,16,0)
+                                                          , Total m, Total n
+#endif
+                                                          )
           => (forall x . m x -> n x) -> Code m a -> Code n a
 hoistCode f (Code a) = Code (f a)
 

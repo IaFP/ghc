@@ -39,7 +39,7 @@ import GHC.Utils.Outputable
 import Data.Data hiding (Fixity)
 import qualified Data.ByteString as B
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total, Total2)
+import GHC.Types (type(@), Total, Total2)
 #endif
 
 data BlankSrcSpan = BlankSrcSpan | BlankSrcSpanFile | NoBlankSrcSpan
@@ -359,7 +359,7 @@ ext2Q def ext = unQ ((Q def) `ext2` (Q ext))
 -- | Flexible type extension
 ext1 :: (
 #if MIN_VERSION_base(4,16,0)
-  Total t, Total c,
+  Total t, Total c, 
 #endif
   Data a, Typeable t)
      => c a
@@ -372,7 +372,7 @@ ext1 def ext = maybe def id (dataCast1 ext)
 -- | Flexible type extension
 ext2 :: (
 #if MIN_VERSION_base(4,16,0)
-  Total2 t, Total c, 
+  Total2 t, Total c,
 #endif
   Data a, Typeable t)
      => c a

@@ -241,7 +241,11 @@ cat x y = case x of
 -- Mapping
 
 -- | map a function over the nodes of a 'Block'
-mapBlock :: (forall e x. n e x -> n' e x) -> Block n e x -> Block n' e x
+mapBlock ::
+#if MIN_VERSION_base(4,16,0)
+  (Total2 n, Total2 n') =>
+#endif
+  (forall e x. n e x -> n' e x) -> Block n e x -> Block n' e x
 mapBlock f (BlockCO n b  ) = BlockCO (f n) (mapBlock f b)
 mapBlock f (BlockOC   b n) = BlockOC       (mapBlock f b) (f n)
 mapBlock f (BlockCC n b m) = BlockCC (f n) (mapBlock f b) (f m)

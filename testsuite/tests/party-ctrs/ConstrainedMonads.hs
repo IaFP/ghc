@@ -34,7 +34,8 @@ instance Applicative Set where
   pure a = singleton a
   (<*>) _ _ = undefined
   liftA2 _ _ _ = undefined
-
+  (*>) _ _ = undefined
+  (<*) _ _ = undefined
 
 instance Monad Set where
   m >>= f = flatten $ fmap f m
@@ -99,6 +100,8 @@ instance Applicative Vec where
   pure   = returnVec
   liftA2 _ _ _= undefined
   (<*>) _ _ = undefined
+  (*>) _ _ = undefined
+  (<*) _ _ = undefined
 
 instance Monad Vec where
   (>>=) = bindVec
@@ -106,7 +109,7 @@ instance Monad Vec where
 ---------------------------------
 ------   Sunroof Example  -------
 ---------------------------------
-
+{-
 type JSString = String
 type JSBool = Bool
 
@@ -174,4 +177,4 @@ instance Applicative JS where
   
 instance Monad JS where
   (>>=) = Bind
-
+-}

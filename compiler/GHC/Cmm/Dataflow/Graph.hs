@@ -101,7 +101,11 @@ data Graph' block (n :: Extensibility -> Extensibility -> Type) e x where
 -- Mapping over graphs
 
 -- | Maps over all nodes in a graph.
-mapGraph :: (forall e x. n e x -> n' e x) -> Graph n e x -> Graph n' e x
+mapGraph ::
+#if MIN_VERSION_base(4,16,0)
+  (Total2 n, Total2 n') =>
+#endif
+  (forall e x. n e x -> n' e x) -> Graph n e x -> Graph n' e x
 mapGraph f = mapGraphBlocks (mapBlock f)
 
 -- | Function 'mapGraphBlocks' enables a change of representation of blocks,
@@ -109,6 +113,14 @@ mapGraph f = mapGraphBlocks (mapBlock f)
 -- graph transform.  When the block representation stabilizes, a similar
 -- function should be provided for blocks.
 mapGraphBlocks :: forall block n block' n' e x .
+#if MIN_VERSION_base(4,16,0)
+                  (Total2 block, Total2 block'
+                  , block n O @ O, block' n' O @ O
+                  , block n O @ C, block' n' O @ C
+                  , block n C @ C, block' n' C @ C
+                  , block n C @ O, block' n' C @ O
+                  ) =>
+#endif
                   (forall e x . block n e x -> block' n' e x)
                -> (Graph' block n e x -> Graph' block' n' e x)
 

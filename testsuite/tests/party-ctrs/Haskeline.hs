@@ -69,13 +69,13 @@ data TermOps = TermOps
   }
 
 
-runCommandLoop :: (CommandMonad m, Total m)
-               => TermOps -> String -> KeyCommand m s a -> s -> m a
-runCommandLoop tops@TermOps{evalTerm = e} prefix cmds initState
-    = case e of
-        EvalTerm eval liftE
-            -> eval $ withGetEvent tops
-                $ runCommandLoop' liftE tops (stringToGraphemes prefix) initState cmds 
+-- runCommandLoop :: (CommandMonad m, Total m)
+--                => TermOps -> String -> KeyCommand m s a -> s -> m a
+-- runCommandLoop tops@TermOps{evalTerm = e} prefix cmds initState
+--     = case e of
+--         EvalTerm eval liftE
+--             -> eval $ withGetEvent tops
+--                 $ runCommandLoop' liftE tops (stringToGraphemes prefix) initState cmds 
 
 
 runCommandLoop' :: forall m n s a . (Term n, CommandMonad n

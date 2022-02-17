@@ -7,11 +7,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeOperators, ExplicitNamespaces, QuantifiedConstraints #-}
 
 module Block where
 
-import GHC.Types ({-type (@@), Total,-} Type)
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type (@), Total, Type)
+#endif
+
 -- -----------------------------------------------------------------------------
 -- Shapes: Open and Closed
 
@@ -52,39 +55,35 @@ mapTreeE f (NodeE a lt rt) = NodeE (f a) (mapTreeE f lt) (mapTreeE f rt)
 -- should n @@ O be generated?
 data Block (n :: Ext -> Type) (e :: Ext) where
   MkBlock  :: Block n O -> n O -> Block n O
-  -- BlockCO  :: {-(Total n, Total (n C))              => -} n C O       -> Block n O O -> Block n C O
-  -- BlockCC  :: {-(Total n, Total (n O), Total (n C)) =>  -} n C O       -> Block n O O -> n O C        -> Block n C C  
-{-
+  BlockCO  :: {-(Total n, Total (n C))              => -} n C O       -> Block n O O -> Block n C O
+  BlockCC  :: {-(Total n, Total (n O), Total (n C)) =>  -} n C O       -> Block n O O -> n O C        -> Block n C C  
   BNil    :: Block n O O
   BMiddle :: n O O                      -> Block n O O
   BCat    :: Block n O O -> Block n O O -> Block n O O
   BSnoc   :: Block n O O -> n O O       -> Block n O O
   BCons   :: n O O       -> Block n O O -> Block n O O
--}
-
 
 -- -----------------------------------------------------------------------------
 -- Mapping
-{-
+
 -- | map a function over the nodes of a 'Block'
 mapBlock :: (forall e x. Total n => n e x -> n' e x) -> Block n e x -> Block n' e x
 mapBlock f (BlockCO n b  ) = BlockCO (f n) (mapBlock f b)
-mapBlock f (BlockOC   b n) = BlockOC       (mapBlock f b) (f n)
 mapBlock f (BlockCC n b m) = BlockCC (f n) (mapBlock f b) (f m)
--- mapBlock _  BNil           = BNil
--- mapBlock f (BMiddle n)     = BMiddle (f n)
--- mapBlock f (BCat b1 b2)    = BCat    (mapBlock f b1) (mapBlock f b2)
--- mapBlock f (BSnoc b n)     = BSnoc   (mapBlock f b)  (f n)
--- mapBlock f (BCons n b)     = BCons   (f n)  (mapBlock f b)
+mapBlock _  BNil           = BNil
+mapBlock f (BMiddle n)     = BMiddle (f n)
+mapBlock f (BCat b1 b2)    = BCat    (mapBlock f b1) (mapBlock f b2)
+mapBlock f (BSnoc b n)     = BSnoc   (mapBlock f b)  (f n)
+mapBlock f (BCons n b)     = BCons   (f n)  (mapBlock f b)
 
 -- | A strict 'mapBlock'
 mapBlock' :: (forall e x. n e x -> n' e x) -> (Block n e x -> Block n' e x)
 mapBlock' f = mapBlock3' (f, f, f)
--}
+
 -- | map over a block, with different functions to apply to first nodes,
 -- middle nodes and last nodes respectively.  The map is strict.
 --
-{-
+
 mapBlock3' :: forall n n' e x .
               (Total n, Total n')
            => ( n C O -> n' C O
@@ -92,6 +91,6 @@ mapBlock3' :: forall n n' e x .
               , n O C -> n' O C)
            -> Block n e x -> Block n' e x
 mapBlock3' (f, m, l) b = go b
--}
+
 -- go :: Block n e x -> Block n' e x
 -- go (BlockOC b y)   = BlockOC b y
