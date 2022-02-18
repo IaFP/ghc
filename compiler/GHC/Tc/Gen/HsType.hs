@@ -639,8 +639,8 @@ tc_top_lhs_type tyki ctxt (L loc sig_ty@(HsSig { sig_bndrs = hs_outer_bndrs
 
        ; ze       <- mkEmptyZonkEnv NoFlexi
        ; final_ty <- zonkTcTypeToTypeX ze (mkInfForAllTys kvs ty1)
-       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors       
-       ; final_ty <- if partyCtrs
+       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors 
+       ; final_ty <- if partyCtrs && isTypeLevel tyki
                      then elabAtAtConstraintsTcM False final_ty
                      else return final_ty
 

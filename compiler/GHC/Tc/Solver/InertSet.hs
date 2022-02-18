@@ -1628,8 +1628,7 @@ mightEqualLater (IS { inert_cycle_breakers = cbvs })
             | Just tyfam_app <- lookup tv cbvs
             -> anyFreeVarsOfType mentions_meta_ty_var tyfam_app
             | otherwise
-            -> False
-            -- -> pprPanic "mightEqualLater finds an unbound cbv" (ppr tv $$ ppr cbvs)
+            -> pprPanic "mightEqualLater finds an unbound cbv" (ppr tv $$ ppr cbvs)
           _ -> True
       | otherwise
       = False

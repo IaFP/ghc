@@ -414,6 +414,7 @@ genAtAtConstraintsExcept tycons ts ty
 
   -- recursively build @@ constraints for type constructor
   | (TyConApp tyc tycargs) <- ty = do
+
       { elabTys_and_atats <- mapM (genAtAtConstraintsExcept (tyc:tycons) ts) tycargs
       ; let (elab_tys, atc_args) = unzip $ fmap (\d -> (elabTy d, newPreds d)) elabTys_and_atats
       ; if any (== tyc) tycons
@@ -432,14 +433,7 @@ genAtAtConstraintsExcept tycons ts ty
       -- if isHigherKinded ty1 -- Don't break * types apart as we don't have a theory for that yet
       -- then return (ty, [])
       -- else
-        if (eqType ty2 star)
-           || (any (eqType ty2) ts)
-           -- || (isTyConPhase && isTyKindPoly ty1)
-           -- || not (null $ fst $ (tyCoFVsOfType ty2)
-           --          (\v -> any (== v) (map (getTyVar "genAtAtConstraintsExcept")
-           --                         (filter isTyVarTy ts))) emptyVarSet ([], emptyVarSet))
-           -- || (isFunTy (tcTypeKind ty1) && eqType (funResultTy (tcTypeKind ty1)) star)
-           -- || not (noFreeVarsOfType (tcTypeKind ty1) && noFreeVarsOfType (tcTypeKind ty1))
+        if (any (eqType ty2) (star:ts))
         then do { elabd <- genAtAtConstraintsExcept tycons ts ty1
                 ; return $ elabDetails (AppTy (elabTy elabd) ty2) (newPreds elabd)
                 }
@@ -487,7 +481,7 @@ tyConGenAts :: (
             => [TyCon]
             -> [Type] -- things to ignore
             -> TyCon -> [Type] -> m ThetaType
-tyConGenAts eTycons ts tycon args -- TODO isUnliftedType??
+tyConGenAts eTycons ts tycon args
   | isTyConInternal tycon || isGadtSyntaxTyCon tycon 
   = concatMapM genWfConstraints args
   | isTyConAssoc tycon && not (isNewTyCon tycon)

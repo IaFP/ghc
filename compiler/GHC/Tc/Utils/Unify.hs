@@ -62,11 +62,9 @@ import GHC.Types.Name( isSystemName )
 
 import GHC.Core.TyCon
 import GHC.Builtin.Types
-import GHC.Builtin.Names (wfTyConKey)
 import GHC.Types.Var as Var
 import GHC.Types.Var.Set
 import GHC.Types.Var.Env
-import GHC.Types.Unique (hasKey)
 import GHC.Utils.Error
 import GHC.Driver.Session
 import GHC.Types.Basic
@@ -1218,11 +1216,10 @@ uType t_or_k origin orig_ty1 orig_ty2
 
         -- Always defer if a type synonym family (type function)
         -- is involved.  (Data families behave rigidly.)
-        -- introducing some controlled chaos with wfTyCons
     go ty1@(TyConApp tc1 _) ty2
-      | isTypeFamilyTyCon tc1 {-, not (tc1 `hasKey` wfTyConKey) -} = defer ty1 ty2
+      | isTypeFamilyTyCon tc1 = defer ty1 ty2
     go ty1 ty2@(TyConApp tc2 _)
-      | isTypeFamilyTyCon tc2 {- , not (tc2 `hasKey` wfTyConKey) -} = defer ty1 ty2
+      | isTypeFamilyTyCon tc2 = defer ty1 ty2
 
     go (TyConApp tc1 tys1) (TyConApp tc2 tys2)
       -- See Note [Mismatched type lists and application decomposition]
