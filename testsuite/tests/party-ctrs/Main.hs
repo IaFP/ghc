@@ -21,7 +21,7 @@ module Main where
 
 -- import FAlgebra
 import ConstrainedMonads
-
+import BST
 -- set1 = fromList [1,2,3,4]
 -- set2 = fromList ['a', 'b', 'c', 'd']
 
@@ -64,6 +64,11 @@ main = do
   let ps = do a <- s1
               return (a, show a)
   putStrLn $ show ps
+
+  let bst = insert'bst 5 (insert'bst 3 (insert'bst 7 empty'bst))
+  putStrLn $ "original bst: " ++  show bst
+  let bstinc = fmap (+1) bst
+  putStrLn $ "fmap (+1) bst: " ++ show bstinc
   -- putStrLn "Starting"
   -- putStrLn $ show (setPair set1 set2)
   -- putStrLn $ show (arr_int')
