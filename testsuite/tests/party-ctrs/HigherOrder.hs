@@ -20,14 +20,14 @@ class CM (m :: Type -> Type)
 
 
 data HoT = HoT { hte :: forall m. HoTExis m
-               , init :: forall m a. n Int -> m a }
+               , wge :: forall n a. (n Int -> n a) -> n a }
 
 data HoTExis m = forall (n:: Type -> Type). HoTExis (forall a. n a -> m a) (forall a. m a -> n a)
 
 -- f :: CM m => HoT -> m a
 outer :: forall m a. (Monad m, CM m) => HoT -> a -> m a
-outer HoT{hte=e} a = case e of
-             HoTExis e l -> e helper
+outer HoT{hte=e, wge=wh} a = case e of
+             HoTExis e l -> e wh helper
 
 
 helper :: forall m n a. (CM m, CM n)

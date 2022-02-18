@@ -10,6 +10,10 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 
 {-# OPTIONS -fno-warn-name-shadowing #-}
 -- This module does a lot of it
@@ -160,6 +164,9 @@ import qualified System.Win32
 import GHC.IO.Exception ( IOErrorType(InvalidArgument) )
 import GHC.IO.Handle ( hFlushAll )
 import GHC.TopHandler ( topHandler )
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@))
+#endif
 
 import GHCi.Leak
 
@@ -3670,24 +3677,44 @@ unionComplete f1 f2 line = do
   cs2 <- f2 line
   return (cs1 ++ cs2)
 
-wrapCompleter :: Monad m => String -> (String -> m [String]) -> CompletionFunc m
+wrapCompleter :: (
+#if MIN_VERSION_base(4,16,0)
+  m @ [Completion],
+#endif
+  Monad m) => String -> (String -> m [String]) -> CompletionFunc m
 wrapCompleter breakChars = wrapCompleter' (`elem` breakChars)
 
-wrapCompleter' :: Monad m => (Char -> Bool) -> (String -> m [String]) -> CompletionFunc m
+wrapCompleter' :: (
+#if MIN_VERSION_base(4,16,0)
+  m @ [Completion],
+#endif
+  Monad m) => (Char -> Bool) -> (String -> m [String]) -> CompletionFunc m
 wrapCompleter' breakPred fun = completeWord' Nothing breakPred
     $ fmap (map simpleCompletion . nubSort) . fun
 
-wrapIdentCompleter :: Monad m => (String -> m [String]) -> CompletionFunc m
+wrapIdentCompleter :: (
+#if MIN_VERSION_base(4,16,0)
+  m @ [Completion],
+#endif
+  Monad m) => (String -> m [String]) -> CompletionFunc m
 wrapIdentCompleter = wrapCompleter' word_break_chars_pred
 
-wrapIdentCompleterMod :: Monad m => (String -> m [String]) -> CompletionFunc m
+wrapIdentCompleterMod :: (
+#if MIN_VERSION_base(4,16,0)
+  m @ [Completion],
+#endif
+  Monad m) => (String -> m [String]) -> CompletionFunc m
 wrapIdentCompleterMod = wrapCompleter' go
   where
     go '.' = False -- Treated specially since it is a seperator for module qualifiers
     go c = word_break_chars_pred c
 
 wrapIdentCompleterWithModifier
-  :: Monad m
+  :: (
+#if MIN_VERSION_base(4,16,0)
+  m @ [Completion],
+#endif
+    Monad m)
   => String -> (Maybe Char -> String -> m [String]) -> CompletionFunc m
 wrapIdentCompleterWithModifier modifChars fun = completeWordWithPrev Nothing word_break_chars
     $ \rest -> fmap (map simpleCompletion . nubSort) . fun (getModifier rest)
