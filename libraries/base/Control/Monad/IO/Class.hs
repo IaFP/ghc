@@ -38,9 +38,9 @@ import GHC.Types (Total)
 -- * @'liftIO' (m >>= f) = 'liftIO' m >>= ('liftIO' . f)@
 
 class (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
+-- #if MIN_VERSION_base(4,16,0)
+--   Total m,
+-- #endif
   Monad m) => MonadIO m where
     -- | Lift a computation from the 'IO' monad.
     -- This allows us to run IO computations in any monadic stack, so long as it supports these kinds of operations
