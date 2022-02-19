@@ -612,7 +612,11 @@ checkBrokenTablesNextToCode logger dflags
                    text "when using binutils ld (please see:" <+>
                    text "https://sourceware.org/bugzilla/show_bug.cgi?id=16177)"
 
-checkBrokenTablesNextToCode' :: MonadIO m => Logger -> DynFlags -> m Bool
+checkBrokenTablesNextToCode' :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  MonadIO m) => Logger -> DynFlags -> m Bool
 checkBrokenTablesNextToCode' logger dflags
   | not (isARM arch)               = return False
   | ways dflags `hasNotWay` WayDyn = return False
@@ -829,7 +833,11 @@ getInteractiveDynFlags = withSession $ \h -> return (ic_dflags (hsc_IC h))
 
 
 parseDynamicFlags
-    :: MonadIO m
+    :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+      MonadIO m)
     => Logger
     -> DynFlags
     -> [Located String]
@@ -928,7 +936,11 @@ normalise_hyp fp
 -- | Checks the set of new DynFlags for possibly erroneous option
 -- combinations when invoking 'setSessionDynFlags' and friends, and if
 -- found, returns a fixed copy (if possible).
-checkNewDynFlags :: MonadIO m => Logger -> DynFlags -> m DynFlags
+checkNewDynFlags :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  MonadIO m) => Logger -> DynFlags -> m DynFlags
 checkNewDynFlags logger dflags = do
   -- See Note [DynFlags consistency]
   let (dflags', warnings) = makeDynFlagsConsistent dflags
@@ -936,7 +948,11 @@ checkNewDynFlags logger dflags = do
   liftIO $ handleFlagWarnings logger diag_opts (map (Warn WarningWithoutFlag) warnings)
   return dflags'
 
-checkNewInteractiveDynFlags :: MonadIO m => Logger -> DynFlags -> m DynFlags
+checkNewInteractiveDynFlags :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  MonadIO m) => Logger -> DynFlags -> m DynFlags
 checkNewInteractiveDynFlags logger dflags0 = do
   -- We currently don't support use of StaticPointers in expressions entered on
   -- the REPL. See #12356.
