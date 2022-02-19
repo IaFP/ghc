@@ -82,7 +82,7 @@ import qualified Data.IntMap.Strict as IntMap
 import qualified GHC.Data.EnumSet as EnumSet
 import qualified GHC.LanguageExtensions as LangExt
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@))
+import GHC.Types (type(@), Total)
 #endif
 
 -----------------------------------------------------------------------------
@@ -448,7 +448,11 @@ runAndPrintStats getAllocs action = do
   return result
 
 runWithStats
-  :: ExceptionMonad m
+  :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+    ExceptionMonad m)
   => (a -> Maybe Integer) -> m a -> m (ActionStats, Either SomeException a)
 runWithStats getAllocs action = do
   t0 <- liftIO getCurrentTime

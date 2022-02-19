@@ -165,7 +165,7 @@ import GHC.IO.Exception ( IOErrorType(InvalidArgument) )
 import GHC.IO.Handle ( hFlushAll )
 import GHC.TopHandler ( topHandler )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@))
+import GHC.Types (type(@), Total)
 #endif
 
 import GHCi.Leak
@@ -4332,7 +4332,11 @@ listModuleLine modl line = do
 -- 2) convert the BS to String using utf-string, and write it out.
 -- It would be better if we could convert directly between UTF-8 and the
 -- console encoding, of course.
-listAround :: MonadIO m => RealSrcSpan -> Bool -> m ()
+listAround :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  MonadIO m) => RealSrcSpan -> Bool -> m ()
 listAround pan do_highlight = do
       contents <- liftIO $ BS.readFile (unpackFS file)
       -- Drop carriage returns to avoid duplicates, see #9367.
@@ -4517,7 +4521,11 @@ ghciHandle h m = mask $ \restore -> do
 ghciTry :: ExceptionMonad m => m a -> m (Either SomeException a)
 ghciTry m = fmap Right m `catch` \e -> return $ Left e
 
-tryBool :: ExceptionMonad m => m a -> m Bool
+tryBool :: (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  ExceptionMonad m) => m a -> m Bool
 tryBool m = do
     r <- ghciTry m
     case r of
