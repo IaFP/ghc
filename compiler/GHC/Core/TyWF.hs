@@ -233,7 +233,7 @@ tyConGenAtsTcM :: Bool
                -> [Type] --- things to ignore
                -> TyCon -> [Type] -> TcM ThetaType
 tyConGenAtsTcM isTyConPhase eTycons ts tycon args
-  | isTyConInternal tycon || isGadtSyntaxTyCon tycon 
+  | isTyConInternal tycon -- || isGadtSyntaxTyCon tycon 
   = return []
   | isTypeSynonymTyCon tycon =
     -- if not isTyConPhase

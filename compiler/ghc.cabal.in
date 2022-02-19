@@ -80,11 +80,11 @@ Library
                    ghc-heap   == @ProjectVersionMunged@,
                    ghci == @ProjectVersionMunged@
                    
+    if impl(ghc>=9.0.3)
+       Build-Depends: ghc-prim >= 0.8.0
 
     if os(windows)
         Build-Depends: Win32  >= 2.3 && < 2.13
-    if impl(ghc>=9.0.3)
-       Build-Depends: ghc-prim >= 0.8.0
     else
         if flag(terminfo)
             Build-Depends: terminfo == 0.4.*

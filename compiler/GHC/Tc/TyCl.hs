@@ -255,10 +255,10 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    ; traceTc "enriched WF datacons for"
                      (vcat $ fmap pprtc tyclss')
 
-                             -- Check that elaborated tycons are generated okay
-                   ; traceTc "Starting validity check post WF enrichment" (ppr tyclss')
-                   ; tyclss' <- concatMapM checkValidTyCl tyclss'
-                   ; traceTc "Done validity check post WF enrichment" (ppr tyclss')
+                   --           -- Check that elaborated tycons are generated okay
+                   -- ; traceTc "Starting validity check post WF enrichment" (ppr tyclss')
+                   -- ; tyclss' <- concatMapM checkValidTyCl tyclss'
+                   -- ; traceTc "Done validity check post WF enrichment" (ppr tyclss')
 
                    ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $ tyclss' ++ tyclss2)
                    }
