@@ -5,14 +5,17 @@ How to I setup this code with partial type constructors and run the programs?
 **TL;DR**
 
 1. `git clone git@github.com:IaFP/ghc.git`
-2. `cd ghc`
-3. `git submodule sync`
-4. `git submodule update --init --recursive`
+1. `cd ghc`
+1. `git submodule sync`
+1. `git submodule update --init --recursive`
 1. `./boot && ./configure` *(see instructions [here](https://gitlab.haskell.org/ghc/ghc/-/wikis/building/hadrian) if on Windows).* If your hadrian build is failing for strange configuration reasons, it may be that a package is not up to date, which `./configure` will tell you.
-5. `mkdir _build && cp <hadrian.settings> _build/hadrian.settings`
-6. `./hadrian/build -j stage1:exe:ghc-bin`
-7. [go read a paper that you have been putting off](https://xkcd.com/303/)
-8. `_build/ghc-stage2 --version # this should print out the GHC version`
+1. `mkdir _build && cp <hadrian.settings> _build/hadrian.settings`
+1. `./hadrian/build -j stage1:exe:ghc-bin`
+1. [go read a paper that you have been putting off](https://xkcd.com/303/)
+1. `_build/ghc-stage1 --version # this should print out the GHC version`
+1. `./hadrian/build -j stage2:exe:ghc-bin`
+1. `_build/ghc-stage2 --version # this should print out the GHC version`
+
  
 [![pipeline status](https://gitlab.haskell.org/ghc/ghc/badges/master/pipeline.svg?style=flat)](https://gitlab.haskell.org/ghc/ghc/commits/master)
 
