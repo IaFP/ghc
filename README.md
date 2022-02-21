@@ -8,6 +8,7 @@ How to I setup this code with partial type constructors and run the programs?
 2. `cd ghc`
 3. `git submodule sync`
 4. `git submodule update --init --recursive`
+1. `./boot && ./configure` *(see instructions [here](https://gitlab.haskell.org/ghc/ghc/-/wikis/building/hadrian) if on Windows).* If your hadrian build is failing for strange configuration reasons, it may be that a package is not up to date, which `./configure` will tell you.
 5. `mkdir _build && cp <hadrian.settings> _build/hadrian.settings`
 6. `./hadrian/build -j stage1:exe:ghc-bin`
 7. [go read a paper that you have been putting off](https://xkcd.com/303/)
