@@ -19,6 +19,7 @@ import GHC.Tc.Instance.Family (tcGetFamInstEnvs)
 import GHC.Core.FamInstEnv (topNormaliseType)
 import GHC.Base (mapM)
 import GHC.Prelude hiding (mapM)
+import GHC.Types.Name
 -- import GHC.Data.Maybe
 -- import PrelNames
 -- import THNames
@@ -39,6 +40,8 @@ import GHC.Builtin.Types (liftedTypeKindTyCon, isCTupleTyConName, wfTyCon)
 -- import TcRnMonad (failWithTc)
 import Data.List (partition)
 import GHC.Tc.Utils.Monad
+import GHC.Tc.Utils.Env (tcLookupGlobal)
+import GHC.Types.TyThing
 import GHC.Utils.Panic (pprPanic)
 import GHC.Utils.Outputable
 import GHC.Utils.Misc(lengthAtLeast)
@@ -258,15 +261,20 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
   = do { elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
+       -- this is dumb, ,but...
+       -- the tycon passed to this function
+       -- is *not* the one I updated to have a WF constraint attached.
+       -- It *does* share a name with that one, though..
+       -- so we perform a new lookup against the global env.
+       ; tything <- tcLookupGlobal . getName $ tycon
+       ; let actual_tycon = tyThingTyCon tything
+       ; traceTc "Here is that darned TF" (ppr actual_tycon)
+       ; traceTc "Here is its fucking WF constraint " (ppr . famTcWfConstraint $ actual_tycon)
        ; case co_ty_mb of
            Nothing -> do {
-             ; traceTc "Hello I am here" (if isTyConPhase then ppr "is ty con phase" else ppr "not tycon phase")
-             ; let initial = case famTcWfConstraint tycon of
+             ; let initial = case famTcWfConstraint actual_tycon of
                      Nothing -> []
                      Just wf -> [mkTyConApp wf args]
-             ; traceTc "tycon is" (ppr tycon)
-             ; traceTc "WF constraint fam is:" (ppr $ famTcWfConstraint tycon)
-             ; traceTc "initial: " (ppr initial)
              ; return $ foldl mergeAtAtConstraints initial css
            }
            Just r | ty <- reductionReducedType r -> do {

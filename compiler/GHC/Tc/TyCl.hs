@@ -348,6 +348,7 @@ pprtc tc
   | isFamilyTyCon tc =
     text "tycon=" <> ppr tc <+> brackets (
       text "tyConName= " <> (ppr $ tyConName tc)
+      $$ text "name unique= " <> (ppr . nameUnique . getName $ tc)
       $$ text "binders= " <> (ppr $ tyConBinders tc)
       $$ text "TyVars= " <> (ppr $ tyConTyVars tc)
       $$ text "Result Kind= " <> (ppr $ tyConResKind tc)
