@@ -187,17 +187,18 @@ mkWfConstraintFam tc
   | isFamilyTyCon tc = do
       uniq <- newUnique
       mod <- getModule
-      let parentName = occNameString . nameOccName . tyConName $ tc
+      let tfName = occNameString . nameOccName . tyConName $ tc
+      let parentName = fmap getName (famTcParent tc)
       let constraint = mkFamilyTyCon
                        name
                        (tyConBinders tc)
                        constraintKind                        -- Should this be flat constraint kind? TODO
-                       (Just . getName . fromJust . famTcParent $ tc)   -- Name of associated class
+                       parentName                            -- Name of associated class
                        (fromJust . famTyConFlav_maybe $ tc)  -- give constraint family same flavor -- only important really for open vs closed.
                        Nothing                               -- Associated class TODO
                        NotInjective                          -- *shrug*
             where
-              name = mkWiredInName mod (mkTcOcc $ "WF_" ++ parentName) uniq (ATyCon constraint) BuiltInSyntax
+              name = mkWiredInName mod (mkTcOcc $ "WF_" ++ tfName) uniq (ATyCon constraint) BuiltInSyntax
       return constraint
   | otherwise = return tc
 
