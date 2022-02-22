@@ -178,6 +178,29 @@ tcTyAndClassDecls tyclds_s
                       (th_bndrs' `plusNameEnv` th_bndrs)
                       tyclds_s }
 
+-- Make a WF constraint for a given type family.
+-- Note -- I would rather put this in Core/TyCon.hs,
+-- but we need to be in the TcM monad and importing
+-- TcM from TyCon.hs introduces a cycle.
+mkWfConstraintFam :: TyCon -> TcM TyCon
+mkWfConstraintFam tc
+  | isFamilyTyCon tc = do
+      uniq <- newUnique
+      mod <- getModule
+      let parentName = occNameString . nameOccName . tyConName $ tc
+      let constraint = mkFamilyTyCon
+                       name
+                       (tyConBinders tc)
+                       constraintKind                        -- Should this be flat constraint kind? TODO
+                       Nothing                               -- Name of associated class TODO
+                       (fromJust . famTyConFlav_maybe $ tc)  -- give constraint family same flavor -- only important really for open vs closed.
+                       Nothing                               -- Associated class TODO
+                       NotInjective                          -- *shrug*
+            where
+              name = mkWiredInName mod (mkTcOcc $ "WF_" ++ parentName) uniq (ATyCon constraint) BuiltInSyntax
+      return constraint
+  | otherwise = return tc
+
 tcTyClGroup :: TyClGroup GhcRn
             -> TcM (TcGblEnv, [InstInfo GhcRn], [DerivInfo], ClassScopedTVEnv, ThBindEnv)
 -- Typecheck one strongly-connected component of type, class, and instance decls
@@ -252,6 +275,9 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                                                         tcExtendLocalFamInstEnv fam_insts
                                                         $ do elabTyCons t) tyclss1
                                 -- do { mapM elabTcDataConsCtxt tyclss1 }
+                   ; let (tfs, rest) = partition isFamilyTyCon tyclss2
+                   ; wfTfs <- mapM mkWfConstraintFam tfs
+                   ; let elabTfs = fmap (\ (f, wf_f) -> f { famTcWfConstraint = Just wf_f } ) (zip tfs wfTfs)
                    ; traceTc "enriched WF datacons for"
                      (vcat $ fmap pprtc tyclss')
 
@@ -260,7 +286,7 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    -- ; tyclss' <- concatMapM checkValidTyCl tyclss'
                    -- ; traceTc "Done validity check post WF enrichment" (ppr tyclss')
 
-                   ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $ tyclss' ++ tyclss2)
+                   ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $ tyclss' ++ elabTfs ++ wfTfs ++ rest)
                    }
                      -- else
                      --  if enblPCtrs && (length tyclds > 1)
@@ -310,6 +336,15 @@ pprtc tc
     <+> ppr (zip (tyConBinders tc) (tyConRoles tc))
     <+> text "TypeSyn RHS" <+> ppr (synTyConRhs_maybe tc)
     <+> text "isFamFree" <+> ppr (isFamFreeTyCon tc)
+  | isFamilyTyCon tc =
+    text "tycon=" <> ppr tc <+> brackets (
+      text "tyConName= " <> (ppr $ tyConName tc)
+      $$ text "binders= " <> (ppr $ tyConBinders tc)
+      $$ text "TyVars= " <> (ppr $ tyConTyVars tc)
+      $$ text "Result Kind= " <> (ppr $ tyConResKind tc)
+      $$ text "Arity= " <> (ppr $ tyConArity tc)
+      $$ text "WF Constraint TF= " <> (ppr $ famTcWfConstraint tc)
+      )
   | otherwise =
     text "tycon=" <> ppr tc
     <+> text "No enrichment"

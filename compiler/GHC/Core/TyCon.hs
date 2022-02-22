@@ -114,6 +114,7 @@ module GHC.Core.TyCon(
         tyConBinders, tyConResKind, tyConInvisTVBinders,
         tcTyConScopedTyVars, tcTyConIsPoly,
         mkTyConTagMap,
+        famTcWfConstraint,
 
         -- ** Manipulating TyCons
         expandSynTyCon_maybe,
@@ -900,9 +901,15 @@ data TyCon
                                       -- The class tycon in which the family is declared
                                       -- See Note [Associated families and their parent class]
 
-        famTcInj     :: Injectivity   -- ^ is this a type family injective in
+        famTcInj     :: Injectivity,  -- ^ is this a type family injective in
                                       -- its type variables? Nothing if no
                                       -- injectivity annotation was given
+        famTcWfConstraint :: Maybe TyCon  -- ^ type family for WF constraint,
+                                        -- e.g. type family F
+                                        --      type instance F [a] = Tree a
+                                        -- would have well-formedness child WF_F s.t.
+                                        --      type instance WF_F [a] = Tree @ a
+                        
     }
 
   -- | Primitive types; cannot be defined in Haskell. This includes
@@ -2075,21 +2082,21 @@ mkFamilyTyCon :: Name -> [TyConBinder] -> Kind  -- ^ /result/ kind
 mkFamilyTyCon name binders res_kind resVar flav parent inj
   = let tc =
           FamilyTyCon
-            { tyConUnique  = nameUnique name
-            , tyConName    = name
-            , tyConBinders = binders
-            , tyConResKind = res_kind
-            , tyConKind    = mkTyConKind binders res_kind
-            , tyConArity   = length binders
-            , tyConNullaryTy = mkNakedTyConTy tc
-            , tyConTyVars  = binderVars binders
-            , famTcResVar  = resVar
-            , famTcFlav    = flav
-            , famTcParent  = classTyCon <$> parent
-            , famTcInj     = inj
+            { tyConUnique       = nameUnique name
+            , tyConName         = name
+            , tyConBinders      = binders
+            , tyConResKind      = res_kind
+            , tyConKind         = mkTyConKind binders res_kind
+            , tyConArity        = length binders
+            , tyConNullaryTy     = mkNakedTyConTy tc
+            , tyConTyVars       = binderVars binders
+            , famTcResVar       = resVar
+            , famTcFlav         = flav
+            , famTcParent       = classTyCon <$> parent
+            , famTcInj          = inj
+            , famTcWfConstraint = Nothing
             }
     in tc
-
 
 -- | Create a promoted data constructor 'TyCon'
 -- Somewhat dodgily, we give it the same Name
