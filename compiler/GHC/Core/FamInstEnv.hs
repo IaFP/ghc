@@ -24,6 +24,7 @@ module GHC.Core.FamInstEnv (
 
         FamInstMatch(..),
         lookupFamInstEnv, lookupFamInstEnvConflicts, lookupFamInstEnvByTyCon,
+        famInstSplitLHS,
 
         isDominatedBy, apartnessCheck,
 

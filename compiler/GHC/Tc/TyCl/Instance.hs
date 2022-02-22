@@ -84,6 +84,8 @@ import GHC.Utils.Panic.Plain
 import GHC.Types.SrcLoc
 import GHC.Utils.Misc
 import GHC.Data.BooleanFormula ( isUnsatisfied, pprBooleanFormulaNice )
+import GHC.Core.TyWF
+import GHC.Builtin.Types
 import qualified GHC.LanguageExtensions as LangExt
 
 import Control.Monad
@@ -384,6 +386,35 @@ complained if 'b' is mentioned in <rhs>.
 Gather up the instance declarations from their various sources
 -}
 
+elabWfFamInst :: FamInst -> TcM FamInst
+elabWfFamInst fam_inst
+  = do {
+       ; let (tfTc, ts) = famInstSplitLHS fam_inst
+       ; let rhs = famInstRHS fam_inst
+       ; let wfTc = fromJust . famTcWfConstraint $ tfTc
+       ; let loc = getSrcSpan fam_inst
+       -- Broken.
+       ; inst_name <- newFamInstTyConName (L loc (tyConName wfTc)) ts
+       ; elabDetails <- genAtAtConstraintsTcM False rhs
+       ; let preds = newPreds elabDetails
+       ; let n = length preds
+       ; rhs_ty <- if n == 1 then return . head $ preds
+                   else do { ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
+                           ; return $ mkTyConApp ctupleTyCon preds
+                           }
+       -- Todo:
+       -- if RHS is type var, should just
+       -- make unit.
+       ; let tvs     = []
+             lhs_tys = ts
+             axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wfTc lhs_tys rhs_ty
+       ; newFamInst SynFamilyInst axiom
+       }
+
+
+elabWfFamInsts :: [FamInst] -> TcM [FamInst]
+elabWfFamInsts = mapM elabWfFamInst
+
 tcInstDecls1    -- Deal with both source-code and imported instance decls
    :: [LInstDecl GhcRn]         -- Source code instance decls
    -> TcM (TcGblEnv,            -- The full inst env
@@ -400,9 +431,10 @@ tcInstDecls1 inst_decls
              fam_insts   = concat fam_insts_s
              local_infos = concat local_infos_s
 
+       ; wfFamInsts <- elabWfFamInsts (filter (hasFamTcWfConstraint . famInstTyCon) fam_insts)
        ; (gbl_env, th_bndrs) <-
            addClsInsts local_infos $
-           addFamInsts fam_insts
+           addFamInsts (fam_insts ++ wfFamInsts)
 
        ; return ( gbl_env
                 , local_infos

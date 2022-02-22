@@ -116,6 +116,7 @@ module GHC.Core.TyCon(
         mkTyConTagMap,
         famTcWfConstraint,
         famTcParent,
+        hasFamTcWfConstraint,
 
         -- ** Manipulating TyCons
         expandSynTyCon_maybe,
@@ -2098,6 +2099,10 @@ mkFamilyTyCon name binders res_kind resVar flav parent inj
             , famTcWfConstraint = Nothing
             }
     in tc
+
+hasFamTcWfConstraint :: TyCon -> Bool
+hasFamTcWfConstraint (FamilyTyCon { famTcWfConstraint = Just _ } ) = True
+hasFamTcWfConstraint _ = False
 
 -- | Create a promoted data constructor 'TyCon'
 -- Somewhat dodgily, we give it the same Name
