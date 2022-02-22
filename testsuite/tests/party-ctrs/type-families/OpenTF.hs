@@ -7,3 +7,6 @@ import GHC.Types (Type)
 
 type family Elem a
 type instance Elem [a] = a
+
+g :: Elem a -> a
+g = undefined

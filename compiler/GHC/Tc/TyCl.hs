@@ -192,7 +192,7 @@ mkWfConstraintFam tc
                        name
                        (tyConBinders tc)
                        constraintKind                        -- Should this be flat constraint kind? TODO
-                       Nothing                               -- Name of associated class TODO
+                       (Just . getName . fromJust . famTcParent $ tc)   -- Name of associated class
                        (fromJust . famTyConFlav_maybe $ tc)  -- give constraint family same flavor -- only important really for open vs closed.
                        Nothing                               -- Associated class TODO
                        NotInjective                          -- *shrug*
@@ -278,6 +278,10 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    ; let (tfs, rest) = partition isFamilyTyCon tyclss2
                    ; wfTfs <- mapM mkWfConstraintFam tfs
                    ; let elabTfs = fmap (\ (f, wf_f) -> f { famTcWfConstraint = Just wf_f } ) (zip tfs wfTfs)
+                   ; traceTc "Added WF constraints to TFS: "
+                     (vcat $ fmap pprtc elabTfs)
+                   ; traceTc "The WF constraints are:"
+                     (vcat $ fmap pprtc wfTfs)                     
                    ; traceTc "enriched WF datacons for"
                      (vcat $ fmap pprtc tyclss')
 

@@ -222,7 +222,6 @@ saneTyConForElab tycon =
        || isPromotedDataCon tycon
        || isClassTyCon tycon
        || isFunTyCon tycon
-       || isFamilyTyCon tycon
        || isTypeSynonymTyCon tycon
        || isNewTyCon tycon )
 
@@ -260,7 +259,16 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
        ; case co_ty_mb of
-           Nothing -> return $ foldl mergeAtAtConstraints [] css
+           Nothing -> do {
+             ; traceTc "Hello I am here" (text "")
+             ; let initial = case famTcWfConstraint tycon of
+                     Nothing -> []
+                     Just wf -> [mkTyConApp wf args]
+             ; traceTc "tycon is" (ppr tycon)
+             ; traceTc "WF constraint fam is:" (ppr $ famTcWfConstraint tycon)
+             ; traceTc "initial: " (ppr initial)
+             ; return $ foldl mergeAtAtConstraints initial css
+           }
            Just r | ty <- reductionReducedType r -> do {
              ; elabd <- genAtAtConstraintsTcM isTyConPhase ty
              ; return $ foldl mergeAtAtConstraints (newPreds elabd) css

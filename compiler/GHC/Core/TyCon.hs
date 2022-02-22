@@ -115,6 +115,7 @@ module GHC.Core.TyCon(
         tcTyConScopedTyVars, tcTyConIsPoly,
         mkTyConTagMap,
         famTcWfConstraint,
+        famTcParent,
 
         -- ** Manipulating TyCons
         expandSynTyCon_maybe,
