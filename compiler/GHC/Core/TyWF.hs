@@ -260,7 +260,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; co_ty_mb <- matchFamTcM tycon args
        ; case co_ty_mb of
            Nothing -> do {
-             ; traceTc "Hello I am here" (text "")
+             ; traceTc "Hello I am here" (if isTyConPhase then ppr "is ty con phase" else ppr "not tycon phase")
              ; let initial = case famTcWfConstraint tycon of
                      Nothing -> []
                      Just wf -> [mkTyConApp wf args]

@@ -179,10 +179,12 @@ tcTyAndClassDecls tyclds_s
                       tyclds_s }
 
 -- Make a WF constraint for a given type family.
+-- The second element is the WF tf, the first is
+-- the original TF updated with a memo ref to the WF constraint.
 -- Note -- I would rather put this in Core/TyCon.hs,
 -- but we need to be in the TcM monad and importing
 -- TcM from TyCon.hs introduces a cycle.
-mkWfConstraintFam :: TyCon -> TcM TyCon
+mkWfConstraintFam :: TyCon -> TcM (TyCon, Maybe TyCon)
 mkWfConstraintFam tc
   | isFamilyTyCon tc = do
       uniq <- newUnique
@@ -199,8 +201,8 @@ mkWfConstraintFam tc
                        NotInjective                          -- *shrug*
             where
               name = mkWiredInName mod (mkTcOcc $ "WF_" ++ tfName) uniq (ATyCon constraint) BuiltInSyntax
-      return constraint
-  | otherwise = return tc
+      return (tc { famTcWfConstraint = Just constraint }, Just constraint)
+  | otherwise = return (tc, Nothing)
 
 tcTyClGroup :: TyClGroup GhcRn
             -> TcM (TcGblEnv, [InstInfo GhcRn], [DerivInfo], ClassScopedTVEnv, ThBindEnv)
@@ -277,21 +279,23 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                                                         $ do elabTyCons t) tyclss1
                                 -- do { mapM elabTcDataConsCtxt tyclss1 }
                    ; let (tfs, rest) = partition isFamilyTyCon tyclss2
-                   ; wfTfs <- mapM mkWfConstraintFam tfs
-                   ; let elabTfs = fmap (\ (f, wf_f) -> f { famTcWfConstraint = Just wf_f } ) (zip tfs wfTfs)
+                   ; tfs' <- mapM mkWfConstraintFam tfs
+                   ; let (elab_tfs, wf_tfs_maybe) = unzip tfs'
+                   ; let wf_tfs = catMaybes wf_tfs_maybe
                    ; traceTc "Added WF constraints to TFS: "
-                     (vcat $ fmap pprtc elabTfs)
+                     (vcat $ fmap pprtc elab_tfs)
                    ; traceTc "The WF constraints are:"
-                     (vcat $ fmap pprtc wfTfs)                     
+                     (vcat $ fmap pprtc wf_tfs)                     
                    ; traceTc "enriched WF datacons for"
                      (vcat $ fmap pprtc tyclss')
+                   ; let elaborated = tyclss' ++ elab_tfs ++ wf_tfs
 
                    --           -- Check that elaborated tycons are generated okay
-                   -- ; traceTc "Starting validity check post WF enrichment" (ppr tyclss')
-                   -- ; tyclss' <- concatMapM checkValidTyCl tyclss'
-                   -- ; traceTc "Done validity check post WF enrichment" (ppr tyclss')
+                   -- ; traceTc "Starting validity check post WF enrichment" (ppr elaborated)
+                   -- ; elaborated <- concatMapM checkValidTyCl elaborated
+                   -- ; traceTc "Done validity check post WF enrichment" (ppr elaborated)
 
-                   ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $ tyclss' ++ elabTfs ++ wfTfs ++ rest)
+                   ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $ elaborated ++ rest)
                    }
                      -- else
                      --  if enblPCtrs && (length tyclds > 1)
