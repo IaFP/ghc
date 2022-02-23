@@ -11,5 +11,11 @@ type family F (a :: *) :: * where
   F (a, a) = F [a]
   F [a] = Tree a
 
+-- This should resolve with F (a, a) ~ Tree a,
+-- so g will have constraint Ord a =>.
 g :: a -> F (a, a)
 g = Leaf
+
+-- This should have WF_F constraint, as (F a) does not normalize.
+h :: F a -> a
+h = undefined
