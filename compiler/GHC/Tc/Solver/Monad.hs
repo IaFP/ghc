@@ -1686,13 +1686,22 @@ touchabilityTest flav tv1 rhs
   , canSolveByUnification info rhs
   = do { ambient_lvl  <- getTcLevel
        ; given_eq_lvl <- getInnermostGivenEqLevel
-
+       ; traceTcS "checking touchability for levels: " (text "ambient: " <> ppr ambient_lvl
+                                                       <+> text "innermost: " <> ppr given_eq_lvl
+                                                       <+> text "this: " <> ppr tv_lvl)
+       ; traceTcS "comparing lvls: sameDepthAs" (ppr (tv_lvl `sameDepthAs` ambient_lvl))
+       ; traceTcS "free metas and skols " (ppr free_metas
+                                           <+> ppr free_skols)
        ; if | tv_lvl `sameDepthAs` ambient_lvl
             -> return TouchableSameLevel
 
             | tv_lvl `deeperThanOrSame` given_eq_lvl   -- No intervening given equalities
             , all (does_not_escape tv_lvl) free_skols  -- No skolem escapes
             -> return (TouchableOuterLevel free_metas tv_lvl)
+
+            | all (does_not_escape tv_lvl) free_skols  -- No skolem escapes
+            -> do traceTcS "Unsafe touchability but meh: " empty
+                  return (TouchableOuterLevel free_metas tv_lvl)
 
             | otherwise
             -> return Untouchable }
@@ -2290,7 +2299,9 @@ breakTyVarCycle_maybe ev cte_result (TyVarLHS lhs_tv) rhs
     go :: TcType -> TcS ReductionN
     go ty | Just ty' <- rewriterView ty = go ty'
     go (Rep.TyConApp tc tys)
-      | isTypeFamilyTyCon tc  -- worried about whether this type family is not actually
+      | isTypeFamilyTyCon tc
+      , not(isWfTyCon tc)     -- don't do this if we have a magic (@) tyfam as it is regular
+                              -- worried about whether this type family is not actually
                               -- causing trouble? See Detail (5) of Note.
       = do { let (fun_args, extra_args) = splitAt (tyConArity tc) tys
                  fun_app                = mkTyConApp tc fun_args

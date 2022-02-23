@@ -1630,7 +1630,7 @@ mightEqualLater (IS { inert_cycle_breakers = cbvs })
             -- | otherwise -- ANI TODO: causes failure while compiling parser. (GHC/Parser.y)
                            -- I suspect it is due to ECP and type family interaction
             -- -> pprPanic "mightEqualLater finds an unbound cbv" (ppr tv $$ ppr cbvs)
-            | otherwise -> False 
+            | otherwise -> False -- True will cause problems with overlapping instance errors in ECP &co
           _ -> True
       | otherwise
       = False

@@ -18,7 +18,7 @@ import GHC.Core.InstEnv         ( DFunInstType )
 import GHC.Types.Var
 import GHC.Tc.Errors.Types
 import GHC.Tc.Utils.TcType
-import GHC.Builtin.Names ( coercibleTyConKey, heqTyConKey, eqTyConKey, ipClassKey )
+import GHC.Builtin.Names ( coercibleTyConKey, heqTyConKey, eqTyConKey, ipClassKey, wfTyConKey )
 import GHC.Core.Coercion.Axiom ( CoAxBranch (..), CoAxiom (..), TypeEqn, fromBranches, sfInteractInert, sfInteractTop )
 import GHC.Core.Class
 import GHC.Core.TyCon
@@ -1098,7 +1098,8 @@ shortCutSolver dflags ev_w ev_i
                        , cir_mk_ev     = mk_ev
                        , cir_what      = what }
                  | safeOverlap what
-                 , all isTyFamFree preds  -- Note [Shortcut solving: type families]
+                 , all isTyFamFree (filter (\ x -> not (isWfPred x)) preds) -- all the preds that don't mention @ are ty fam free
+                 -- Note [Shortcut solving: type families]
                  -> do { let solved_dicts' = addDict solved_dicts cls tys ev
                              -- solved_dicts': it is important that we add our goal
                              -- to the cache before we solve! Otherwise we may end
@@ -1583,7 +1584,9 @@ tryToSolveByUnification :: Ct -> CtEvidence
 tryToSolveByUnification work_item ev tv rhs
   = do { is_touchable <- touchabilityTest (ctEvFlavour ev) tv rhs
        ; traceTcS "tryToSolveByUnification" (vcat [ ppr tv <+> char '~' <+> ppr rhs
-                                                  , ppr is_touchable ])
+                                                  , ppr is_touchable
+                                                  , ppr $ tcTyVarDetails tv
+                                                  ])
 
        ; case is_touchable of
            Untouchable -> continueWith work_item
@@ -2258,6 +2261,7 @@ matchClassInst dflags inerts clas tys loc
 -- whether top level, or local quantified constraints.
 -- See Note [Instance and Given overlap]
   | not (xopt LangExt.IncoherentInstances dflags)
+  -- , not (xopt LangExt.PartialTypeConstructors dflags) -- trying to fix existentials
   , not (naturallyCoherentClass clas)
   , let matchable_givens = matchableGivens loc pred inerts
   , not (isEmptyBag matchable_givens)
@@ -2296,6 +2300,7 @@ naturallyCoherentClass cls
     || cls `hasKey` heqTyConKey
     || cls `hasKey` eqTyConKey
     || cls `hasKey` coercibleTyConKey
+    || cls `hasKey` wfTyConKey
 
 
 {- Note [Instance and Given overlap]
@@ -2452,6 +2457,10 @@ matchLocalInst :: TcPredType -> CtLoc -> TcS ClsInstResult
 -- which are effectively just local instance declarations.
 matchLocalInst pred loc
   = do { inerts@(IS { inert_cans = ics }) <- getTcSInerts
+       ; traceTcS "match_local_inst called with" (vcat [text "inerts: " <> (ppr inerts)
+                                                       , text "insert_insts ics: "
+                                                         <> ppr (inert_insts ics)])
+
        ; case match_local_inst inerts (inert_insts ics) of
            ([], Nothing) -> do { traceTcS "No local instance for" (ppr pred)
                                ; return NoInstance }
@@ -2501,8 +2510,7 @@ matchLocalInst pred loc
                                , qci_ev = qev })
                              : qcis)
       | let in_scope = mkInScopeSet (qtv_set `unionVarSet` pred_tv_set)
-      , Just tv_subst <- ruleMatchTyKiX qtv_set (mkRnEnv2 in_scope)
-                                        emptyTvSubstEnv qpred pred
+      , Just tv_subst <- ruleMatchTyKiX qtv_set (mkRnEnv2 in_scope) emptyTvSubstEnv qpred pred
       , let match = (qev, map (lookupVarEnv tv_subst) qtvs)
       = (match:matches, unif)
 
