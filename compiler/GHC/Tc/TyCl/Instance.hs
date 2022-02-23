@@ -392,9 +392,9 @@ elabWfFamInst fam_inst
        ; let (tfTc, ts) = famInstSplitLHS fam_inst
        ; let rhs = famInstRHS fam_inst
        ; let wfTc = fromJust . famTcWfConstraint $ tfTc
-       ; let loc = getSrcSpan fam_inst
+       ; let loc = noAnnSrcSpan . getSrcSpan $ fam_inst
        -- Broken.
-       ; inst_name <- newFamInstTyConName (L loc (tyConName wfTc)) ts
+       ; inst_name <- newFamInstTyConName (L loc (getName wfTc)) ts
        ; elabDetails <- genAtAtConstraintsTcM False rhs
        ; let preds = newPreds elabDetails
        ; let n = length preds
@@ -402,9 +402,6 @@ elabWfFamInst fam_inst
                    else do { ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
                            ; return $ mkTyConApp ctupleTyCon preds
                            }
-       -- Todo:
-       -- if RHS is type var, should just
-       -- make unit.
        ; let tvs     = []
              lhs_tys = ts
              axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wfTc lhs_tys rhs_ty
