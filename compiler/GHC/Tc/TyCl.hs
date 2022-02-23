@@ -278,7 +278,7 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                                                         tcExtendLocalFamInstEnv fam_insts
                                                         $ do elabTyCons t) tyclss1
                                 -- do { mapM elabTcDataConsCtxt tyclss1 }
-                   ; let (tfs, rest) = partition isFamilyTyCon tyclss2
+                   ; let (tfs, rest) = partition famTyShouldHaveWfConstraint tyclss2
                    ; tfs' <- mapM mkWfConstraintFam tfs
                    ; let (elab_tfs, wf_tfs_maybe) = unzip tfs'
                    ; let wf_tfs = catMaybes wf_tfs_maybe

@@ -82,6 +82,7 @@ module GHC.Core.TyCon(
         isTcTyCon, setTcTyConKind,
         tcHasFixedRuntimeRep,
         isConcreteTyCon,
+        famTyShouldHaveWfConstraint,
 
         -- ** Extracting information out of TyCons
         tyConName,
@@ -2786,6 +2787,16 @@ synTyConRhs_maybe _                               = Nothing
 famTyConFlav_maybe :: TyCon -> Maybe FamTyConFlav
 famTyConFlav_maybe (FamilyTyCon {famTcFlav = flav}) = Just flav
 famTyConFlav_maybe _                                = Nothing
+
+
+famTyShouldHaveWfConstraint :: TyCon -> Bool
+famTyShouldHaveWfConstraint (FamilyTyCon {famTcFlav = OpenSynFamilyTyCon {}}) = True
+-- TODO support closed TFs
+famTyShouldHaveWfConstraint (FamilyTyCon {famTcFlav = ClosedSynFamilyTyCon {}}) = False
+-- TODO support data families
+famTyShouldHaveWfConstraint (FamilyTyCon {famTcFlav = DataFamilyTyCon {}}) = False
+famTyShouldHaveWfConstraint _                                = False
+
 
 -- | Is this 'TyCon' that for a class instance?
 isClassTyCon :: TyCon -> Bool
