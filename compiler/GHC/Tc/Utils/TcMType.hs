@@ -2475,7 +2475,7 @@ zonkTcTyCon :: TcTyCon -> TcM TcTyCon
 -- A non-poly TcTyCon may have unification
 -- variables that need zonking, but poly ones cannot
 zonkTcTyCon tc
- | tcTyConIsPoly tc = return tc -- this as no effect
+ | tcTyConIsPoly tc = return tc
  | otherwise        = do { tck' <- zonkTcType (tyConKind tc)
                          ; return (setTcTyConKind tc tck') }
 
