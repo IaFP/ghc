@@ -317,6 +317,16 @@ runTcPluginSolvers solvers all_cts
 type WorkItem = Ct
 type SimplifierStage = WorkItem -> TcS (StopOrContinue Ct)
 
+pprtc :: TyCon -> SDoc
+pprtc tc
+  | isFamilyTyCon tc =
+    text "tycon=" <> ppr tc <+> brackets (
+      text "WF Constraint TF= " <> (ppr $ famTcWfConstraint tc)
+      )
+  | otherwise =
+    text "tycon=" <> ppr tc
+    <+> text "No enrichment"
+
 runSolverPipeline :: [(String,SimplifierStage)] -- The pipeline
                   -> WorkItem                   -- The work item
                   -> TcS ()
@@ -325,6 +335,11 @@ runSolverPipeline pipeline workItem
   = do { wl <- getWorkList
        ; inerts <- getTcSInerts
        ; tclevel <- getTcLevel
+       ; env <- getGblEnv
+       ; let tycons = tcg_tcs env
+       
+       ; traceTcS "Solver/Interact.hs -- Solver pipeline global tycons: " (ppr tycons)
+       ; traceTcS "Solver/Interact.hs -- Solver pipeline dump: " (vcat (map pprtc tycons))
        ; traceTcS "----------------------------- " empty
        ; traceTcS "Start solver pipeline {" $
                   vcat [ text "tclevel =" <+> ppr tclevel

@@ -257,6 +257,7 @@ tcRnModuleTcRnM hsc_env mod_sum
         -- to tcTyAndClassDecls, because the boot_names are
         -- automatically considered to be loop breakers
         tcg_env <- getGblEnv
+      ; traceTc "Module.hs -- TFs at call to tcRnModuleTcRnM"  $ vcat (map pprtc (tcg_tcs tcg_env))
       ; boot_info <- tcHiBootIface hsc_src this_mod
       ; setGblEnv (tcg_env { tcg_self_boot = boot_info })
         $ do
@@ -293,6 +294,7 @@ tcRnModuleTcRnM hsc_env mod_sum
         ; -- OK now finally rename the imports
           tcg_env <- {-# SCC "tcRnImports" #-}
                      tcRnImports hsc_env all_imports
+        ; traceTc "Module.hs -- Imports after renaming"  (ppr all_imports)
 
        ;  -- Don't need to rename the Haddock documentation,
           -- it's not parsed by GHC anymore.
@@ -310,6 +312,8 @@ tcRnModuleTcRnM hsc_env mod_sum
                                tcg_env {tcg_warns = WarnAll txt}
                              Nothing            -> tcg_env
               }
+        ; traceTc "Module.hs -- TFs at rn1a"  $ vcat (map pprtc (tcg_tcs tcg_env1))
+        ; traceTc "Module.hs -- Exports before rn1a"  (vcat (map ppr (tcg_exports tcg_env1)))
         ; setGblEnv tcg_env1
           $ do { -- Rename and type check the declarations
                  traceRn "rn1a" empty
@@ -327,7 +331,9 @@ tcRnModuleTcRnM hsc_env mod_sum
 
                ; whenM (goptM Opt_DoCoreLinting) $
                  lintGblEnv (hsc_logger hsc_env) (hsc_dflags hsc_env) tcg_env
-
+               ; traceTc "Module.hs -- TFs after rn1a"  (vcat (map pprtc (tcg_tcs tcg_env)))
+               ; traceTc "Module.hs -- Exports after rn1a"  (vcat (map ppr (tcg_exports tcg_env)))
+ 
                ; setGblEnv tcg_env
                  $ do { -- Compare hi-boot iface (if any) with the real thing
                         -- Must be done after processing the exports
@@ -349,8 +355,10 @@ tcRnModuleTcRnM hsc_env mod_sum
                         -- Ensure plugins run with the same tcg_env that we pass in
                       ; setGblEnv tcg_env
                         $ do { tcg_env <- runTypecheckerPlugin mod_sum tcg_env
+                             ; traceTc "Module.hs -- final TF dump"  $ vcat (map pprtc (tcg_tcs tcg_env))
+                             ; traceTc "Module.hs -- final env exports"  (vcat (map ppr (tcg_exports tcg_env)))
                              ; -- Dump output and return
-                               tcDump tcg_env
+                             ; tcDump tcg_env
                              ; return tcg_env
                              }
                       }
@@ -1549,8 +1557,8 @@ tcTopSrcDecls (HsGroup { hs_tyclds = tycl_decls,
 
         -- See Note [Newtype constructor usage in foreign declarations]
         addUsedGREs (bagToList fo_gres) ;
-
-        return (tcg_env', tcl_env)
+        ; traceTc "Tc/Module.hs::tcTopSrcDecls -- dump AFTER complete top src decl checking:" $ vcat (map pprtc (tcg_tcs tcg_env'))
+        ; return (tcg_env', tcl_env)
     }}}}}}
 
 tcTopSrcDecls _ = panic "tcTopSrcDecls: ValBindsIn"
@@ -1772,6 +1780,7 @@ tcTyClsInstDecls tycl_decls deriv_decls binds
               <- tcInstDeclsDeriv deriv_info deriv_decls
           ; setGblEnv tcg_env' $ do {
                 failIfErrsM
+                ; traceTc "Tc/Module.hs.hs::tcTyClInstDecls -- env dump"  $ vcat (map pprtc (tcg_tcs tcg_env'))
               ; pure ( tcg_env', inst_info' ++ inst_info
                      , class_scoped_tv_env, th_bndrs, val_binds )
       }}}

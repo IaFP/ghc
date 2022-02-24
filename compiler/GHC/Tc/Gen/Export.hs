@@ -195,6 +195,7 @@ rnExports explicit_mod exports
                  | otherwise = Nothing
 
         -- Rename the export list
+        ; traceRn "rnExports: real_exports" (ppr real_exports)
         ; let do_it = exports_from_avail real_exports rdr_env imports this_mod
         ; (rn_exports, final_avails)
             <- if hsc_src == HsigFile
