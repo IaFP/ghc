@@ -92,7 +92,7 @@ stage3.text.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -
 stage3.unix.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.template-haskell.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 
-stage1.*.ghc.hs.opts += -fforce-recomp -dcore-lint
+stage1.*.ghc.hs.opts += -fforce-recomp # -dcore-lint
 stage2.*.ghc.hs.opts += -g3 -debug -fforce-recomp
 
 stage2.rts.ghc.c.opts += -optc-ggdb
