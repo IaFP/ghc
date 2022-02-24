@@ -8,6 +8,7 @@ import OpenTF
 --   forall a. WF_Elem a => Elem a -> a
 g :: Elem a -> a
 g = undefined
+g' = OpenTF.g
 
 -- This should also be given g's type from openTF.
 -- g' = OpenTF.g

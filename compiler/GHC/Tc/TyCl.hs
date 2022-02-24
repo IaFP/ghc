@@ -15,6 +15,7 @@
 -- | Typecheck type and class declarations
 module GHC.Tc.TyCl (
         tcTyAndClassDecls,
+        pprtc,
 
         -- Functions used by GHC.Tc.TyCl.Instance to check
         -- data/type family instance declarations
@@ -156,7 +157,14 @@ tcTyAndClassDecls tyclds_s
   -- The code recovers internally, but if anything gave rise to
   -- an error we'd better stop now, to avoid a cascade
   -- Type check each group in dependency order folding the global env
-  = checkNoErrs $ fold_env [] [] emptyNameEnv emptyNameEnv tyclds_s
+  = do
+    x <- fold_env [] [] emptyNameEnv emptyNameEnv tyclds_s
+    let (env, _, _, _, _) = x
+    traceTc "TyCl.hs::tcTyAndClassDecls -- Here is the fucking env: " (ppr $ tcg_tcs env)
+    traceTc "TyCl.hs::tcTyAndClassDecls -- Fucking env elaborated:"  $ vcat (map pprtc (tcg_tcs env))
+    checkNoErrs (return x)
+
+      
   where
     fold_env :: [InstInfo GhcRn]
              -> [DerivInfo]
@@ -269,33 +277,23 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                              -- Then update each of the datacons of data types with elaborated context
                              -- we update the env first so that we can simplify the atat constraints
                              -- eagerly in the next step.
-                   ; let (tyclss1, tyclss2) = partition (\tc -> (isAlgTyCon tc || isTypeSynonymTyCon tc)
-                                                                -- && saneTyConForElab tc
-                                                                && not (isPromotedDataCon tc)) tyclss
-                   ; traceTc "selected for WF enrichment" (ppr tyclss1)
-
-                   ; tyclss' <- mapM (\t -> fixM $ do \_ ->
-                                                        tcExtendLocalFamInstEnv fam_insts
-                                                        $ do elabTyCons t) tyclss1
-                                -- do { mapM elabTcDataConsCtxt tyclss1 }
-                   ; let (tfs, rest) = partition famTyShouldHaveWfConstraint tyclss2
-                   ; tfs' <- mapM mkWfConstraintFam tfs
-                   ; let (elab_tfs, wf_tfs_maybe) = unzip tfs'
+                   -- ; let (tyclss1, tyclss2) = partition (\tc -> (isAlgTyCon tc || isTypeSynonymTyCon tc)
+                   --                                              -- && saneTyConForElab tc
+                   --                                              && not (isPromotedDataCon tc)) tyclss
+                   ; let (tfs, rest) = partition famTyShouldHaveWfConstraint tyclss
+                   ; (elab_tfs, wf_tfs_maybe) <- fmap unzip $ mapM mkWfConstraintFam tfs
                    ; let wf_tfs = catMaybes wf_tfs_maybe
                    ; traceTc "Added WF constraints to TFS: "
                      (vcat $ fmap pprtc elab_tfs)
-                   ; traceTc "The WF constraints are:"
-                     (vcat $ fmap pprtc wf_tfs)                     
-                   ; traceTc "enriched WF datacons for"
-                     (vcat $ fmap pprtc tyclss')
-                   ; let elaborated = tyclss' ++ elab_tfs ++ wf_tfs
-
+                   ; traceTc "The WF constraints are: "
+                     (vcat $ fmap pprtc wf_tfs)
+                                -- do { mapM elabTcDataConsCtxt tyclss1 }
                    --           -- Check that elaborated tycons are generated okay
                    -- ; traceTc "Starting validity check post WF enrichment" (ppr elaborated)
                    -- ; elaborated <- concatMapM checkValidTyCl elaborated
                    -- ; traceTc "Done validity check post WF enrichment" (ppr elaborated)
 
-                   ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $ elaborated ++ rest)
+                   ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $ elab_tfs ++ wf_tfs ++ rest)
                    }
                      -- else
                      --  if enblPCtrs && (length tyclds > 1)
