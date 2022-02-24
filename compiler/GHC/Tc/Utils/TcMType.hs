@@ -835,7 +835,7 @@ newNamedAnonMetaTyVar tyvar_name meta_info kind
   = do  { name    <- newMetaTyVarName tyvar_name
         ; details <- newMetaDetails meta_info
         ; let tyvar = mkTcTyVar name kind details
-        ; traceTc "newAnonMetaTyVar" (ppr tyvar)
+        ; traceTc "newAnonMetaTyVar" (ppr tyvar $$ ppr meta_info $$ ppr details)
         ; return tyvar }
 
 -- makes a new skolem tv
@@ -886,7 +886,7 @@ cloneAnonMetaTyVar info tv kind
   = do  { details <- newMetaDetails info
         ; name    <- cloneMetaTyVarName (tyVarName tv)
         ; let tyvar = mkTcTyVar name kind details
-        ; traceTc "cloneAnonMetaTyVar" (ppr tyvar <+> dcolon <+> ppr (tyVarKind tyvar))
+        ; traceTc "cloneAnonMetaTyVar" (ppr tyvar <+> dcolon <+> ppr (tyVarKind tyvar) <+> ppr info <+> ppr details)
         ; return tyvar }
 
 -- Make a new CycleBreakerTv. See Note [Type variable cycles]

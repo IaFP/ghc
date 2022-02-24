@@ -918,6 +918,10 @@ mapTyCoX (TyCoMapper { tcm_tyvar = tyvar
       = do { w' <- go_ty env w; arg' <- go_ty env arg; res' <- go_ty env res
            ; return (ty { ft_mult = w', ft_arg = arg', ft_res = res' }) }
 
+    go_ty _ ty@(TyConApp tc _) -- skip zonking if its a wft tyconapp as they are special
+      | isTcTyCon tc, tc `hasKey` wfTyConKey
+      = return ty
+      
     go_ty env ty@(TyConApp tc tys)
       | isTcTyCon tc
       = do { tc' <- tycon tc

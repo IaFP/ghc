@@ -184,11 +184,15 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
                then genAtAtConstraintsExceptTcM isTyConPhase tycons (bvarTy : ts) ty1
                else genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
       c_extra <- concatMapM flatten_atat_constraint (newPreds elabd)
-      let (have'bvar, donthave'bvar) = partition (predHas bvarTy) c_extra
-          r_ty = ForAllTy bndr (attachConstraints have'bvar (elabTy elabd))
-      return $ elabDetails r_ty donthave'bvar -- genAtAtConstraints ty'
+      -- let (have'bvar, donthave'bvar) = partition (predHas bvarTy) c_extra
+      let r_ty = ForAllTy bndr (attachConstraints c_extra (elabTy elabd)) -- it is unlikely that we find a type application that is _not_ related to this binder. May have to change this later
+      return $ elabDetails r_ty [] -- genAtAtConstraints ty'
 
-  | otherwise = do
+   | CastTy ty1 kco <- ty = do
+       elabd <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
+       return $ elabDetails (CastTy (elabTy elabd) kco) (newPreds elabd)
+       
+   | otherwise = do
       traceTc "wfelab unknown case: " (ppr ty)
       return $ elabDetails ty []
 
@@ -220,13 +224,15 @@ isTyConInternal tycon =
 saneTyConForElab :: TyCon -> Bool
 saneTyConForElab tycon =
   not (isUnboxedTupleTyCon tycon
-       || isDataFamilyTyCon tycon
        || isPrimTyCon tycon
        || isPromotedDataCon tycon
        || isClassTyCon tycon
        || isFunTyCon tycon
-       || isTypeSynonymTyCon tycon
-       || isNewTyCon tycon )
+       || isDataFamilyTyCon tycon
+       -- || isFamilyTyCon tycon
+       -- || isTypeSynonymTyCon tycon
+       -- || isNewTyCon tycon 
+      )
 
 -- recursively generates @@ constraints for a type constructor
 -- Also rewrite Type family constructors
@@ -235,8 +241,14 @@ tyConGenAtsTcM :: Bool
                -> [Type] --- things to ignore
                -> TyCon -> [Type] -> TcM ThetaType
 tyConGenAtsTcM isTyConPhase eTycons ts tycon args
-  | isTyConInternal tycon -- || isGadtSyntaxTyCon tycon 
+  | isTyConInternal tycon
   = return []
+  | not (saneTyConForElab tycon)
+  = if isTyConPhase then return [] -- if we are defining a datatype, we force users to write the constraints
+    else do { elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
+            ; let css = fmap newPreds elabds
+            ; return $ foldl mergeAtAtConstraints [] css
+            }
   | isTypeSynonymTyCon tycon =
     -- if not isTyConPhase
     -- then -- the interaction of typesynonyms and type family is effed up
@@ -292,12 +304,6 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
          }
   -- | isNewTyCon tycon, isTyConPhase = return []
   -- The type constructor is one of the special ones 
-  | not (saneTyConForElab tycon)
-  = if isTyConPhase then return [] -- if we are defining a datatype, we force users to write the constraints
-    else do { elabds <- mapM (genAtAtConstraintsExceptTcM isTyConPhase (tycon:eTycons) ts) args
-            ; let css = fmap newPreds elabds
-            ; return $ foldl mergeAtAtConstraints [] css
-            }
   -- Vanilla type constructor, everything is total
   | otherwise = recGenAtsTcM tycon args ts
 

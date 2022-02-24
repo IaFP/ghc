@@ -3,13 +3,13 @@
 {-# LANGUAGE TypeFamilies, TypeOperators, PolyKinds, UndecidableSuperClasses
     , QuantifiedConstraints, ExplicitNamespaces, UndecidableInstances #-}
 
-module HigherOrder where
+module HigherOrderVanilla where
 import GHC.Types (Type, Constraint)
 
 class CM (m :: Type -> Type)
 
--- class (@) (f :: k' -> k) (a :: k') -- This works for unification.
-type family  (@) (f :: k' -> k) (a :: k') :: Constraint
+class (@) (f :: k' -> k) (a :: k') -- This works for unification.
+-- type family  (@) (f :: k' -> k) (a :: k') :: Constraint
 
 class f @ a => Cheat f a -- so does this
 instance f @ a => Cheat f a -- and this
@@ -26,10 +26,10 @@ data HoTExis m = forall n. (Total n, CM n, CM m) =>  HoTExis (forall a. (m @ a, 
 outer :: (Total m, CM m) => HoT -> a -> m a
 outer ht@HoT{hte=whyme, wge=wge} a =
   case whyme of
-    HoTExis e l -> e $ wge (helper l ht)
+    HoTExis e l -> e $ wge (undefined l ht)
 
 
-helper :: forall m n a. (Total m, Total n, CM m, CM n)
-       => (forall b. (m @ b, n @ b) => m b -> n b) -> HoT -> n Int -> n a
-helper l h init = undefined
+-- helper :: forall m n a. (CM m, CM n)
+--        => (forall b. m b -> n b) -> HoT -> n Int -> n a
+-- helper l h init = undefined
 
