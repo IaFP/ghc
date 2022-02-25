@@ -20,6 +20,7 @@ import GHC.Core.FamInstEnv (topNormaliseType)
 import GHC.Base (mapM)
 import GHC.Prelude hiding (mapM)
 import GHC.Types.Name
+import GHC.Types.TypeEnv
 -- import GHC.Data.Maybe
 -- import PrelNames
 -- import THNames
@@ -35,10 +36,11 @@ import GHC.Core.Reduction (reductionReducedType)
 import GHC.Builtin.Names
 import GHC.Builtin.Names.TH
 import GHC.Builtin.Types (liftedTypeKindTyCon, isCTupleTyConName, wfTyCon)
+import GHC.Unit.External
 -- import GHC.Types.Var.Set
 
 -- import TcRnMonad (failWithTc)
-import Data.List (partition)
+import Data.List (partition, isPrefixOf, find)
 import GHC.Tc.Utils.Monad
 import GHC.Tc.Utils.Env (tcLookupGlobal)
 import GHC.Types.TyThing
@@ -234,6 +236,18 @@ saneTyConForElab tycon =
        -- || isNewTyCon tycon 
       )
 
+lookupWfConstraint :: TyCon -> TcM (Maybe TyCon)
+lookupWfConstraint tycon
+ | Just wf_tc <- famTcWfConstraint tycon = return (Just wf_tc)
+ | otherwise = do {
+     ; eps <- getEps
+     ; let get_tf_name = occNameString . nameOccName . tyConName
+           tfName =  "$WF_" ++ (get_tf_name tycon)
+           external_types = typeEnvTyCons . eps_PTE $ eps
+           wf = find (\t -> get_tf_name t == tfName) external_types
+     ; return wf
+  } 
+
 -- recursively generates @@ constraints for a type constructor
 -- Also rewrite Type family constructors
 tyConGenAtsTcM :: Bool
@@ -278,13 +292,13 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        -- is *not* the one I updated to have a WF constraint attached.
        -- It *does* share a name with that one, though..
        -- so we perform a new lookup against the global env.
-       ; tything <- tcLookupGlobal . getName $ tycon
-       ; let actual_tycon = tyThingTyCon tything
-       ; traceTc "Here is that darned TF" (ppr actual_tycon)
-       ; traceTc "Here is its fucking WF constraint " (ppr . famTcWfConstraint $ actual_tycon)
+
+       ; refresh <- lookupTyCon . getName $ tycon
+       ; wf_constraint <- lookupWfConstraint refresh
+       ; traceTc "Here is that darned TF" (ppr wf_constraint)
        ; case co_ty_mb of
            Nothing -> do {
-             ; let initial = case famTcWfConstraint actual_tycon of
+             ; let initial = case wf_constraint of
                      Nothing -> []
                      Just wf -> [mkTyConApp wf args]
              ; return $ foldl mergeAtAtConstraints initial css

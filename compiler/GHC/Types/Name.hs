@@ -218,7 +218,7 @@ Note [About the NameSorts]
         a) has unique attached when printing dumps
         b) unifier eliminates sys tyvars in favour of user provs where possible
 
-    Before anything gets printed in interface files or output code, it's
+    before anything gets printed in interface files or output code, it's
     fed through a 'tidy' processor, which zaps the OccNames to have
     unique names; and converts all sys-locals to user locals
     If any desugarer sys-locals have survived that far, they get changed to
