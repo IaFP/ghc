@@ -868,11 +868,11 @@ newtype f @ p => Rec1 (f :: k -> Type) (p :: k) = Rec1 { unRec1 :: f p }
            , Show     -- ^ @since 4.7.0.0
            , Functor  -- ^ @since 4.9.0.0
            -- , Generic  -- ^ @since 4.7.0.0
-           -- , Generic1 -- ^ @since 4.9.0.0
+           , Generic1 -- ^ @since 4.9.0.0
            )
--- deriving instance (Total f, Functor f) => Functor (Rec1 f)
+
 deriving instance (Total f, Functor f) => Generic (Rec1 f a)
-deriving instance (Total f, Functor f) => Generic1 (Rec1 f)
+
 
 -- | @since 4.9.0.0
 deriving instance (Total f, Applicative f) => Applicative (Rec1 f)
@@ -943,11 +943,10 @@ newtype f @ p => M1 (i :: Type) (c :: Meta) (f :: k -> Type) (p :: k) =
            , Show     -- ^ @since 4.7.0.0
            , Functor  -- ^ @since 4.9.0.0
            -- , Generic  -- ^ @since 4.7.0.0
-           -- , Generic1 -- ^ @since 4.9.0.0
+           , Generic1 -- ^ @since 4.9.0.0
            )
--- deriving instance (Total f, Functor f) => Functor (M1 i c f)
+
 deriving instance (Total f, Functor f) => Generic (M1 i c f p)
-deriving instance (Total f, Functor f) => Generic1 (M1 i c f)
 
 -- | Sums: encode choice between constructors
 infixr 5 :+:
@@ -956,13 +955,11 @@ data (f @ p, g @ p) => (:+:) (f :: k -> Type) (g :: k -> Type) (p :: k) = L1 (f 
            , Ord      -- ^ @since 4.7.0.0
            , Read     -- ^ @since 4.7.0.0
            , Show     -- ^ @since 4.7.0.0
-           -- , Functor  -- ^ @since 4.9.0.0
+           , Functor  -- ^ @since 4.9.0.0
            -- , Generic  -- ^ @since 4.7.0.0
-           -- , Generic1 -- ^ @since 4.9.0.0
+           , Generic1 -- ^ @since 4.9.0.0
            )
-deriving instance (Total f, Total g, Functor f, Functor g) => Functor (f :+: g)
 deriving instance (Total f, Total g, Functor f, Functor g) => Generic ((f :+: g) p)
-deriving instance (Total f, Total g, Functor f, Functor g) => Generic1 (f :+: g)
 
 -- | Products: encode multiple arguments to constructors
 infixr 6 :*:
@@ -971,13 +968,11 @@ data (f @ p, g @ p) => (:*:) (f :: k -> Type) (g :: k -> Type) (p :: k) = f p :*
            , Ord      -- ^ @since 4.7.0.0
            , Read     -- ^ @since 4.7.0.0
            , Show     -- ^ @since 4.7.0.0
-           -- , Functor  -- ^ @since 4.9.0.0
+           , Functor  -- ^ @since 4.9.0.0
            -- , Generic  -- ^ @since 4.7.0.0
-           -- , Generic1 -- ^ @since 4.9.0.0
+           , Generic1 -- ^ @since 4.9.0.0
            )
-deriving instance (Total f, Total g, Functor f, Functor g) => Functor (f :*: g)
 deriving instance (Total f, Total g, Functor f, Functor g) => Generic ((f :*: g) p)
-deriving instance (Total f, Total g, Functor f, Functor g) => Generic1 (f :*: g)
 
 -- | @since 4.9.0.0
 instance (Total f, Total g, Applicative f, Applicative g) => Applicative (f :*: g) where
@@ -1003,29 +998,29 @@ instance (Total f, Total g, Monad f, Monad g) => Monad (f :*: g) where
 instance (Total f, Total g, MonadPlus f, MonadPlus g) => MonadPlus (f :*: g)
 
 -- | @since 4.12.0.0
-instance (f @ p, g @ p, Semigroup (f p), Semigroup (g p)) => Semigroup ((f :*: g) p) where
+instance (Semigroup (f p), Semigroup (g p)) => Semigroup ((f :*: g) p) where
   (x1 :*: y1) <> (x2 :*: y2) = (x1 <> x2) :*: (y1 <> y2)
 
 -- | @since 4.12.0.0
-instance (f @ p, g @ p, Monoid (f p), Monoid (g p)) => Monoid ((f :*: g) p) where
+instance (Monoid (f p), Monoid (g p)) => Monoid ((f :*: g) p) where
   mempty = mempty :*: mempty
 
 -- | Composition of functors
 infixr 7 :.:
-newtype -- (f @ g p, f @ p) =>
-  (:.:) (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) =
+newtype (f @ g p, g @ p) => (:.:) (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) =
     Comp1 { unComp1 :: f (g p) }
   deriving ( Eq       -- ^ @since 4.7.0.0
            , Ord      -- ^ @since 4.7.0.0
            , Read     -- ^ @since 4.7.0.0
            , Show     -- ^ @since 4.7.0.0
-           -- , Functor  -- ^ @since 4.9.0.0
+           , Functor  -- ^ @since 4.9.0.0
            -- , Generic  -- ^ @since 4.7.0.0
-           -- , Generic1 -- ^ @since 4.9.0.0
+           -- , Generic1 -- ^ @since 4.9.0.0 -- cant deduce f @ Rec1 g a
            )
-deriving instance (Total f, Total g, Functor f, Functor g) => Functor (f :.: g)
+
 deriving instance (Total f, Total g, Functor f, Functor g) => Generic ((f :.: g) p)
 deriving instance (Total f, Total g, Functor f, Functor g) => Generic1 (f :.: g)
+
 -- | @since 4.9.0.0
 instance (Total f, Total g, Applicative f, Applicative g) => Applicative (f :.: g) where
   pure x = Comp1 (pure (pure x))

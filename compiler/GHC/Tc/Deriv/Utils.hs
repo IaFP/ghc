@@ -526,7 +526,8 @@ stableMergePredOrigin p1s p2s = maux [] [] (fmap k p1s) p1s (fmap k p2s) p2s
     maux ts acc (t1:t1s) (p1:p1s) t2s p2s = if any (eqType t1) (ts ++ t2s)
                                             then maux ts acc t1s p1s t2s p2s
                                             else maux (t1:ts) (p1:acc) t1s p1s t2s p2s
-
+    maux _ _ _ _ _ _ = error "stableMergePredOrigin aux"
+    
 substPredOrigin :: HasCallStack => TCvSubst -> PredOrigin -> PredOrigin
 substPredOrigin subst (PredOrigin pred origin t_or_k)
   = PredOrigin (substTy subst pred) origin t_or_k

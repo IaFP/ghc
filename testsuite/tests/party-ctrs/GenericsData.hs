@@ -9,12 +9,13 @@ import GHC.Base
 
 data f @ p => M1 (i :: Type) (f :: k -> Type) (p :: k) =
     M1 { unM1 :: f p }
-  deriving (Eq, Functor
+  deriving (Eq
+           -- , Functor
            -- , Generic waiting on alex's change
-           , Generic1
+           -- , Generic1
            )
 
-deriving instance (Read (f p)) => Read (M1 i f p)
+-- deriving instance (Read (f p)) => Read (M1 i f p)
 -- deriving instance (Functor f) => Functor (M1 i f)
 
 -- data Ord a => T a = L | B a (T a) (T a)

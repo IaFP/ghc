@@ -521,7 +521,7 @@ tyConGenAts eTycons ts tycon args
        ; let css = fmap newPreds elabtys_and_css
        ; return $ foldl mergeAtAtConstraints [] css
        }
-  | isFamilyTyCon tycon
+  | isFamilyTyCon tycon -- Ideally look up the TyFam mirror constraints @Alex
   = do { elabtys_and_css <- mapM (genAtAtConstraintsExcept (tycon:eTycons) ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; return $ foldl mergeAtAtConstraints [] css
