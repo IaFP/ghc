@@ -1,11 +1,14 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE PartialTypeConstructors #-}
 
-module Imported where
+module Exporter where
 
 import GHC.Types (Type)
 
 type family Elem a
+
+foobar :: Int -> Int
+foobar = id
 
 -- Should elaborate to constraint
 --   WF_Elem [a] = ()

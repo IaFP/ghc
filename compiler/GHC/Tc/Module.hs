@@ -514,6 +514,7 @@ tcRnSrcDecls explicit_mod_hdr export_ies decls
       --------- Deal with the exports ----------
       -- Can't be done earlier, because the export list must "see"
       -- the declarations created by the finalizers
+      ; traceTc "Export_ies: " (ppr export_ies)
       ; tcg_env <- setEnvs (tcg_env, tcl_env) $
                    rnExports explicit_mod_hdr export_ies
 

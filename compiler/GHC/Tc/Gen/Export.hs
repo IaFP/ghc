@@ -44,6 +44,7 @@ import Control.Monad
 import GHC.Driver.Session
 import GHC.Parser.PostProcess ( setRdrNameSpace )
 import Data.Either            ( partitionEithers )
+import Data.List              ( isPrefixOf )
 
 {-
 ************************************************************************
@@ -195,8 +196,11 @@ rnExports explicit_mod exports
                  | otherwise = Nothing
 
         -- Rename the export list
+        ; traceRn "rnExports: exports" (ppr exports)
         ; traceRn "rnExports: real_exports" (ppr real_exports)
         ; let do_it = exports_from_avail real_exports rdr_env imports this_mod
+        ; do_it' <- do_it
+        ; traceRn "rnExports: do_it" (ppr do_it')
         ; (rn_exports, final_avails)
             <- if hsc_src == HsigFile
                 then do (mb_r, msgs) <- tryTc do_it
@@ -217,6 +221,14 @@ rnExports explicit_mod exports
                           , tcg_dus = tcg_dus tcg_env `plusDU`
                                       usesOnly final_ns }) }
 
+
+wfConstraintToAvail :: TyCon -> AvailInfo
+wfConstraintToAvail = avail . getName
+
+-- this is questionable and hacky.
+isWf :: TyCon -> Bool
+isWf tc = "WF_" `isPrefixOf` (occNameString . nameOccName . tyConName $ tc)
+
 exports_from_avail :: Maybe (LocatedL [LIE GhcPs])
                          -- ^ 'Nothing' means no explicit export list
                    -> GlobalRdrEnv
@@ -236,11 +248,26 @@ exports_from_avail Nothing rdr_env _imports _this_mod
    -- so that's how we handle it, except we also export the data family
    -- when a data instance is exported.
   = do {
+    -- @HACK
+    -- If a module exports a type family with a WF constraint,
+    -- we also want to export that WF_ constraint.
+    -- For now, just doing a hack: scan through the TFs and
+    -- add WF_ TFs to the export list if we see them...
+    -- @TODO
+    -- if we take this (dumb) route, should also
+    -- modify the other cases of this function to add WF_F
+    -- whenever F is in an explicit export, etc.
+    ; env <- getGblEnv
+    ; let tcs = tcg_tcs env
+    ; let tcs' = map wfConstraintToAvail $ filter isWf tcs
+    ; traceTc "Export.hs -- TFs"  $ vcat (map ppr tcs)
+    ; traceTc "Export.hs -- Wf tcs"  $ vcat (map ppr (filter isWf tcs))
+    ; traceTc "Export.hs -- TF avails"  $ vcat (map ppr tcs')
     ; addDiagnostic
         (TcRnMissingExportList $ moduleName _this_mod)
     ; let avails =
-            map fix_faminst . gresToAvailInfo
-              . filter isLocalGRE . globalRdrEnvElts $ rdr_env
+            map fix_faminst $ tcs' ++ (gresToAvailInfo
+              . filter isLocalGRE . globalRdrEnvElts $ rdr_env)
     ; return (Nothing, avails) }
   where
     -- #11164: when we define a data instance
