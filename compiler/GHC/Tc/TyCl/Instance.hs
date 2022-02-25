@@ -402,7 +402,7 @@ elabWfFamInst fam_inst
                    else do { ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
                            ; return $ mkTyConApp ctupleTyCon preds
                            }
-       ; let tvs     = []
+       ; let tvs     = fi_tvs fam_inst
              lhs_tys = ts
              axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wfTc lhs_tys rhs_ty
        ; newFamInst SynFamilyInst axiom

@@ -289,11 +289,12 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                      (vcat $ fmap pprtc wf_tfs)
                                 -- do { mapM elabTcDataConsCtxt tyclss1 }
                    --           -- Check that elaborated tycons are generated okay
-                   -- ; traceTc "Starting validity check post WF enrichment" (ppr elaborated)
-                   -- ; elaborated <- concatMapM checkValidTyCl elaborated
-                   -- ; traceTc "Done validity check post WF enrichment" (ppr elaborated)
+                   ; let elaborated = elab_tfs ++ wf_tfs
+                   ; traceTc "Starting validity check post WF enrichment" (ppr elaborated)
+                   ; elaborated <- concatMapM checkValidTyCl elaborated
+                   ; traceTc "Done validity check post WF enrichment" (ppr elaborated)
 
-                   ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $ elab_tfs ++ wf_tfs ++ rest)
+                   ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $ elaborated ++ rest)
                    }
                      -- else
                      --  if enblPCtrs && (length tyclds > 1)

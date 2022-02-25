@@ -225,9 +225,9 @@ rnExports explicit_mod exports
 wfConstraintToAvail :: TyCon -> AvailInfo
 wfConstraintToAvail = avail . getName
 
--- this is questionable and hacky.
+-- this is questionable and hacky. Should also be put in TyCon.hs
 isWf :: TyCon -> Bool
-isWf tc = "WF_" `isPrefixOf` (occNameString . nameOccName . tyConName $ tc)
+isWf = ("WF_" `isPrefixOf`) . occNameString . nameOccName . tyConName
 
 exports_from_avail :: Maybe (LocatedL [LIE GhcPs])
                          -- ^ 'Nothing' means no explicit export list
@@ -261,7 +261,6 @@ exports_from_avail Nothing rdr_env _imports _this_mod
     ; let tcs = tcg_tcs env
     ; let tcs' = map wfConstraintToAvail $ filter isWf tcs
     ; traceTc "Export.hs -- TFs"  $ vcat (map ppr tcs)
-    ; traceTc "Export.hs -- Wf tcs"  $ vcat (map ppr (filter isWf tcs))
     ; traceTc "Export.hs -- TF avails"  $ vcat (map ppr tcs')
     ; addDiagnostic
         (TcRnMissingExportList $ moduleName _this_mod)

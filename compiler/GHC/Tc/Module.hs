@@ -517,6 +517,7 @@ tcRnSrcDecls explicit_mod_hdr export_ies decls
       ; traceTc "Export_ies: " (ppr export_ies)
       ; tcg_env <- setEnvs (tcg_env, tcl_env) $
                    rnExports explicit_mod_hdr export_ies
+      ; traceTc "tcRnSrcDecls: tcg_type_env" (ppr (tcg_type_env tcg_env))
 
       --------- Emit the ':Main.main = runMainIO main' declaration ----------
       -- Do this /after/ rnExports, so that it can consult
