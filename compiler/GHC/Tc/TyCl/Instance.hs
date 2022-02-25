@@ -1894,7 +1894,7 @@ tcMethodBody clas tyvars dfun_ev_vars inst_tys
                      sig_fn spec_inst_prags prags
                      sel_id (L bind_loc meth_bind) bndr_loc
   = add_meth_ctxt $
-    do { traceTc "tcMethodBody" (ppr sel_id <+> ppr (idType sel_id) $$ ppr bndr_loc)
+    do { traceTc "tcMethodBody {" (ppr sel_id <+> ppr (idType sel_id) $$ ppr bndr_loc)
        ; (global_meth_id, local_meth_id) <- setSrcSpan bndr_loc $
                                             mkMethIds clas tyvars dfun_ev_vars
                                                       inst_tys sel_id
@@ -1913,23 +1913,33 @@ tcMethodBody clas tyvars dfun_ev_vars inst_tys
        ; global_meth_id <- addInlinePrags global_meth_id prags
        ; spec_prags     <- tcSpecPrags global_meth_id prags
 
-        ; let specs  = mk_meth_spec_prags global_meth_id spec_inst_prags spec_prags
-              export = ABE { abe_ext   = noExtField
-                           , abe_poly  = global_meth_id
-                           , abe_mono  = local_meth_id
-                           , abe_wrap  = idHsWrapper
-                           , abe_prags = specs }
-
-              local_ev_binds = TcEvBinds ev_binds_var
-              full_bind = AbsBinds { abs_ext      = noExtField
-                                   , abs_tvs      = tyvars
-                                   , abs_ev_vars  = dfun_ev_vars
-                                   , abs_exports  = [export]
-                                   , abs_ev_binds = [dfun_ev_binds, local_ev_binds]
-                                   , abs_binds    = tc_bind
-                                   , abs_sig      = True }
-
-        ; return (global_meth_id, L bind_loc full_bind, Just meth_implic) }
+       ; let specs  = mk_meth_spec_prags global_meth_id spec_inst_prags spec_prags
+             export = ABE { abe_ext   = noExtField
+                          , abe_poly  = global_meth_id
+                          , abe_mono  = local_meth_id
+                          , abe_wrap  = idHsWrapper
+                          , abe_prags = specs }
+          -- if the evidence wanteds are empty
+          -- then skip adding local_ev_binds this to the abs_ev_binds.
+          -- I suspect this is due to my solver medling. But meh, i got no time.
+          -- It is likely that this medling with IORef i'm going to shoot myself in the foot
+       -- ; bm <- getTcEvBindsMap ev_binds_var
+       -- ; let shouldAdd = not (isEmptyEvBindMap bm) || isCoEvBindsVar ev_binds_var
+       --       local_ev_binds = if shouldAdd then [] else
+             local_ev_binds = [TcEvBinds ev_binds_var]
+             full_bind = AbsBinds { abs_ext      = noExtField
+                                  , abs_tvs      = tyvars
+                                  , abs_ev_vars  = dfun_ev_vars
+                                  , abs_exports  = [export]
+                                  , abs_ev_binds = dfun_ev_binds:local_ev_binds
+                                  , abs_binds    = tc_bind
+                                  , abs_sig      = True }
+       ; traceTc "tcMethodBody }" (vcat [(ppr global_meth_id) <+> dcolon <+> ppr (idType global_meth_id)
+                                         , text "dfun_ev_binds:" <+> ppr dfun_ev_binds
+                                         , text "local_ev_binds:" <+> ppr local_ev_binds
+                                         -- , text "bm: " <+> ppr bm
+                                         ])
+       ; return (global_meth_id, L bind_loc full_bind, Just meth_implic) }
   where
         -- For instance decls that come from deriving clauses
         -- we want to print out the full source code if there's an error
@@ -1950,13 +1960,17 @@ tcMethodBodyHelp hs_sig_fn sel_id local_meth_id meth_bind
                    ; checkTc inst_sigs (misplacedInstSig sel_name hs_sig_ty)
                    ; let ctxt = FunSigCtxt sel_name NoRRC
                    ; sig_ty  <- tcHsSigType ctxt hs_sig_ty
-                   ; let local_meth_ty' = idType local_meth_id
-                   ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-                   ; local_meth_ty <- if partyCtrs then elabAtAtConstraintsTcM False local_meth_ty' else return local_meth_ty'
+                   ; let local_meth_ty = idType local_meth_id
                                 -- False <=> do not report redundant constraints when
                                 --           checking instance-sig <= class-meth-sig
                                 -- The instance-sig is the focus here; the class-meth-sig
                                 -- is fixed (#18036)
+
+                   -- ANI: read the above comment for commenting out below code :) 
+                   -- ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+                   -- ; local_meth_ty <- if False
+                   --                    then elabAtAtConstraintsTcM False local_meth_ty'
+                   --                    else return local_meth_ty'
                    ; hs_wrap <- addErrCtxtM (methSigCtxt sel_name sig_ty local_meth_ty) $
                                 tcSubTypeSigma ctxt sig_ty local_meth_ty
                    ; return (sig_ty, hs_wrap) }
@@ -2017,7 +2031,12 @@ mkMethIds clas tyvars dfun_ev_vars inst_tys sel_id
                   -- type errors from tcMethodBody come from here
         ; let poly_meth_id  = mkLocalId poly_meth_name  Many poly_meth_ty
               local_meth_id = mkLocalId local_meth_name Many local_meth_ty
-
+        ; traceTc "mkMethId " (vcat [text "local_meth_ty:"  <+> ppr local_meth_ty
+                                    , text "poly_meth_ty:" <+> ppr poly_meth_ty
+                                    , text "theta:" <+> ppr theta
+                                    , text "dfun_ev_vars" <+> ppr dfun_ev_vars
+                                    ]
+                              )
         ; return (poly_meth_id, local_meth_id) }
   where
     sel_name      = idName sel_id

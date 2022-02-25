@@ -2195,7 +2195,8 @@ genAuxBindSpecSig loc spec = case spec of
   DerivTag2Con tycon _
     -> mk_sig $ L (noAnnSrcSpan loc) $
        XHsType $ mkSpecForAllTys (tyConTyVars tycon) $
-       intTy `mkVisFunTyMany` mkParentType tycon
+       -- (tyConStupidTheta tycon) `mkInvisFunTysMany`
+       (intTy `mkVisFunTyMany` mkParentType tycon)
   DerivMaxTag _ _
     -> mk_sig (L (noAnnSrcSpan loc) (XHsType intTy))
   DerivDataDataType _ _ _

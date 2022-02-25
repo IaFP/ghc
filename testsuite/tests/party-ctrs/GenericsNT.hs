@@ -1,5 +1,5 @@
 {-# LANGUAGE QuantifiedConstraints, DataKinds, PolyKinds, RankNTypes, TypeFamilies
-    , TypeOperators, UndecidableInstances, ExplicitNamespaces, GeneralisedNewtypeDeriving #-}
+    , TypeOperators, UndecidableInstances, ExplicitNamespaces, GeneralisedNewtypeDeriving, DerivingStrategies #-}
 
 module GenericsNT where
 import GHC.Types (type (@), Total)
@@ -9,10 +9,11 @@ import GHC.Base
 
 newtype f @ p => M1 (i :: Type) (f :: k -> Type) (p :: k) =
     M1 { unM1 :: f p }
+    deriving (Eq)
 
-deriving instance (Eq (f p)) => Eq (M1 i f p) -- this fails because of an extra constraint in the rhs of the typeid of == @M1
-deriving instance (Read (f p)) => Read (M1 i f p)
-deriving instance (Functor (f p)) => Functor (M1 i f)
+-- deriving newtype instance (Eq (f p)) => Eq (M1 i f p) -- this fails because of an extra constraint in the rhs of the typeid of == @M1
+-- deriving newtype instance (Read (f p)) => Read (M1 i f p)
+-- deriving newtype instance (Functor f) => Functor (M1 i f)
     
   -- deriving ( Eq       -- ^ @since 4.7.0.0
   --          , Ord      -- ^ @since 4.7.0.0

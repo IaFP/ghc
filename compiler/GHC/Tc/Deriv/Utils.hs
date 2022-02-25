@@ -15,7 +15,7 @@ module GHC.Tc.Deriv.Utils (
         isDerivSpecNewtype, isDerivSpecAnyClass, isDerivSpecVia,
         DerivContext(..), OriginativeDerivStatus(..),
         isStandaloneDeriv, isStandaloneWildcardDeriv, mkDerivOrigin,
-        PredOrigin(..), ThetaOrigin(..), mkPredOrigin,
+        PredOrigin(..), ThetaOrigin(..), mkPredOrigin, stableMergePredOrigin,
         mkThetaOrigin, mkThetaOriginFromPreds, substPredOrigin,
         checkOriginativeSideConditions, hasStockDeriving,
         std_class_via_coercible, non_coercible_class,
@@ -515,6 +515,19 @@ mkThetaOrigin origin t_or_k skols metas givens
 mkThetaOriginFromPreds :: [PredOrigin] -> ThetaOrigin
 mkThetaOriginFromPreds = ThetaOrigin [] [] []
 
+-- stableMerge pred origins, basically lifting GHC.Core.Type.stableMergeTypes
+-- TODO have one for Theta origin as well if we need it
+stableMergePredOrigin :: [PredOrigin] -> [PredOrigin] -> [PredOrigin]
+stableMergePredOrigin p1s p2s = maux [] [] (fmap k p1s) p1s (fmap k p2s) p2s
+  where
+    k p@(PredOrigin ty _ _) = ty
+    maux _ acc [] _ [] _ = (reverse acc)
+    maux _ acc [] _ _ p2s = (reverse acc) ++ p2s
+    maux ts acc (t1:t1s) (p1:p1s) t2s p2s = if any (eqType t1) (ts ++ t2s)
+                                            then maux ts acc t1s p1s t2s p2s
+                                            else maux (t1:ts) (p1:acc) t1s p1s t2s p2s
+    maux _ _ _ _ _ _ = error "stableMergePredOrigin aux"
+    
 substPredOrigin :: HasCallStack => TCvSubst -> PredOrigin -> PredOrigin
 substPredOrigin subst (PredOrigin pred origin t_or_k)
   = PredOrigin (substTy subst pred) origin t_or_k

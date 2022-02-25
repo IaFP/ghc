@@ -1,19 +1,33 @@
 {-# LANGUAGE QuantifiedConstraints, DataKinds, PolyKinds, RankNTypes, TypeFamilies
     , TypeOperators, UndecidableInstances, ExplicitNamespaces, GeneralisedNewtypeDeriving #-}
 
-module GenericsNT where
+module GenericsData where
 import GHC.Types (type (@), Total)
 import GHC.Generics(Generic, Generic1)
 import GHC.Base
 
 
-newtype f @ p => M1 (i :: Type) (f :: k -> Type) (p :: k) =
+data f @ p => M1 (i :: Type) (f :: k -> Type) (p :: k) =
     M1 { unM1 :: f p }
+  deriving (Eq
+           -- , Functor
+           -- , Generic waiting on alex's change
+           -- , Generic1
+           )
 
-deriving instance (Eq (f p)) => Eq (M1 i f p) -- this fails because of an extra constraint in the rhs of the typeid of == @M1
-deriving instance (Read (f p)) => Read (M1 i f p)
-deriving instance (Functor (f p)) => Functor (M1 i f)
-    
+-- deriving instance (Read (f p)) => Read (M1 i f p)
+-- deriving instance (Functor f) => Functor (M1 i f)
+
+-- data Ord a => T a = L | B a (T a) (T a)
+--   deriving (Eq, Show)
+
+-- deriving instance Functor T
+-- deriving instance Generic1 T
+-- deriving instance Generic (T a) -- waiting on WF_TyFam fix to be in
+-- data Ord a => Set a = Set (T a)
+-- deriving instance Show a => Show (Set a)
+-- deriving instance Functor (Set)
+
   -- deriving ( Eq       -- ^ @since 4.7.0.0
   --          , Ord      -- ^ @since 4.7.0.0
   --          , Read     -- ^ @since 4.7.0.0
