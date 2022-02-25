@@ -2472,7 +2472,7 @@ elabDataConCtxt tc dc =
      ; r_eds <- genAtAtConstraintsExceptTcM True [] [] res_ty
      ; fwftys <- concatMapM flatten_atat_constraint (concat $ map newPreds eds)
      ; fwftys_ret <- concatMapM flatten_atat_constraint (newPreds r_eds)
-     ; elab_ctx <- concatMapM flatten_atat_constraint $ mergeTypes (fwftys_ret) (fwftys) -- fwftys --
+     ; elab_ctx <- concatMapM flatten_atat_constraint $ stableMergeTypes (fwftys_ret) (fwftys) -- fwftys --
      ; traceTc  "elabDataConCtxt" (ppr dc <+> ppr elab_ctx)
      ; us <- newUniqueSupply 
      ; if null elab_ctx && not (isPromotedDataCon tc)

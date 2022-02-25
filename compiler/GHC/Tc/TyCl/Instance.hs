@@ -1865,7 +1865,7 @@ tcMethodBody clas tyvars dfun_ev_vars inst_tys
                      sig_fn spec_inst_prags prags
                      sel_id (L bind_loc meth_bind) bndr_loc
   = add_meth_ctxt $
-    do { traceTc "tcMethodBody" (ppr sel_id <+> ppr (idType sel_id) $$ ppr bndr_loc)
+    do { traceTc "tcMethodBody {" (ppr sel_id <+> ppr (idType sel_id) $$ ppr bndr_loc)
        ; (global_meth_id, local_meth_id) <- setSrcSpan bndr_loc $
                                             mkMethIds clas tyvars dfun_ev_vars
                                                       inst_tys sel_id
@@ -1899,7 +1899,8 @@ tcMethodBody clas tyvars dfun_ev_vars inst_tys
                                    , abs_ev_binds = [dfun_ev_binds, local_ev_binds]
                                    , abs_binds    = tc_bind
                                    , abs_sig      = True }
-
+        ; traceTc "tcMethodBody }" ((ppr global_meth_id) <+> dcolon <+> ppr (idType global_meth_id) $$
+                                   ppr [dfun_ev_binds, local_ev_binds])
         ; return (global_meth_id, L bind_loc full_bind, Just meth_implic) }
   where
         -- For instance decls that come from deriving clauses
@@ -1988,7 +1989,11 @@ mkMethIds clas tyvars dfun_ev_vars inst_tys sel_id
                   -- type errors from tcMethodBody come from here
         ; let poly_meth_id  = mkLocalId poly_meth_name  Many poly_meth_ty
               local_meth_id = mkLocalId local_meth_name Many local_meth_ty
-
+        ; traceTc "mkMethId " (vcat [text "local_meth_ty:"  <+> ppr local_meth_ty
+                                    , text "poly_meth_ty:" <+> ppr poly_meth_ty
+                                    , text "theta:" <+> ppr theta
+                                    ]
+                              )
         ; return (poly_meth_id, local_meth_id) }
   where
     sel_name      = idName sel_id

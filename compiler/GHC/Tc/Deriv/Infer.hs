@@ -48,7 +48,7 @@ import GHC.Tc.Validity (validDerivPred)
 import GHC.Tc.Utils.Unify (buildImplicationFor, checkConstraints)
 import GHC.Builtin.Types (typeToTypeKind)
 import GHC.Core.Unify (tcUnifyTy)
-import GHC.Core.TyWF (genWfConstraints)
+import GHC.Core.TyWF (genWfConstraints, elabAtAtConstraints, predTyArgs)
 import GHC.Utils.Misc
 import GHC.Types.Var
 import GHC.Types.Var.Set
@@ -199,8 +199,9 @@ inferConstraintsStock dit@(DerivInstTys { dit_cls_tys     = cls_tys
                = mk_functor_like_constraints orig t_or_k main_cls mk_cls_pred $
                  deepSubtypesContaining last_tv ty
                | otherwise
-               = do { wfcts <- if partyCtrs then do {genWfConstraints ty} else return []
-                    ; return [( [mk_cls_pred orig t_or_k main_cls ty] ++ fmap (mkPredOrigin orig TypeLevel) wfcts
+               = do { wfcts <- if partyCtrs then do {genWfConstraints ty [mkTyVarTy last_tv]} else return []
+                    ; return [ ((fmap (mkPredOrigin orig TypeLevel) wfcts)
+                                  `stableMergePredOrigin` [mk_cls_pred orig t_or_k main_cls ty]
                               , Nothing )]
                    }
 
@@ -240,7 +241,8 @@ inferConstraintsStock dit@(DerivInstTys { dit_cls_tys     = cls_tys
 
        if    -- Generic constraints are easy
           |  is_generic
-           -> return ([], tvs, inst_tys, dit)
+           -> do { lift $ traceTc "inferConstraintsGeneric" empty
+                 ; return ([], tvs, inst_tys, dit) }
 
              -- Generic1 needs Functor
              -- See Note [Getting base classes]
@@ -248,7 +250,8 @@ inferConstraintsStock dit@(DerivInstTys { dit_cls_tys     = cls_tys
            -> assert (rep_tc_tvs `lengthExceeds` 0) $
               -- Generic1 has a single kind variable
               assert (cls_tys `lengthIs` 1) $
-              do { functorClass <- lift $ tcLookupClass functorClassName
+              do { lift $ traceTc "inferConstraintsGeneric1" empty
+                 ; functorClass <- lift $ tcLookupClass functorClassName
                  ; con_arg_constraints dit rep_tc inst_tys tvs rep_tc_args t_or_ks
                    $ get_gen1_constraints functorClass
                  }
@@ -285,12 +288,14 @@ mk_functor_like_constraints orig t_or_k cls mk_cls_pred tys
     mk_functor_constraints_aux ty =
       do { dflags <- getDynFlags
          ; let partyCtrs = xopt LangExt.PartialTypeConstructors dflags
-         ; wfcts <- if partyCtrs then genWfConstraints ty
+         ; wfcts <- if partyCtrs
+                    then genWfConstraints ty []
                     else return []
          ; let ki = tcTypeKind ty
-         ; return $ ([ mk_cls_pred orig t_or_k cls ty
-                     , mkPredOrigin orig KindLevel (mkPrimEqPred ki typeToTypeKind)
-                     ] ++ fmap (mkPredOrigin orig TypeLevel) wfcts
+         ; return $ ( (fmap (mkPredOrigin orig TypeLevel) wfcts)
+                        `stableMergePredOrigin` [ mk_cls_pred orig t_or_k cls ty
+                                                , mkPredOrigin orig KindLevel (mkPrimEqPred ki typeToTypeKind)
+                                                ] 
                     , tcUnifyTy ki typeToTypeKind )
          }
 -- Constraints arising from the arguments of each constructor
@@ -317,15 +322,21 @@ con_arg_constraints dit rep_tc inst_tys tvs rep_tc_args t_or_ks get_arg_constrai
        -- not from the parent type constructor, as the latter could
        -- lead to redundant constraints due to thinning.
        -- See Note [The stupid context] in GHC.Core.DataCon.
-       -- ANI: TODO i suspect we no longer need this as we don't do thinning
-       ; let stupid_theta =
+       ; let stupid_theta' =
                [ substTyWith (dataConUnivTyVars data_con)
                  (dataConInstUnivs data_con rep_tc_args)
                  stupid_pred
                | data_con <- tyConDataCons rep_tc
                , stupid_pred <- dataConStupidTheta data_con
                ]
-
+             -- get only those preds that are relavant.
+             -- we may end up with an unquantified type variable while deriving a functor instance of a type
+             inst_tys_tyargs = concatMap predTyArgs inst_tys
+             stupid_theta_relv = filter (\p -> and [or [a `eqType` t
+                                                       | t <- inst_tys_tyargs ]
+                                                   | a <- predTyArgs p]) stupid_theta'
+                                 -- ANI: TODO I think we also need to elaborate inst_tys to get more contraints.
+             stupid_theta = mergeTypes [] stupid_theta_relv -- making sure no duplicate @ appear 
              preds = concat predss
              -- If the constraints require a subtype to be of kind
              -- (* -> *) (which is the case for functor-like
@@ -356,7 +367,7 @@ con_arg_constraints dit rep_tc inst_tys tvs rep_tc_args t_or_ks get_arg_constrai
 inferConstraintsAnyclass :: DerivM [ThetaOrigin]
 inferConstraintsAnyclass = do
   { DerivEnv { denv_cls      = cls
-                  , denv_inst_tys = inst_tys } <- ask
+             , denv_inst_tys = inst_tys } <- ask
   ; wildcard <- isStandaloneWildcardDeriv
   ; dflags <- getDynFlags
   ; let partyCtrs = xopt LangExt.PartialTypeConstructors dflags
@@ -375,7 +386,7 @@ inferConstraintsAnyclass = do
                      meth_ty'   = substTyWith sel_tvs inst_tys meth_ty
                      (meth_tvs, meth_theta', meth_tau)
                                 = tcSplitNestedSigmaTys meth_ty'
-               ; wfcts <- if partyCtrs then do { genWfConstraints meth_tau } else return []
+               ; wfcts <- if partyCtrs then do { genWfConstraints meth_tau [] } else return []
                ; let gen_dm_ty' = substTyWith cls_tvs inst_tys gen_dm_ty
                      meth_theta = stableMergeTypes wfcts meth_theta'
                      (dm_tvs, dm_theta, dm_tau)
@@ -396,46 +407,68 @@ inferConstraintsAnyclass = do
 -- We would infer the following constraints ('ThetaOrigin's):
 --
 -- > (Num Int, Coercible Age Int)
+-- More generally speaking if we have the following definition
+-- > newtype Blah t = MkBlah (G t) deriving newtype Num
+--
+-- We will have to generate constraints such as: 
+-- > (G @ t, Num (G t), Coercible (Blah t) (G t))
 inferConstraintsCoerceBased :: [Type] -> Type
                             -> DerivM [ThetaOrigin]
 inferConstraintsCoerceBased cls_tys rep_ty = do
-  DerivEnv { denv_tvs      = tvs
-           , denv_cls      = cls
-           , denv_inst_tys = inst_tys } <- ask
-  sa_wildcard <- isStandaloneWildcardDeriv
-  let -- The following functions are polymorphic over the representation
+  {
+    DerivEnv { denv_tvs      = tvs
+             , denv_cls      = cls
+             , denv_inst_tys = inst_tys } <- ask
+  ; sa_wildcard <- isStandaloneWildcardDeriv
+  ; dflags <- getDynFlags
+  ; let partyCtrs = xopt LangExt.PartialTypeConstructors dflags
+      -- The following functions are polymorphic over the representation
       -- type, since we might either give it the underlying type of a
       -- newtype (for GeneralizedNewtypeDeriving) or a @via@ type
       -- (for DerivingVia).
-      rep_tys ty  = cls_tys ++ [ty]
-      rep_pred ty = mkClassPred cls (rep_tys ty)
-      rep_pred_o ty = mkPredOrigin deriv_origin TypeLevel (rep_pred ty)
+        rep_tys ty  = cls_tys ++ [ty]
+        rep_pred ty = mkClassPred cls (rep_tys ty)
+        rep_pred_o ty = mkPredOrigin deriv_origin TypeLevel (rep_pred ty)
               -- rep_pred is the representation dictionary, from where
               -- we are going to get all the methods for the final
               -- dictionary
-      deriv_origin = mkDerivOrigin sa_wildcard
-
+        deriv_origin = mkDerivOrigin sa_wildcard
+  ; wfct <- if partyCtrs then genWfConstraints rep_ty [] else return []
+  ; let wfpreds = fmap (mkPredOrigin deriv_origin TypeLevel) wfct
       -- Next we collect constraints for the class methods
       -- If there are no methods, we don't need any constraints
       -- Otherwise we need (C rep_ty), for the representation methods,
       -- and constraints to coerce each individual method
-      meth_preds :: Type -> [PredOrigin]
-      meth_preds ty
-        | null meths = [] -- No methods => no constraints
+  ; let meth_preds :: Type -> DerivM [PredOrigin]
+        meth_preds ty
+          | null meths = return [] -- No methods => no constraints
                           -- (#12814)
-        | otherwise = rep_pred_o ty : coercible_constraints ty
-      meths = classMethods cls
-      coercible_constraints ty
-        = [ mkPredOrigin (DerivOriginCoerce meth t1 t2 sa_wildcard)
-                         TypeLevel (mkReprPrimEqPred t1 t2)
-          | meth <- meths
-          , let (Pair t1 t2) = mkCoerceClassMethEqn cls tvs
-                                       inst_tys ty meth ]
+          | otherwise = do let rpo = rep_pred_o ty
+                           cs <- coercible_constraints ty -- ANI: TODO should the coersions also have elabs
+                           return $ wfpreds `stableMergePredOrigin` (rpo:cs)
+        meths = classMethods cls
 
-      all_thetas :: Type -> [ThetaOrigin]
-      all_thetas ty = [mkThetaOriginFromPreds $ meth_preds ty]
+        coercible_constraints :: Type -> DerivM [PredOrigin]
+        coercible_constraints ty
+          = do let ps = [ (meth, mkCoerceClassMethEqn cls tvs inst_tys ty meth)
+                        | meth <- meths
+                        ]
+               -- ANI: TODO this causes failures matching representation types of functions for newtypes
+               -- I suspect this is becuase ~#R may not be able to decompose =>s
+               -- ps' <- if partyCtrs
+               --        then mapM (\(m, Pair t1 t2) -> do { t1' <- elabAtAtConstraints t1
+               --                                          ; t2' <- elabAtAtConstraints t2
+               --                                          ; return $ (m, Pair t1' t2')}) ps
+               --        else return ps
+                                                                  
+               return $ fmap (\(meth, Pair t1 t2) -> mkPredOrigin (DerivOriginCoerce meth t1 t2 sa_wildcard)
+                                                   TypeLevel (mkReprPrimEqPred t1 t2)) ps
 
-  pure (all_thetas rep_ty)
+        all_thetas :: Type -> DerivM [ThetaOrigin]
+        all_thetas ty = do ps <- meth_preds ty
+                           return $ [mkThetaOriginFromPreds ps]
+
+  ; all_thetas rep_ty }
 
 {- Note [Inferring the instance context]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

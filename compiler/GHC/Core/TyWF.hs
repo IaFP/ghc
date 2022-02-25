@@ -11,7 +11,7 @@ module GHC.Core.TyWF (
   genWfConstraints,  genAtAtConstraintsTcM, -- genAtAtConstraintsExcept,
   genAtAtConstraintsExceptTcM,
   attachConstraints, mergeAtAtConstraints,
-  elabAtAtConstraintsTcM, elabWithAtAtConstraintsTopTcM,-- unelabAtAtConstraints, unelabAtAtConstraintsM, 
+  elabAtAtConstraintsTcM, elabWithAtAtConstraintsTopTcM, elabAtAtConstraints, -- unelabAtAtConstraintsM, 
   predTyArgs, predTyVars, flatten_atat_constraint, saneTyConForElab 
   ) where
 
@@ -190,7 +190,7 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
        return $ elabDetails (CastTy (elabTy elabd) kco) (newPreds elabd)
        
    | otherwise = do
-      traceTc "wfelab unknown case: " (ppr ty)
+      traceTc "wfelab unknown case or nothing to do: " (ppr ty)
       return $ elabDetails ty []
 
   where predHas :: Type -> PredType -> Bool
@@ -252,7 +252,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
       if (args `lengthAtLeast` (tyConArity tycon))
       then case coreView (TyConApp tycon args) of
              Just ty   -> do { elabd <- genAtAtConstraintsExceptTcM isTyConPhase eTycons ts ty
-                             -- ; traceTc "tysyn tyConGenAtsTcM: " (ppr ty)
+                             ; traceTc "tysyn tyConGenAtsTcM: " (ppr (elabTy elabd))
                              ; concatMapM flatten_atat_constraint $ newPreds elabd }
              Nothing   -> pprPanic "tysyn tyConGenAts" (ppr tycon)
       else failWithTc (tyConArityErr tycon args)
@@ -392,11 +392,19 @@ genWfConstraints :: (
                      Total m,
 #endif
                       Monad m
-                      ) => Type ->  m ThetaType
-genWfConstraints ty = do d <- genAtAtConstraintsExcept [] [] ty
-                         return $ newPreds d
+                      ) => Type -> [Type] ->  m ThetaType
+genWfConstraints ty skiptys = do d <- genAtAtConstraintsExcept [] skiptys ty
+                                 return $ newPreds d
 
-
+-- This better not be used with a foralled type. It may break things or may not elaborate at all.
+elabAtAtConstraints :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m) => Type ->  m Type
+elabAtAtConstraints ty = do elabd <- genAtAtConstraintsExcept [] [] ty
+                            return $ attachConstraints (newPreds elabd) (elabTy elabd)
+                            
 -- Generates f @@ a constraints unless tycon passed in appears in LHS
 genAtAtConstraintsExcept :: (
 #if MIN_VERSION_base(4,16,0)
@@ -418,20 +426,19 @@ genAtAtConstraintsExcept tycons ts ty
       return$ elabDetails (FunTy InvisArg v constraint (elabTy elabd)) (newPreds elabd)
 
   -- recursively build @@ constraints for type constructor
-  | (TyConApp tyc tycargs) <- ty = do
+  | (TyConApp tyc tycargs) <- ty =
+      if tyc `hasKey` typeRepTyConKey -- this is supposed to save us from sometyperep, typerep nonsense.
+        then return $ elabDetails ty []
+        else do
+        { elabTys_and_atats <- mapM (genAtAtConstraintsExcept (tyc:tycons) ts) tycargs
+        ; let (elab_tys, atc_args) = unzip $ fmap (\d -> (elabTy d, newPreds d)) elabTys_and_atats
+        ; if any (== tyc) tycons
+          then return $ elabDetails (TyConApp tyc elab_tys) (foldl mergeAtAtConstraints [] atc_args)
+          else do { atc_tycon <- tyConGenAts tycons ts tyc elab_tys
+                  ; return $ elabDetails (TyConApp tyc elab_tys) (foldl mergeAtAtConstraints atc_tycon atc_args)
+                  }
+        }
 
-      { elabTys_and_atats <- mapM (genAtAtConstraintsExcept (tyc:tycons) ts) tycargs
-      ; let (elab_tys, atc_args) = unzip $ fmap (\d -> (elabTy d, newPreds d)) elabTys_and_atats
-      ; if any (== tyc) tycons
-        then return $ elabDetails (TyConApp tyc elab_tys) (foldl mergeAtAtConstraints [] atc_args)
-        else
-          if tyc `hasKey` typeRepTyConKey -- this is supposed to save us from sometyperep, typerep nonsense.
-          then return $ elabDetails ty []
-          else do
-          { atc_tycon <- tyConGenAts tycons ts tyc tycargs
-          ; return $ elabDetails (TyConApp tyc elab_tys) (foldl mergeAtAtConstraints atc_tycon atc_args)
-          }
-      }
   -- for type application we need ty1 @@ ty2
   -- for type application we need ty1 @@ ty2 (unless ty2 is * then skip it or ty2 has a constraint kind)
   | (AppTy ty1 ty2) <- ty =
@@ -471,7 +478,9 @@ genAtAtConstraintsExcept tycons ts ty
           r_ty = ForAllTy bndr (attachConstraints (newPreds elabd) (elabTy elabd))
       return $ elabDetails r_ty donthave'bvar -- genAtAtConstraints ty'
 
-  | otherwise = return $ elabDetails ty []
+  | otherwise =
+      -- do traceTc "wfelab unknown case or nothing to do: " (ppr ty)
+      return $ elabDetails ty []
 
   where predHas :: Type -> PredType -> Bool
         predHas tv pred = or [eqType tv x | x <- (predTyArgs pred)] -- no me likey
@@ -488,7 +497,7 @@ tyConGenAts :: (
             -> TyCon -> [Type] -> m ThetaType
 tyConGenAts eTycons ts tycon args
   | isTyConInternal tycon || isGadtSyntaxTyCon tycon 
-  = concatMapM genWfConstraints args
+  = concatMapM (\ x -> genWfConstraints x ts) args
   | isTyConAssoc tycon && not (isNewTyCon tycon)
   = do { let (args', extra_args) = splitAt (length (tyConVisibleTyVars tycon))
                                    (zip3 args (tyConBinders tycon) (tyConRoles tycon))
@@ -508,6 +517,11 @@ tyConGenAts eTycons ts tycon args
          ; return $ foldl mergeAtAtConstraints wfcs (fmap newPreds elabds)
          }
   | not (saneTyConForElab tycon)
+  = do { elabtys_and_css <- mapM (genAtAtConstraintsExcept (tycon:eTycons) ts) args
+       ; let css = fmap newPreds elabtys_and_css
+       ; return $ foldl mergeAtAtConstraints [] css
+       }
+  | isFamilyTyCon tycon
   = do { elabtys_and_css <- mapM (genAtAtConstraintsExcept (tycon:eTycons) ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; return $ foldl mergeAtAtConstraints [] css

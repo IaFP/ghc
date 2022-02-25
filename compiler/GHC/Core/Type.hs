@@ -1791,7 +1791,7 @@ mergeTypes p1s p2s = matc [] p1s p2s
       then matc acc cs1s c2s
       else matc (c2:acc) cs1s c2s
 
--- The first argument list is preds (they are all unique)
+-- The first argument list is preds (they are assumed to be all unique)
 -- the second argument is a proper type broken into arguments
 -- We must add only those from the first list that don't exist in the second list.
 -- The second list is unchanged
@@ -1800,6 +1800,7 @@ mergeTypes p1s p2s = matc [] p1s p2s
 stableMergeTypes  :: [Type] -> [Type] -> [Type]
 stableMergeTypes ty1s ty2s = matc [] ty1s ty2s
   where
+    matc acc [] [] = (reverse acc)
     matc acc [] cs2 = (reverse acc) ++ cs2
     matc acc (cs1':cs1s') cs2 = if any (eqType cs1') (acc ++ cs2)
                                 then matc acc cs1s' cs2
@@ -1809,6 +1810,7 @@ stableMergeScaledTypes  :: [Scaled Type] -> [Scaled Type] -> [Scaled Type]
 stableMergeScaledTypes ty1s ty2s = matc [] ty1s ty2s
   where
     matc :: [Scaled Type] -> [Scaled Type] -> [Scaled Type] -> [Scaled Type]
+    matc acc [] [] = (reverse acc)
     matc acc [] cs2 = (reverse acc) ++ cs2
     matc acc (cs1':cs1s') cs2 = if any (eqType (scaledThing cs1')) $ fmap scaledThing (acc ++ cs2)
                                 then matc acc cs1s' cs2
