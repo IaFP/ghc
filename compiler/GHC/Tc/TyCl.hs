@@ -208,7 +208,7 @@ mkWfConstraintFam tc
                        Nothing                               -- Associated class TODO
                        NotInjective                          -- *shrug*
             where
-              name = mkWiredInName mod (mkTcOcc $ "WF_" ++ tfName) uniq (ATyCon constraint) BuiltInSyntax
+              name = mkWiredInName mod (mkTcOcc $ "$WF_" ++ tfName) uniq (ATyCon constraint) BuiltInSyntax
       return (tc { famTcWfConstraint = Just constraint }, Just constraint)
   | otherwise = return (tc, Nothing)
 

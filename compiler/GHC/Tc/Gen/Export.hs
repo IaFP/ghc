@@ -227,7 +227,7 @@ wfConstraintToAvail = avail . getName
 
 -- this is questionable and hacky. Should also be put in TyCon.hs
 isWf :: TyCon -> Bool
-isWf = ("WF_" `isPrefixOf`) . occNameString . nameOccName . tyConName
+isWf = ("$WF_" `isPrefixOf`) . occNameString . nameOccName . tyConName
 
 exports_from_avail :: Maybe (LocatedL [LIE GhcPs])
                          -- ^ 'Nothing' means no explicit export list
@@ -327,8 +327,12 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
 
              ; traceRn "efa" (ppr mod $$ ppr all_gres)
              ; addUsedGREs all_gres
+             ; env <- getGblEnv
+             ; let tcs = tcg_tcs env
+             ; let tcs' = map wfConstraintToAvail $ filter isWf tcs
+             ; occs' <- check_occs ie occs (new_exports ++ tcs')
+             -- Always add in WF constraints to exports
 
-             ; occs' <- check_occs ie occs new_exports
                       -- This check_occs not only finds conflicts
                       -- between this item and others, but also
                       -- internally within this item.  That is, if
@@ -352,10 +356,12 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
              if isUnboundName (ieName new_ie)
                   then return Nothing    -- Avoid error cascade
                   else do
+                    env <- getGblEnv
+                    let tcs = tcg_tcs env
+                    let tcs' = map wfConstraintToAvail $ filter isWf tcs
+                    occs' <- check_occs ie occs (avail : tcs')
 
-                    occs' <- check_occs ie occs [avail]
-
-                    return (Just ( ExportAccum occs' mods
+                    return (Just ( ExportAccum (occs') mods
                                  , (L loc new_ie, [avail])))
 
     -------------
