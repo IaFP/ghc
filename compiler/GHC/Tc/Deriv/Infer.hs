@@ -304,6 +304,8 @@ con_arg_constraints :: DerivInstTys -> TyCon -> [Type] -> [Var] -> [Type] -> [Ty
                     -> DerivM ([ThetaOrigin], [TyVar], [TcType], DerivInstTys)
 con_arg_constraints dit rep_tc inst_tys tvs rep_tc_args t_or_ks get_arg_constraints
   = do { wildcard <- isStandaloneWildcardDeriv
+       ; dflags <- getDynFlags
+       ; let partyCtrs = xopt LangExt.PartialTypeConstructors dflags
        ; let input = [  (orig, arg_t_or_k, arg_ty)
                      | data_con <- tyConDataCons rep_tc
                      , (arg_n, arg_t_or_k, arg_ty) <- zip3 [1..] t_or_ks $
@@ -329,14 +331,17 @@ con_arg_constraints dit rep_tc inst_tys tvs rep_tc_args t_or_ks get_arg_constrai
                | data_con <- tyConDataCons rep_tc
                , stupid_pred <- dataConStupidTheta data_con
                ]
+       -- ANI: TODO I think we also need to elaborate inst_tys to get more contraints.               
+       ; more_wf_constraints <- if partyCtrs then concatMapM (\f -> genWfConstraints f []) inst_tys else return []
              -- get only those preds that are relavant.
              -- we may end up with an unquantified type variable while deriving a functor instance of a type
-             inst_tys_tyargs = concatMap predTyArgs inst_tys
+
+       ; let inst_tys_tyargs = concatMap predTyArgs inst_tys
              stupid_theta_relv = filter (\p -> and [or [a `eqType` t
                                                        | t <- inst_tys_tyargs ]
-                                                   | a <- predTyArgs p]) stupid_theta'
-                                 -- ANI: TODO I think we also need to elaborate inst_tys to get more contraints.
-             stupid_theta = mergeTypes [] stupid_theta_relv -- making sure no duplicate @ appear 
+                                                   | a <- predTyArgs p]) (stupid_theta' ++ more_wf_constraints)
+
+             stupid_theta = stableMergeTypes stupid_theta_relv [] -- making sure no duplicate @ appear 
              preds = concat predss
              -- If the constraints require a subtype to be of kind
              -- (* -> *) (which is the case for functor-like

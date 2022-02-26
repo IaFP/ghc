@@ -71,7 +71,7 @@ if windows:
         config.other_ways += winio_ways
 
 config.way_flags = {
-    'normal'       : [],
+    'normal'       : ['-XPartialTypeConstructors', '-XTypeOperators', '-XConstrainedClassMethods', '-XUndecidableInstances', '-XTypeFamilies'],
     'normal_h'     : [],
     'g1'           : [],
     'nursery_chunks' : [],
