@@ -193,7 +193,7 @@ tcTyAndClassDecls tyclds_s
 -- but we need to be in the TcM monad and importing
 -- TcM from TyCon.hs introduces a cycle.
 mkWfConstraintFam :: TyCon -> TcM (TyCon, Maybe TyCon)
-mkWfConstraintFam tc
+mkWfConstraintFam tc 
   | isFamilyTyCon tc = do
       uniq <- newUnique
       mod <- getModule

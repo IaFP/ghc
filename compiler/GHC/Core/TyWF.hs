@@ -245,6 +245,7 @@ lookupWfConstraint tycon
            tfName =  "$WF_" ++ (get_tf_name tycon)
            external_types = typeEnvTyCons . eps_PTE $ eps
            wf = find (\t -> get_tf_name t == tfName) external_types
+     ; traceTc "Here is the whole fuckin external env :)" $ vcat (map ppr external_types)
      ; return wf
   } 
 
