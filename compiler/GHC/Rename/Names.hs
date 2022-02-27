@@ -937,10 +937,6 @@ getLocalNonValBinders fixity_env
            -> RnM [(AvailInfo, [(Name, [FieldLabel])])]
     new_tc dup_fields_ok has_sel tc_decl -- NOT for type/data instances
         = do { let (bndrs, flds) = hsLTyClDeclBinders tc_decl
-             -- ; let wfc_bndrs = fmap (\(L l rdrn) ->
-             --                            (L l $ nameRdrName
-             --                             (mkSystemName (nameUnique $ fromJust . isExact_maybe $ rdrn )
-             --                               (mkTcOcc $ "$tc_wf" ++ (occNameString . nameOccName $ fromJust . isExact_maybe $ rdrn))))) bndrs
              ; names@(main_name : sub_names) <- mapM (newTopSrcBinder . l2n) bndrs
              ; flds' <- mapM (newRecordSelector dup_fields_ok has_sel sub_names) flds
              ; let fld_env = case unLoc tc_decl of
@@ -948,7 +944,7 @@ getLocalNonValBinders fixity_env
                      _                            -> []
              ; wf_stuff <- case unLoc tc_decl of
                              FamDecl {} -> do { m <- getModule
-                                              ; let occ = mkTcOcc $ "$tc_wf" ++ (occNameString . nameOccName $ main_name)
+                                              ; let occ = mkTcOcc $ "$tc_wf'" ++ (occNameString . nameOccName $ main_name)
                                               ; wf_name <- newGlobalBinder m occ (nameSrcSpan main_name)
                                               ; return [((availTC wf_name [wf_name] []), [])]
                                               }

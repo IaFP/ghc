@@ -2558,7 +2558,7 @@ genMirrorWFTyFam (loc, tc)
   | isOpenFamilyTyCon tc
   = do { u <- newUnique
        ; m <- getModule
-       ; let occ = mkTcOcc $ "$tc_wf" ++ (occNameString . nameOccName . tyConName $ tc)
+       ; let occ = mkTcOcc $ "$tc_wf'" ++ (occNameString . nameOccName . tyConName $ tc)
              -- name = mkWiredInName m occ uniq (ATyCon new_tc) UserSyntax
        ; name <- lookupOrig m occ
        -- ; name <- newGlobalBinder m occ loc
@@ -2574,6 +2574,7 @@ genMirrorWFTyFam (loc, tc)
                -- mkSystemNameAt uniq ns loc
                -- rdrName = newAuxBinderRdrName loc (nameOccName . tyConName tc) () 
        ; traceTc "wf tf mirror open occname:" (ppr name <+> ppr (nameUnique name))
+       -- TODO: Export the global binder 
        ; return $ (mirror_tc, n_tc)
        }
   | otherwise
