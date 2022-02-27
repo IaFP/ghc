@@ -106,6 +106,7 @@ module GHC.Core.TyCon(
         famTyConFlav_maybe, famTcResVar,
         algTyConRhs,
         wfMirrorTyCon_maybe,
+        hasWfMirrorTyCon,
         wfMirrorTyCon,
         wfOrigTyCon_maybe,
         wfOrigTyCon,
@@ -2411,6 +2412,11 @@ tyConFlavourAssoc_maybe _                                 = Nothing
 wfMirrorTyCon_maybe :: TyCon -> Maybe TyCon
 wfMirrorTyCon_maybe (FamilyTyCon {isMirror = im, assocFamTyCon=m})  = if not im then m else Nothing
 wfMirrorTyCon_maybe _                                                = Nothing
+
+hasWfMirrorTyCon :: TyCon -> Bool
+hasWfMirrorTyCon (FamilyTyCon {isMirror = im, assocFamTyCon = m})
+  | not im, Just wf <- m = True
+  | otherwise = False
 
 wfMirrorTyCon :: TyCon -> TyCon
 wfMirrorTyCon tc@(FamilyTyCon {isMirror = im, assocFamTyCon=(Just m)})

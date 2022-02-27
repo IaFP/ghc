@@ -13,6 +13,7 @@ module GHC.Core.FamInstEnv (
         famInstsRepTyCons, famInstRepTyCon_maybe, dataFamInstRepTyCon,
         pprFamInst, pprFamInsts,
         mkImportedFamInst,
+        famInstSplitLHS,
 
         FamInstEnvs, FamInstEnv, emptyFamInstEnv, emptyFamInstEnvs,
         extendFamInstEnv, extendFamInstEnvList,

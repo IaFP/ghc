@@ -33,6 +33,7 @@ import GHC.Core.Type
 import GHC.Core.Reduction (reductionReducedType)
 import GHC.Builtin.Names
 import GHC.Types.Name
+import GHC.Types.TyThing
 import GHC.Types.TypeEnv
 import GHC.Unit.External
 import GHC.Builtin.Names.TH
