@@ -107,6 +107,7 @@ module GHC.Core.TyCon(
         algTyConRhs,
         wfMirrorTyCon_maybe,
         hasWfMirrorTyCon,
+        isWfMirrorTyCon,
         wfMirrorTyCon,
         wfOrigTyCon_maybe,
         wfOrigTyCon,
@@ -2417,6 +2418,12 @@ hasWfMirrorTyCon :: TyCon -> Bool
 hasWfMirrorTyCon (FamilyTyCon {isMirror = im, assocFamTyCon = m})
   | not im, Just wf <- m = True
   | otherwise = False
+hasWfMirrorTyCon _ = False
+
+
+isWfMirrorTyCon :: TyCon -> Bool
+isWfMirrorTyCon (FamilyTyCon {isMirror = im}) = im
+isWfMirrorTyCon _ = False
 
 wfMirrorTyCon :: TyCon -> TyCon
 wfMirrorTyCon tc@(FamilyTyCon {isMirror = im, assocFamTyCon=(Just m)})
