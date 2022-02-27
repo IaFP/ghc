@@ -49,9 +49,8 @@ module GHC.Core.TyCon(
         mkPromotedDataCon,
         mkTcTyCon,
         noTcTyConScopedTyVars,
-        updateAlgTyCon,
-        updateSynonymTyConRhs,
-        
+        mkWFMirrorTyFam,
+
         -- ** Predicates on TyCons
         isAlgTyCon, isVanillaAlgTyCon, isConstraintKindCon,
         isClassTyCon, isFamInstTyCon,
@@ -68,10 +67,10 @@ module GHC.Core.TyCon(
         isDataTyCon,
         isEnumerationTyCon,
         isNewTyCon, isAbstractTyCon,
-        isFamilyTyCon, isOpenFamilyTyCon,
+        isFamilyTyCon, isOpenFamilyTyCon, isOpenTypeFamilyTyCon,
         isTypeFamilyTyCon, isDataFamilyTyCon,
         isWfTyCon,
-        isOpenTypeFamilyTyCon, isClosedSynFamilyTyConWithAxiom_maybe,
+        isClosedTypeFamilyTyCon, isClosedSynFamilyTyConWithAxiom_maybe,
         tyConInjectivityInfo,
         isBuiltInSynFamTyCon_maybe,
         isUnliftedTyCon,
@@ -106,6 +105,10 @@ module GHC.Core.TyCon(
         synTyConDefn_maybe, synTyConRhs_maybe,
         famTyConFlav_maybe, famTcResVar,
         algTyConRhs,
+        wfMirrorTyCon_maybe,
+        wfMirrorTyCon,
+        wfOrigTyCon_maybe,
+        wfOrigTyCon,
         newTyConRhs, newTyConEtadArity, newTyConEtadRhs,
         unwrapNewTyCon_maybe, unwrapNewTyConEtad_maybe,
         newTyConDataCon_maybe,
@@ -119,6 +122,9 @@ module GHC.Core.TyCon(
         expandSynTyCon_maybe,
         newTyConCo, newTyConCo_maybe,
         pprPromotionQuote, mkTyConKind,
+        updateAlgTyCon,
+        updateSynonymTyConRhs,
+        updateTyConMirror,
 
         -- ** Predicated on TyConFlavours
         tcFlavourIsOpen,
@@ -900,9 +906,14 @@ data TyCon
                                       -- The class tycon in which the family is declared
                                       -- See Note [Associated families and their parent class]
 
-        famTcInj     :: Injectivity   -- ^ is this a type family injective in
+        famTcInj     :: Injectivity,  -- ^ is this a type family injective in
                                       -- its type variables? Nothing if no
                                       -- injectivity annotation was given
+
+        assocFamTyCon :: Maybe TyCon,   -- ^ Mirror type family tycon to simulate partial type families
+        isMirror      :: Bool           -- ^ is this type family tycon already a mirror to some other tycon?
+                                        -- if isMirror is True then assocTyCon will point to the original TyCon
+                                        -- If isMirror is False then assocTyCon will point to Mirror Tycon
     }
 
   -- | Primitive types; cannot be defined in Haskell. This includes
@@ -2087,9 +2098,20 @@ mkFamilyTyCon name binders res_kind resVar flav parent inj
             , famTcFlav    = flav
             , famTcParent  = classTyCon <$> parent
             , famTcInj     = inj
+            , assocFamTyCon = Nothing
+            , isMirror      = False
             }
     in tc
 
+
+mkWFMirrorTyFam :: Name -> TyCon -> TyCon
+mkWFMirrorTyFam n tc =
+  let new_tc = mkFamilyTyCon n (tyConBinders tc) constraintKind (Just n) (famTcFlav tc) (tyConClass_maybe tc) (famTcInj tc)
+  in new_tc { assocFamTyCon = Just tc, isMirror = True }
+
+updateTyConMirror :: TyCon -> TyCon -> TyCon
+updateTyConMirror tyc@(FamilyTyCon {}) wfm = tyc { assocFamTyCon = Just wfm }
+updateTyConMirror tyc wfm = pprPanic "cannot update mirror for non ty fam" (ppr tyc <+> ppr wfm)
 
 -- | Create a promoted data constructor 'TyCon'
 -- Somewhat dodgily, we give it the same Name
@@ -2338,6 +2360,11 @@ isOpenTypeFamilyTyCon :: TyCon -> Bool
 isOpenTypeFamilyTyCon (FamilyTyCon {famTcFlav = OpenSynFamilyTyCon }) = True
 isOpenTypeFamilyTyCon _                                               = False
 
+-- | Is this a closed type family TyCon?
+isClosedTypeFamilyTyCon :: TyCon -> Bool
+isClosedTypeFamilyTyCon (FamilyTyCon {famTcFlav = ClosedSynFamilyTyCon _ }) = True
+isClosedTypeFamilyTyCon _                                                 = False
+
 -- | Is this a non-empty closed type family? Returns 'Nothing' for
 -- abstract or empty closed families.
 isClosedSynFamilyTyConWithAxiom_maybe :: TyCon -> Maybe (CoAxiom Branched)
@@ -2380,6 +2407,33 @@ tyConFlavourAssoc_maybe (DataFamilyFlavour mb_parent)     = mb_parent
 tyConFlavourAssoc_maybe (OpenTypeFamilyFlavour mb_parent) = mb_parent
 tyConFlavourAssoc_maybe _                                 = Nothing
 
+-- | Gets the mirror tycon for well formedness check
+wfMirrorTyCon_maybe :: TyCon -> Maybe TyCon
+wfMirrorTyCon_maybe (FamilyTyCon {isMirror = im, assocFamTyCon=m})  = if not im then m else Nothing
+wfMirrorTyCon_maybe _                                                = Nothing
+
+wfMirrorTyCon :: TyCon -> TyCon
+wfMirrorTyCon tc@(FamilyTyCon {isMirror = im, assocFamTyCon=(Just m)})
+  = if not im
+    then m
+    else pprPanic "cannot get wf mirror for a mirror tycon: " (ppr tc)
+wfMirrorTyCon tc
+  = pprPanic "No entry for a mirror tycon for: " (ppr tc)
+
+
+wfOrigTyCon_maybe :: TyCon -> Maybe TyCon
+wfOrigTyCon_maybe (FamilyTyCon {isMirror = im, assocFamTyCon=m})  = if im then m else Nothing
+wfOrigTyCon_maybe _                                                = Nothing
+
+wfOrigTyCon :: TyCon -> TyCon
+wfOrigTyCon tc@(FamilyTyCon {isMirror = im, assocFamTyCon=(Just m)})
+  = if im
+    then m
+    else pprPanic "cannot get parent tycon for a original tycon: " (ppr tc)
+wfOrigTyCon tc
+  = pprPanic "No entry for a original tycon for: " (ppr tc)
+
+  
 -- The unit tycon didn't used to be classed as a tuple tycon
 -- but I thought that was silly so I've undone it
 -- If it can't be for some reason, it should be a AlgTyCon

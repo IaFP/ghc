@@ -16,6 +16,7 @@ module GHC.Tc.Deriv ( tcDeriving, DerivInfo(..)
                     , mk_atat_fam, mk_atat_fam_except
                     , mk_atat_fam_units, mk_atat_fam_except_units
                     , elabTyCons, saneTyConForElab
+                    , genMirrorWFTyFams, genMirrorWFTyFam
                     ) where
 
 import GHC.Prelude
@@ -53,6 +54,7 @@ import GHC.Core.DataCon
 import GHC.Data.Maybe
 import GHC.Types.Name.Reader
 import GHC.Types.Name
+import GHC.Types.Avail
 import GHC.Types.Name.Set as NameSet
 import GHC.Core.TyCon
 import GHC.Core.TyWF (WfElabTypeDetails(..), genAtAtConstraintsExceptTcM
@@ -71,6 +73,8 @@ import GHC.Utils.Panic
 import GHC.Utils.Panic.Plain
 import GHC.Utils.Logger
 import GHC.Data.Bag
+import GHC.Unit.Module (getModule)
+import GHC.Iface.Env ({- newGlobalBinder,-} lookupOrig)
 import GHC.Utils.FV as FV (fvVarList, unionFV, mkFVs)
 import qualified GHC.LanguageExtensions as LangExt
 
@@ -2210,10 +2214,10 @@ standaloneCtxt ty = hang (text "In the stand-alone deriving instance for")
 {-
 ************************************************************************
 *                                                                      *
-                Generating @@ type family instances
+                Generating @ type family instances
 *                                                                      *
 ************************************************************************
-Generate @@ type family instances for data types
+Generate @ type family instances for data types
 These are always generated for a data type. 
 
 Consider the partial data type
@@ -2222,7 +2226,7 @@ Consider the partial data type
 
 we want to generate the type family instance
 
-   type instance BST @@ a = Ord a
+   type instance BST @ a = Ord a
 
 we can easily get hold of the rhs of the type family using the stupid theta.
 for lhs of the equation is just a simple singleCoAxiom
@@ -2234,21 +2238,21 @@ eg.
 
 should generate
 
-   type instance Complete @@ a = ()
+   type instance Complete @ a = ()
 
 What if the context has more than one constraints?
 eg.
    data (C1 a, C2 b) => T a b = ... ?
 we generate these type instances:
-type famiy T @@ a = C a
-type family T a @@ b = C2 b
+type famiy T @ a = C a
+type family T a @ b = C2 b
 
 We also need to bubble out constraints from the data constructors
 consider:
 data Ord a => T a b c = forall d e. MkT1 a b e | forall e. MkT2 (D1 c) (D2 e) ...
 
 we would want to bubble these out as:
-type instance T a b @@ c = D1 @@ c
+type instance T a b @ c = D1 @ c
 
 as e is existential in MkT2 we do not bubble out that type instance
 
@@ -2297,7 +2301,7 @@ mk_atat_fam' _ acc _ _ _ _ _ = return acc
 -- data T k1 k2 (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) where
 --      MkT1 :: f -> p -> T f g p
 --      MkT2 :: g -> p -> T f g p
--- We don't want (f @@ g p) to creap in hence this bad_bndr dance, as k1 and k2 are specified binders
+-- We don't want (f @ g p) to creap in hence this bad_bndr dance, as k1 and k2 are specified binders
 mk_atat_datacon_except :: TyCon -> [TyCon] -> DataCon -> TcM ThetaType
 mk_atat_datacon_except tycon skip_tcs dc =
   do { let arg_tys' = fmap scaledThing $ dataConOrigArgTys dc
@@ -2326,7 +2330,7 @@ mk_atat_datacon_except tycon skip_tcs dc =
 mk_atat_fam :: SrcSpan -> TyCon -> TcM [FamInst]
 mk_atat_fam loc tc = mk_atat_fam_except loc tc []
 
--- | just like mk_atat_fam but generates T @@ a ~ () for all possible axioms generatable
+-- | just like mk_atat_fam but generates T @ a ~ () for all possible axioms generatable
 mk_atat_fam_units :: SrcSpan -> TyCon -> TcM [FamInst]
 mk_atat_fam_units loc tc = mk_atat_fam_except_units loc tc []
 
@@ -2334,15 +2338,11 @@ mk_atat_fam_except :: SrcSpan -> TyCon -> [TyCon] -> TcM [FamInst]
 mk_atat_fam_except loc tc skip_tcs
   | (isAlgTyCon tc && saneTyConForElab tc) -- is this a vanilla tycon
     || isNewTyCon tc 
-  -- we don't want class tycons to creep in
-  -- maybe simplify to isDataTyCon?
-  = do {
-      -- ; atatss <- mapM (mk_atat_datacon_except tc skip_tcs) dcs -- We are not going to fish out constraints from datacons
-      -- ; let atats = foldl mergeAtAtConstraints [] atatss
-      ; mk_atat_fam' loc [] tc univTys ([], tyargs) ([], tyvars_binder_type) dt_ctx {-(stableMergeTypes atats dt_ctx)-}
-      }
-  | isDataFamilyTyCon tc = mk_atat_fam_units loc tc
-  | otherwise = return []
+  = mk_atat_fam' loc [] tc univTys ([], tyargs) ([], tyvars_binder_type) dt_ctx     
+  | isDataFamilyTyCon tc
+  = mk_atat_fam_units loc tc
+  | otherwise
+  = return []
   where
     dcs = visibleDataCons $ algTyConRhs tc
     univTys = mkTyVarTys $ concatMap dataConExTyCoVars dcs
@@ -2402,10 +2402,10 @@ getMatchingPredicates t tvs preds =
 -- eg:
 -- data (C1 a, C2 b, C3 a b, C4 a b c d) => T a b c d = MkT1 a | MkT2 a b | MkT a b c
 -- 
--- T @@ a       := getMatchingPredicates a [b, c, d] [C1 a, C2 b, C3 a b, C4 a b c d] = [C1 a]
--- T a @@ b     := getMatchingPredicates b [c, d] [C1 a, C2 b, C3 a b, C4 a b c d] = [C2 b, C3 a b]
--- T a b @@ c   := getMatchingPredicates c [d] [C1 a, C2 b, C3 a b, C4 a b c d] = [ ]
--- T a b c @@ d := getMatchingPredicates d [ ] [C1 a, C2 b, C3 a b, C4 a b c d] = [C4 a b c d]
+-- T @ a       := getMatchingPredicates a [b, c, d] [C1 a, C2 b, C3 a b, C4 a b c d] = [C1 a]
+-- T a @ b     := getMatchingPredicates b [c, d] [C1 a, C2 b, C3 a b, C4 a b c d] = [C2 b, C3 a b]
+-- T a b @ c   := getMatchingPredicates c [d] [C1 a, C2 b, C3 a b, C4 a b c d] = [ ]
+-- T a b c @ d := getMatchingPredicates d [ ] [C1 a, C2 b, C3 a b, C4 a b c d] = [C4 a b c d]
 getMatchingPredicates' :: Type     -- Has to exists
                       -> [Type]    -- Should not exist
                       -> [PredType] -> [PredType]
@@ -2549,3 +2549,34 @@ elabTySynRhs tc = do
   where
     f :: [Type] -> [Type] -> Bool
     f candidates should'exist = and [any (c `eqType`) should'exist | c <- candidates ]
+
+genMirrorWFTyFams :: [(SrcSpan, TyCon)] -> TcM [(TyCon, TyCon)]
+genMirrorWFTyFams = mapM genMirrorWFTyFam
+
+genMirrorWFTyFam :: (SrcSpan, TyCon) -> TcM (TyCon, TyCon)
+genMirrorWFTyFam (loc, tc)
+  | isOpenFamilyTyCon tc
+  = do { u <- newUnique
+       ; m <- getModule
+       ; let occ = mkTcOcc $ "$tc_wf" ++ (occNameString . nameOccName . tyConName $ tc)
+             -- name = mkWiredInName m occ uniq (ATyCon new_tc) UserSyntax
+       ; name <- lookupOrig m occ
+       -- ; name <- newGlobalBinder m occ loc
+       -- ; let ainfo =  avail name
+       
+       -- ; tcRepName <- newTyConRepName name 
+
+       ; (mirror_tc, n_tc) <- fixM $ (\_ -> do { let mirror_tc = mkWFMirrorTyFam name n_tc
+                                                     n_tc      = updateTyConMirror tc mirror_tc
+                                               ; return (mirror_tc, n_tc)
+                                               }
+                                     )
+               -- mkSystemNameAt uniq ns loc
+               -- rdrName = newAuxBinderRdrName loc (nameOccName . tyConName tc) () 
+       ; traceTc "wf tf mirror open occname:" (ppr name <+> ppr (nameUnique name))
+       ; return $ (mirror_tc, n_tc)
+       }
+  | otherwise
+  = do { traceTc "wf tf mirror unknown case:" (ppr (famTyConFlav_maybe tc) <+> ppr tc)
+       ; return (tc, tc)
+       }

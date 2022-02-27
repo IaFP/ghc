@@ -32,12 +32,16 @@ import GHC.Core.DataCon (dataConOrigArgTys)
 import GHC.Core.Type
 import GHC.Core.Reduction (reductionReducedType)
 import GHC.Builtin.Names
+import GHC.Types.Name
+import GHC.Types.TypeEnv
+import GHC.Unit.External
 import GHC.Builtin.Names.TH
 import GHC.Builtin.Types (liftedTypeKindTyCon, isCTupleTyConName, wfTyCon)
 -- import GHC.Types.Var.Set
 
 -- import TcRnMonad (failWithTc)
-import Data.List (partition)
+import Data.List (partition, find)
+import Data.Maybe (maybeToList)
 import GHC.Tc.Utils.Monad
 import GHC.Utils.Panic (pprPanic)
 import GHC.Utils.Outputable
@@ -226,7 +230,7 @@ saneTyConForElab tycon =
        || isClassTyCon tycon
        || isFunTyCon tycon
        || isDataFamilyTyCon tycon
-       -- || isFamilyTyCon tycon
+       || isClosedTypeFamilyTyCon tycon
        -- || isTypeSynonymTyCon tycon
        -- || isNewTyCon tycon 
       )
@@ -265,6 +269,24 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        --                                           <+> text "extra_args " <> ppr extra_args)
        ; recGenAts' tycon extra_args (map (\(e, _, _) -> e) args') [] ts
        }
+  | isOpenFamilyTyCon tycon
+  = do { elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
+       ; let css = fmap newPreds elabtys_and_css
+       ; co_ty_mb <- matchFamTcM tycon args
+       ; wftycon <- lookupWfMirrorTyCon tycon
+       ; let tfwfcts::ThetaType = maybeToList $ fmap (\t -> mkTyConApp t args) wftycon
+       ; traceTc "wfelab open tycon" (vcat [ ppr tycon
+                                           , ppr (wfMirrorTyCon_maybe tycon)
+                                           , ppr tfwfcts])
+       ; case co_ty_mb of
+           Nothing -> return $ foldl mergeAtAtConstraints tfwfcts css
+           Just r | ty <- reductionReducedType r -> do {
+             ; elabd <- genAtAtConstraintsTcM isTyConPhase ty
+             ; return $ foldl mergeAtAtConstraints (tfwfcts ++ newPreds elabd) css
+             }
+       }
+
+      
   | isTypeFamilyTyCon tycon
     || isDataFamilyTyCon tycon
   = do { elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
@@ -491,7 +513,7 @@ tyConGenAts :: (
 #if MIN_VERSION_base(4,16,0)
                 Total m,
 #endif
-               Monad m)
+               Monad m) -- TODO: This is under constrained, we need to add more context to this monad.
             => [TyCon]
             -> [Type] -- things to ignore
             -> TyCon -> [Type] -> m ThetaType
@@ -527,3 +549,16 @@ tyConGenAts eTycons ts tycon args
        ; return $ foldl mergeAtAtConstraints [] css
        }
   | otherwise = recGenAts tycon args ts
+
+
+lookupWfMirrorTyCon :: TyCon -> TcM (Maybe TyCon)
+lookupWfMirrorTyCon tycon
+ | Just wf_tc <-  wfMirrorTyCon_maybe tycon = return (Just wf_tc)
+ | otherwise = do {
+     ; eps <- getEps
+     ; let get_tf_name = occNameString . nameOccName . tyConName
+           tfName =  "$tc_wf" ++ (get_tf_name tycon)
+           external_types = typeEnvTyCons . eps_PTE $ eps
+           wf = find (\t -> get_tf_name t == tfName) external_types
+     ; return wf
+  } 

@@ -46,6 +46,7 @@ import GHC.Tc.Utils.Monad
 
 import GHC.Hs
 import GHC.Iface.Load   ( loadSrcInterface )
+import GHC.Iface.Env   ( newGlobalBinder )
 import GHC.Builtin.Names
 import GHC.Parser.PostProcess ( setRdrNameSpace )
 import GHC.Core.Type
@@ -877,7 +878,7 @@ getLocalNonValBinders fixity_env
         ; dup_fields_ok <- xopt_DuplicateRecordFields <$> getDynFlags
         ; has_sel <- xopt_FieldSelectors <$> getDynFlags
         ; (tc_avails, tc_fldss)
-            <- fmap unzip $ mapM (new_tc dup_fields_ok has_sel)
+            <- fmap unzip $ concatMapM (new_tc dup_fields_ok has_sel)
                                  (tyClGroupTyClDecls tycl_decls)
         ; traceRn "getLocalNonValBinders 1" (ppr tc_avails)
         ; envs <- extendGlobalRdrEnvRn tc_avails fixity_env
@@ -933,15 +934,26 @@ getLocalNonValBinders fixity_env
                             ; return (avail nm) }
 
     new_tc :: DuplicateRecordFields -> FieldSelectors -> LTyClDecl GhcPs
-           -> RnM (AvailInfo, [(Name, [FieldLabel])])
+           -> RnM [(AvailInfo, [(Name, [FieldLabel])])]
     new_tc dup_fields_ok has_sel tc_decl -- NOT for type/data instances
         = do { let (bndrs, flds) = hsLTyClDeclBinders tc_decl
+             -- ; let wfc_bndrs = fmap (\(L l rdrn) ->
+             --                            (L l $ nameRdrName
+             --                             (mkSystemName (nameUnique $ fromJust . isExact_maybe $ rdrn )
+             --                               (mkTcOcc $ "$tc_wf" ++ (occNameString . nameOccName $ fromJust . isExact_maybe $ rdrn))))) bndrs
              ; names@(main_name : sub_names) <- mapM (newTopSrcBinder . l2n) bndrs
              ; flds' <- mapM (newRecordSelector dup_fields_ok has_sel sub_names) flds
              ; let fld_env = case unLoc tc_decl of
                      DataDecl { tcdDataDefn = d } -> mk_fld_env d names flds'
                      _                            -> []
-             ; return (availTC main_name names flds', fld_env) }
+             ; wf_stuff <- case unLoc tc_decl of
+                             FamDecl {} -> do { m <- getModule
+                                              ; let occ = mkTcOcc $ "$tc_wf" ++ (occNameString . nameOccName $ main_name)
+                                              ; wf_name <- newGlobalBinder m occ (nameSrcSpan main_name)
+                                              ; return [((availTC wf_name [wf_name] []), [])]
+                                              }
+                             _          -> return []
+             ; return $ (availTC main_name names flds', fld_env):wf_stuff }
 
 
     -- Calculate the mapping from constructor names to fields, which

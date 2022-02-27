@@ -1,13 +1,13 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE PartialTypeConstructors #-}
 
-module OpenTF where
+module OpenTFImporter where
 
-import GHC.Types (Type)
-
+import OpenTF
 
 data Ord a => Tree a = Leaf a | Node (Tree a) (Tree a)
 
 type instance Elem (Tree a) = a
 
-
+blahblah :: Elem a -> a
+blahblah = undefined

@@ -47,7 +47,7 @@ import GHC.Tc.TyCl.Utils
 import GHC.Tc.TyCl.Class
 -- import GHC.Tc.TyWF 
 import {-# SOURCE #-} GHC.Tc.TyCl.Instance( tcInstDecls1 )
-import GHC.Tc.Deriv (DerivInfo(..), mk_atat_fam, mk_atat_fam_except_units, elabTyCons)
+import GHC.Tc.Deriv (DerivInfo(..), mk_atat_fam, mk_atat_fam_except_units, genMirrorWFTyFams)
 import GHC.Tc.Gen.HsType
 import GHC.Tc.Instance.Class( AssocInstInfo(..) )
 import GHC.Tc.Utils.TcMType
@@ -223,9 +223,11 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
        ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
        ; (gbl_env, th_bndrs) <-
            if enblPCtrs
-           then do { let locs::[SrcSpan] = map (locA . getLoc) tyclds
+           then do { traceTc "---- start wf enrichment ---- { " empty
+
+                   ; let locs::[SrcSpan] = map (locA . getLoc) tyclds
                              -- ; let tAndR = thisAndRest tyclss
-                   ; let locsAndTcs = zip locs tyclss
+                         locsAndTcs = zip locs tyclss
                              
                    ; fam_insts <-  if (length tyclds == 1)
                                                 -- for now we can only reason about non-circular datatypes
@@ -237,40 +239,25 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                                    else concatMapM (\(l, tc) -> mk_atat_fam_except_units l tc tyclss)
                                                   locsAndTcs
                                                   
-                             -- ; tcExtendLocalFamInstEnv fam_insts (return ())
-                             -- ; traceTc "adding generated @@ fam instances" (vcat (map ppr fam_insts))
-                             -- fist add all the newly generated wf constraint equations in the env
-                             -- Then update each of the datacons of data types with elaborated context
-                             -- we update the env first so that we can simplify the atat constraints
-                             -- eagerly in the next step.
-                   ; let (tyclss1, tyclss2) = partition (\tc -> (isAlgTyCon tc || isTypeSynonymTyCon tc)
-                                                                -- && saneTyConForElab tc
-                                                                && not (isPromotedDataCon tc)) tyclss
-                   ; traceTc "selected for WF enrichment" (ppr tyclss1)
 
-                   ; tyclss' <- mapM (\t -> fixM $ do \_ ->
-                                                        tcExtendLocalFamInstEnv fam_insts
-                                                        $ do elabTyCons t) tyclss1
-                                -- do { mapM elabTcDataConsCtxt tyclss1 }
-                   ; traceTc "enriched WF datacons for"
-                     (vcat $ fmap pprtc tyclss')
-
-                   --           -- Check that elaborated tycons are generated okay
-                   -- ; traceTc "Starting validity check post WF enrichment" (ppr tyclss')
-                   -- ; tyclss' <- concatMapM checkValidTyCl tyclss'
-                   -- ; traceTc "Done validity check post WF enrichment" (ppr tyclss')
-
-                   ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $ tyclss' ++ tyclss2)
+                   -- ANI: This should be pushed in the actual declaration flow, its a fairly simple
+                   -- one-to-many mapping with the tycls
+                   -- I say many because a class could have multiple associated types
+                   -- The only reason why i'm doing this here is because it is easier to debug and peaking (traceTc) into
+                   -- a knot-tied tycon decl will cause the compiler to loop/hang
+                   ; let (locsAndTFs, locsAndTyClss') = partition (isTypeFamilyTyCon . snd) (locsAndTcs)
+                    
+                   ; traceTc "partition" (vcat [text "TFs:" <+> (vcat $ fmap (ppr . snd) locsAndTFs)
+                                               , text "NoTFs:" <+> (vcat $ fmap (ppr . snd) locsAndTyClss')])
+                   ; mirrors_and_tyfams <- genMirrorWFTyFams locsAndTFs
+                   ; let (wf_mirrors, tyfams') = unzip mirrors_and_tyfams
+                   ; traceTc "Starting validity check post WF enrichment" (vcat $ fmap pprtc wf_mirrors)
+                   ; wf_mirrors' <- concatMapM checkValidTyCl (wf_mirrors ++ tyfams')
+                   ; traceTc "Done validity check post WF enrichment" (vcat $ fmap pprtc wf_mirrors')
+                   ; traceTc "---- end wf enrichment ---- }" empty
+                   ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $
+                                                        wf_mirrors' ++ (fmap snd locsAndTyClss'))
                    }
-                     -- else
-                     --  if enblPCtrs && (length tyclds > 1)
-                     --  then do { let locs = map getLoc tyclds
-                     --          ; let tycls_and_others = fmap (\e -> (e, filter (/= e) tyclss)) tyclss
-                     --          ; let locsAndTcs = zip locs (tycls_and_others)
-                     --          ; fam_insts_list <- mapM (\(l, (tc, ntcs)) -> mk_atat_fam_except l tc ntcs) locsAndTcs
-                     --          ; let fam_insts = concat fam_insts_list
-                     --          ; traceTc "adding generated @@ fam instances" (vcat (map ppr fam_insts))
-                     --          ; tcExtendLocalFamInstEnv (fam_insts) $ addTyConsToGblEnv tyclss }
            else do { addTyConsToGblEnv tyclss }
 
            -- Step 4: check instance declarations
@@ -286,8 +273,8 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
 
 pprtc :: TyCon -> SDoc
 pprtc tc
-  | isDataTyCon tc || isNewTyCon tc =
-    text "tycon=" <> ppr tc
+  | isDataTyCon tc || isNewTyCon tc
+  = text "datatype tycon=" <> ppr tc
     <+> ppr (zip (tyConBinders tc) (tyConRoles tc))
     <+> brackets (vcat (fmap (\dc ->
                                  vcat [ ppr dc
@@ -305,14 +292,17 @@ pprtc tc
                                             Nothing -> text "not family"
                                             Just (f, _) -> ppr (tyConBinders f))
                                       ]) (tyConDataCons tc)))
-  | isTypeSynonymTyCon tc =
-    text "tycon=" <> ppr tc
+  | isTypeSynonymTyCon tc
+  = text "tysyn tycon=" <> ppr tc
     <+> ppr (zip (tyConBinders tc) (tyConRoles tc))
     <+> text "TypeSyn RHS" <+> ppr (synTyConRhs_maybe tc)
     <+> text "isFamFree" <+> ppr (isFamFreeTyCon tc)
+  | isOpenFamilyTyCon tc
+  = text "open tyfam tycon=" <> ppr tc
+    <+> text "mirror tycon=" <> ppr (wfMirrorTyCon_maybe tc)
+    <+> text "parent tycon=" <> ppr (wfOrigTyCon_maybe tc)
   | otherwise =
     text "tycon=" <> ppr tc
-    <+> text "No enrichment"
 
 -- Gives the kind for every TyCon that has a standalone kind signature
 type KindSigEnv = NameEnv Kind
@@ -4609,7 +4599,7 @@ checkNewDataCon con
                 -- No strictness annotations
     }
   where
-    (_univ_tvs, ex_tvs, eq_spec, theta, arg_tys, _res_ty)
+    (_univ_tvs, ex_tvs, eq_spec, _, arg_tys, _res_ty)
       = dataConFullSig con
 
     (arg_ty1 : _) = arg_tys
