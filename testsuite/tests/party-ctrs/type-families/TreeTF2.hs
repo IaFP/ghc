@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeOperators #-}
+c{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE PartialTypeConstructors #-}
