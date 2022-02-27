@@ -273,7 +273,9 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
   = do { elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
-       ; wftycon <- lookupWfMirrorTyCon tycon
+       -- @HACK
+       ; refresh <- lookupTyCon . getName $ tycon
+       ; wftycon <- lookupWfMirrorTyCon refresh
        ; let tfwfcts::ThetaType = maybeToList $ fmap (\t -> mkTyConApp t args) wftycon
        ; traceTc "wfelab open tycon" (vcat [ ppr tycon
                                            , ppr (wfMirrorTyCon_maybe tycon)
