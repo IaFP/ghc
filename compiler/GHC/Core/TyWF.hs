@@ -557,7 +557,7 @@ lookupWfMirrorTyCon tycon
  | otherwise = do {
      ; eps <- getEps
      ; let get_tf_name = occNameString . nameOccName . tyConName
-           tfName =  "$tc_wf" ++ (get_tf_name tycon)
+           tfName =  "$tc_wf'" ++ (get_tf_name tycon)
            external_types = typeEnvTyCons . eps_PTE $ eps
            wf = find (\t -> get_tf_name t == tfName) external_types
      ; return wf
