@@ -2114,7 +2114,17 @@ wF_TC_PREFIX = "WF_"
 
 mkWFMirrorTyFam :: Name -> TyCon -> TyCon
 mkWFMirrorTyFam n tc =
-  let new_tc = mkFamilyTyCon n (tyConBinders tc) constraintKind (Just n) (famTcFlav tc) (tyConClass_maybe tc) (famTcInj tc)
+  let
+    parent = case famTcParent tc of
+               Nothing -> Nothing
+               Just t  -> tyConClass_maybe t
+    new_tc = mkFamilyTyCon n
+               (tyConBinders tc)
+               constraintKind
+               (Just n)
+               (famTcFlav tc)
+               parent
+               (famTcInj tc)
   in new_tc { assocFamTyCon = Just tc, isMirror = True }
 
 updateTyConMirror :: TyCon -> TyCon -> TyCon

@@ -246,10 +246,9 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    -- The only reason why i'm doing this here is because it is easier to debug and peaking (traceTc) into
                    -- a knot-tied tycon decl will cause the compiler to loop/hang
                    ; let (locsAndTFs, locsAndTyClss') = partition (isTypeFamilyTyCon . snd) (locsAndTcs)
-                    
-                   ; traceTc "partition" (vcat [text "TFs:" <+> (vcat $ fmap (ppr . snd) locsAndTFs)
-                                               , text "NoTFs:" <+> (vcat $ fmap (ppr . snd) locsAndTyClss')])
-                   ; mirrors_and_tyfams <- genMirrorWFTyFams locsAndTFs
+                   ; let ats = concatMap (\ (loc, tc) -> [ (loc, at) | at <- tyConATs tc]) locsAndTyClss'
+                   ; traceTc "Associated types: " $  ppr ats
+                   ; mirrors_and_tyfams <- genMirrorWFTyFams (locsAndTFs ++ ats)
                    ; let (wf_mirrors, tyfams') = unzip mirrors_and_tyfams
                    ; traceTc "Starting validity check post WF enrichment" (vcat $ fmap pprtc wf_mirrors)
                    ; wf_mirrors' <- concatMapM checkValidTyCl (wf_mirrors ++ tyfams')

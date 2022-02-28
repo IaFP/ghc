@@ -13,4 +13,3 @@ instance Collection [a] where
   type instance Elem [a] = a
   e = []
   cons = (:)
-
