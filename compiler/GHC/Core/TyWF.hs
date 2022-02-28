@@ -38,6 +38,7 @@ import GHC.Types.TypeEnv
 import GHC.Unit.External
 import GHC.Builtin.Names.TH
 import GHC.Builtin.Types (liftedTypeKindTyCon, isCTupleTyConName, wfTyCon)
+import GHC.Types.Name.Reader
 -- import GHC.Types.Var.Set
 
 -- import TcRnMonad (failWithTc)
@@ -275,11 +276,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
   = do { elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
-       -- @HACK
-       -- ; tcs <- fmap tcg_tcs getGblEnv
-       -- ; traceTc "Here is all these tcs" $ vcat (fmap ppr tcs)
-       ; type_env <- fmap (typeEnvTyCons . tcg_type_env) getGblEnv
-       ; traceTc "The global type env right here" $ vcat (map ppr type_env)
+       
        ; refresh <- lookupTyCon . getName $ tycon
        ; wftycon <- lookupWfMirrorTyCon refresh
        ; let tfwfcts::ThetaType = maybeToList $ fmap (\t -> mkTyConApp t args) wftycon
@@ -558,16 +555,21 @@ tyConGenAts eTycons ts tycon args
        }
   | otherwise = recGenAts tycon args ts
 
-
 lookupWfMirrorTyCon :: TyCon -> TcM (Maybe TyCon)
 lookupWfMirrorTyCon tycon
  | Just wf_tc <-  wfMirrorTyCon_maybe tycon = return (Just wf_tc)
  | otherwise = do {
-     ; eps <- getEps
-     
-     ; let get_tf_name = occNameString . nameOccName . tyConName
-           tfName =  wF_TC_PREFIX ++ (get_tf_name tycon)
-           external_types = typeEnvTyCons . eps_PTE $ eps
-           wf = find (\t -> get_tf_name t == tfName) external_types
-     ; return wf
-  } 
+     -- This is a very bad hack.
+     -- We search through the Rdr names and find the Name
+     -- of the WF constraint. We then fetch the TyCon given the name.
+     ; rdr_elts <- fmap (concat . nonDetOccEnvElts . tcg_rdr_env) getGblEnv
+     ; let rdr_names = map greMangledName rdr_elts
+           get_tf_name = occNameString . nameOccName
+           tfName =  wF_TC_PREFIX ++ (get_tf_name (tyConName tycon))
+           wf_name = find (\name -> get_tf_name name == tfName) rdr_names
+     ; wf_tc <- case wf_name of
+                  Nothing -> return Nothing
+                  Just wf_name -> fmap Just (lookupTyCon wf_name)
+     ; traceTc "I found this wf tycon" (ppr wf_tc)
+     ; return wf_tc
+  }

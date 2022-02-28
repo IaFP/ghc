@@ -17,8 +17,8 @@ b :: Elem (a, b) -> (a, b)
 b = undefined
 
 -- -- This should also be given g's type from openTF.
--- g' :: Elem a -> a
--- g' = Exporter.g
+g' :: Elem a -> a
+g' = Exporter.g
 
 -- -- WF_Elem should magically be in scope,
 -- -- and should be given as annotation to g''.
