@@ -14,7 +14,7 @@ foobar = id
 --   WF_Elem [a] = ()
 type instance Elem [a] = a
 
-data EqPair a b = EqPair (a, b)
+data (Eq a, Eq b) => EqPair a b = EqPair (a, b)
 
 -- Should elaborate to constraint
 --   WF_Elem (a, b) = (Eq a, Eq b)
