@@ -388,8 +388,7 @@ Gather up the instance declarations from their various sources
 
 elabWfFamInst :: FamInst -> TcM FamInst
 elabWfFamInst fam_inst
-  = do {
-       ; let (tfTc, ts) = famInstSplitLHS fam_inst
+  = do { let (tfTc, ts) = famInstSplitLHS fam_inst
        ; let rhs = famInstRHS fam_inst
        ; let wfTc = wfMirrorTyCon tfTc
        ; let loc = noAnnSrcSpan . getSrcSpan $ fam_inst
@@ -404,6 +403,9 @@ elabWfFamInst fam_inst
        ; let tvs     = fi_tvs fam_inst
              lhs_tys = ts
              axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wfTc lhs_tys rhs_ty
+       ; traceTc "elabWfFamInst buildingAxiom: " (vcat [ parens (ppr inst_name)
+                                                       , ppr wfTc <+> ppr lhs_tys <+> text "~" <+> ppr rhs_ty
+                                                       ])
        ; newFamInst SynFamilyInst axiom
        }
 

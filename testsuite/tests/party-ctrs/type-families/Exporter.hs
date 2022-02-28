@@ -26,8 +26,14 @@ type instance Elem (a, b) = EqPair a b
 g :: Elem a -> a
 g = undefined
 
+
+data Ord a => T a = L | N a (T a) (T a)
+type instance (Elem (T a)) = a
+
 --------------------------------------------------------------------------------
 -- What about nullary TFs?
 --------------------------------------------------------------------------------
 
 type family G
+
+

@@ -2556,7 +2556,7 @@ genMirrorWFTyFams = mapM genMirrorWFTyFam
 genMirrorWFTyFam :: (SrcSpan, TyCon) -> TcM (TyCon, TyCon)
 genMirrorWFTyFam (loc, tc)
   | isOpenFamilyTyCon tc
-  = do { u <- newUnique
+  = do { -- u <- newUnique
        ; m <- getModule
        ; let occ = mkTcOcc $ wF_TC_PREFIX ++ (occNameString . nameOccName . tyConName $ tc)
              -- name = mkWiredInName m occ uniq (ATyCon new_tc) UserSyntax

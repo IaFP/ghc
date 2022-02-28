@@ -19,6 +19,7 @@ import GHC.Tc.Instance.Family (tcGetFamInstEnvs)
 import GHC.Core.FamInstEnv (topNormaliseType)
 import GHC.Base (mapM)
 import GHC.Prelude hiding (mapM)
+import GHC.Driver.Env
 -- import GHC.Data.Maybe
 -- import PrelNames
 -- import THNames
@@ -564,10 +565,22 @@ lookupWfMirrorTyCon tycon
  | Just wf_tc <-  wfMirrorTyCon_maybe tycon = return (Just wf_tc)
  | otherwise = do {
      ; eps <- getEps
-     
+     ; lclenv <- getLclEnv
+     ; genv <- getGblEnv
+     ; lclTyEnv <- getLclTypeEnv
+     ; topEnv <- getTopEnv
+     ; hsc_eps <- liftIO $ hscEPS topEnv
+     ; let imports = tcg_rn_imports genv
+     ; let gblRdrEnv = tcg_rdr_env genv
+     ; let lclRdrEnv = tcl_rdr lclenv
+     -- ; traceTc "lookupwfmirrorTyCon lcl TypeEnv" (ppr lclTyEnv)
+     -- ; traceTc "lookupwfmirrorTyCon gbl imports" (ppr imports)
+     -- ; traceTc "lookupwfmirrorTyCon gbl RdrEnv" (ppr gblRdrEnv)
+     -- ; traceTc "lookupwfmirrorTyCon lcl RdrEnv" (ppr lclRdrEnv)
      ; let get_tf_name = occNameString . nameOccName . tyConName
            tfName =  wF_TC_PREFIX ++ (get_tf_name tycon)
            external_types = typeEnvTyCons . eps_PTE $ eps
-           wf = find (\t -> get_tf_name t == tfName) external_types
+           external_types' = typeEnvTyCons . eps_PTE $ hsc_eps
+           wf = find (\t -> get_tf_name t == tfName) (external_types ++ external_types')
      ; return wf
   } 
