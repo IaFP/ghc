@@ -43,7 +43,7 @@ import GHC.Types.Name.Reader
 -- import GHC.Types.Var.Set
 
 -- import TcRnMonad (failWithTc)
-import Data.List (partition, find)
+import Data.List (partition, find, isSuffixOf)
 import Data.Maybe (maybeToList)
 import GHC.Tc.Utils.Monad
 import GHC.Utils.Panic (pprPanic)
@@ -567,7 +567,7 @@ lookupWfMirrorTyCon tycon
      ; let rdr_names = map greMangledName rdr_elts
            get_tf_name = occNameString . nameOccName
            tfName =  wF_TC_PREFIX ++ (get_tf_name (tyConName tycon))
-           wf_name = find (\name -> get_tf_name name == tfName) rdr_names
+           wf_name = find (\name -> tfName `isSuffixOf` (get_tf_name name)) rdr_names
      ; wf_tc <- case wf_name of
                   Nothing -> return Nothing
                   Just wf_name -> fmap Just (lookupTyCon wf_name)
