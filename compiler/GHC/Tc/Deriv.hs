@@ -2558,7 +2558,7 @@ genMirrorWFTyFam (loc, tc)
   | isOpenFamilyTyCon tc
   = do { u <- newUnique
        ; m <- getModule
-       ; let occ = mkTcOcc $ "$tc_wf'" ++ (occNameString . nameOccName . tyConName $ tc)
+       ; let occ = mkTcOcc $ wF_TC_PREFIX ++ (occNameString . nameOccName . tyConName $ tc)
              -- name = mkWiredInName m occ uniq (ATyCon new_tc) UserSyntax
        ; name <- lookupOrig m occ
        -- ; name <- newGlobalBinder m occ loc

@@ -2105,6 +2105,9 @@ mkFamilyTyCon name binders res_kind resVar flav parent inj
             }
     in tc
 
+wF_TC_PREFIX :: String
+wF_TC_PREFIX = "WF_"
+-- WF_TC_PREFIX = "$tc_wf'"
 
 mkWFMirrorTyFam :: Name -> TyCon -> TyCon
 mkWFMirrorTyFam n tc =

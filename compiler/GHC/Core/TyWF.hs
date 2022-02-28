@@ -236,6 +236,7 @@ saneTyConForElab tycon =
        -- || isNewTyCon tycon 
       )
 
+
 -- recursively generates @@ constraints for a type constructor
 -- Also rewrite Type family constructors
 tyConGenAtsTcM :: Bool
@@ -275,6 +276,10 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
        -- @HACK
+       -- ; tcs <- fmap tcg_tcs getGblEnv
+       -- ; traceTc "Here is all these tcs" $ vcat (fmap ppr tcs)
+       -- type_env <- fmap tcg_type_env getGblEnv
+       -- traceTc "blach" (ppr type_env)
        ; refresh <- lookupTyCon . getName $ tycon
        ; wftycon <- lookupWfMirrorTyCon refresh
        ; let tfwfcts::ThetaType = maybeToList $ fmap (\t -> mkTyConApp t args) wftycon
@@ -560,7 +565,7 @@ lookupWfMirrorTyCon tycon
  | otherwise = do {
      ; eps <- getEps
      ; let get_tf_name = occNameString . nameOccName . tyConName
-           tfName =  "$tc_wf'" ++ (get_tf_name tycon)
+           tfName =  wF_TF_PREFIX ++ (get_tf_name tycon)
            external_types = typeEnvTyCons . eps_PTE $ eps
            wf = find (\t -> get_tf_name t == tfName) external_types
      ; return wf

@@ -944,7 +944,7 @@ getLocalNonValBinders fixity_env
                      _                            -> []
              ; wf_stuff <- case unLoc tc_decl of
                              FamDecl {} -> do { m <- getModule
-                                              ; let occ = mkTcOcc $ "$tc_wf'" ++ (occNameString . nameOccName $ main_name)
+                                              ; let occ = mkTcOcc $ wF_TC_PREFIX ++ (occNameString . nameOccName $ main_name)
                                               ; wf_name <- newGlobalBinder m occ (nameSrcSpan main_name)
                                               ; return [((availTC wf_name [wf_name] []), [])]
                                               }

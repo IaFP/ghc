@@ -32,5 +32,5 @@ g'' = undefined
 c :: G
 c = undefined
 
--- c' :: WF_G => G
--- c' = undefined
+c' :: WF_G => G
+c' = undefined
