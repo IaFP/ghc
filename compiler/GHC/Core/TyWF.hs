@@ -19,6 +19,7 @@ import GHC.Tc.Instance.Family (tcGetFamInstEnvs)
 import GHC.Core.FamInstEnv (topNormaliseType)
 import GHC.Base (mapM)
 import GHC.Prelude hiding (mapM)
+import GHC.Driver.Env
 -- import GHC.Data.Maybe
 -- import PrelNames
 -- import THNames
@@ -559,7 +560,7 @@ lookupWfMirrorTyCon :: TyCon -> TcM (Maybe TyCon)
 lookupWfMirrorTyCon tycon
  | Just wf_tc <-  wfMirrorTyCon_maybe tycon = return (Just wf_tc)
  | otherwise = do {
-     -- This is a very bad hack.
+     -- This is a hack.
      -- We search through the Rdr names and find the Name
      -- of the WF constraint. We then fetch the TyCon given the name.
      ; rdr_elts <- fmap (concat . nonDetOccEnvElts . tcg_rdr_env) getGblEnv
