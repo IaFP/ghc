@@ -278,8 +278,8 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        -- @HACK
        -- ; tcs <- fmap tcg_tcs getGblEnv
        -- ; traceTc "Here is all these tcs" $ vcat (fmap ppr tcs)
-       -- type_env <- fmap tcg_type_env getGblEnv
-       -- traceTc "blach" (ppr type_env)
+       ; type_env <- fmap (typeEnvTyCons . tcg_type_env) getGblEnv
+       ; traceTc "The global type env right here" $ vcat (map ppr type_env)
        ; refresh <- lookupTyCon . getName $ tycon
        ; wftycon <- lookupWfMirrorTyCon refresh
        ; let tfwfcts::ThetaType = maybeToList $ fmap (\t -> mkTyConApp t args) wftycon
@@ -564,8 +564,9 @@ lookupWfMirrorTyCon tycon
  | Just wf_tc <-  wfMirrorTyCon_maybe tycon = return (Just wf_tc)
  | otherwise = do {
      ; eps <- getEps
+     
      ; let get_tf_name = occNameString . nameOccName . tyConName
-           tfName =  wF_TF_PREFIX ++ (get_tf_name tycon)
+           tfName =  wF_TC_PREFIX ++ (get_tf_name tycon)
            external_types = typeEnvTyCons . eps_PTE $ eps
            wf = find (\t -> get_tf_name t == tfName) external_types
      ; return wf
