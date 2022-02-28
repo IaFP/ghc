@@ -2422,7 +2422,7 @@ wfMirrorTyCon_maybe _                                                = Nothing
 
 hasWfMirrorTyCon :: TyCon -> Bool
 hasWfMirrorTyCon (FamilyTyCon {isMirror = im, assocFamTyCon = m})
-  | not im, Just wf <- m = True
+  | not im, isJust m = True
   | otherwise = False
 hasWfMirrorTyCon _ = False
 

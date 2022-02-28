@@ -194,7 +194,9 @@ findHsDependencies = builder (Ghc FindHsDependencies) ? do
 haddockGhcArgs :: Args
 haddockGhcArgs = mconcat [ commonGhcArgs
                          , getContextData hcOpts
-                         , ghcWarningsArgs ]
+                         , ghcWarningsArgs
+                         , package haddock ? notStage0 ? arg "-XPartialTypeConstructors"
+                         ]
 
 -- | Common GHC command line arguments used in 'ghcBuilderArgs',
 -- 'ghcCBuilderArgs', 'ghcMBuilderArgs' and 'haddockGhcArgs'.

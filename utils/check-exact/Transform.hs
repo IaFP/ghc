@@ -6,6 +6,10 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, DeriveAnyClass, DeriveFunctor, StandaloneDeriving, MultiParamTypeClasses #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Language.Haskell.GHC.ExactPrint.Transform
@@ -127,6 +131,9 @@ import qualified Data.Map as Map
 import Data.Functor.Identity
 import Control.Monad.State
 import Control.Monad.Writer
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@), Total)
+#endif
 
 
 ------------------------------------------------------------------------------
@@ -137,15 +144,40 @@ import Control.Monad.Writer
 type Transform = TransformT Identity
 
 -- |Monad transformer version of 'Transform' monad
-newtype TransformT m a = TransformT { unTransformT :: RWST () [String] (Anns,Int) m a }
-                deriving (Monad,Applicative,Functor
-                         ,MonadReader ()
-                         ,MonadWriter [String]
-                         ,MonadState (Anns,Int)
+#if MIN_VERSION_base(4,16,0)
+newtype
+  ( m @ a,
+    m @ (a, (Anns, Int), [String])
+  ) =>
+
+  TransformT m a = TransformT { unTransformT :: RWST () [String] (Anns,Int) m a }
+                deriving (Functor-- , Monad-- ,Applicative
+                         -- ,MonadReader ()
+                         -- ,MonadWriter [String]
+                         -- ,MonadState (Anns,Int)
                          ,MonadTrans
                          )
+deriving instance (Total m, Monad m) => Applicative (TransformT m)
+deriving instance (Total m, Monad m) => Monad (TransformT m)  
+deriving instance (Total m, Monad m) => MonadReader () (TransformT m)  
+deriving instance (Total m, Monad m) => MonadWriter [String] (TransformT m)  
+deriving instance (Total m, Monad m) => MonadState (Anns, Int) (TransformT m)  
 
-instance Fail.MonadFail m => Fail.MonadFail (TransformT m) where
+#else 
+newtype TransformT m a = TransformT { unTransformT :: RWST () [String] (Anns,Int) m a }
+                       deriving (Functor,Monad,Applicative
+                                ,MonadReader ()
+                                ,MonadWriter [String]
+                                ,MonadState (Anns,Int)
+                                ,MonadTrans
+                                )
+#endif
+
+instance (
+#if MIN_VERSION_base(4,16,0)
+  Total m,
+#endif
+  Fail.MonadFail m) => Fail.MonadFail (TransformT m) where
     fail msg = TransformT $ RWST $ \_ _ -> Fail.fail msg
 
 -- | Run a transformation in the 'Transform' monad, returning the updated
@@ -1304,7 +1336,11 @@ instance HasDecls (LocatedA (Stmt GhcPs (LocatedA (HsExpr GhcPs)))) where
 -- the general case and one specific for a 'LHsBind'. This is required
 -- because a 'FunBind' may have multiple 'Match' items, so we cannot
 -- gurantee that 'replaceDecls' after 'hsDecls' is idempotent.
-hasDeclsSybTransform :: (Data t2,Monad m)
+hasDeclsSybTransform :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+    Data t2,Monad m)
        => (forall t. HasDecls t => t -> m t)
              -- ^Worker function for the general case
        -> (LHsBind GhcPs -> m (LHsBind GhcPs))
@@ -1511,7 +1547,11 @@ type PMatch = LMatch GhcPs (LHsExpr GhcPs)
 -- declarations are extracted and returned after modification. For a
 -- 'FunBind' the supplied 'SrcSpan' is used to identify the specific
 -- 'Match' to be transformed, for when there are multiple of them.
-modifyValD :: forall m t. (HasTransform m)
+modifyValD :: forall m t. (
+#if MIN_VERSION_base(4,16,0)
+                   Total m,
+#endif
+                   HasTransform m)
                 => SrcSpan
                 -> Decl
                 -> (PMatch -> [Decl] -> m ([Decl], Maybe t))
@@ -1528,7 +1568,11 @@ modifyValD p ast f = do
   (ast',r) <- runStateT (everywhereM (mkM doModLocal) ast) Nothing
   return (ast',r)
   where
-    doModLocal :: PMatch -> StateT (Maybe t) m PMatch
+    doModLocal ::
+#if MIN_VERSION_base(4,16,0)
+                  Total m =>
+#endif
+                     PMatch -> StateT (Maybe t) m PMatch
     doModLocal  (match@(L ss _) :: PMatch) = do
          if (locA ss) == p
            then do
@@ -1545,13 +1589,21 @@ modifyValD p ast f = do
 class (Monad m) => (HasTransform m) where
   liftT :: Transform a -> m a
 
-instance Monad m => HasTransform (TransformT m) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m) => HasTransform (TransformT m) where
   liftT = hoistTransform (return . runIdentity)
 
 -- ---------------------------------------------------------------------
 
 -- | Apply a transformation to the decls contained in @t@
-modifyDeclsT :: (HasDecls t,HasTransform m)
+modifyDeclsT :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+     HasDecls t,HasTransform m)
              => ([LHsDecl GhcPs] -> m [LHsDecl GhcPs])
              -> t -> m t
 modifyDeclsT action t = do

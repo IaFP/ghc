@@ -1,4 +1,7 @@
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-# LANGUAGE ConstraintKinds      #-}
 {-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE DeriveDataTypeable   #-}
@@ -671,6 +674,9 @@ type OutputablePass pass =
   , Outputable (XLetNoEscape pass)
   , Outputable (XRhsClosure pass)
   , OutputableBndr (BinderP pass)
+-- #if MIN_VERSION_base(4,16,0)
+--   , WF_BinderP pass
+-- #endif
   )
 
 -- | STG pretty-printing options

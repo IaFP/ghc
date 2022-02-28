@@ -94,13 +94,15 @@ elabAtAtConstraintsTcM isTyConPhase ty
       ; elabd <- genAtAtConstraintsTcM isTyConPhase ty'
       ; c_extra' <- concatMapM flatten_atat_constraint (newPreds elabd)
       ; let eTy = mkForAllTys covarbndrs $ attachConstraints c_extra' (elabTy elabd)
-      ; traceTc "elabWfType(foralled)=" (vcat [text "before:" <+> ppr ty
-                                    , text "after:" <+> ppr eTy])
+      ; traceTc "elabWfType(foralled)=" (vcat [ text "tyconphase" <+> ppr isTyConPhase
+                                              , text "before:" <+> ppr ty
+                                              , text "after:" <+> ppr eTy])
       ; return eTy
       }
   | otherwise = do
       { eTy <- elabWithAtAtConstraintsTopTcM isTyConPhase ty
-      ; traceTc "elabWfType(vanilla)=" (vcat [text "before:" <+> ppr ty
+      ; traceTc "elabWfType(vanilla)=" (vcat [ text "tyconphase" <+> ppr isTyConPhase
+                                             , text "before:" <+> ppr ty
                                              , text "after:" <+> ppr eTy])
       ; return eTy
       }
@@ -132,10 +134,11 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
       return $ elabDetails (FunTy VisArg v (elabTy elabd1) (elabTy elabd2))
                            (mergeAtAtConstraints (newPreds elabd1) (newPreds elabd2))
 
-    -- for (=>) types ignore the 1st arg as it is a constraint
   | (FunTy InvisArg v constraint ty') <- ty  = do
+      elabd_cs <- genAtAtConstraintsExceptTcM False tycons ts constraint
       elabd <- (genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty')
-      return $ elabDetails (FunTy InvisArg v constraint (elabTy elabd)) (newPreds elabd)
+      let rty =  mkInvisFunTysMany (mergeAtAtConstraints (newPreds elabd_cs) [constraint]) (elabTy elabd)
+      return $ elabDetails rty (newPreds elabd)
 
   -- recursively build @@ constraints for type constructor
   | (TyConApp tyc tycargs) <- ty =
@@ -224,13 +227,14 @@ isTyConInternal tycon =
   || tycon `hasKey` qTyConKey || tyConName tycon == qTyConName
   -- || tycon `hasKey` tExpTyConKey
   || tycon == funTyCon
+  || isWfTyCon tycon
 
 saneTyConForElab :: TyCon -> Bool
 saneTyConForElab tycon =
   not (isUnboxedTupleTyCon tycon
        || isPrimTyCon tycon
        || isPromotedDataCon tycon
-       || isClassTyCon tycon
+       -- || isClassTyCon tycon
        || isFunTyCon tycon
        || isDataFamilyTyCon tycon
        || isClosedTypeFamilyTyCon tycon
@@ -248,6 +252,11 @@ tyConGenAtsTcM :: Bool
 tyConGenAtsTcM isTyConPhase eTycons ts tycon args
   | isTyConInternal tycon
   = return []
+  | isClassTyCon tycon && not (isTyVarTy $ mkTyConTy tycon) -- ignore quantified classes
+  = do { elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
+       ; let css = fmap newPreds elabds
+       ; return $ foldl mergeAtAtConstraints [] css
+       }
   | not (saneTyConForElab tycon)
   = if isTyConPhase then return [] -- if we are defining a datatype, we force users to write the constraints
     else do { elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
@@ -312,9 +321,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
            wfcs <- recGenAtsTcM tycon args ts
          ; elabds <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
          ; return $ foldl mergeAtAtConstraints wfcs (fmap newPreds elabds)
-         }
-  -- | isNewTyCon tycon, isTyConPhase = return []
-  -- The type constructor is one of the special ones 
+         } 
   -- Vanilla type constructor, everything is total
   | otherwise = recGenAtsTcM tycon args ts
 
@@ -429,7 +436,7 @@ elabAtAtConstraints :: (
 #if MIN_VERSION_base(4,16,0)
     Total m,
 #endif
-  Monad m) => Type ->  m Type
+  Monad m, MonadIO m) => Type ->  m Type
 elabAtAtConstraints ty = do elabd <- genAtAtConstraintsExcept [] [] ty
                             return $ attachConstraints (newPreds elabd) (elabTy elabd)
                             

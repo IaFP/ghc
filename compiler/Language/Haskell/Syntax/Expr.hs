@@ -1,4 +1,7 @@
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -139,7 +142,11 @@ values (see function @mkRdrRecordUpd@ in 'GHC.Parser.PostProcess').
 
 type LFieldLabelStrings p = XRec p (FieldLabelStrings p)
 
-newtype FieldLabelStrings p =
+newtype
+#if MIN_VERSION_base(4,16,0)
+ WF_XRec p (DotFieldOcc p) =>
+#endif
+  FieldLabelStrings p =
   FieldLabelStrings [XRec p (DotFieldOcc p)]
 
 instance (UnXRec p, Outputable (XRec p FieldLabelString)) => Outputable (FieldLabelStrings p) where

@@ -2,6 +2,10 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 
 module Utils
   -- (
@@ -39,6 +43,9 @@ import Control.Arrow
 import qualified Data.Map as Map
 import Data.Data hiding ( Fixity )
 import Data.List (sortBy, elemIndex)
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total, Total2, type(@))
+#endif
 
 import Debug.Trace
 import Types
@@ -403,7 +410,11 @@ mkQ :: ( Typeable a
 --   start from a type-specific case;
 --   resort to return otherwise
 --
-mkM :: ( Monad m
+mkM :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+         Monad m
        , Typeable a
        , Typeable b
        )
@@ -428,7 +439,12 @@ extQ :: ( Typeable a
 extQ f g a = maybe (f a) g (cast a)
 
 -- | Flexible type extension
-ext2 :: (Data a, Typeable t)
+ext2 :: (
+#if MIN_VERSION_base(4,16,0)
+        Total2 t, Total c,
+#endif  
+        Data a, Typeable t
+        )
      => c a
      -> (forall d1 d2. (Data d1, Data d2) => c (t d1 d2))
      -> c a
@@ -436,7 +452,11 @@ ext2 def ext = maybe def id (dataCast2 ext)
 
 
 -- | Extend a generic monadic transformation by a type-specific case
-extM :: ( Monad m
+extM :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+          Monad m
         , Typeable a
         , Typeable b
         )
@@ -444,22 +464,38 @@ extM :: ( Monad m
 extM def ext = unM ((M def) `ext0` (M ext))
 
 -- | Type extension of monadic transformations for type constructors
-ext2M :: (Monad m, Data d, Typeable t)
+ext2M :: (
+#if MIN_VERSION_base(4,16,0)
+         Total2 t, Total m,
+#endif
+         Monad m, Data d, Typeable t)
       => (forall e. Data e => e -> m e)
       -> (forall d1 d2. (Data d1, Data d2) => t d1 d2 -> m (t d1 d2))
       -> d -> m d
 ext2M def ext = unM ((M def) `ext2` (M ext))
 
 -- | The type constructor for transformations
-newtype M m x = M { unM :: x -> m x }
+newtype
+#if MIN_VERSION_base(4,16,0)
+  m @ x =>
+#endif
+     M m x = M { unM :: x -> m x }
 
 -- | Generic monadic transformations,
 --   i.e., take an \"a\" and compute an \"a\"
 --
-type GenericM m = forall a. Data a => a -> m a
+type GenericM m = forall a. (
+#if MIN_VERSION_base(4,16,0)
+        Total m,
+#endif
+        Data a) => a -> m a
 
 -- | Monadic variation on everywhere
-everywhereM :: forall m. Monad m => GenericM m -> GenericM m
+everywhereM :: forall m. (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+    Monad m) => GenericM m -> GenericM m
 
 -- Bottom-up order is also reflected in order of do-actions
 everywhereM f = go
