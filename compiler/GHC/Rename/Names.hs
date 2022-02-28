@@ -52,7 +52,7 @@ import GHC.Parser.PostProcess ( setRdrNameSpace )
 import GHC.Core.Type
 import GHC.Core.PatSyn
 import GHC.Core.TyCo.Ppr
-import GHC.Core.TyCon ( TyCon, tyConName, tyConKind )
+import GHC.Core.TyCon ( TyCon, tyConName, tyConKind, wF_TC_PREFIX )
 import qualified GHC.LanguageExtensions as LangExt
 
 import GHC.Utils.Outputable as Outputable
