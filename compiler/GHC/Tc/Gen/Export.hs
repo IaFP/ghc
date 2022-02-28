@@ -235,14 +235,11 @@ exports_from_avail Nothing rdr_env _imports _this_mod
    -- so that's how we handle it, except we also export the data family
    -- when a data instance is exported.
   = do {
-  
-    ; tcs <- fmap tcg_tcs getGblEnv
-    ; let tcs' = map (avail . getName) (filter isWfMirrorTyCon tcs)
     ; addDiagnostic
         (TcRnMissingExportList $ moduleName _this_mod)
     ; let avails =
-            map fix_faminst $ tcs' ++ (gresToAvailInfo
-              . filter isLocalGRE . globalRdrEnvElts $ rdr_env)
+            map fix_faminst . gresToAvailInfo
+              . filter isLocalGRE . globalRdrEnvElts $ rdr_env
     ; return (Nothing, avails) }
   where
     -- #11164: when we define a data instance
@@ -254,6 +251,7 @@ exports_from_avail Nothing rdr_env _imports _this_mod
       | availExportsDecl avail = avail
       | otherwise = AvailTC n (NormalGreName n:ns)
     fix_faminst avail = avail
+
 
 exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
   = do ie_avails <- accumExports do_litem rdr_items
@@ -302,10 +300,8 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
 
              ; traceRn "efa" (ppr mod $$ ppr all_gres)
              ; addUsedGREs all_gres
-             ; tcs <- fmap tcg_tcs getGblEnv
-             ; let tcs' = map (avail . getName) (filter isWfMirrorTyCon tcs)
 
-             ; occs' <- check_occs ie occs (new_exports ++ tcs')
+             ; occs' <- check_occs ie occs new_exports
                       -- This check_occs not only finds conflicts
                       -- between this item and others, but also
                       -- internally within this item.  That is, if
@@ -325,17 +321,15 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
         = return (Just (acc, (L loc new_ie, [])))
 
         | otherwise
-        = do (new_ie, avail') <- lookup_ie ie
+        = do (new_ie, avail) <- lookup_ie ie
              if isUnboundName (ieName new_ie)
                   then return Nothing    -- Avoid error cascade
                   else do
 
-                    tcs <- fmap tcg_tcs getGblEnv
-                    let tcs' = map (avail . getName) (filter isWfMirrorTyCon tcs)
-                    occs' <- check_occs ie occs (avail' : tcs')
+                    occs' <- check_occs ie occs [avail]
 
                     return (Just ( ExportAccum occs' mods
-                                 , (L loc new_ie, [avail'])))
+                                 , (L loc new_ie, [avail])))
 
     -------------
     lookup_ie :: IE GhcPs -> RnM (IE GhcRn, AvailInfo)
