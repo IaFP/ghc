@@ -609,7 +609,11 @@ lookupWfMirrorInRdrEnv tycon = do
   wf_tc <- case wf_name of
              Nothing -> return Nothing
              Just wf_name -> fmap Just (lookupTyCon wf_name)
-  traceTc "I found this wf tycon in RDR env" (ppr wf_tc)
+  traceTc "I found this wf tycon" (vcat [text "wf_tc" <+> ppr wf_tc
+                                        , text "name:" <+> ppr wf_name
+                                        , text "tfname:" <+> ppr tfName
+                                        , text "tycon:" <+> ppr tycon
+                                        , text "rdr_names" <+> ppr rdr_names])
   return wf_tc
   
 hasWfMirrorTyConLookup :: TyCon -> TcM Bool
@@ -627,4 +631,4 @@ lookupWfMirrorTyCon tycon
      case gbl_lookup of
        Just wf_tc -> return (Just wf_tc)
        Nothing -> lookupWfMirrorInRdrEnv tycon
-         
+     

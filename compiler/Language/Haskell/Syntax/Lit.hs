@@ -1,4 +1,8 @@
 
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-# LANGUAGE ConstraintKinds      #-}
 {-# LANGUAGE DeriveDataTypeable   #-}
 {-# LANGUAGE FlexibleContexts     #-}
@@ -30,6 +34,9 @@ import Language.Haskell.Syntax.Extension
 
 import Data.ByteString (ByteString)
 import Data.Data hiding ( Fixity )
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 {-
 ************************************************************************
@@ -96,7 +103,11 @@ instance Eq (HsLit x) where
   _                   == _                   = False
 
 -- | Haskell Overloaded Literal
-data HsOverLit p
+data
+#if MIN_VERSION_base(4,16,0)
+  (WFT (XOverLit p)) =>
+#endif
+  HsOverLit p
   = OverLit {
       ol_ext :: (XOverLit p),
       ol_val :: OverLitVal}

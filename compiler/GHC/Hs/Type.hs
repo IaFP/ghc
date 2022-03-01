@@ -1,4 +1,7 @@
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, DataKinds #-}
+#endif
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -113,6 +116,9 @@ import GHC.Utils.Outputable
 import Data.Maybe
 
 import qualified Data.Semigroup as S
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 {-
 ************************************************************************
@@ -276,7 +282,11 @@ setHsTyVarBndrFlag f (UserTyVar x _ l)     = UserTyVar x f l
 setHsTyVarBndrFlag f (KindedTyVar x _ l k) = KindedTyVar x f l k
 
 -- | Do all type variables in this 'LHsQTyVars' come with kind annotations?
-hsTvbAllKinded :: LHsQTyVars (GhcPass p) -> Bool
+hsTvbAllKinded ::
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec (GhcPass p) (HsTyVarBndr () (GhcPass p))) =>
+#endif
+  LHsQTyVars (GhcPass p) -> Bool
 hsTvbAllKinded = all (isHsKindedTyVar . unLoc) . hsQTvExplicit
 
 instance NamedThing (HsTyVarBndr flag GhcRn) where
@@ -337,7 +347,12 @@ hsLinear = HsScaled (HsLinearArrow (HsPct1 noHsTok noHsUniTok))
 hsUnrestricted :: a -> HsScaled (GhcPass p) a
 hsUnrestricted = HsScaled (HsUnrestrictedArrow noHsUniTok)
 
-isUnrestricted :: HsArrow GhcRn -> Bool
+isUnrestricted ::
+#if MIN_VERSION_base(4,16,0)
+  (WFT (XRec GhcRn (HsType GhcRn))
+  , WFT (Anno (HsType GhcRn))) =>
+#endif
+  HsArrow GhcRn -> Bool
 isUnrestricted (arrowToHsType -> L _ (HsTyVar _ _ (L _ n))) = n == manyDataConName
 isUnrestricted _ = False
 
@@ -394,7 +409,13 @@ hsTyVarName (KindedTyVar _ _ (L _ n) _) = n
 hsLTyVarName :: LHsTyVarBndr flag (GhcPass p) -> IdP (GhcPass p)
 hsLTyVarName = hsTyVarName . unLoc
 
-hsLTyVarNames :: [LHsTyVarBndr flag (GhcPass p)] -> [IdP (GhcPass p)]
+hsLTyVarNames ::
+#if MIN_VERSION_base(4,16,0)
+  (WFT (XRec (GhcPass 'Renamed) (HsTyVarBndr flag (GhcPass 'Renamed)))
+  ,WFT (Anno (HsTyVarBndr flag (GhcPass 'Renamed)))
+  ,WFT (IdP (GhcPass 'Renamed))) => 
+#endif
+  [LHsTyVarBndr flag (GhcPass p)] -> [IdP (GhcPass p)]
 hsLTyVarNames = map hsLTyVarName
 
 hsExplicitLTyVarNames :: LHsQTyVars (GhcPass p) -> [IdP (GhcPass p)]
