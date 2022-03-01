@@ -304,9 +304,6 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
-       
-       -- ; refresh <- lookupTyCon . getName $ tycon
-       -- ; traceTc "" (ppr refresh)
        ; wftycon <- lookupWfMirrorTyCon tycon
        ; let tfwfcts::ThetaType = maybeToList $ fmap (\t -> mkTyConApp t args) wftycon
        ; traceTc "wfelab open tycon" (vcat [ ppr tycon
@@ -318,7 +315,6 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
              ; elabd <- genAtAtConstraintsTcM isTyConPhase ty
              ; return $ foldl mergeAtAtConstraints (tfwfcts ++ newPreds elabd) css
              }
-       -- ; return (foldl mergeAtAtConstraints [] css)
        }
 
       
