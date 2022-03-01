@@ -289,25 +289,18 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
              Nothing   -> pprPanic "tysyn tyConGenAts" (ppr tycon)
       else failWithTc (tyConArityErr tycon args)
     -- else return []
-  -- | isTyConAssoc tycon && (not isTyConPhase) -- && not (isNewTyCon tycon)
-  -- = do {
-  --     let (args', extra_args) = splitAt (tyConArity tycon) (zip3 args (tyConBinders tycon) (tyConRoles tycon))
-  --      -- ; traceTc "tyconassoc tyConGensAtsTcM: " (text "TyCon " <> ppr tycon
-  --      --                                           <+> ppr (tyConArity tycon)
-  --      --                                           <+> text "args " <> ppr args'
-  --      --                                           <+> text "extra_args " <> ppr extra_args)
-  --      ; recGenAts' tycon extra_args (map (\(e, _, _) -> e) args') [] ts
-  --      }
-  | isOpenFamilyTyCon tycon || isTyConAssoc tycon
+  | isOpenFamilyTyCon tycon
   = do {
        ;
        ; elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
        ; wftycon <- lookupWfMirrorTyCon tycon
+       ; traceTc "Here is that flavour: " (ppr (tyConFlavour tycon))
+       ; traceTc "it says it is open? or not. " (ppr (isOpenFamilyTyCon tycon))
        ; let tfwfcts::ThetaType = maybeToList $ fmap (\t -> mkTyConApp t args) wftycon
        ; traceTc "wfelab open tycon" (vcat [ ppr tycon
-                                           , ppr (wfMirrorTyCon_maybe tycon)
+                                           , ppr wftycon
                                            , ppr tfwfcts])
        ; case co_ty_mb of
            Nothing -> return $ foldl mergeAtAtConstraints tfwfcts css
@@ -317,7 +310,15 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
              }
        }
 
-      
+  | isTyConAssoc tycon 
+  = do {
+      let (args', extra_args) = splitAt (tyConArity tycon) (zip3 args (tyConBinders tycon) (tyConRoles tycon))
+       -- ; traceTc "tyconassoc tyConGensAtsTcM: " (text "TyCon " <> ppr tycon
+       --                                           <+> ppr (tyConArity tycon)
+       --                                           <+> text "args " <> ppr args'
+       --                                           <+> text "extra_args " <> ppr extra_args)
+       ; recGenAts' tycon extra_args (map (\(e, _, _) -> e) args') [] ts
+       }      
   | isTypeFamilyTyCon tycon
     || isDataFamilyTyCon tycon
   = do {
