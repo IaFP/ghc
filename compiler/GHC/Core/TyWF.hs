@@ -163,16 +163,19 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
                 -- ; elabd2 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty2
                 ; return $ elabDetails (AppTy (elabTy elabd1) ty2) (newPreds elabd1)
                 }
-        else if (fst $ tcSplitAppTys (tcTypeKind ty1)) `tcEqType` constraintKind then
+        else if (head (reverse (snd (tcSplitAppTys (tcTypeKind ty1))))) `tcEqType` constraintKind then
           -- given that we are elaborating over class constraints, we won't want to obtain a c @ x
           --  where c :: k -> *
-          do { traceTc "wfelab appty:" (ppr $ tcSplitAppTys ty1)
+          do { traceTc "wfelab appty2:" (ppr (tcSplitAppTys (tcTypeKind ty1))
+                                         <+> ppr (head (reverse (snd (tcSplitAppTys (tcTypeKind ty1))))))
              ; elabd1 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
              ; elabd2 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty2
              ; return $ elabDetails (AppTy (elabTy elabd1) (elabTy elabd2))
                  (mergeAtAtConstraints (newPreds elabd1) (newPreds elabd2))
              }
-             else do { let atc = ty1 `at'at` ty2
+             else do { traceTc "wfelab appty3:" (ppr (tcSplitAppTys (tcTypeKind ty1))
+                                         <+> ppr (head (reverse (snd (tcSplitAppTys (tcTypeKind ty1))))))
+                     ; let atc = ty1 `at'at` ty2
                      ; wfc <- flatten_atat_constraint atc -- if it is reducible, reduce it! 
                      ; elabd1 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
                      ; elabd2 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty2
@@ -438,8 +441,7 @@ genWfConstraints :: (
 #if MIN_VERSION_base(4,16,0)
                      Total m,
 #endif
-                      Monad m
-                      ) => Type -> [Type] ->  m ThetaType
+                 Monad m) => Type -> [Type] ->  m ThetaType
 genWfConstraints ty skiptys = do d <- genAtAtConstraintsExcept [] skiptys ty
                                  return $ newPreds d
 
