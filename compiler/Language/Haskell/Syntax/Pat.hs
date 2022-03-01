@@ -46,6 +46,9 @@ import GHC.Core.Ppr ( {- instance OutputableBndr TyVar -} )
 import GHC.Utils.Outputable
 import GHC.Types.SrcLoc
 -- libraries:
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 type LPat p = XRec p (Pat p)
 
@@ -342,10 +345,19 @@ data HsFieldBind lhs rhs = HsFieldBind {
 --
 -- See also Note [Disambiguating record fields] in GHC.Tc.Gen.Head.
 
-hsRecFields :: forall p arg. UnXRec p => HsRecFields p arg -> [XCFieldOcc p]
+hsRecFields :: forall p arg. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec p (FieldOcc p)),
+  WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) arg)),
+#endif
+  UnXRec p) => HsRecFields p arg -> [XCFieldOcc p]
 hsRecFields rbinds = map (hsRecFieldSel . unXRec @p) (rec_flds rbinds)
 
-hsRecFieldsArgs :: forall p arg. UnXRec p => HsRecFields p arg -> [arg]
+hsRecFieldsArgs :: forall p arg. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) arg)),
+#endif
+  UnXRec p) => HsRecFields p arg -> [arg]
 hsRecFieldsArgs rbinds = map (hfbRHS . unXRec @p) (rec_flds rbinds)
 
 hsRecFieldSel :: forall p arg. UnXRec p => HsRecField p arg -> XCFieldOcc p

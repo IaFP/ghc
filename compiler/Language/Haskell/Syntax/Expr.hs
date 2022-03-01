@@ -48,6 +48,9 @@ import GHC.Utils.Outputable
 import GHC.Utils.Panic
 import GHC.Data.FastString
 import GHC.Core.Type
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 -- libraries:
 import Data.Data hiding (Fixity(..))
@@ -1802,7 +1805,11 @@ matchSeparator ThPatSplice  = panic "unused"
 matchSeparator ThPatQuote   = panic "unused"
 matchSeparator PatSyn       = panic "unused"
 
-pprMatchContext :: (Outputable (IdP p), UnXRec p)
+pprMatchContext :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec p (IdP p)),
+#endif
+  Outputable (IdP p), UnXRec p)
                 => HsMatchContext p -> SDoc
 pprMatchContext ctxt
   | want_an ctxt = text "an" <+> pprMatchContextNoun ctxt
@@ -1813,8 +1820,11 @@ pprMatchContext ctxt
     want_an (ArrowMatchCtxt KappaExpr) = True
     want_an _                          = False
 
-pprMatchContextNoun :: forall p. (Outputable (IdP p), UnXRec p)
-                    => HsMatchContext p -> SDoc
+pprMatchContextNoun :: forall p. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec p (IdP p)),
+#endif
+  Outputable (IdP p), UnXRec p) => HsMatchContext p -> SDoc
 pprMatchContextNoun (FunRhs {mc_fun=fun})
                                     = text "equation for"
                                       <+> quotes (ppr (unXRec @p fun))
@@ -1837,8 +1847,11 @@ pprArrowMatchContextNoun ArrowCaseAlt = text "case alternative within arrow nota
 pprArrowMatchContextNoun KappaExpr    = text "arrow kappa abstraction"
 
 -----------------
-pprAStmtContext, pprStmtContext :: (Outputable (IdP p), UnXRec p)
-                                => HsStmtContext p -> SDoc
+pprAStmtContext, pprStmtContext :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec p (IdP p)),
+#endif
+  Outputable (IdP p), UnXRec p) => HsStmtContext p -> SDoc
 pprAStmtContext (HsDoStmt flavour) = pprAHsDoFlavour flavour
 pprAStmtContext ctxt = text "a" <+> pprStmtContext ctxt
 
