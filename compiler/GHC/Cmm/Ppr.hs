@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -61,6 +65,9 @@ import GHC.Utils.Constants (debugIsOn)
 import GHC.Types.Basic
 import GHC.Cmm.Dataflow.Block
 import GHC.Cmm.Dataflow.Graph
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 -------------------------------------------------
 -- Outputable instances
@@ -119,7 +126,11 @@ pprTopInfo platform (TopInfo {info_tbls=info_tbl, stack_info=stack_info}) =
 ----------------------------------------------------------
 -- Outputting blocks and graphs
 
-pprBlock :: IndexedCO x SDoc SDoc ~ SDoc
+pprBlock :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (IndexedCO x SDoc SDoc),
+#endif
+  IndexedCO x SDoc SDoc ~ SDoc)
          => Platform -> Block CmmNode e x -> IndexedCO e SDoc SDoc
 pprBlock platform block
     = foldBlockNodesB3 ( ($$) . pdoc platform

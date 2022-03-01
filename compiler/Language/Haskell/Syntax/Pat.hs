@@ -1,4 +1,7 @@
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -43,6 +46,9 @@ import GHC.Core.Ppr ( {- instance OutputableBndr TyVar -} )
 import GHC.Utils.Outputable
 import GHC.Types.SrcLoc
 -- libraries:
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 type LPat p = XRec p (Pat p)
 
@@ -221,7 +227,11 @@ type family ConLikeP x
 -- | Haskell Constructor Pattern Details
 type HsConPatDetails p = HsConDetails (HsPatSigType (NoGhcTc p)) (LPat p) (HsRecFields p (LPat p))
 
-hsConPatArgs :: forall p . (UnXRec p) => HsConPatDetails p -> [LPat p]
+hsConPatArgs :: forall p . (
+#if MIN_VERSION_base(4,16,0)
+  WF_XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p))),
+#endif
+  UnXRec p) => HsConPatDetails p -> [LPat p]
 hsConPatArgs (PrefixCon _ ps) = ps
 hsConPatArgs (RecCon fs)      = map (hfbRHS . unXRec @p) (rec_flds fs)
 hsConPatArgs (InfixCon p1 p2) = [p1,p2]
@@ -335,10 +345,19 @@ data HsFieldBind lhs rhs = HsFieldBind {
 --
 -- See also Note [Disambiguating record fields] in GHC.Tc.Gen.Head.
 
-hsRecFields :: forall p arg.UnXRec p => HsRecFields p arg -> [XCFieldOcc p]
+hsRecFields :: forall p arg. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec p (FieldOcc p)),
+  WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) arg)),
+#endif
+  UnXRec p) => HsRecFields p arg -> [XCFieldOcc p]
 hsRecFields rbinds = map (hsRecFieldSel . unXRec @p) (rec_flds rbinds)
 
-hsRecFieldsArgs :: forall p arg. UnXRec p => HsRecFields p arg -> [arg]
+hsRecFieldsArgs :: forall p arg. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) arg)),
+#endif
+  UnXRec p) => HsRecFields p arg -> [arg]
 hsRecFieldsArgs rbinds = map (hfbRHS . unXRec @p) (rec_flds rbinds)
 
 hsRecFieldSel :: forall p arg. UnXRec p => HsRecField p arg -> XCFieldOcc p

@@ -1,4 +1,7 @@
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -1787,7 +1790,11 @@ data AnnProvenance pass = ValueAnnProvenance (LIdP pass)
 -- deriving instance Traversable AnnProvenance
 -- deriving instance (Data pass) => Data (AnnProvenance pass)
 
-annProvenanceName_maybe :: forall p. UnXRec p => AnnProvenance p -> Maybe (IdP p)
+annProvenanceName_maybe :: forall p. (
+#if MIN_VERSION_base(4,16,0)
+  WF_XRec p (IdP p),
+#endif
+   UnXRec p) => AnnProvenance p -> Maybe (IdP p)
 annProvenanceName_maybe (ValueAnnProvenance (unXRec @p -> name)) = Just name
 annProvenanceName_maybe (TypeAnnProvenance (unXRec @p -> name))  = Just name
 annProvenanceName_maybe ModuleAnnProvenance                      = Nothing

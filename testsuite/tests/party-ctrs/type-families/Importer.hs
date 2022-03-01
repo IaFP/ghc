@@ -3,34 +3,34 @@
 
 module Importer where
 
-import Exporter
+import Exporter (Elem, G)
 
 -- This should be given type
 --   forall a. WF_Elem a => Elem a -> a
-a :: Elem a -> a
-a = undefined
+aaa :: Elem a -> a
+aaa = undefined
 
 -- -- -- This should have (Eq a, Eq b) constraint.
 -- -- -- The difference from above is that Elem (a, b)
 -- -- -- normalizes.
-b :: Elem (a, b) -> (a, b)
-b = undefined
+bbb :: Elem (a, b) -> (a, b)
+bbb = undefined
 
 -- -- This should also be given g's type from openTF.
-g' :: Elem a -> a
-g' = Exporter.g
+ggg' :: Elem a -> a
+ggg' = Exporter.g
 
 -- -- WF_Elem should magically be in scope,
 -- -- and should be given as annotation to g''.
-g'' :: Elem a -> a
-g'' = undefined
+ggg'' :: Elem a -> a
+ggg'' = undefined
 
 -- -- --------------------------------------------------------------------------------
 -- -- -- Nullary TFs (checking if WF_G is exported)
 -- -- --------------------------------------------------------------------------------
 
-c :: G
-c = undefined
+ccc :: G
+ccc = undefined
 
 -- c' :: WF_G =>G
 -- c' = undefined

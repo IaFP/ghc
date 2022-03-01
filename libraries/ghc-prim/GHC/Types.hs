@@ -38,7 +38,7 @@ module GHC.Types (
         type (~~), Coercible,
         TYPE, Levity(..), RuntimeRep(..),
         LiftedRep, UnliftedRep,
-        type (@), Total, Total2,
+        type (@), WFT, Total, Total2,
         Type, UnliftedType, Constraint,
           -- The historical type * should ideally be written as
           -- `type *`, without the parentheses. But that's a true
@@ -359,6 +359,8 @@ class Coercible (a :: k) (b :: k)
 --      DOI: <https://dl.acm.org/doi/10.1145/3371108>
 
 type family (@) (t :: k' -> k) (u :: k') :: Constraint
+
+type WFT t = t ~ t
 
 -- class Total (f :: k' -> k)
 -- Total a = forall a. f @@ a

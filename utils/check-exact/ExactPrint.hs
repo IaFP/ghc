@@ -12,6 +12,10 @@
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE UndecidableInstances  #-} -- For the (StmtLR GhcPs GhcPs (LocatedA (body GhcPs))) ExactPrint instance
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 
 module ExactPrint
   (
@@ -50,6 +54,9 @@ import Data.Void
 import Lookup
 import Utils
 import Types
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total, type(@))
+#endif
 
 -- import Debug.Trace
 
@@ -3700,7 +3707,11 @@ entryFromLocatedA (L la _) = fromAnn la
 -- before output.
 -- NOTE: despite the name, this is the ghc-exactprint final output for
 -- the PRINT phase.
-printStringAtLsDelta :: (Monad m, Monoid w) => DeltaPos -> String -> EP w m ()
+printStringAtLsDelta :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+    Monad m, Monoid w) => DeltaPos -> String -> EP w m ()
 printStringAtLsDelta cl s = do
   p <- getPosP
   colOffset <- getLayoutOffsetP
@@ -3716,7 +3727,11 @@ isGoodDeltaWithOffset :: DeltaPos -> LayoutStartCol -> Bool
 isGoodDeltaWithOffset dp colOffset = isGoodDelta (deltaPos l c)
   where (l,c) = undelta (0,0) dp colOffset
 
-printQueuedComment :: (Monad m, Monoid w) => RealSrcSpan -> Comment -> DeltaPos -> EP w m ()
+printQueuedComment :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+    Monad m, Monoid w) => RealSrcSpan -> Comment -> DeltaPos -> EP w m ()
 printQueuedComment loc Comment{commentContents} dp = do
   p <- getPosP
   colOffset <- getLayoutOffsetP
@@ -3754,13 +3769,21 @@ printQueuedComment Comment{commentContents} dp = do
 -- | Given an annotation associated with a specific SrcSpan,
 -- determines a new offset relative to the previous offset
 --
-withOffset :: (Monad m, Monoid w) => Annotation -> (EP w m a -> EP w m a)
+withOffset :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => Annotation -> (EP w m a -> EP w m a)
 withOffset a =
   local (\s -> s { epAnn = a })
 
 ------------------------------------------------------------------------
 
-setLayoutBoth :: (Monad m, Monoid w) => EP w m () -> EP w m ()
+setLayoutBoth :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => EP w m () -> EP w m ()
 setLayoutBoth k = do
   oldLHS <- gets dLHS
   oldAnchorOffset <- getLayoutOffsetP
@@ -3776,7 +3799,11 @@ setLayoutBoth k = do
   k <* reset
 
 -- Use 'local', designed for this
-setLayoutTopLevelP :: (Monad m, Monoid w) => EP w m () -> EP w m ()
+setLayoutTopLevelP :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => EP w m () -> EP w m ()
 setLayoutTopLevelP k = do
   debugM $ "setLayoutTopLevelP entered"
   oldAnchorOffset <- getLayoutOffsetP
@@ -3788,48 +3815,92 @@ setLayoutTopLevelP k = do
 
 ------------------------------------------------------------------------
 
-getPosP :: (Monad m, Monoid w) => EP w m Pos
+getPosP :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => EP w m Pos
 getPosP = gets epPos
 
-setPosP :: (Monad m, Monoid w) => Pos -> EP w m ()
+setPosP :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => Pos -> EP w m ()
 setPosP l = do
   debugM $ "setPosP:" ++ show l
   modify (\s -> s {epPos = l})
 
-getExtraDP :: (Monad m, Monoid w) => EP w m (Maybe Anchor)
+getExtraDP :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => EP w m (Maybe Anchor)
 getExtraDP = gets uExtraDP
 
-setExtraDP :: (Monad m, Monoid w) => Maybe Anchor -> EP w m ()
+setExtraDP :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => Maybe Anchor -> EP w m ()
 setExtraDP md = do
   debugM $ "setExtraDP:" ++ show md
   modify (\s -> s {uExtraDP = md})
 
-getPriorEndD :: (Monad m, Monoid w) => EP w m Pos
+getPriorEndD :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => EP w m Pos
 getPriorEndD = gets dPriorEndPosition
 
-getAnchorU :: (Monad m, Monoid w) => EP w m RealSrcSpan
+getAnchorU :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => EP w m RealSrcSpan
 getAnchorU = gets uAnchorSpan
 
-setPriorEndD :: (Monad m, Monoid w) => Pos -> EP w m ()
+setPriorEndD :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => Pos -> EP w m ()
 setPriorEndD pe = do
   -- setLayoutStartIfNeededD (snd pe)
   setPriorEndNoLayoutD pe
 
-setPriorEndNoLayoutD :: (Monad m, Monoid w) => Pos -> EP w m ()
+setPriorEndNoLayoutD :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => Pos -> EP w m ()
 setPriorEndNoLayoutD pe = do
   debugM $ "setPriorEndNoLayout:pe=" ++ show pe
   modify (\s -> s { dPriorEndPosition = pe })
 
-setPriorEndASTD :: (Monad m, Monoid w) => Bool -> RealSrcSpan -> EP w m ()
+setPriorEndASTD :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => Bool -> RealSrcSpan -> EP w m ()
 setPriorEndASTD layout pe = setPriorEndASTPD layout (rs2range pe)
 
-setPriorEndASTPD :: (Monad m, Monoid w) => Bool -> (Pos,Pos) -> EP w m ()
+setPriorEndASTPD :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => Bool -> (Pos,Pos) -> EP w m ()
 setPriorEndASTPD layout pe@(fm,to) = do
   debugM $ "setPriorEndASTD:pe=" ++ show pe
   when layout $ setLayoutStartD (snd fm)
   modify (\s -> s { dPriorEndPosition = to } )
 
-setLayoutStartD :: (Monad m, Monoid w) => Int -> EP w m ()
+setLayoutStartD :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => Int -> EP w m ()
 setLayoutStartD p = do
   EPState{dMarkLayout} <- get
   when dMarkLayout $ do
@@ -3837,21 +3908,41 @@ setLayoutStartD p = do
     modify (\s -> s { dMarkLayout = False
                     , dLHS = LayoutStartCol p})
 
-setAnchorU :: (Monad m, Monoid w) => RealSrcSpan -> EP w m ()
+setAnchorU :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => RealSrcSpan -> EP w m ()
 setAnchorU rss = do
   debugM $ "setAnchorU:" ++ show (rs2range rss)
   modify (\s -> s { uAnchorSpan = rss })
 
-getUnallocatedComments :: (Monad m, Monoid w) => EP w m [Comment]
+getUnallocatedComments :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => EP w m [Comment]
 getUnallocatedComments = gets epComments
 
-putUnallocatedComments :: (Monad m, Monoid w) => [Comment] -> EP w m ()
+putUnallocatedComments :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => [Comment] -> EP w m ()
 putUnallocatedComments cs = modify (\s -> s { epComments = cs } )
 
-getLayoutOffsetP :: (Monad m, Monoid w) => EP w m LayoutStartCol
+getLayoutOffsetP :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => EP w m LayoutStartCol
 getLayoutOffsetP = gets pLHS
 
-setLayoutOffsetP :: (Monad m, Monoid w) => LayoutStartCol -> EP w m ()
+setLayoutOffsetP :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => LayoutStartCol -> EP w m ()
 setLayoutOffsetP c = do
   debugM $ "setLayoutOffsetP:" ++ show c
   modify (\s -> s { pLHS = c })
@@ -3889,7 +3980,11 @@ setLayoutOffsetP c = do
 --       w' <- f w
 --       return (a, s', EPWriter w')
 
-advance :: (Monad m, Monoid w) => DeltaPos -> EP w m ()
+advance :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => DeltaPos -> EP w m ()
 advance dp = do
   p <- getPosP
   colOffset <- getLayoutOffsetP
@@ -3915,7 +4010,11 @@ adjustDeltaForOffsetM dp = do
 -- ---------------------------------------------------------------------
 -- Printing functions
 
-printString :: (Monad m, Monoid w) => Bool -> String -> EP w m ()
+printString :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => Bool -> String -> EP w m ()
 printString layout str = do
   EPState{epPos = (_,c), pMarkLayout} <- get
   PrintOptions{epTokenPrint, epWhitespacePrint} <- ask
@@ -3978,26 +4077,46 @@ printStringAdvance str = do
 
 --------------------------------------------------------
 
-newLine :: (Monad m, Monoid w) => EP w m ()
+newLine :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => EP w m ()
 newLine = do
     (l,_) <- getPosP
     printString False "\n"
     setPosP (l+1,1)
 
-padUntil :: (Monad m, Monoid w) => Pos -> EP w m ()
+padUntil :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => Pos -> EP w m ()
 padUntil (l,c) = do
     (l1,c1) <- getPosP
     if | l1 == l && c1 <= c -> printString False $ replicate (c - c1) ' '
        | l1 < l             -> newLine >> padUntil (l,c)
        | otherwise          -> return ()
 
-printWhitespace :: (Monad m, Monoid w) => Pos -> EP w m ()
+printWhitespace :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => Pos -> EP w m ()
 printWhitespace = padUntil
 
-printCommentAt :: (Monad m, Monoid w) => Pos -> String -> EP w m ()
+printCommentAt :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => Pos -> String -> EP w m ()
 printCommentAt p str = do
   debugM $ "printCommentAt: (pos,str)" ++ show (p,str)
   printWhitespace p >> printString False str
 
-printStringAt :: (Monad m, Monoid w) => Pos -> String -> EP w m ()
+printStringAt :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+  Monad m, Monoid w) => Pos -> String -> EP w m ()
 printStringAt p str = printWhitespace p >> printString True str
