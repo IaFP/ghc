@@ -14,7 +14,7 @@ module GHC.Cmm.Dataflow.Block
     , O
     , C
     , MaybeO(..)
-    , IndexedCO (..)
+    , IndexedCO(..)
     , Block(..)
     , blockAppend
     , blockCons
