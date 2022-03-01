@@ -243,7 +243,7 @@ isTyConInternal tycon =
   || isWfTyCon tycon
 
 saneTyConForElab :: TyCon -> Bool
-saneTyConForElab tycon =
+saneTyConForElab tycon = 
   not (isUnboxedTupleTyCon tycon
        || isPrimTyCon tycon
        || isPromotedDataCon tycon
@@ -289,21 +289,25 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
              Nothing   -> pprPanic "tysyn tyConGenAts" (ppr tycon)
       else failWithTc (tyConArityErr tycon args)
     -- else return []
-  | isTyConAssoc tycon -- && not (isNewTyCon tycon)
-  = do { let (args', extra_args) = splitAt (tyConArity tycon) (zip3 args (tyConBinders tycon) (tyConRoles tycon))
-       -- ; traceTc "tyconassoc tyConGensAtsTcM: " (text "TyCon " <> ppr tycon
-       --                                           <+> ppr (tyConArity tycon)
-       --                                           <+> text "args " <> ppr args'
-       --                                           <+> text "extra_args " <> ppr extra_args)
-       ; recGenAts' tycon extra_args (map (\(e, _, _) -> e) args') [] ts
-       }
-  | isOpenFamilyTyCon tycon
-  = do { elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
+  -- | isTyConAssoc tycon && (not isTyConPhase) -- && not (isNewTyCon tycon)
+  -- = do {
+  --     let (args', extra_args) = splitAt (tyConArity tycon) (zip3 args (tyConBinders tycon) (tyConRoles tycon))
+  --      -- ; traceTc "tyconassoc tyConGensAtsTcM: " (text "TyCon " <> ppr tycon
+  --      --                                           <+> ppr (tyConArity tycon)
+  --      --                                           <+> text "args " <> ppr args'
+  --      --                                           <+> text "extra_args " <> ppr extra_args)
+  --      ; recGenAts' tycon extra_args (map (\(e, _, _) -> e) args') [] ts
+  --      }
+  | isOpenFamilyTyCon tycon || isTyConAssoc tycon
+  = do {
+       ;
+       ; elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
        
-       ; refresh <- lookupTyCon . getName $ tycon
-       ; wftycon <- lookupWfMirrorTyCon refresh
+       -- ; refresh <- lookupTyCon . getName $ tycon
+       -- ; traceTc "" (ppr refresh)
+       ; wftycon <- lookupWfMirrorTyCon tycon
        ; let tfwfcts::ThetaType = maybeToList $ fmap (\t -> mkTyConApp t args) wftycon
        ; traceTc "wfelab open tycon" (vcat [ ppr tycon
                                            , ppr (wfMirrorTyCon_maybe tycon)
@@ -314,13 +318,13 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
              ; elabd <- genAtAtConstraintsTcM isTyConPhase ty
              ; return $ foldl mergeAtAtConstraints (tfwfcts ++ newPreds elabd) css
              }
+       -- ; return (foldl mergeAtAtConstraints [] css)
        }
 
       
   | isTypeFamilyTyCon tycon
     || isDataFamilyTyCon tycon
   = do {
-       ; traceTc "wfelab regular ol' tf" (ppr tycon)
        ; elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args

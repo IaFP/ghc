@@ -4,7 +4,7 @@
 module Associated where
 
 class Collection a where
-  type family Elem a
+  type family Elem a 
   e :: a
   cons :: Elem a -> a -> a
 
@@ -14,7 +14,5 @@ instance Collection [a] where
   e = []
   cons = (:)
 
-type Foobar a = [a]
-
-consEmpty :: Elem a -> a
-consEmpty hd = undefined
+foobar :: Elem a -> a
+foobar = undefined
