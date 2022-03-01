@@ -3,7 +3,7 @@
 
 module Importer where
 
-import Exporter (Elem, G)
+import Exporter (Elem, G, g)
 
 -- This should be given type
 --   forall a. WF_Elem a => Elem a -> a
@@ -17,8 +17,8 @@ bbb :: Elem (a, b) -> (a, b)
 bbb = undefined
 
 -- -- This should also be given g's type from openTF.
-ggg' :: Elem a -> a
-ggg' = Exporter.g
+-- ggg' :: Elem a -> a
+-- ggg' = Exporter.g
 
 -- -- WF_Elem should magically be in scope,
 -- -- and should be given as annotation to g''.

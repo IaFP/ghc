@@ -319,7 +319,9 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
       
   | isTypeFamilyTyCon tycon
     || isDataFamilyTyCon tycon
-  = do { elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
+  = do {
+       ; traceTc "wfelab regular ol' tf" (ppr tycon)
+       ; elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
        ; case co_ty_mb of

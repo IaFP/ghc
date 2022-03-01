@@ -14,5 +14,7 @@ instance Collection [a] where
   e = []
   cons = (:)
 
-consEmpty :: Collection a => Elem a -> a
-consEmpty hd = cons hd e
+type Foobar a = [a]
+
+consEmpty :: Elem a -> a
+consEmpty hd = undefined
