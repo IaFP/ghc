@@ -2115,15 +2115,12 @@ wF_TC_PREFIX = "WF_"
 mkWFMirrorTyFam :: Name -> TyCon -> TyCon
 mkWFMirrorTyFam n tc =
   let
-    parent = case famTcParent tc of
-               Nothing -> Nothing
-               Just t  -> Nothing -- tyConClass_maybe t
     new_tc = mkFamilyTyCon n
                (tyConBinders tc)
                constraintKind
                (Just n)
                (famTcFlav tc)
-               parent
+               Nothing   -- Never re-associated WF constraint with parent.
                (famTcInj tc)
   in new_tc { assocFamTyCon = Just tc, isMirror = True }
 
@@ -2986,7 +2983,7 @@ instance Outputable TyConFlavour where
       go (DataFamilyFlavour (Just _))  = "associated data family"
       go (DataFamilyFlavour Nothing)   = "data family"
       go (OpenTypeFamilyFlavour (Just _)) = "associated type family"
-      go (OpenTypeFamilyFlavour Nothing)  = "Open type family"
+      go (OpenTypeFamilyFlavour Nothing)  = "open type family"
       go ClosedTypeFamilyFlavour = "closed type family"
       go TypeSynonymFlavour      = "type synonym"
       go BuiltInTypeFlavour      = "built-in type"
