@@ -2117,7 +2117,7 @@ mkWFMirrorTyFam n tc =
   let
     parent = case famTcParent tc of
                Nothing -> Nothing
-               Just t  -> tyConClass_maybe t
+               Just t  -> Nothing -- tyConClass_maybe t
     new_tc = mkFamilyTyCon n
                (tyConBinders tc)
                constraintKind
@@ -2986,8 +2986,8 @@ instance Outputable TyConFlavour where
       go (DataFamilyFlavour (Just _))  = "associated data family"
       go (DataFamilyFlavour Nothing)   = "data family"
       go (OpenTypeFamilyFlavour (Just _)) = "associated type family"
-      go (OpenTypeFamilyFlavour Nothing)  = "type family"
-      go ClosedTypeFamilyFlavour = "type family"
+      go (OpenTypeFamilyFlavour Nothing)  = "Open type family"
+      go ClosedTypeFamilyFlavour = "closed type family"
       go TypeSynonymFlavour      = "type synonym"
       go BuiltInTypeFlavour      = "built-in type"
       go PromotedDataConFlavour  = "promoted data constructor"

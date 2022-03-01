@@ -13,3 +13,6 @@ instance Collection [a] where
   type instance Elem [a] = a
   e = []
   cons = (:)
+
+consEmpty :: Collection a => Elem a -> a
+consEmpty hd = cons hd e

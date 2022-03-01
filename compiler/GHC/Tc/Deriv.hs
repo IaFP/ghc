@@ -2574,6 +2574,7 @@ genMirrorWFTyFam (loc, tc)
                -- mkSystemNameAt uniq ns loc
                -- rdrName = newAuxBinderRdrName loc (nameOccName . tyConName tc) () 
        ; traceTc "wf tf mirror open occname:" (ppr name <+> ppr (nameUnique name))
+       ; traceTc "wf tf mirror flavour: " (ppr (tyConFlavour mirror_tc))
        -- TODO: Export the global binder 
        ; return $ (mirror_tc, n_tc)
        }
