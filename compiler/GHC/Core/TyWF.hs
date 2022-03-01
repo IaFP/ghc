@@ -163,13 +163,22 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
                 -- ; elabd2 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty2
                 ; return $ elabDetails (AppTy (elabTy elabd1) ty2) (newPreds elabd1)
                 }
-        else do { let atc = ty1 `at'at` ty2
-                ; wfc <- flatten_atat_constraint atc -- if it is reducible, reduce it! 
-                ; elabd1 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
-                ; elabd2 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty2
-                ; return $ elabDetails (AppTy (elabTy elabd1) (elabTy elabd2))
-                              (mergeAtAtConstraints wfc $ mergeAtAtConstraints (newPreds elabd1) (newPreds elabd2))
-                }
+        else if (fst $ tcSplitAppTys (tcTypeKind ty1)) `tcEqType` constraintKind then
+          -- given that we are elaborating over class constraints, we won't want to obtain a c @ x
+          --  where c :: k -> *
+          do { traceTc "wfelab appty:" (ppr $ tcSplitAppTys ty1)
+             ; elabd1 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
+             ; elabd2 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty2
+             ; return $ elabDetails (AppTy (elabTy elabd1) (elabTy elabd2))
+                 (mergeAtAtConstraints (newPreds elabd1) (newPreds elabd2))
+             }
+             else do { let atc = ty1 `at'at` ty2
+                     ; wfc <- flatten_atat_constraint atc -- if it is reducible, reduce it! 
+                     ; elabd1 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
+                     ; elabd2 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty2
+                     ; return $ elabDetails (AppTy (elabTy elabd1) (elabTy elabd2))
+                       (mergeAtAtConstraints wfc $ mergeAtAtConstraints (newPreds elabd1) (newPreds elabd2))
+                     }
         
   -- recurse inwards
   -- forall k (a :: k). a -> a
@@ -251,9 +260,11 @@ tyConGenAtsTcM :: Bool
                -> TyCon -> [Type] -> TcM ThetaType
 tyConGenAtsTcM isTyConPhase eTycons ts tycon args
   | isTyConInternal tycon
-  = return []
-  | isClassTyCon tycon && not (isTyVarTy $ mkTyConTy tycon) -- ignore quantified classes
-  = do { elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
+  = do { traceTc "wfelab internalTyCon" (ppr tycon)
+       ; return [] }
+  | isClassTyCon tycon
+  = do { traceTc "wfelab ClassTyCon" (ppr tycon)
+       ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
        ; let css = fmap newPreds elabds
        ; return $ foldl mergeAtAtConstraints [] css
        }
@@ -323,7 +334,8 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
          ; return $ foldl mergeAtAtConstraints wfcs (fmap newPreds elabds)
          } 
   -- Vanilla type constructor, everything is total
-  | otherwise = recGenAtsTcM tycon args ts
+  | otherwise = do { traceTc "wfelab fallthrough:" (ppr tycon)
+                   ; recGenAtsTcM tycon args ts}
 
 
 recGenAtsTcM :: TyCon -> [Type]
@@ -484,12 +496,23 @@ genAtAtConstraintsExcept tycons ts ty
         then do { elabd <- genAtAtConstraintsExcept tycons ts ty1
                 ; return $ elabDetails (AppTy (elabTy elabd) ty2) (newPreds elabd)
                 }
+        else if (fst $ tcSplitAppTys (tcTypeKind ty1)) `tcEqType` constraintKind then
+          -- this function is going to make our implimentation really, really slow.
+          -- given that we split the TyApps into a list we should just foldr over the args to get the constraints..
+          -- given that we are elaborating over class constraints, we won't want to obtain a c @ x
+          --  where c :: k -> *
+               do { -- traceTc "wfelab appty:" (ppr $ tcSplitAppTys ty1)
+                    elabd1 <- genAtAtConstraintsExcept tycons ts ty1
+                  ; elabd2 <- genAtAtConstraintsExcept tycons ts ty2
+                  ; return $ elabDetails (AppTy (elabTy elabd1) (elabTy elabd2))
+                    (mergeAtAtConstraints (newPreds elabd1) (newPreds elabd2))
+                  }
         else do { let atc = [ty1 `at'at` ty2]
                 ; elabd1 <- genAtAtConstraintsExcept tycons ts ty1
                 ; elabd2 <- genAtAtConstraintsExcept tycons ts ty2
                 ; return $ elabDetails (AppTy (elabTy elabd1) (elabTy elabd2))
-                                (mergeAtAtConstraints atc $
-                                 mergeAtAtConstraints (newPreds elabd1) (newPreds elabd2))
+                       (mergeAtAtConstraints atc $
+                         mergeAtAtConstraints (newPreds elabd1) (newPreds elabd2))
                 }
         
   -- recurse inwards

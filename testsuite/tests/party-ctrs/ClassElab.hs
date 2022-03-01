@@ -20,10 +20,26 @@ data D
 
 type family XRec a b
 
+class C a
 
-class C (XRec a b) where
-  unXRec :: XRec a b -> XRec a b
+-- class UnXRec a where
+--   unXRec :: XRec a b -> XRec a b
 
 
-instance UnXRec a D where
-  unXRec = undefined
+-- instance UnXRec a D where
+--   unXRec = undefined
+type family F t
+type Wft t = t ~ t
+
+blah :: forall t. (Wft (F t), C t) => t -> t
+blah = id
+
+data Identity a = I a
+
+optionalFieldDef
+    :: (Functor (g s), c (Identity a), Eq a)
+    => D  -- ^ field name
+    -- -> ALens' s a  -- ^ @'Lens'' s a@: lens into the field
+    -> a           -- ^ default value
+    -> g s a
+optionalFieldDef = undefined
