@@ -390,8 +390,8 @@ elabWfFamInst :: FamInst -> TcM FamInst
 elabWfFamInst fam_inst
   = do { let (tfTc, ts) = famInstSplitLHS fam_inst
        ; let rhs = famInstRHS fam_inst
-       ; let wfTc = wfMirrorTyCon tfTc
        ; let loc = noAnnSrcSpan . getSrcSpan $ fam_inst
+       ; wfTc <- fmap fromJust (lookupWfMirrorTyCon tfTc)
        ; inst_name <- newFamInstTyConName (L loc (getName wfTc)) ts
        ; elabDetails <- genAtAtConstraintsTcM False rhs
        ; let preds = newPreds elabDetails
@@ -428,8 +428,8 @@ tcInstDecls1 inst_decls
        ; let (local_infos_s, fam_insts_s, datafam_deriv_infos) = unzip3 stuff
              fam_insts   = concat fam_insts_s
              local_infos = concat local_infos_s
-
-       ; wfFamInsts <- elabWfFamInsts (filter (hasWfMirrorTyCon . famInstTyCon) fam_insts)
+       ; constrained_tf_insts <- filterM (hasWfMirrorTyConLookup . famInstTyCon) fam_insts
+       ; wfFamInsts <- elabWfFamInsts constrained_tf_insts
        ; (gbl_env, th_bndrs) <-
            addClsInsts local_infos $
            addFamInsts (fam_insts ++ wfFamInsts)

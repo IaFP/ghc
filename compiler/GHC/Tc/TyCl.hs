@@ -23,7 +23,8 @@ module GHC.Tc.TyCl (
         tcFamTyPats, tcTyFamInstEqn,
         tcAddTyFamInstCtxt, tcMkDataFamInstCtxt, tcAddDataFamInstCtxt,
         unravelFamInstPats, addConsistencyConstraints,
-        wrongKindOfFamily
+        wrongKindOfFamily,
+        pprtc
     ) where
 
 import GHC.Prelude

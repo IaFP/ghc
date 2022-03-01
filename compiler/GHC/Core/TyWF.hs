@@ -12,7 +12,8 @@ module GHC.Core.TyWF (
   genAtAtConstraintsExceptTcM,
   attachConstraints, mergeAtAtConstraints,
   elabAtAtConstraintsTcM, elabWithAtAtConstraintsTopTcM, elabAtAtConstraints, -- unelabAtAtConstraintsM, 
-  predTyArgs, predTyVars, flatten_atat_constraint, saneTyConForElab 
+  predTyArgs, predTyVars, flatten_atat_constraint, saneTyConForElab,
+  lookupWfMirrorTyCon, hasWfMirrorTyConLookup
   ) where
 
 import GHC.Tc.Instance.Family (tcGetFamInstEnvs)
@@ -556,21 +557,40 @@ tyConGenAts eTycons ts tycon args
        }
   | otherwise = recGenAts tycon args ts
 
+-- This a big ol' hackkkkk
+lookupWfMirrorInGblEnv :: TyCon -> TcM (Maybe TyCon)
+lookupWfMirrorInGblEnv tycon = do
+  tcs <- fmap tcg_tcs getGblEnv
+  let get_tf_name = occNameString . nameOccName . tyConName
+      tfName =  wF_TC_PREFIX ++ (get_tf_name tycon)
+  return $ find (\tc -> tfName `isSuffixOf` (get_tf_name tc)) tcs
+
+lookupWfMirrorInRdrEnv :: TyCon -> TcM (Maybe TyCon)
+lookupWfMirrorInRdrEnv tycon = do
+  rdr_elts <- fmap (concat . nonDetOccEnvElts . tcg_rdr_env) getGblEnv
+  let rdr_names = map greMangledName rdr_elts
+      get_tf_name = occNameString . nameOccName
+      tfName =  wF_TC_PREFIX ++ (get_tf_name (tyConName tycon))
+      wf_name = find (\name -> tfName `isSuffixOf` (get_tf_name name)) rdr_names
+  wf_tc <- case wf_name of
+             Nothing -> return Nothing
+             Just wf_name -> fmap Just (lookupTyCon wf_name)
+  traceTc "I found this wf tycon in RDR env" (ppr wf_tc)
+  return wf_tc
+  
+hasWfMirrorTyConLookup :: TyCon -> TcM Bool
+hasWfMirrorTyConLookup tycon = do
+  wf <- lookupWfMirrorTyCon tycon
+  case wf of
+    Nothing -> return False
+    Just _ -> return True
+
 lookupWfMirrorTyCon :: TyCon -> TcM (Maybe TyCon)
 lookupWfMirrorTyCon tycon
- | Just wf_tc <-  wfMirrorTyCon_maybe tycon = return (Just wf_tc)
- | otherwise = do {
-     -- This is a hack.
-     -- We search through the Rdr names and find the Name
-     -- of the WF constraint. We then fetch the TyCon given the name.
-     ; rdr_elts <- fmap (concat . nonDetOccEnvElts . tcg_rdr_env) getGblEnv
-     ; let rdr_names = map greMangledName rdr_elts
-           get_tf_name = occNameString . nameOccName
-           tfName =  wF_TC_PREFIX ++ (get_tf_name (tyConName tycon))
-           wf_name = find (\name -> tfName `isSuffixOf` (get_tf_name name)) rdr_names
-     ; wf_tc <- case wf_name of
-                  Nothing -> return Nothing
-                  Just wf_name -> fmap Just (lookupTyCon wf_name)
-     ; traceTc "I found this wf tycon" (ppr wf_tc)
-     ; return wf_tc
-  }
+ | Just wf_tc <- wfMirrorTyCon_maybe tycon = return (Just wf_tc)
+ | otherwise = do
+     gbl_lookup <- lookupWfMirrorInGblEnv tycon
+     case gbl_lookup of
+       Just wf_tc -> return (Just wf_tc)
+       Nothing -> lookupWfMirrorInRdrEnv tycon
+         
