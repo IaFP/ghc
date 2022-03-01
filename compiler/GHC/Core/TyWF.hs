@@ -296,8 +296,6 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
        ; wftycon <- lookupWfMirrorTyCon tycon
-       ; traceTc "Here is that flavour: " (ppr (tyConFlavour tycon))
-       ; traceTc "it says it is open? or not. " (ppr (isOpenFamilyTyCon tycon))
        ; let tfwfcts::ThetaType = maybeToList $ fmap (\t -> mkTyConApp t args) wftycon
        ; traceTc "wfelab open tycon" (vcat [ ppr tycon
                                            , ppr wftycon
@@ -312,7 +310,8 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
 
   | isTyConAssoc tycon 
   = do {
-      let (args', extra_args) = splitAt (tyConArity tycon) (zip3 args (tyConBinders tycon) (tyConRoles tycon))
+      ; traceTc "wfelab tyconassoc: " (ppr tycon)
+      ; let (args', extra_args) = splitAt (tyConArity tycon) (zip3 args (tyConBinders tycon) (tyConRoles tycon))
        -- ; traceTc "tyconassoc tyConGensAtsTcM: " (text "TyCon " <> ppr tycon
        --                                           <+> ppr (tyConArity tycon)
        --                                           <+> text "args " <> ppr args'
@@ -322,6 +321,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
   | isTypeFamilyTyCon tycon
     || isDataFamilyTyCon tycon
   = do {
+       ; traceTc "wfelab isTypeFamily or isDataFamily: " (ppr tycon)
        ; elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
@@ -627,9 +627,9 @@ hasWfMirrorTyConLookup tycon = do
 lookupWfMirrorTyCon :: TyCon -> TcM (Maybe TyCon)
 lookupWfMirrorTyCon tycon
  | Just wf_tc <- wfMirrorTyCon_maybe tycon = return (Just wf_tc)
- | otherwise = do
-     gbl_lookup <- lookupWfMirrorInGblEnv tycon
-     case gbl_lookup of
-       Just wf_tc -> return (Just wf_tc)
-       Nothing -> lookupWfMirrorInRdrEnv tycon
+ | otherwise = lookupWfMirrorInRdrEnv tycon -- do
+     -- gbl_lookup <- lookupWfMirrorInGblEnv tycon
+     -- case gbl_lookup of
+     --   Just wf_tc -> return (Just wf_tc)
+     --   Nothing -> lookupWfMirrorInRdrEnv tycon
      
