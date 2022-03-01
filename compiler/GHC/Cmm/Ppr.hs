@@ -129,6 +129,7 @@ pprTopInfo platform (TopInfo {info_tbls=info_tbl, stack_info=stack_info}) =
 pprBlock :: (
 #if MIN_VERSION_base(4,16,0)
   WFT (IndexedCO x SDoc SDoc),
+  WFT (IndexedCO e SDoc SDoc),
 #endif
   IndexedCO x SDoc SDoc ~ SDoc)
          => Platform -> Block CmmNode e x -> IndexedCO e SDoc SDoc
