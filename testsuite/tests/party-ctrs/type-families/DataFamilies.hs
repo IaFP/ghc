@@ -4,10 +4,10 @@
 module DataFamilies where
 
 -- Declare a list-like data family
-data family XList a
+data family List a
 
 -- Declare a list-like instance for Char
-data instance XList Char = XCons Char (XList Char) | XNil
+data instance List Char = Cons Char (List Char) | Nil
 
 -- -- Declare a number-like instance for ()
 -- data instance XList () = XListUnit !Int
