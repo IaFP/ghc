@@ -942,18 +942,31 @@ getLocalNonValBinders fixity_env
              ; let fld_env = case unLoc tc_decl of
                      DataDecl { tcdDataDefn = d } -> mk_fld_env d names flds'
                      _                            -> []
-             ; partyCtrs <- xoptM LangExt.PartialTypeConstructors        
+             ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
              ; wf_stuff <- if partyCtrs
                            then  case unLoc tc_decl of
-                                   FamDecl {} -> do { m <- getModule
-                                                    ; let occ = mkTcOcc $ wF_TC_PREFIX ++ (occNameString . nameOccName $ main_name)
-                                                    ; wf_name <- newGlobalBinder m occ (nameSrcSpan main_name)
-                                                    ; return [((availTC wf_name [wf_name] []), [])]
-                                                    }
+                                   FamDecl {}
+                                     -> do { m <- getModule
+                                           ; wf_name <- newWFGlobalBinder m main_name
+                                           ; return [((availTC wf_name [wf_name] []), [])]
+                                           }
+                                   ClassDecl {}                 -- pick out each of the sub_names
+                                                                -- that look like a tycon and
+                                                                -- generate a WF_* name for them
+                                     -> do { m <- getModule
+                                           ; let ats_names = filter isTyConName sub_names 
+                                           ; wf_names <- mapM (newWFGlobalBinder m) ats_names
+                                           ; return $ fmap (\n -> ((availTC n [n] []), [])) wf_names
+                                           -- ANI TODO: This is not quite what we want, but a good starter.
+                                           }
                                    _          -> return []
                            else return []
              ; return $ (availTC main_name names flds', fld_env):wf_stuff }
 
+    newWFGlobalBinder :: Module -> Name -> RnM Name
+    newWFGlobalBinder m main_name
+          = do { let occ = mkTcOcc $ wF_TC_PREFIX ++ (occNameString . nameOccName $ main_name)
+               ; newGlobalBinder m occ (nameSrcSpan main_name) }
 
     -- Calculate the mapping from constructor names to fields, which
     -- will go in tcg_field_env. It's convenient to do this here where
