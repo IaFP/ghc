@@ -298,7 +298,8 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
-       ; wftycon <- lookupWfMirrorTyCon tycon
+       ; refresh <- lookupTyCon . getName $ tycon
+       ; wftycon <- lookupWfMirrorTyCon refresh
        ; let tfwfcts::ThetaType = maybeToList $ fmap (\t -> mkTyConApp t args) wftycon
        ; traceTc "wfelab open tycon" (vcat [ ppr tycon
                                            , ppr wftycon
@@ -627,9 +628,9 @@ hasWfMirrorTyConLookup tycon = do
 lookupWfMirrorTyCon :: TyCon -> TcM (Maybe TyCon)
 lookupWfMirrorTyCon tycon
  | Just wf_tc <- wfMirrorTyCon_maybe tycon = return (Just wf_tc)
- | otherwise = lookupWfMirrorInRdrEnv tycon -- do
-     -- gbl_lookup <- lookupWfMirrorInGblEnv tycon
-     -- case gbl_lookup of
-     --   Just wf_tc -> return (Just wf_tc)
-     --   Nothing -> lookupWfMirrorInRdrEnv tycon
+ | otherwise = do
+     gbl_lookup <- lookupWfMirrorInGblEnv tycon
+     case gbl_lookup of
+       Just wf_tc -> return (Just wf_tc)
+       Nothing -> lookupWfMirrorInRdrEnv tycon
      
