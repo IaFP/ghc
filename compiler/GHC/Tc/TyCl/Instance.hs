@@ -428,7 +428,10 @@ tcInstDecls1 inst_decls
        ; let (local_infos_s, fam_insts_s, datafam_deriv_infos) = unzip3 stuff
              fam_insts   = concat fam_insts_s
              local_infos = concat local_infos_s
-       ; constrained_tf_insts <- filterM (hasWfMirrorTyConLookup . famInstTyCon) fam_insts
+       -- @HACK filtering data family tycons out of the list first
+       -- is a bit silly. Will address when adding data families back in.
+       ; constrained_tf_insts <- filterM (hasWfMirrorTyConLookup . famInstTyCon) (filter (not . isDataFamilyTyCon . famInstTyCon) fam_insts)
+       ; traceTc "I found these TF to add WF constraints to" (ppr constrained_tf_insts)
        ; wfFamInsts <- elabWfFamInsts constrained_tf_insts
        ; (gbl_env, th_bndrs) <-
            addClsInsts local_infos $
