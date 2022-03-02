@@ -191,6 +191,7 @@ instance IsPass 'Typechecked where
 
 type instance IdP (GhcPass p) = IdGhcP p
 
+
 -- | Maps the "normal" id type for a given GHC pass
 type family IdGhcP pass where
   IdGhcP 'Parsed      = RdrName

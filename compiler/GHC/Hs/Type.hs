@@ -282,11 +282,7 @@ setHsTyVarBndrFlag f (UserTyVar x _ l)     = UserTyVar x f l
 setHsTyVarBndrFlag f (KindedTyVar x _ l k) = KindedTyVar x f l k
 
 -- | Do all type variables in this 'LHsQTyVars' come with kind annotations?
-hsTvbAllKinded ::
-#if MIN_VERSION_base(4,16,0)
-  WFT (XRec (GhcPass p) (HsTyVarBndr () (GhcPass p))) =>
-#endif
-  LHsQTyVars (GhcPass p) -> Bool
+hsTvbAllKinded :: LHsQTyVars (GhcPass p) -> Bool
 hsTvbAllKinded = all (isHsKindedTyVar . unLoc) . hsQTvExplicit
 
 instance NamedThing (HsTyVarBndr flag GhcRn) where
@@ -347,12 +343,7 @@ hsLinear = HsScaled (HsLinearArrow (HsPct1 noHsTok noHsUniTok))
 hsUnrestricted :: a -> HsScaled (GhcPass p) a
 hsUnrestricted = HsScaled (HsUnrestrictedArrow noHsUniTok)
 
-isUnrestricted ::
-#if MIN_VERSION_base(4,16,0)
-  (WFT (XRec GhcRn (HsType GhcRn))
-  , WFT (Anno (HsType GhcRn))) =>
-#endif
-  HsArrow GhcRn -> Bool
+isUnrestricted :: HsArrow GhcRn -> Bool
 isUnrestricted (arrowToHsType -> L _ (HsTyVar _ _ (L _ n))) = n == manyDataConName
 isUnrestricted _ = False
 
@@ -409,13 +400,7 @@ hsTyVarName (KindedTyVar _ _ (L _ n) _) = n
 hsLTyVarName :: LHsTyVarBndr flag (GhcPass p) -> IdP (GhcPass p)
 hsLTyVarName = hsTyVarName . unLoc
 
-hsLTyVarNames ::
-#if MIN_VERSION_base(4,16,0)
-  (WFT (XRec (GhcPass 'Renamed) (HsTyVarBndr flag (GhcPass 'Renamed)))
-  ,WFT (Anno (HsTyVarBndr flag (GhcPass 'Renamed)))
-  ,WFT (IdP (GhcPass 'Renamed))) => 
-#endif
-  [LHsTyVarBndr flag (GhcPass p)] -> [IdP (GhcPass p)]
+hsLTyVarNames :: [LHsTyVarBndr flag (GhcPass p)] -> [IdP (GhcPass p)]
 hsLTyVarNames = map hsLTyVarName
 
 hsExplicitLTyVarNames :: LHsQTyVars (GhcPass p) -> [IdP (GhcPass p)]
@@ -1020,7 +1005,7 @@ pprLHsContextAlways (L _ ctxt)
       [L _ ty] -> ppr_mono_ty ty           <+> darrow
       _        -> parens (interpp'SP ctxt) <+> darrow
 
-pprConDeclFields :: OutputableBndrId p
+pprConDeclFields :: (OutputableBndrId p)
                  => [LConDeclField (GhcPass p)] -> SDoc
 pprConDeclFields fields = braces (sep (punctuate comma (map ppr_fld fields)))
   where
@@ -1050,11 +1035,29 @@ seems like the Right Thing anyway.)
 pprHsType :: (OutputableBndrId p) => HsType (GhcPass p) -> SDoc
 pprHsType ty = ppr_mono_ty ty
 
-ppr_mono_lty :: OutputableBndrId p
+ppr_mono_lty :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec (GhcPass p) (ConDeclField (GhcPass p)))
+  , WFT (Anno (ConDeclField (GhcPass p)))
+  , WFT XRec (GhcPass p) [GenLocated SrcSpanAnnA (HsType (GhcPass p))]
+  , WFT Anno [GenLocated SrcSpanAnnA (HsType (GhcPass p))]
+  ,
+#endif
+  OutputableBndrId p)
              => LHsType (GhcPass p) -> SDoc
 ppr_mono_lty ty = ppr_mono_ty (unLoc ty)
 
-ppr_mono_ty :: (OutputableBndrId p) => HsType (GhcPass p) -> SDoc
+ppr_mono_ty :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec (GhcPass p) (HsType (GhcPass p)))
+ , WFT (Anno (HsType (GhcPass p)))
+ , WFT (XRec (GhcPass p) (ConDeclField (GhcPass p)))
+ , WFT (Anno (ConDeclField (GhcPass p)))
+ , WFT (XRec (GhcPass p) [GenLocated SrcSpanAnnA (HsType (GhcPass p))])
+ , WFT (Anno [GenLocated SrcSpanAnnA (HsType (GhcPass p))])
+ ,
+#endif
+  OutputableBndrId p) => HsType (GhcPass p) -> SDoc
 ppr_mono_ty (HsForAllTy { hst_tele = tele, hst_body = ty })
   = sep [pprHsForAll tele Nothing, ppr_mono_lty ty]
 
