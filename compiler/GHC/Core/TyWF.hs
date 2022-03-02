@@ -293,7 +293,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
                   Nothing   -> pprPanic "tysyn tyConGenAts" (ppr tycon)
            else failWithTc (tyConArityErr tycon args)
          }
-    -- else return []
+  | isOpenFamilyTyCon tycon
   = do {
        ; elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; let css = fmap newPreds elabtys_and_css
