@@ -30,7 +30,7 @@ module GHC.Types.Name.Reader (
         -- ** Construction
         mkRdrUnqual, mkRdrQual,
         mkUnqual, mkVarUnqual, mkQual, mkOrig,
-        nameRdrName, getRdrName,
+        nameRdrName, getRdrName, nukeExact,
 
         -- ** Destruction
         rdrNameOcc, rdrNameSpace, demoteRdrName, promoteRdrName,

@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE PartialTypeConstructors #-}
 
-module Exporter where
+module Exporter (foobar, Elem, EqPair (..), g, G) where
 
 import GHC.Types (Type)
 

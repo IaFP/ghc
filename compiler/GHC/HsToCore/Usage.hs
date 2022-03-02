@@ -20,6 +20,7 @@ import GHC.Utils.Misc
 import GHC.Utils.Fingerprint
 import GHC.Utils.Panic
 
+import GHC.Core.TyCon (wF_TC_PREFIX)
 import GHC.Types.Name
 import GHC.Types.Name.Set ( NameSet, allUses )
 import GHC.Types.Unique.Set
@@ -32,7 +33,7 @@ import GHC.Unit.Module.Deps
 
 import GHC.Data.Maybe
 
-import Data.List (sortBy)
+import Data.List (sortBy, isPrefixOf)
 import Data.Map (Map)
 import qualified Data.Map as Map
 
@@ -281,12 +282,20 @@ mk_mod_usage_info pit hsc_env this_mod direct_imports used_names
         -- is why we use Map rather than OccEnv: Map works
         -- using Ord on the OccNames, which is a lexicographic ordering.
         ent_hashs :: Map OccName Fingerprint
-        ent_hashs = Map.fromList (map lookup_occ used_occs)
-
-        lookup_occ occ =
-            case hash_env occ of
-                Nothing -> pprPanic "mkUsage" (ppr mod <+> ppr occ <+> ppr used_names)
-                Just r  -> r
+        ent_hashs = Map.fromList $ catMaybes (map lookup_occ used_occs)
+      
+        lookup_occ :: OccName -> Maybe (OccName, Fingerprint)
+        -- There migh be names that don't have occurances due to building of WF_*
+        lookup_occ occ
+          | isJust ochs 
+          = ochs
+          | Nothing <- ochs
+          , wF_TC_PREFIX `isPrefixOf` (occNameString occ)
+          = Nothing
+          | otherwise
+          = pprPanic "mkUsage" (ppr mod <+> ppr occ <+> ppr used_names)
+          where
+            ochs = hash_env occ
 
         depend_on_exports = is_direct_import
         {- True

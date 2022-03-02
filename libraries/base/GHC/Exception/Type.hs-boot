@@ -1,5 +1,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE NoPartialTypeConstructors #-}
 
 module GHC.Exception.Type
   ( SomeException

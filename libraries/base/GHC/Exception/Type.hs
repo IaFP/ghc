@@ -2,6 +2,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE Trustworthy #-}
 
+
 {-# OPTIONS_HADDOCK not-home #-}
 
 -----------------------------------------------------------------------------

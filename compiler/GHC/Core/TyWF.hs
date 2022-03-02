@@ -602,7 +602,7 @@ lookupWfMirrorTyCon tycon
            wf_name = find (\name -> tfName `isSuffixOf` (get_tf_name name)) rdr_names
      ; wf_tc <- case wf_name of
                   Nothing -> return Nothing
-                  Just wf_name' -> fmap Just (lookupTyCon wf_name')
+                  Just wf_name -> fmap Just (lookupTyCon wf_name)
      ; traceTc "I found this wf tycon" (vcat [text "wf_tc" <+> ppr wf_tc
                                              , text "name:" <+> ppr wf_name
                                              , text "tfname:" <+> ppr tfName
