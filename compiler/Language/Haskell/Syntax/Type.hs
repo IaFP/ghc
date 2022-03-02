@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 903
-{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, ExistentialQuantification #-}
 #endif
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -82,7 +82,9 @@ import GHC.Parser.Annotation
 
 import Data.Data hiding ( Fixity, Prefix, Infix )
 import Data.Void
-
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 {-
 ************************************************************************
 *                                                                      *
@@ -310,18 +312,37 @@ type LHsKind pass = XRec pass (HsKind pass)
 -- See also @Note [Variable Specificity and Forall Visibility]@ in
 -- "GHC.Tc.Gen.HsType".
 data HsForAllTelescope pass
-  = HsForAllVis -- ^ A visible @forall@ (e.g., @forall a -> {...}@).
+  =
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XHsForAllVis pass)
+  , WFT (XRec pass (HsTyVarBndr () pass))
+  )
+  =>
+#endif
+     HsForAllVis -- ^ A visible @forall@ (e.g., @forall a -> {...}@).
                 --   These do not have any notion of specificity, so we use
                 --   '()' as a placeholder value.
     { hsf_xvis      :: XHsForAllVis pass
     , hsf_vis_bndrs :: [LHsTyVarBndr () pass]
     }
-  | HsForAllInvis -- ^ An invisible @forall@ (e.g., @forall a {b} c. {...}@),
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XHsForAllVis pass)
+  , WFT (XRec pass (HsTyVarBndr Specificity pass))
+  )
+  =>
+#endif
+    HsForAllInvis -- ^ An invisible @forall@ (e.g., @forall a {b} c. {...}@),
                   --   where each binder has a 'Specificity'.
     { hsf_xinvis       :: XHsForAllInvis pass
     , hsf_invis_bndrs  :: [LHsTyVarBndr Specificity pass]
     }
-  | XHsForAllTelescope !(XXHsForAllTelescope pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  (WFT (XXHsForAllTelescope pass))
+  =>
+#endif
+    XHsForAllTelescope !(XXHsForAllTelescope pass)
 
 -- | Located Haskell Type Variable Binder
 type LHsTyVarBndr flag pass = XRec pass (HsTyVarBndr flag pass)
@@ -329,12 +350,23 @@ type LHsTyVarBndr flag pass = XRec pass (HsTyVarBndr flag pass)
 
 -- | Located Haskell Quantified Type Variables
 data LHsQTyVars pass   -- See Note [HsType binders]
-  = HsQTvs { hsq_ext :: XHsQTvs pass
+  =
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XHsQTvs pass)
+  , WFT(LHsTyVarBndr () pass)
+  ) => 
+#endif
+    HsQTvs { hsq_ext :: XHsQTvs pass
 
            , hsq_explicit :: [LHsTyVarBndr () pass]
                 -- Explicit variables, written by the user
     }
-  | XLHsQTyVars !(XXLHsQTyVars pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+    WFT (XXLHsQTyVars pass)
+    => 
+#endif
+    XLHsQTyVars !(XXLHsQTyVars pass)
 
 hsQTvExplicit :: LHsQTyVars pass -> [LHsTyVarBndr () pass]
 hsQTvExplicit = hsq_explicit
@@ -365,16 +397,28 @@ hsQTvExplicit = hsq_explicit
 -- | The outermost type variables in a type that obeys the @forall@-or-nothing
 -- rule. See @Note [forall-or-nothing rule]@.
 data HsOuterTyVarBndrs flag pass
-  = HsOuterImplicit -- ^ Implicit forall, e.g.,
+  =
+#if MIN_VERSION_base(4,16,0)
+  WFT (XHsOuterImplicit pass) => 
+#endif
+    HsOuterImplicit -- ^ Implicit forall, e.g.,
                     --    @f :: a -> b -> b@
     { hso_ximplicit :: XHsOuterImplicit pass
     }
-  | HsOuterExplicit -- ^ Explicit forall, e.g.,
+  |
+#if MIN_VERSION_base(4,16,0)
+  (WFT (XHsOuterExplicit pass flag), WFT (LHsTyVarBndr flag (NoGhcTc pass))) => 
+#endif
+    HsOuterExplicit -- ^ Explicit forall, e.g.,
                     --    @f :: forall a b. a -> b -> b@
     { hso_xexplicit :: XHsOuterExplicit pass flag
     , hso_bndrs     :: [LHsTyVarBndr flag (NoGhcTc pass)]
     }
-  | XHsOuterTyVarBndrs !(XXHsOuterTyVarBndrs pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  WFT (XXHsOuterTyVarBndrs pass) => 
+#endif
+    XHsOuterTyVarBndrs !(XXHsOuterTyVarBndrs pass)
 
 -- | Used for signatures, e.g.,
 --
@@ -400,7 +444,11 @@ type HsOuterFamEqnTyVarBndrs = HsOuterTyVarBndrs ()
 data HsWildCardBndrs pass thing
     -- See Note [HsType binders]
     -- See Note [The wildcard story for types]
-  = HsWC { hswc_ext :: XHsWC pass thing
+  =
+#if MIN_VERSION_base(4,16,0)
+  WFT (XHsWC pass thing) => 
+#endif
+    HsWC { hswc_ext :: XHsWC pass thing
                 -- after the renamer
                 -- Wild cards, only named
                 -- See Note [Wildcards in visible kind application]
@@ -410,7 +458,11 @@ data HsWildCardBndrs pass thing
                 -- If there is an extra-constraints wildcard,
                 -- it's still there in the hsc_body.
     }
-  | XHsWildCardBndrs !(XXHsWildCardBndrs pass thing)
+  |
+#if MIN_VERSION_base(4,16,0)
+  WFT (XXHsWildCardBndrs pass thing) => 
+#endif
+    XHsWildCardBndrs !(XXHsWildCardBndrs pass thing)
 
 -- | Types that can appear in pattern signatures, as well as the signatures for
 -- term-level binders in RULES.
@@ -420,10 +472,19 @@ data HsWildCardBndrs pass thing
 -- slightly different semantics: see @Note [HsType binders]@.
 -- See also @Note [The wildcard story for types]@.
 data HsPatSigType pass
-  = HsPS { hsps_ext  :: XHsPS pass   -- ^ After renamer: 'HsPSRn'
+  =
+#if MIN_VERSION_base(4,16,0)
+  (WFT (XHsPS pass)
+  ,WFT (LHsType pass)) => 
+#endif
+    HsPS { hsps_ext  :: XHsPS pass   -- ^ After renamer: 'HsPSRn'
          , hsps_body :: LHsType pass -- ^ Main payload (the type itself)
     }
-  | XHsPatSigType !(XXHsPatSigType pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec pass (HsSigType pass)) => 
+#endif
+    XHsPatSigType !(XXHsPatSigType pass)
 
 -- | The extension field for 'HsPatSigType', which is only used in the
 -- renamer onwards. See @Note [Pattern signature binders and scoping]@.
@@ -447,11 +508,22 @@ type LHsSigWcType pass = HsWildCardBndrs pass (LHsSigType pass) -- Both
 -- outermost type variable quantification.
 -- See @Note [Representing type signatures]@.
 data HsSigType pass
-  = HsSig { sig_ext   :: XHsSig pass
-          , sig_bndrs :: HsOuterSigTyVarBndrs pass
-          , sig_body  :: LHsType pass
-          }
-  | XHsSigType !(XXHsSigType pass)
+  =
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XHsSig pass)
+  , WFT (HsOuterSigTyVarBndrs pass)
+  , WFT (LHsType pass)
+  ) => 
+#endif
+  HsSig { sig_ext   :: XHsSig pass
+        , sig_bndrs :: HsOuterSigTyVarBndrs pass
+        , sig_body  :: LHsType pass
+        }
+  |
+#if MIN_VERSION_base(4,16,0)
+  WFT (XXHsSigType pass) => 
+#endif
+    XHsSigType !(XXHsSigType pass)
 
 hsPatSigType :: HsPatSigType pass -> LHsType pass
 hsPatSigType = hsps_body
@@ -698,13 +770,27 @@ instance OutputableBndr HsIPName where
 -- explicit specificity is allowed (e.g. x :: forall {a} b. ...) or
 -- '()' in other places.
 data HsTyVarBndr flag pass
-  = UserTyVar        -- no explicit kinding
+  =
+#if MIN_VERSION_base(4,16,0)
+  (WFT (XUserTyVar pass)
+  , WFT (LIdP pass)
+  ) => 
+#endif
+    UserTyVar        -- no explicit kinding
          (XUserTyVar pass)
          flag
          (LIdP pass)
         -- See Note [Located RdrNames] in GHC.Hs.Expr
 
-  | KindedTyVar
+  |
+#if MIN_VERSION_base(4,16,0)
+  (WFT (XKindedTyVar pass)
+  , WFT (LIdP pass)
+  , WFT (LHsKind pass)
+  ) => 
+#endif
+
+    KindedTyVar
          (XKindedTyVar pass)
          flag
          (LIdP pass)
@@ -715,7 +801,11 @@ data HsTyVarBndr flag pass
 
         -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | XTyVarBndr
+  |
+#if MIN_VERSION_base(4,16,0)
+   WFT (XXTyVarBndr pass) => 
+#endif
+    XTyVarBndr
       !(XXTyVarBndr pass)
 
 -- | Does this 'HsTyVarBndr' come with an explicit kind annotation?
@@ -726,7 +816,14 @@ isHsKindedTyVar (XTyVarBndr {})  = False
 
 -- | Haskell Type
 data HsType pass
-  = HsForAllTy   -- See Note [HsType binders]
+  =
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XForAllTy pass)
+  , WFT (HsForAllTelescope pass)
+  , WFT (LHsType pass)
+  ) => 
+#endif
+    HsForAllTy   -- See Note [HsType binders]
       { hst_xforall :: XForAllTy pass
       , hst_tele    :: HsForAllTelescope pass
                                      -- Explicit, user-supplied 'forall a {b} c'
@@ -736,12 +833,25 @@ data HsType pass
       --         'GHC.Parser.Annotation.AnnDot','GHC.Parser.Annotation.AnnDarrow'
       -- For details on above see note [exact print annotations] in "GHC.Parser.Annotation"
 
-  | HsQualTy   -- See Note [HsType binders]
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XQualTy pass)
+  , WFT (LHsContext pass)
+  , WFT (LHsType pass)
+  ) => 
+#endif
+    HsQualTy   -- See Note [HsType binders]
       { hst_xqual :: XQualTy pass
       , hst_ctxt  :: LHsContext pass  -- Context C => blah
       , hst_body  :: LHsType pass }
 
-  | HsTyVar  (XTyVar pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XTyVar pass)
+  , WFT (LIdP pass)
+  ) => 
+#endif
+    HsTyVar  (XTyVar pass)
               PromotionFlag    -- Whether explicitly promoted,
                                -- for the pretty printer
              (LIdP pass)
@@ -752,18 +862,39 @@ data HsType pass
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsAppTy             (XAppTy pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XAppTy pass) 
+  ,  WFT (LHsType pass)
+  ,  WFT (LHsType pass)
+  ) => 
+#endif
+    HsAppTy             (XAppTy pass)
                         (LHsType pass)
                         (LHsType pass)
       -- ^ - 'GHC.Parser.Annotation.AnnKeywordId' : None
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsAppKindTy         (XAppKindTy pass) -- type level type app
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XAppKindTy pass) 
+  ,  WFT (LHsType pass)
+  ,  WFT (LHsKind pass)
+  ) => 
+#endif
+    HsAppKindTy         (XAppKindTy pass) -- type level type app
                         (LHsType pass)
                         (LHsKind pass)
 
-  | HsFunTy             (XFunTy pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XFunTy pass) 
+  ,  WFT (HsArrow pass)
+  ,  WFT (LHsType pass)
+  ) => 
+#endif
+    HsFunTy             (XFunTy pass)
                         (HsArrow pass)
                         (LHsType pass)   -- function type
                         (LHsType pass)
@@ -771,14 +902,26 @@ data HsType pass
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsListTy            (XListTy pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XListTy pass) 
+  ,  WFT (LHsType pass)
+  ) => 
+#endif
+    HsListTy            (XListTy pass)
                         (LHsType pass)  -- Element type
       -- ^ - 'GHC.Parser.Annotation.AnnKeywordId' : 'GHC.Parser.Annotation.AnnOpen' @'['@,
       --         'GHC.Parser.Annotation.AnnClose' @']'@
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsTupleTy           (XTupleTy pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XTupleTy pass) 
+  ,  WFT (LHsType pass)
+  ) => 
+#endif
+    HsTupleTy           (XTupleTy pass)
                         HsTupleSort
                         [LHsType pass]  -- Element types (length gives arity)
     -- ^ - 'GHC.Parser.Annotation.AnnKeywordId' : 'GHC.Parser.Annotation.AnnOpen' @'(' or '(#'@,
@@ -786,20 +929,39 @@ data HsType pass
 
     -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsSumTy             (XSumTy pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XSumTy pass) 
+  ,  WFT (LHsType pass)
+  ) => 
+#endif
+    HsSumTy             (XSumTy pass)
                         [LHsType pass]  -- Element types (length gives arity)
     -- ^ - 'GHC.Parser.Annotation.AnnKeywordId' : 'GHC.Parser.Annotation.AnnOpen' @'(#'@,
     --         'GHC.Parser.Annotation.AnnClose' '#)'@
 
     -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsOpTy              (XOpTy pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XOpTy pass) 
+  ,  WFT (LHsType pass)
+  , WFT (LIdP pass)
+  ) => 
+#endif
+    HsOpTy              (XOpTy pass)
                         (LHsType pass) (LIdP pass) (LHsType pass)
       -- ^ - 'GHC.Parser.Annotation.AnnKeywordId' : None
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsParTy             (XParTy pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XParTy pass) 
+  , WFT (LHsType pass)
+  ) => 
+#endif
+    HsParTy             (XParTy pass)
                         (LHsType pass)   -- See Note [Parens in HsSyn] in GHC.Hs.Expr
         -- Parenthesis preserved for the precedence re-arrangement in
         -- GHC.Rename.HsType
@@ -809,7 +971,14 @@ data HsType pass
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsIParamTy          (XIParamTy pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XIParamTy pass)
+  , WFT (XRec pass HsIPName)
+  , WFT (LHsType pass)
+  ) => 
+#endif
+    HsIParamTy          (XIParamTy pass)
                         (XRec pass HsIPName) -- (?x :: ty)
                         (LHsType pass)   -- Implicit parameters as they occur in
                                          -- contexts
@@ -820,12 +989,24 @@ data HsType pass
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsStarTy            (XStarTy pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XStarTy pass) 
+  ) => 
+#endif
+    HsStarTy            (XStarTy pass)
                         Bool             -- Is this the Unicode variant?
                                          -- Note [HsStarTy]
       -- ^ - 'GHC.Parser.Annotation.AnnKeywordId' : None
 
-  | HsKindSig           (XKindSig pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XKindSig pass)
+  , WFT (LHsType pass)
+  , WFT (LHsKind pass)
+  ) => 
+#endif
+    HsKindSig           (XKindSig pass)
                         (LHsType pass)  -- (ty :: kind)
                         (LHsKind pass)  -- A type with a kind signature
       -- ^
@@ -836,20 +1017,38 @@ data HsType pass
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsSpliceTy          (XSpliceTy pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XSpliceTy pass)
+  , WFT (HsSplice pass)
+  ) => 
+#endif
+    HsSpliceTy          (XSpliceTy pass)
                         (HsSplice pass)   -- Includes quasi-quotes
       -- ^ - 'GHC.Parser.Annotation.AnnKeywordId' : 'GHC.Parser.Annotation.AnnOpen' @'$('@,
       --         'GHC.Parser.Annotation.AnnClose' @')'@
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsDocTy             (XDocTy pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XDocTy pass)
+  , WFT (LHsType pass)
+  ) => 
+#endif
+    HsDocTy             (XDocTy pass)
                         (LHsType pass) LHsDocString -- A documented type
       -- ^ - 'GHC.Parser.Annotation.AnnKeywordId' : None
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsBangTy    (XBangTy pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XBangTy pass)
+  , WFT (LHsType pass)
+  ) => 
+#endif
+    HsBangTy    (XBangTy pass)
                 HsSrcBang (LHsType pass)   -- Bang-style type annotations
       -- ^ - 'GHC.Parser.Annotation.AnnKeywordId' :
       --         'GHC.Parser.Annotation.AnnOpen' @'{-\# UNPACK' or '{-\# NOUNPACK'@,
@@ -858,14 +1057,26 @@ data HsType pass
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsRecTy     (XRecTy pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XRecTy pass)
+  , WFT (LConDeclField pass)
+  ) => 
+#endif
+    HsRecTy     (XRecTy pass)
                 [LConDeclField pass]    -- Only in data type declarations
       -- ^ - 'GHC.Parser.Annotation.AnnKeywordId' : 'GHC.Parser.Annotation.AnnOpen' @'{'@,
       --         'GHC.Parser.Annotation.AnnClose' @'}'@
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsExplicitListTy       -- A promoted explicit list
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XExplicitListTy pass)
+  , WFT (LHsType pass)
+  ) => 
+#endif
+    HsExplicitListTy       -- A promoted explicit list
         (XExplicitListTy pass)
         PromotionFlag      -- whether explicitly promoted, for pretty printer
         [LHsType pass]
@@ -874,7 +1085,13 @@ data HsType pass
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsExplicitTupleTy      -- A promoted explicit tuple
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XExplicitTupleTy pass)
+  , WFT (LHsType pass)
+  ) => 
+#endif
+    HsExplicitTupleTy      -- A promoted explicit tuple
         (XExplicitTupleTy pass)
         [LHsType pass]
       -- ^ - 'GHC.Parser.Annotation.AnnKeywordId' : 'GHC.Parser.Annotation.AnnOpen' @"'("@,
@@ -882,19 +1099,34 @@ data HsType pass
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsTyLit (XTyLit pass) HsTyLit      -- A promoted numeric literal.
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XTyLit pass)
+  ) => 
+#endif
+    HsTyLit (XTyLit pass) HsTyLit      -- A promoted numeric literal.
       -- ^ - 'GHC.Parser.Annotation.AnnKeywordId' : None
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
-  | HsWildCardTy (XWildCardTy pass)  -- A type wildcard
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XWildCardTy pass)
+  ) => 
+#endif
+    HsWildCardTy (XWildCardTy pass)  -- A type wildcard
       -- See Note [The wildcard story for types]
       -- ^ - 'GHC.Parser.Annotation.AnnKeywordId' : None
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 
   -- Extension point; see Note [Trees That Grow] in Language.Haskell.Syntax.Extension
-  | XHsType
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XXType pass)
+  ) => 
+#endif
+    XHsType
       !(XXType pass)
 
 -- An escape hatch for tunnelling a Core 'Type' through 'HsType'.
@@ -917,19 +1149,46 @@ data HsTyLit
 
 -- | Denotes the type of arrows in the surface language
 data HsArrow pass
-  = HsUnrestrictedArrow !(LHsUniToken "->" "→" pass)
+  =
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (LHsUniToken "->" "→" pass)
+  ) => 
+#endif
+    HsUnrestrictedArrow !(LHsUniToken "->" "→" pass)
     -- ^ a -> b or a → b
-  | HsLinearArrow !(HsLinearArrowTokens pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (HsLinearArrowTokens pass)
+  ) => 
+#endif
+    HsLinearArrow !(HsLinearArrowTokens pass)
     -- ^ a %1 -> b or a %1 → b, or a ⊸ b
-  | HsExplicitMult !(LHsToken "%" pass) !(LHsType pass) !(LHsUniToken "->" "→" pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (LHsToken "%" pass)
+  , WFT (LHsType pass)
+  , WFT (LHsUniToken "->" "→" pass)
+  ) => 
+#endif
+    HsExplicitMult !(LHsToken "%" pass) !(LHsType pass) !(LHsUniToken "->" "→" pass)
     -- ^ a %m -> b or a %m → b (very much including `a %Many -> b`!
     -- This is how the programmer wrote it). It is stored as an
     -- `HsType` so as to preserve the syntax as written in the
     -- program.
 
 data HsLinearArrowTokens pass
-  = HsPct1 !(LHsToken "%1" pass) !(LHsUniToken "->" "→" pass)
-  | HsLolly !(LHsToken "⊸" pass)
+  =
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (LHsUniToken "->" "→" pass)
+  , WFT (LHsToken "%1" pass)
+  ) => 
+#endif
+    HsPct1 !(LHsToken "%1" pass) !(LHsUniToken "->" "→" pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  WFT (LHsToken "⊸" pass) => 
+#endif
+  HsLolly !(LHsToken "⊸" pass)
 
 -- | This is used in the syntax. In constructor declaration. It must keep the
 -- arrow representation.
@@ -1045,7 +1304,14 @@ type LConDeclField pass = XRec pass (ConDeclField pass)
 
 -- | Constructor Declaration Field
 data ConDeclField pass  -- Record fields have Haddock docs on them
-  = ConDeclField { cd_fld_ext  :: XConDeclField pass,
+  =
+#if MIN_VERSION_base(4,16,0)
+  ( WFT (XConDeclField pass)
+  , WFT (LFieldOcc pass)
+  , WFT (LBangType pass)
+  ) => 
+#endif
+    ConDeclField { cd_fld_ext  :: XConDeclField pass,
                    cd_fld_names :: [LFieldOcc pass],
                                    -- ^ See Note [ConDeclField passs]
                    cd_fld_type :: LBangType pass,
@@ -1053,7 +1319,11 @@ data ConDeclField pass  -- Record fields have Haddock docs on them
       -- ^ - 'GHC.Parser.Annotation.AnnKeywordId' : 'GHC.Parser.Annotation.AnnDcolon'
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
-  | XConDeclField !(XXConDeclField pass)
+  |
+#if MIN_VERSION_base(4,16,0)
+  WFT (XXConDeclField pass) => 
+#endif
+    XConDeclField !(XXConDeclField pass)
 
 -- | Describes the arguments to a data constructor. This is a common
 -- representation for several constructor-related concepts, including:

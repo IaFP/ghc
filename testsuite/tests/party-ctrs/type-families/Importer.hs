@@ -3,7 +3,7 @@
 
 module Importer where
 
-import Exporter
+import Exporter (Elem, G, g)
 
 -- This should be given type
 --   forall a. WF_Elem a => Elem a -> a

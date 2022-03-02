@@ -28,6 +28,7 @@ import GHC.Core.PatSyn
 import GHC.Data.Maybe
 import GHC.Data.FastString (fsLit)
 import GHC.Driver.Env
+import GHC.Iface.Env (lookupOrig)
 
 import GHC.Types.Unique.Set
 import GHC.Types.SrcLoc as SrcLoc
@@ -44,6 +45,9 @@ import Control.Monad
 import GHC.Driver.Session
 import GHC.Parser.PostProcess ( setRdrNameSpace )
 import Data.Either            ( partitionEithers )
+import Data.List (find, isSuffixOf)
+import qualified GHC.LanguageExtensions as LangExt
+
 
 {-
 ************************************************************************
@@ -136,15 +140,19 @@ data ExportAccum        -- The type of the accumulating parameter of
 emptyExportAccum :: ExportAccum
 emptyExportAccum = ExportAccum emptyOccEnv emptyUniqSet
 
-accumExports :: (ExportAccum -> x -> TcRn (Maybe (ExportAccum, y)))
+accumExports :: (ExportAccum -> x -> TcRn ([(ExportAccum, y)]))
              -> [x]
              -> TcRn [y]
-accumExports f = fmap (catMaybes . snd) . mapAccumLM f' emptyExportAccum
-  where f' acc x = do
+accumExports f = fmap (concat . snd) . mapAccumLM f' emptyExportAccum
+  where
+    -- f' :: ExportAccum -> x -> TcRn (ExportAccum, [y])
+    f' acc x = do
           m <- attemptM (f acc x)
           pure $ case m of
-            Just (Just (acc', y)) -> (acc', Just y)
-            _                     -> (acc, Nothing)
+            Just [(acc', y),(acc'', y')]  -> (acc'', [y, y'])
+            -- this is the case where y can have an accompayning wellformedness type family
+            Just [(acc', y)]              -> (acc', [y])
+            _                             -> (acc, [])
 
 type ExportOccMap = OccEnv (GreName, IE GhcPs)
         -- Tracks what a particular exported OccName
@@ -257,11 +265,12 @@ exports_from_avail Nothing rdr_env _imports _this_mod
 
 exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
   = do ie_avails <- accumExports do_litem rdr_items
+       traceRn "rnExportsFromAvail" (ppr ie_avails)
        let final_exports = nubAvails (concatMap snd ie_avails) -- Combine families
        return (Just ie_avails, final_exports)
   where
     do_litem :: ExportAccum -> LIE GhcPs
-             -> RnM (Maybe (ExportAccum, (LIE GhcRn, Avails)))
+             -> RnM [(ExportAccum, (LIE GhcRn, Avails))]
     do_litem acc lie = setSrcSpan (getLocA lie) (exports_from_item acc lie)
 
     -- Maps a parent to its in-scope children
@@ -271,7 +280,8 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
     -- See Note [Avails of associated data families]
     expand_tyty_gre :: GlobalRdrElt -> [GlobalRdrElt]
     expand_tyty_gre (gre@GRE { gre_par = ParentIs p })
-      | isTyConName p, isTyConName (greMangledName gre) = [gre, gre{ gre_par = NoParent }]
+      | isTyConName p
+      , isTyConName (greMangledName gre) = [gre, gre{ gre_par = NoParent }]
     expand_tyty_gre gre = [gre]
 
     imported_modules = [ imv_name imv
@@ -279,12 +289,12 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                        , imv <- importedByUser xs ]
 
     exports_from_item :: ExportAccum -> LIE GhcPs
-                      -> RnM (Maybe (ExportAccum, (LIE GhcRn, Avails)))
+                      -> RnM [(ExportAccum, (LIE GhcRn, Avails))]
     exports_from_item (ExportAccum occs earlier_mods)
                       (L loc ie@(IEModuleContents _ lmod@(L _ mod)))
         | mod `elementOfUniqSet` earlier_mods    -- Duplicate export of M
         = do { addDiagnostic (TcRnDupeModuleExport mod) ;
-               return Nothing }
+               return [] }
 
         | otherwise
         = do { let { exportValid = (mod `elem` imported_modules)
@@ -316,44 +326,79 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                        (vcat [ ppr mod
                              , ppr new_exports ])
 
-             ; return (Just ( ExportAccum occs' mods
+             ; return ([( ExportAccum occs' mods
                             , ( L loc (IEModuleContents noExtField lmod)
-                              , new_exports))) }
+                              , new_exports))]) }
 
     exports_from_item acc@(ExportAccum occs mods) (L loc ie)
         | Just new_ie <- lookup_doc_ie ie
-        = return (Just (acc, (L loc new_ie, [])))
+        = return [(acc, (L loc new_ie, []))]
 
         | otherwise
-        = do (new_ie, avail') <- lookup_ie ie
-             if isUnboundName (ieName new_ie)
-                  then return Nothing    -- Avoid error cascade
+        = do ((new_ie, avail):wf_stuff) <- lookup_ie ie
+             partyCtrs <- xoptM LangExt.PartialTypeConstructors
+             if isUnboundName (ieName new_ie) 
+                  then do 
+                       traceRn "exports_from_item unbound" (ppr $ ieName new_ie)
+                       return []    -- Avoid error cascade
                   else do
+                       traceRn "exports_from_item bounded" (ppr (ieName new_ie)
+                                                            $$ ppr wf_stuff)
+                       occs' <- check_occs ie occs [avail]
+                       if length wf_stuff == 1 && partyCtrs
+                       then do let (wf_ie, wf_avail) = head wf_stuff
+                               occs'' <- check_occs ie occs' [wf_avail]
+                               return [(ExportAccum occs' mods
+                                       , (L loc new_ie, [avail]))
+                                      , (ExportAccum occs'' mods
+                                       , (L loc wf_ie, [wf_avail]))]
+                       else return [(ExportAccum occs' mods
+                                    , (L loc new_ie, [avail]))]
 
-                    tcs <- fmap tcg_tcs getGblEnv
-                    let tcs' = map (avail . getName) (filter isWfMirrorTyCon tcs)
-                    occs' <- check_occs ie occs (avail' : tcs')
-
-                    return (Just ( ExportAccum occs' mods
-                                 , (L loc new_ie, [avail'])))
-
+      
+     ---- 
+    lookup_wf_ie :: LIEWrappedName (IdP GhcPs) -> RnM [(IE GhcRn, AvailInfo)]
+    lookup_wf_ie (L l rdr)
+        = do { (name, _) <- lookupGreAvailRn $ ieWrappedName rdr
+             ; let wf_name = if isTyConName name
+                             then [(mkTcOcc (wF_TC_PREFIX ++ (occNameString (nameOccName name))))]
+                             else []
+             ; m <- getModule
+             ; n::[Name] <- mapM (lookupOrig m) wf_name
+             ; let wf_rdr_name = fmap nukeExact n
+             -- rdr_elts <- fmap (concat . nonDetOccEnvElts . tcg_rdr_env) getGblEnv
+             -- let -- rdr_names = fmap greMangledName rdr_elts
+             --     wf_rdr_name = find (n `isSuffixOf`) rdr_elts
+             -- [(wf_name, wf_avail)] <- mapM lookupGreAvailRn wf_rdr_name
+             ; grenames <- mapM lookupGlobalOccRn wf_rdr_name
+             -- traceRn "lookup_ie IEThingsAbs" (ppr n $$ ppr wf_name $$ ppr wf_avail)
+             ; traceRn "lookup_wf_ie IEThingsAbs " (ppr grenames $$ ppr n)
+             ; if length grenames > 0 && length n > 0
+               then return [ (IEThingAbs noAnn (L l (replaceWrappedName rdr (head n)))
+                           , availTC (head n) n []) ]
+               else return []
+             }
     -------------
-    lookup_ie :: IE GhcPs -> RnM (IE GhcRn, AvailInfo)
+    lookup_ie :: IE GhcPs -> RnM [(IE GhcRn, AvailInfo)]
     lookup_ie (IEVar _ (L l rdr))
         = do (name, avail) <- lookupGreAvailRn $ ieWrappedName rdr
-             return (IEVar noExtField (L l (replaceWrappedName rdr name)), avail)
+             traceRn "lookup_ie IEVar" (ppr $ name)
+             return [(IEVar noExtField (L l (replaceWrappedName rdr name)), avail)]
 
-    lookup_ie (IEThingAbs _ (L l rdr))
+    lookup_ie (IEThingAbs _ iew@(L l rdr))
         = do (name, avail) <- lookupGreAvailRn $ ieWrappedName rdr
-             return (IEThingAbs noAnn (L l (replaceWrappedName rdr name))
-                    , avail)
+             traceRn "lookup_ie IEThingsAbs" (ppr $ name)
+             partyCtrs <- xoptM LangExt.PartialTypeConstructors
+             wf_stuff <- if partyCtrs then lookup_wf_ie iew else return []
+             return ((IEThingAbs noAnn (L l (replaceWrappedName rdr name)), avail):wf_stuff)
 
     lookup_ie ie@(IEThingAll _ n')
         = do
             (n, avail, flds) <- lookup_ie_all ie n'
             let name = unLoc n
-            return (IEThingAll noAnn (replaceLWrappedName n' (unLoc n))
-                   , availTC name (name:avail) flds)
+            traceRn "lookup_ie IEThingAll" (ppr $ name)
+            return [(IEThingAll noAnn (replaceLWrappedName n' (unLoc n))
+                   , availTC name (name:avail) flds)]
 
 
     lookup_ie ie@(IEThingWith _ l wc sub_rdrs)
@@ -365,10 +410,11 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                 NoIEWildcard -> return (lname, [], [])
                 IEWildcard _ -> lookup_ie_all ie l
             let name = unLoc lname
+            traceRn "lookup_ie IEThingWith" (ppr $ name)
             let flds' = flds ++ (map noLoc all_flds)
-            return (IEThingWith flds' (replaceLWrappedName l name) wc subs,
+            return [(IEThingWith flds' (replaceLWrappedName l name) wc subs,
                     availTC name (name : avails ++ all_avail)
-                                 (map unLoc flds ++ all_flds))
+                                 (map unLoc flds ++ all_flds))]
 
 
     lookup_ie _ = panic "lookup_ie"    -- Other cases covered earlier
@@ -390,6 +436,7 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                   -> RnM (Located Name, [Name], [FieldLabel])
     lookup_ie_all ie (L l rdr) =
           do name <- lookupGlobalOccRn $ ieWrappedName rdr
+             traceRn "lookup_ie_all:" (ppr name)
              let gres = findChildren kids_env name
                  (non_flds, flds) = classifyGREs gres
              addUsedKids (ieWrappedName rdr) gres
@@ -399,7 +446,7 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                   else -- This occurs when you export T(..), but
                        -- only import T abstractly, or T is a synonym.
                        addErr (TcRnExportHiddenComponents ie)
-             return (L (locA l) name, non_flds, flds)
+             return (L (locA l) name, (non_flds), flds)
 
     -------------
     lookup_doc_ie :: IE GhcPs -> Maybe (IE GhcRn)

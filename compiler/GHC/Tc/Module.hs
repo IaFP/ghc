@@ -314,7 +314,8 @@ tcRnModuleTcRnM hsc_env mod_sum
           $ do { -- Rename and type check the declarations
                  traceRn "rn1a" empty
                ; tcg_env <- if isHsBootOrSig hsc_src
-                            then do {
+                            then unsetXOptM LangExt.PartialTypeConstructors $
+                                 do {
                               ; tcg_env <- tcRnHsBootDecls hsc_src local_decls
                               ; traceRn "rn4a: before exports" empty
                               ; tcg_env <- setGblEnv tcg_env $

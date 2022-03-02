@@ -265,7 +265,10 @@ tyConGenAtsTcM :: Bool
 tyConGenAtsTcM isTyConPhase eTycons ts tycon args
   | isTyConInternal tycon
   = do { traceTc "wfelab internalTyCon" (ppr tycon)
-       ; return [] }
+       ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
+       ; let css = fmap newPreds elabds
+       ; return $ foldl mergeAtAtConstraints [] css
+       }
   | isClassTyCon tycon
   = do { traceTc "wfelab ClassTyCon" (ppr tycon)
        ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
@@ -279,19 +282,19 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
             ; return $ foldl mergeAtAtConstraints [] css
             }
   | isTypeSynonymTyCon tycon =
+      do { traceTc "wfelab typesyn" (ppr tycon)
     -- if not isTyConPhase
     -- then -- the interaction of typesynonyms and type family is effed up
-      if (args `lengthAtLeast` (tyConArity tycon))
-      then case coreView (TyConApp tycon args) of
-             Just ty   -> do { elabd <- genAtAtConstraintsExceptTcM isTyConPhase eTycons ts ty
-                             ; traceTc "tysyn tyConGenAtsTcM: " (ppr (elabTy elabd))
-                             ; concatMapM flatten_atat_constraint $ newPreds elabd }
-             Nothing   -> pprPanic "tysyn tyConGenAts" (ppr tycon)
-      else failWithTc (tyConArityErr tycon args)
+         ; if (args `lengthAtLeast` (tyConArity tycon))
+           then case coreView (TyConApp tycon args) of
+                  Just ty   -> do { elabd <- genAtAtConstraintsExceptTcM isTyConPhase eTycons ts ty
+                                  ; traceTc "tysyn tyConGenAtsTcM: " (ppr (elabTy elabd))
+                                  ; concatMapM flatten_atat_constraint $ newPreds elabd }
+                  Nothing   -> pprPanic "tysyn tyConGenAts" (ppr tycon)
+           else failWithTc (tyConArityErr tycon args)
+         }
     -- else return []
-  | isOpenFamilyTyCon tycon
   = do {
-       ;
        ; elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
@@ -304,7 +307,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
            Nothing -> return $ foldl mergeAtAtConstraints tfwfcts css
            Just r | ty <- reductionReducedType r -> do {
              ; elabd <- genAtAtConstraintsTcM isTyConPhase ty
-             ; return $ foldl mergeAtAtConstraints (tfwfcts ++ newPreds elabd) css
+             ; return $ foldl mergeAtAtConstraints (mergeAtAtConstraints tfwfcts $ newPreds elabd) css
              }
        }
 
@@ -320,8 +323,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        }      
   | isTypeFamilyTyCon tycon
     || isDataFamilyTyCon tycon
-  = do {
-       ; traceTc "wfelab isTypeFamily or isDataFamily: " (ppr tycon)
+  = do { traceTc "wfelab datafam/typefam tycon" (ppr tycon)
        ; elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
@@ -334,9 +336,10 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        }
   -- How should newtype deriving work, how does coercing constraints work? i think they should be OK... 
   | isNewTyCon tycon, not isTyConPhase =
-      do { -- let dc = tyConSingleDataCon tycon
-        -- args = fmap scaledThing $ dataConOrigArgTys dc
-           wfcs <- recGenAtsTcM tycon args ts
+      do {traceTc "wfelab new tycon" (ppr tycon)
+           -- let dc = tyConSingleDataCon tycon
+          -- args = fmap scaledThing $ dataConOrigArgTys dc
+         ; wfcs <- recGenAtsTcM tycon args ts
          ; elabds <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
          ; return $ foldl mergeAtAtConstraints wfcs (fmap newPreds elabds)
          } 
@@ -348,12 +351,8 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
 recGenAtsTcM :: TyCon -> [Type]
              -> [Type] -- things to ignore
              -> TcM ThetaType
-recGenAtsTcM tc args ts = do wfcs <- recGenAts' tc arg_binder_role [] [] ts
+recGenAtsTcM tc args ts = do wfcs <- recGenAts tc args ts
                              concatMapM flatten_atat_constraint wfcs
-  where
-    binders = tyConBinders tc
-    roles = tyConRoles tc
-    arg_binder_role = zip3 args binders roles
 
 recGenAts :: Monad m => TyCon -> [Type]
           -> [Type] -- things to ignore
@@ -361,7 +360,8 @@ recGenAts :: Monad m => TyCon -> [Type]
 recGenAts tc args ts = recGenAts' tc arg_binder_role [] [] ts
   where
     binders = tyConBinders tc
-    arg_binder_role = zip3 args binders (tyConRoles tc)
+    roles = tyConRoles tc
+    arg_binder_role = zip3 args binders roles
 
 recGenAts' :: Monad m => TyCon
                       -> [(Type, TyConBinder, Role)] -- remaning 
@@ -374,7 +374,7 @@ recGenAts' tyc ((hd, bndr, r) : tl) tycargs' acc ts
   = do { let atc = if (isNamedTyConBinder bndr) -- TODO: I think there is a cannonical way to do this check.
                       || isInvisibleArgFlag (tyConBinderArgFlag bndr)
                       || any (eqType hd) (star:ts) -- we don't want f @@ * creaping in
-                      || r == Phantom
+                      -- || r == Phantom
                    then []
                    else [(TyConApp tyc (tycargs')) `at'at` hd]
        ; recGenAts' tyc tl (tycargs' ++ [hd]) (mergeAtAtConstraints acc atc) ts

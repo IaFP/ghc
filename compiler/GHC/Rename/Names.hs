@@ -942,13 +942,16 @@ getLocalNonValBinders fixity_env
              ; let fld_env = case unLoc tc_decl of
                      DataDecl { tcdDataDefn = d } -> mk_fld_env d names flds'
                      _                            -> []
-             ; wf_stuff <- case unLoc tc_decl of
-                             FamDecl {} -> do { m <- getModule
-                                              ; let occ = mkTcOcc $ wF_TC_PREFIX ++ (occNameString . nameOccName $ main_name)
-                                              ; wf_name <- newGlobalBinder m occ (nameSrcSpan main_name)
-                                              ; return [((availTC wf_name [wf_name] []), [])]
-                                              }
-                             _          -> return []
+             ; partyCtrs <- xoptM LangExt.PartialTypeConstructors        
+             ; wf_stuff <- if partyCtrs
+                           then  case unLoc tc_decl of
+                                   FamDecl {} -> do { m <- getModule
+                                                    ; let occ = mkTcOcc $ wF_TC_PREFIX ++ (occNameString . nameOccName $ main_name)
+                                                    ; wf_name <- newGlobalBinder m occ (nameSrcSpan main_name)
+                                                    ; return [((availTC wf_name [wf_name] []), [])]
+                                                    }
+                                   _          -> return []
+                           else return []
              ; return $ (availTC main_name names flds', fld_env):wf_stuff }
 
 
