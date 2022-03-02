@@ -16,7 +16,6 @@ module GHC.Tc.Deriv ( tcDeriving, DerivInfo(..)
                     , mk_atat_fam, mk_atat_fam_except
                     , mk_atat_fam_units, mk_atat_fam_except_units
                     , elabTyCons, saneTyConForElab
-                    , genMirrorWFTyFams, genMirrorWFTyFam
                     ) where
 
 import GHC.Prelude
@@ -57,9 +56,7 @@ import GHC.Types.Name
 import GHC.Types.Avail
 import GHC.Types.Name.Set as NameSet
 import GHC.Core.TyCon
-import GHC.Core.TyWF (WfElabTypeDetails(..), genAtAtConstraintsExceptTcM
-                     , genAtAtConstraintsTcM, mergeAtAtConstraints
-                     , predTyArgs, flatten_atat_constraint, saneTyConForElab)
+import GHC.Core.TyWF
 import GHC.Tc.Utils.TcType
 import GHC.Types.Var as Var
 import GHC.Types.Var.Env
@@ -2549,36 +2546,3 @@ elabTySynRhs tc = do
   where
     f :: [Type] -> [Type] -> Bool
     f candidates should'exist = and [any (c `eqType`) should'exist | c <- candidates ]
-
-genMirrorWFTyFams :: [(SrcSpan, TyCon)] -> TcM [(TyCon, TyCon)]
-genMirrorWFTyFams = mapM genMirrorWFTyFam
-
-genMirrorWFTyFam :: (SrcSpan, TyCon) -> TcM (TyCon, TyCon)
-genMirrorWFTyFam (loc, tc)
-  | isOpenFamilyTyCon tc
-  = do { -- u <- newUnique
-       ; m <- getModule
-       ; let occ = mkTcOcc $ wF_TC_PREFIX ++ (occNameString . nameOccName . tyConName $ tc)
-             -- name = mkWiredInName m occ uniq (ATyCon new_tc) UserSyntax
-       ; name <- lookupOrig m occ
-       -- ; name <- newGlobalBinder m occ loc
-       -- ; let ainfo =  avail name
-       
-       -- ; tcRepName <- newTyConRepName name 
-
-       ; (mirror_tc, n_tc) <- fixM $ (\_ -> do { let mirror_tc = mkWFMirrorTyFam name n_tc
-                                                     n_tc      = updateTyConMirror tc mirror_tc
-                                               ; return (mirror_tc, n_tc)
-                                               }
-                                     )
-               -- mkSystemNameAt uniq ns loc
-               -- rdrName = newAuxBinderRdrName loc (nameOccName . tyConName tc) () 
-       ; traceTc "wf tf mirror open occname:" (ppr name <+> ppr (nameUnique name))
-       ; traceTc "wf tf mirror flavour: " (ppr (tyConFlavour mirror_tc))
-       -- TODO: Export the global binder 
-       ; return $ (mirror_tc, n_tc)
-       }
-  | otherwise
-  = do { traceTc "wf tf mirror unknown case:" (ppr (famTyConFlav_maybe tc) <+> ppr tc)
-       ; return (tc, tc)
-       }

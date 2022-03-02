@@ -13,7 +13,8 @@ module GHC.Core.TyWF (
   attachConstraints, mergeAtAtConstraints,
   elabAtAtConstraintsTcM, elabWithAtAtConstraintsTopTcM, elabAtAtConstraints, -- unelabAtAtConstraintsM, 
   predTyArgs, predTyVars, flatten_atat_constraint, saneTyConForElab,
-  lookupWfMirrorTyCon, hasWfMirrorTyConLookup
+  lookupWfMirrorTyCon, hasWfMirrorTyConLookup,
+  genMirrorWFTyFam, genMirrorWFTyFams
   ) where
 
 import GHC.Tc.Instance.Family (tcGetFamInstEnvs)
@@ -41,6 +42,10 @@ import GHC.Unit.External
 import GHC.Builtin.Names.TH
 import GHC.Builtin.Types (liftedTypeKindTyCon, isCTupleTyConName, wfTyCon)
 import GHC.Types.Name.Reader
+
+import GHC.Types.SrcLoc
+import GHC.Iface.Env
+import GHC.Unit.Module (getModule)
 -- import GHC.Types.Var.Set
 
 -- import TcRnMonad (failWithTc)
@@ -314,14 +319,30 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
 
   | isTyConAssoc tycon 
   = do {
-      ; traceTc "wfelab tyconassoc: " (ppr tycon)
-      ; let (args', extra_args) = splitAt (tyConArity tycon) (zip3 args (tyConBinders tycon) (tyConRoles tycon))
-       -- ; traceTc "tyconassoc tyConGensAtsTcM: " (text "TyCon " <> ppr tycon
-       --                                           <+> ppr (tyConArity tycon)
-       --                                           <+> text "args " <> ppr args'
-       --                                           <+> text "extra_args " <> ppr extra_args)
-       ; recGenAts' tycon extra_args (map (\(e, _, _) -> e) args') [] ts
-       }      
+       ; elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
+       ; let css = fmap newPreds elabtys_and_css
+       ; co_ty_mb <- matchFamTcM tycon args
+       ; wftycon <- lookupWfMirrorTyCon tycon
+       ; let tfwfcts::ThetaType = maybeToList $ fmap (\t -> mkTyConApp t args) wftycon
+       ; traceTc "wfelab (associated) open tyfam application"
+         (vcat [ ppr tycon
+               , ppr wftycon
+               , ppr tfwfcts])
+       ; case co_ty_mb of
+           Nothing -> return $ foldl mergeAtAtConstraints tfwfcts css
+           Just r | ty <- reductionReducedType r -> do {
+             ; elabd <- genAtAtConstraintsTcM isTyConPhase ty
+             ; return $ foldl mergeAtAtConstraints (mergeAtAtConstraints tfwfcts $ newPreds elabd) css
+             }
+       }
+      -- ; traceTc "wfelab tyconassoc: " (ppr tycon)
+      -- ; let (args', extra_args) = splitAt (tyConArity tycon) (zip3 args (tyConBinders tycon) (tyConRoles tycon))
+      --  -- ; traceTc "tyconassoc tyConGensAtsTcM: " (text "TyCon " <> ppr tycon
+      --  --                                           <+> ppr (tyConArity tycon)
+      --  --                                           <+> text "args " <> ppr args'
+      --  --                                           <+> text "extra_args " <> ppr extra_args)
+      --  ; recGenAts' tycon extra_args (map (\(e, _, _) -> e) args') [] ts
+      --  }      
   | isTypeFamilyTyCon tycon
     || isDataFamilyTyCon tycon
   = do { traceTc "wfelab datafam/typefam tycon" (ppr tycon)
@@ -587,7 +608,8 @@ tyConGenAts eTycons ts tycon args
        ; return $ foldl mergeAtAtConstraints [] css
        }
   | isFamilyTyCon tycon -- Ideally look up the TyFam mirror constraints @Alex
-  = do { elabtys_and_css <- mapM (genAtAtConstraintsExcept (tycon:eTycons) ts) args
+  = do {
+       ; elabtys_and_css <- mapM (genAtAtConstraintsExcept (tycon:eTycons) ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; return $ foldl mergeAtAtConstraints [] css
        }
@@ -599,7 +621,13 @@ lookupWfMirrorInGblEnv tycon = do
   tcs <- fmap tcg_tcs getGblEnv
   let get_tf_name = occNameString . nameOccName . tyConName
       tfName =  wF_TC_PREFIX ++ (get_tf_name tycon)
-  return $ find (\tc -> tfName `isSuffixOf` (get_tf_name tc)) tcs
+      wf_tc = find (\tc -> tfName `isSuffixOf` (get_tf_name tc)) tcs
+  traceTc "I found this wf tycon in global env env"
+    (vcat [text "wf_tc" <+> ppr wf_tc
+          , text "tfname:" <+> ppr tfName
+          , text "tycon:" <+> ppr tycon
+          , text "tcs" <+> ppr tcs])     
+  return $ wf_tc
 
 lookupWfMirrorInRdrEnv :: TyCon -> TcM (Maybe TyCon)
 lookupWfMirrorInRdrEnv tycon = do
@@ -611,11 +639,12 @@ lookupWfMirrorInRdrEnv tycon = do
   wf_tc <- case wf_name of
              Nothing -> return Nothing
              Just wf_name -> fmap Just (lookupTyCon wf_name)
-  traceTc "I found this wf tycon" (vcat [text "wf_tc" <+> ppr wf_tc
-                                        , text "name:" <+> ppr wf_name
-                                        , text "tfname:" <+> ppr tfName
-                                        , text "tycon:" <+> ppr tycon
-                                        , text "rdr_names" <+> ppr rdr_names])
+  traceTc "I found this wf tycon in RDR env"
+    (vcat [text "wf_tc" <+> ppr wf_tc
+          , text "name:" <+> ppr wf_name
+          , text "tfname:" <+> ppr tfName
+          , text "tycon:" <+> ppr tycon
+          , text "rdr_names" <+> ppr rdr_names])
   return wf_tc
   
 hasWfMirrorTyConLookup :: TyCon -> TcM Bool
@@ -634,3 +663,36 @@ lookupWfMirrorTyCon tycon
        Just wf_tc -> return (Just wf_tc)
        Nothing -> lookupWfMirrorInRdrEnv tycon
      
+
+genMirrorWFTyFams :: [(SrcSpan, TyCon)] -> TcM [(TyCon, TyCon)]
+genMirrorWFTyFams = mapM genMirrorWFTyFam
+
+genMirrorWFTyFam :: (SrcSpan, TyCon) -> TcM (TyCon, TyCon)
+genMirrorWFTyFam (loc, tc)
+  | isOpenFamilyTyCon tc
+  = do { -- u <- newUnique
+       ; m <- getModule
+       ; let occ = mkTcOcc $ wF_TC_PREFIX ++ (occNameString . nameOccName . tyConName $ tc)
+             -- name = mkWiredInName m occ uniq (ATyCon new_tc) UserSyntax
+       ; name <- lookupOrig m occ
+       -- ; name <- newGlobalBinder m occ loc
+       -- ; let ainfo =  avail name
+       
+       -- ; tcRepName <- newTyConRepName name 
+
+       ; (mirror_tc, n_tc) <- fixM $ (\_ -> do { let mirror_tc = mkWFMirrorTyFam name n_tc
+                                                     n_tc      = updateTyConMirror tc mirror_tc
+                                               ; return (mirror_tc, n_tc)
+                                               }
+                                     )
+               -- mkSystemNameAt uniq ns loc
+               -- rdrName = newAuxBinderRdrName loc (nameOccName . tyConName tc) () 
+       ; traceTc "wf tf mirror open occname:" (ppr name <+> ppr (nameUnique name))
+       ; traceTc "wf tf mirror flavour: " (ppr (tyConFlavour mirror_tc))
+       -- TODO: Export the global binder 
+       ; return $ (mirror_tc, n_tc)
+       }
+  | otherwise
+  = do { traceTc "wf tf mirror unknown case:" (ppr (famTyConFlav_maybe tc) <+> ppr tc)
+       ; return (tc, tc)
+       }

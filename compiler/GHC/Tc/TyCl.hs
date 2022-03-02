@@ -46,9 +46,8 @@ import GHC.Tc.Validity
 import GHC.Tc.Utils.Zonk
 import GHC.Tc.TyCl.Utils
 import GHC.Tc.TyCl.Class
--- import GHC.Tc.TyWF 
 import {-# SOURCE #-} GHC.Tc.TyCl.Instance( tcInstDecls1 )
-import GHC.Tc.Deriv (DerivInfo(..), mk_atat_fam, mk_atat_fam_except_units, genMirrorWFTyFams)
+import GHC.Tc.Deriv (DerivInfo(..), mk_atat_fam, mk_atat_fam_except_units)
 import GHC.Tc.Gen.HsType
 import GHC.Tc.Instance.Class( AssocInstInfo(..) )
 import GHC.Tc.Utils.TcMType
@@ -60,6 +59,7 @@ import GHC.Builtin.Types (oneDataConTy,  unitTy, makeRecoveryTyCon )
 
 import GHC.Rename.Env( lookupConstructorFields )
 
+import GHC.Core.TyWF 
 import GHC.Core.Multiplicity
 import GHC.Core.FamInstEnv
 import GHC.Core.Coercion
