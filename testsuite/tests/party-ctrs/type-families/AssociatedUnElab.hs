@@ -1,11 +1,15 @@
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE PartialTypeConstructors #-}
+-- {-# LANGUAGE PartialTypeConstructors #-}
 
 module Associated where
 
+import GHC.Types
+
 class Collection a where
   type family Elem a
-  cons :: Elem a -> a -> a
+  type family ElemWF a :: Constraint
+  e :: a
+  cons :: ElemWF a => Elem a -> a -> a
 
 
 -- instance Collection [a] where
@@ -14,5 +18,5 @@ class Collection a where
 --   cons = (:)
 
 
--- class Cls t a where
---   methBlah :: t a -> a
+class Cls t a where
+  methBlah :: t a -> a

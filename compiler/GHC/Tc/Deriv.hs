@@ -2336,6 +2336,8 @@ mk_atat_fam_units loc tc = mk_atat_fam_except_units loc tc []
 
 mk_atat_fam_except :: SrcSpan -> TyCon -> [TyCon] -> TcM [FamInst]
 mk_atat_fam_except loc tc skip_tcs
+  | isClassTyCon tc
+  = return []
   | (isAlgTyCon tc && saneTyConForElab tc) -- is this a vanilla tycon
     || isNewTyCon tc 
   = mk_atat_fam' loc [] tc univTys ([], tyargs) ([], tyvars_binder_type) dt_ctx     
@@ -2432,28 +2434,9 @@ elabTcDataConsCtxt tc
   -- | isDataTyCon tc && saneTyConForElab tc && not (isNewTyCon tc)
   = do { let dcs = tyConDataCons tc
        ; dcs' <- mapM (elabDataConCtxt tc) dcs
-       -- ; let tcRhs' = mkDataTyConRhs (dcs')
-       -- ; let wfTheta = if null dcs'th then [] else snd (head dcs'th)
-       -- ; wfTheta' <- concatMapM flatten_atat_constraint wfTheta
-       -- ; let s_theta = tyConStupidTheta tc
-       -- ; let final_theta = mergeAtAtConstraints wfTheta' s_theta
-       -- ; traceTc "elabTyConCtxt " (ppr tc <+> ppr (tyConStupidTheta tc))
-       -- ; if not (null final_theta)
        ; return (updateAlgTyCon tc (mkDataTyConRhs (dcs')))
        }
-  -- FIXME There is awkwardness with constrained newtypes, see GHC.Generics data structure Rec1 for ex.
-  -- This is because we do not support constrained type families.
-  -- | isNewTyCon tc && saneTyConForElab tc && (null (tail (tyConDataCons tc)))
-  -- = do { let dc = head (tyConDataCons tc) -- newtypes have only one case
-  --      ; (dc, elab_ty, wfctx) <- elabNewDataConCtxt tc dc
-  --      ; let tcRhs' = updateNewTyConRhs (algTyConRhs tc) dc
-  --      ; traceTc "elabTyConCtxt newTyCon" (ppr tc <+> ppr elab_ty)
-  --      ; if null wfctx
-  --        then return tc
-  --        else return $ updateAlgTyCon tc tcRhs'
-  --      }
-  
-  -- | otherwise = return tc
+
   
 -- update the theta of each datacon, also update the return type of the rep tycon
 -- as during the creation of the worker/wrapper the worker doesn't get assigned the correct theta
@@ -2462,12 +2445,6 @@ elabDataConCtxt tc dc =
   do { -- traceTc "elabDataConCtx" (ppr dc)
      ; let res_ty = dataConOrigResTy dc
            arg_tys = fmap scaledThing $ dataConOrigArgTys dc
-           -- univ_roles_dc = zip (dataConUnivTyVars dc) (tyConRoles tc)
-           -- bad_tys_dc = map fst $ filter (\(v, r) -> isHigherKindedType v)
-           --               (map (\(v, r) -> (TyVarTy v, r)) univ_roles_dc)
-           -- univ_roles_tc = zip (tyConTyVars tc) (tyConRoles tc)
-           -- bad_tys_tc = map fst $ filter (\(v, r) -> isHigherKindedType v)
-           --              (map (\(v, r) -> (TyVarTy v, r)) univ_roles_tc)
      ; eds <- mapM (genAtAtConstraintsExceptTcM True [tc] []) arg_tys
      ; r_eds <- genAtAtConstraintsExceptTcM True [] [] res_ty
      ; fwftys <- concatMapM flatten_atat_constraint (concat $ map newPreds eds)
@@ -2478,62 +2455,8 @@ elabDataConCtxt tc dc =
      ; if null elab_ctx && not (isPromotedDataCon tc)
        then return dc
        else return $ updateDataCon us dc elab_ctx
-
-         -- do { 
-         --       ; return $ updateDataCon us dc elab_ctx
-               -- ; traceTc "elabDataConCtx" (vcat [ text "arg_tys=" <> ppr arg_tys
-               --                                  , text "arg_tys wf=" <> ppr wftys
-               --                                  , text "univ_roles_dc" <> ppr (zip univ_roles_dc
-               --                                                                 (map (tcTypeKind . TyVarTy)
-               --                                                                   (dataConUnivTyVars dc)))
-               --                                  , text "univ_roles_tc" <> ppr (zip univ_roles_tc
-               --                                                                 (map (tcTypeKind . TyVarTy)
-               --                                                                   (tyConTyVars tc)))
-               --                                  , text "flattened elab wf=" <> ppr elab_ctx
-               --                                  , text "datacon=" <> ppr dc''
-               --                                  , text "dcRepTy=" <> ppr (dataConRepType dc'')
-               --                                  , text "dcRepArity=" <> ppr (dataConRepArity dc'')
-               --                                  , text "dcUserType=" <> ppr (dataConUserType dc'')
-               --                                  , text "worker_id type=" <> parens (ppr $ idArity (dataConWorkId dc''))
-               --                                    <> ppr (varType (dataConWorkId dc''))
-               --                                  , text "worker_id.datacon.worker_id"
-               --                                    <> parens (ppr $ idDetails (dataConWorkId dc''))
-               --                                  ])
-               -- ; return $ dc''
-               -- }
      }
 
-
--- elabNewDataConCtxt :: TyCon -> DataCon -> TcM (DataCon, Type, ThetaType)
--- elabNewDataConCtxt tc dc = 
---   do { let res_ty = dataConOrigResTy dc
---            arg_tys = dataConOrigArgTys dc
---            univ_roles_dc = zip (dataConUnivTyVars dc) (tyConRoles tc)
---            -- bad_tys_dc = map (TyVarTy . fst) (filter (\(_, r) -> r == Nominal) univ_roles_dc)
---            univ_roles_tc = zip (tyConTyVars tc) (tyConRoles tc)
---            -- bad_tys_tc = map (TyVarTy . fst) (filter (\(_, r) -> r == Nominal) univ_roles_tc)
---      ; wftys <- mapM (genAtAtConstraintsExceptTcM [tc] []) arg_tys
---      ; wftys_ret <- genAtAtConstraintsExceptTcM [] [] res_ty
---      ; fwftys <- concatMapM flatten_atat_constraint (concat $ map snd wftys)
---      ; fwftys_ret <- concatMapM flatten_atat_constraint (snd wftys_ret)
---      ; let elab_ctx = stableMergeTypes (fwftys_ret) (fwftys) -- fwftys -- 
---      ; if not (null elab_ctx)
---        then do { let dc' = updateNTDataCon dc elab_ctx
---                      new_id = mkDataConWorkId (Var.varName (dataConWorkId dc')) dc'
---                      dc'' = updateDataConWorkerId dc' new_id
---                ; traceTc "elabDataConCtx newty" (vcat [ text "arg_tys=" <> ppr arg_tys
---                                                       , text "flattened elab wf=" <> ppr elab_ctx
---                                                       , text "univ_roles_dc" <> ppr univ_roles_dc
---                                                       , text "univ_roles_tc" <> ppr univ_roles_tc
---                                                       , text "datacon=" <> ppr dc''
---                                                       , text "dcRepTy=" <> ppr (dataConRepType dc'')
---                                                       , text "dcRepArity=" <> ppr (dataConRepArity dc'')
---                                                       , text "dcUserType=" <> ppr (dataConUserType dc'')
---                                                       , text "worker_id type=" <> ppr (varType (dataConWorkId dc''))
---                                                       ])
---                ; return $ (dc', dataConRepType dc', elab_ctx) }
---        else return (dc, dataConRepType dc, [])
---      }
 
 elabTySynRhs :: TyCon -> TcM TyCon
 elabTySynRhs tc = do
@@ -2550,34 +2473,26 @@ elabTySynRhs tc = do
     f :: [Type] -> [Type] -> Bool
     f candidates should'exist = and [any (c `eqType`) should'exist | c <- candidates ]
 
-genMirrorWFTyFams :: [(SrcSpan, TyCon)] -> TcM [(TyCon, TyCon)]
+genMirrorWFTyFams :: [TyCon] -> TcM [(TyCon, TyCon)]
 genMirrorWFTyFams = mapM genMirrorWFTyFam
 
-genMirrorWFTyFam :: (SrcSpan, TyCon) -> TcM (TyCon, TyCon)
-genMirrorWFTyFam (loc, tc)
+genMirrorWFTyFam :: TyCon -> TcM (TyCon, TyCon)
+genMirrorWFTyFam tc
   | isOpenFamilyTyCon tc
-  = do { -- u <- newUnique
+  = do {
        ; m <- getModule
        ; let occ = mkTcOcc $ wF_TC_PREFIX ++ (occNameString . nameOccName . tyConName $ tc)
-             -- name = mkWiredInName m occ uniq (ATyCon new_tc) UserSyntax
        ; name <- lookupOrig m occ
-       -- ; name <- newGlobalBinder m occ loc
-       -- ; let ainfo =  avail name
-       
-       -- ; tcRepName <- newTyConRepName name 
-
        ; (mirror_tc, n_tc) <- fixM $ (\_ -> do { let mirror_tc = mkWFMirrorTyFam name n_tc
-                                                     n_tc      = updateTyConMirror tc mirror_tc
+                                                     n_tc      = updateWfMirrorTyCon tc $ Just mirror_tc
                                                ; return (mirror_tc, n_tc)
                                                }
                                      )
-               -- mkSystemNameAt uniq ns loc
-               -- rdrName = newAuxBinderRdrName loc (nameOccName . tyConName tc) () 
        ; traceTc "wf tf mirror open occname:" (ppr name <+> ppr (nameUnique name))
-       -- TODO: Export the global binder 
        ; return $ (mirror_tc, n_tc)
        }
   | otherwise
   = do { traceTc "wf tf mirror unknown case:" (ppr (famTyConFlav_maybe tc) <+> ppr tc)
        ; return (tc, tc)
        }
+

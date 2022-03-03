@@ -47,7 +47,8 @@ import GHC.Tc.TyCl.Utils
 import GHC.Tc.TyCl.Class
 -- import GHC.Tc.TyWF 
 import {-# SOURCE #-} GHC.Tc.TyCl.Instance( tcInstDecls1 )
-import GHC.Tc.Deriv (DerivInfo(..), mk_atat_fam, mk_atat_fam_except_units, genMirrorWFTyFams)
+import GHC.Tc.Deriv (DerivInfo(..), mk_atat_fam, mk_atat_fam_except_units
+                    , genMirrorWFTyFams)
 import GHC.Tc.Gen.HsType
 import GHC.Tc.Instance.Class( AssocInstInfo(..) )
 import GHC.Tc.Utils.TcMType
@@ -90,7 +91,7 @@ import GHC.Data.Maybe
 import GHC.Data.List.SetOps
 
 import GHC.Unit
-
+import GHC.Iface.Env (lookupOrig)
 import GHC.Utils.Outputable
 import GHC.Utils.Panic
 import GHC.Utils.Panic.Plain
@@ -231,8 +232,7 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                              
                    ; fam_insts <-  if (length tyclds == 1)
                                                 -- for now we can only reason about non-circular datatypes
-                                   then concatMapM (\(l, tc) -> mk_atat_fam l tc)
-                                                  locsAndTcs
+                                   then concatMapM (\(l, tc) -> mk_atat_fam l tc) locsAndTcs
                                                   -- We generate T @@ a ~ () axioms here
                                                   -- for all the mutually recursive datatypes
                                                   -- thats the best we can do atm
@@ -243,20 +243,29 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    -- ANI: This should be pushed in the actual declaration flow, its a fairly simple
                    -- one-to-many mapping with the tycls
                    -- I say many because a class could have multiple associated types
-                   -- The only reason why i'm doing this here is because it is easier to debug and peaking (traceTc) into
+                   -- The only reason why i'm doing this here is because
+                   -- it is easier to debug and peaking (traceTc) into
                    -- a knot-tied tycon decl will cause the compiler to loop/hang
-                   ; let (locsAndTFs, locsAndTyClss') = partition (isTypeFamilyTyCon . snd) (locsAndTcs)
-                    
-                   ; traceTc "partition" (vcat [text "TFs:" <+> (vcat $ fmap (ppr . snd) locsAndTFs)
-                                               , text "NoTFs:" <+> (vcat $ fmap (ppr . snd) locsAndTyClss')])
-                   ; mirrors_and_tyfams <- genMirrorWFTyFams locsAndTFs
+                   -- TODO: maybe do a single pass and classify all the tycons in one go
+                   -- bit its rarely the case that the group is more than 3-4 dependent tycons
+
+                   -- Step 1. Get the typefamilies out of the way
+                   ; let (locsAndTFs, locsAndTyClss') = partition (isTypeFamilyTyCon . snd) locsAndTcs
+                   ; mirrors_and_tyfams <- genMirrorWFTyFams (fmap snd locsAndTFs)
                    ; let (wf_mirrors, tyfams') = unzip mirrors_and_tyfams
+
+                   
+                   ; traceTc "wfelab partition"
+                       (vcat [ text "TFs:" <+> (vcat $ fmap (ppr . snd) locsAndTFs)
+                             , text "Others:" <+> (vcat $ fmap (ppr . snd) locsAndTyClss')
+                             ])
+                     
                    ; traceTc "Starting validity check post WF enrichment" (vcat $ fmap pprtc wf_mirrors)
                    ; wf_mirrors' <- concatMapM checkValidTyCl (wf_mirrors ++ tyfams')
                    ; traceTc "Done validity check post WF enrichment" (vcat $ fmap pprtc wf_mirrors')
                    ; traceTc "---- end wf enrichment ---- }" empty
                    ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $
-                                                        wf_mirrors' ++ (fmap snd locsAndTyClss'))
+                                                        wf_mirrors'++ (fmap snd locsAndTyClss'))
                    }
            else do { addTyConsToGblEnv tyclss }
 
@@ -347,13 +356,14 @@ tcTyClDecls tyclds kisig_env role_annots
 
                  -- Kind and type check declarations for this group
                mapAndUnzipM (tcTyClDecl roles) tyclds
-           ; return (tycons, concat data_deriv_infos, class_scoped_tv_env, kindless)
+           ; return (concat tycons, concat data_deriv_infos, class_scoped_tv_env, kindless)
            } }
   where
     ppr_tc_tycon tc = parens (sep [ ppr (tyConName tc) <> comma
                                   , ppr (tyConBinders tc) <> comma
                                   , ppr (tyConResKind tc)
-                                  , ppr (isTcTyCon tc) ])
+                                  , ppr (isTcTyCon tc)
+                                  , ppr (wfMirrorTyCon_maybe tc)])
 
     -- Map each class TcTyCon to their tcTyConScopedTyVars. This is ultimately
     -- meant to be passed to GHC.Tc.TyCl.Class.tcClassDecl2, which consults
@@ -807,7 +817,7 @@ kcTyClGroup kisig_env decls
         ; return (poly_tcs, kindless_names) }
   where
     ppr_tc_kinds tcs = vcat (map pp_tc tcs)
-    pp_tc tc = ppr (tyConName tc) <+> dcolon <+> ppr (tyConKind tc)
+    pp_tc tc = ppr (tyConName tc) <+> dcolon <+> ppr (tyConKind tc) <+> ppr (wfMirrorTyCon_maybe tc)
 
 type ScopedPairs = [(Name, TcTyVar)]
   -- The ScopedPairs for a TcTyCon are precisely
@@ -817,8 +827,8 @@ type ScopedPairs = [(Name, TcTyVar)]
 generaliseTyClDecl :: NameEnv TcTyCon -> LTyClDecl GhcRn -> TcM [TcTyCon]
 -- See Note [Swizzling the tyvars before generaliseTcTyCon]
 generaliseTyClDecl inferred_tc_env (L _ decl)
-  = do { let names_in_this_decl :: [Name]
-             names_in_this_decl = tycld_names decl
+  = do { -- names_in_this_decl :: [Name]
+         names_in_this_decl:: [Name] <- tycld_names decl
 
        -- Extract the specified/required binders and skolemise them
        ; tc_with_tvs  <- mapM skolemise_tc_tycon names_in_this_decl
@@ -836,12 +846,21 @@ generaliseTyClDecl inferred_tc_env (L _ decl)
        -- And finally generalise
        ; mapAndReportM generaliseTcTyCon swizzled_infos }
   where
-    tycld_names :: TyClDecl GhcRn -> [Name]
-    tycld_names decl = tcdName decl : at_names decl
+    tycld_names :: TyClDecl GhcRn -> TcM [Name]
+    tycld_names decl = do let declName = tcdName decl
+                          more_names <- at_names decl
+                          return $ declName:more_names
 
-    at_names :: TyClDecl GhcRn -> [Name]
-    at_names (ClassDecl { tcdATs = ats }) = map (familyDeclName . unLoc) ats
-    at_names _ = []  -- Only class decls have associated types
+    at_names :: TyClDecl GhcRn -> TcM [Name]
+    at_names (ClassDecl { tcdATs = ats })
+        = do { let at_names = map (familyDeclName . unLoc) ats
+             ; m <- getModule
+             ; let wf_occs = fmap (\t -> mkTcOcc $ wF_TC_PREFIX ++ (occNameString . nameOccName $ t)) at_names
+             ; wf_names <- mapM (lookupOrig m) wf_occs
+             ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+             ; if partyCtrs then return (wf_names ++ at_names) else return at_names
+             }
+    at_names _ = return []  -- Only class decls have associated types
 
     skolemise_tc_tycon :: Name -> TcM (TcTyCon, ScopedPairs)
     -- Zonk and skolemise the Specified and Required binders
@@ -1000,7 +1019,7 @@ generaliseTcTyCon (tc, scoped_prs, tc_res_kind)
        ; tc_res_kind           <- zonkTcTypeToTypeX ze tc_res_kind
 
        ; traceTc "generaliseTcTyCon: post zonk" $
-         vcat [ text "tycon =" <+> ppr tc
+         vcat [ text "tycon =" <+> ppr tc <+> ppr (wfMirrorTyCon_maybe tc)
               , text "inferred =" <+> pprTyVars inferred
               , text "spec_req_tvs =" <+> pprTyVars spec_req_tvs
               , text "sorted_spec_tvs =" <+> pprTyVars sorted_spec_tvs
@@ -1019,13 +1038,19 @@ generaliseTcTyCon (tc, scoped_prs, tc_res_kind)
                                  , required_tcbs ]
 
        -- Step 6: Make the result TcTyCon
-             tycon = mkTcTyCon (tyConName tc) final_tcbs tc_res_kind
+             tycon' = mkTcTyCon (tyConName tc) final_tcbs tc_res_kind
                             (mkTyVarNamePairs (sorted_spec_tvs ++ req_tvs))
                             True {- it's generalised now -}
                             (tyConFlavour tc)
-
+       -- Step 7: (optional)
+       -- check if we have a (WF_tc) pair for this, and add that to this. We should have
+       -- already added it to the context.
+       -- This is annoying. ideally I need to add a flag to tycon to say if its a wf mirror tycon or not.
+       -- but this is some start
+             tycon = updateWfMirrorTyCon tycon' (wfMirrorTyCon_maybe tc)
+         
        ; traceTc "generaliseTcTyCon done" $
-         vcat [ text "tycon =" <+> ppr tc
+         vcat [ text "tycon =" <+> ppr tc <+> ppr (wfMirrorTyCon_maybe tycon)
               , text "tc_res_kind =" <+> ppr tc_res_kind
               , text "dep_fv_set =" <+> ppr dep_fv_set
               , text "inferred_tcbs =" <+> ppr inferred_tcbs
@@ -1432,7 +1457,7 @@ getInitialKind strategy
        ; inner_tcs <-
            tcExtendNameTyVarEnv parent_tv_prs $
            mapM (addLocMA (getAssocFamInitialKind cls)) ats
-       ; return (cls : inner_tcs) }
+       ; return (cls : concat inner_tcs) }
   where
     getAssocFamInitialKind cls =
       case strategy of
@@ -1453,8 +1478,8 @@ getInitialKind strategy
         ; return [tc] }
 
 getInitialKind InitialKindInfer (FamDecl { tcdFam = decl })
-  = do { tc <- get_fam_decl_initial_kind Nothing decl
-       ; return [tc] }
+  = do { tcs <- get_fam_decl_initial_kind Nothing decl
+       ; return tcs }
 
 getInitialKind (InitialKindCheck msig) (FamDecl { tcdFam =
   FamilyDecl { fdLName     = unLoc -> name
@@ -1486,21 +1511,31 @@ getInitialKind strategy
 get_fam_decl_initial_kind
   :: Maybe TcTyCon -- ^ Just cls <=> this is an associated family of class cls
   -> FamilyDecl GhcRn
-  -> TcM TcTyCon
+  -> TcM [TcTyCon]
 get_fam_decl_initial_kind mb_parent_tycon
     FamilyDecl { fdLName     = L _ name
                , fdTyVars    = ktvs
                , fdResultSig = L _ resultSig
                , fdInfo      = info }
-  = kcDeclHeader InitialKindInfer name flav ktvs $
-    case resultSig of
-      KindSig _ ki                            -> TheKind <$> tcLHsKindSig ctxt ki
-      TyVarSig _ (L _ (KindedTyVar _ _ _ ki)) -> TheKind <$> tcLHsKindSig ctxt ki
-      _ -- open type families have * return kind by default
-        | tcFlavourIsOpen flav              -> return (TheKind liftedTypeKind)
-               -- closed type families have their return kind inferred
-               -- by default
-        | otherwise                         -> return AnyKind
+  = do { partyCtrs <- xoptM LangExt.PartialTypeConstructors
+       ; aTtc <- kcDeclHeader InitialKindInfer name flav ktvs $
+                    case resultSig of
+                      KindSig _ ki                            -> TheKind <$> tcLHsKindSig ctxt ki
+                      TyVarSig _ (L _ (KindedTyVar _ _ _ ki)) -> TheKind <$> tcLHsKindSig ctxt ki
+                      _ -- open type families have * return kind by default
+                        | tcFlavourIsOpen flav              -> return (TheKind liftedTypeKind)
+                      -- closed type families have their return kind inferred
+                      -- by default
+                        | otherwise                         -> return AnyKind
+       ; wf_tycon <- if partyCtrs
+                     then do { wf_name <- mk_wf_name name
+                             ; tc <- kcDeclHeader InitialKindInfer wf_name flav ktvs $
+                                      return $ TheKind constraintKind -- TODO should actualy be similar to above
+                             ; return $ Just tc
+                             }
+                     else return Nothing
+       ; return $ (updateTcWfRef aTtc wf_tycon):(maybeToList wf_tycon)
+       }
   where
     flav = getFamFlav mb_parent_tycon info
     ctxt = TyFamResKindCtxt name
@@ -1509,20 +1544,31 @@ get_fam_decl_initial_kind mb_parent_tycon
 check_initial_kind_assoc_fam
   :: TcTyCon -- parent class
   -> FamilyDecl GhcRn
-  -> TcM TcTyCon
+  -> TcM [TcTyCon]
 check_initial_kind_assoc_fam cls
   FamilyDecl
     { fdLName     = unLoc -> name
     , fdTyVars    = ktvs
     , fdResultSig = unLoc -> resultSig
     , fdInfo      = info }
-  = kcDeclHeader (InitialKindCheck CUSK) name flav ktvs $
-    case famResultKindSignature resultSig of
-      Just ksig -> TheKind <$> tcLHsKindSig ctxt ksig
-      Nothing -> return (TheKind liftedTypeKind)
+  = do partyCtrs <- xoptM LangExt.PartialTypeConstructors
+       aTtc <- kcDeclHeader (InitialKindCheck CUSK) name flav ktvs $
+                 case famResultKindSignature resultSig of
+                    Just ksig -> TheKind <$> tcLHsKindSig ctxt ksig
+                    Nothing -> return (TheKind liftedTypeKind)
+       wf_tycon <- if partyCtrs
+                   then do { wf_name <- mk_wf_name name
+                           ; tc <- kcDeclHeader (InitialKindCheck CUSK) wf_name flav ktvs $
+                                      return $ TheKind constraintKind -- TODO should actualy be similar to above
+                           ; return $ Just tc
+                           }
+                   else return Nothing
+       ; return $ (maybeToList wf_tycon) ++ [(updateTcWfRef aTtc wf_tycon)]
   where
     ctxt = TyFamResKindCtxt name
     flav = getFamFlav (Just cls) info
+
+
 
 {- Note [Standalone kind signatures for associated types]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2419,19 +2465,19 @@ The IRs are already well-equipped to handle unlifted types, and unlifted
 datatypes are just a new sub-class thereof.
 -}
 
-tcTyClDecl :: RolesInfo -> LTyClDecl GhcRn -> TcM (TyCon, [DerivInfo])
+tcTyClDecl :: RolesInfo -> LTyClDecl GhcRn -> TcM ([TyCon], [DerivInfo])
 tcTyClDecl roles_info (L loc decl)
   | Just thing <- wiredInNameTyThing_maybe (tcdName decl)
   = case thing of -- See Note [Declarations for wired-in things]
-      ATyCon tc -> return (tc, wiredInDerivInfo tc decl)
+      ATyCon tc -> return ([tc], wiredInDerivInfo tc decl)
       _ -> pprPanic "tcTyClDecl" (ppr thing)
 
   | otherwise
   = setSrcSpanA loc $ tcAddDeclCtxt decl $
     do { traceTc "---- tcTyClDecl ---- {" (ppr decl)
-       ; (tc, deriv_infos) <- tcTyClDecl1 Nothing roles_info decl
-       ; traceTc "---- tcTyClDecl end ---- }" (ppr tc)
-       ; return (tc, deriv_infos) }
+       ; (tcs, deriv_infos) <- tcTyClDecl1 Nothing roles_info decl
+       ; traceTc "---- tcTyClDecl end ---- }" (ppr tcs)
+       ; return (tcs, deriv_infos) }
 
 noDerivInfos :: a -> (a, [DerivInfo])
 noDerivInfos a = (a, [])
@@ -2450,7 +2496,7 @@ wiredInDerivInfo tycon decl
 wiredInDerivInfo _ _ = []
 
   -- "type family" declarations
-tcTyClDecl1 :: Maybe Class -> RolesInfo -> TyClDecl GhcRn -> TcM (TyCon, [DerivInfo])
+tcTyClDecl1 :: Maybe Class -> RolesInfo -> TyClDecl GhcRn -> TcM ([TyCon], [DerivInfo])
 tcTyClDecl1 parent _roles_info (FamDecl { tcdFam = fd })
   = fmap noDerivInfos $
     tcFamDecl1 parent fd
@@ -2481,7 +2527,7 @@ tcTyClDecl1 _parent roles_info
   = assert (isNothing _parent) $
     do { clas <- tcClassDecl1 roles_info class_name hs_ctxt
                               meths fundeps sigs ats at_defs
-       ; return (noDerivInfos (classTyCon clas)) }
+       ; return (noDerivInfos [classTyCon clas]) }
 
 
 {- *********************************************************************
@@ -2497,9 +2543,9 @@ tcClassDecl1 :: RolesInfo -> Name -> Maybe (LHsContext GhcRn)
 tcClassDecl1 roles_info class_name hs_ctxt meths fundeps sigs ats at_defs
   = fixM $ \ clas ->
     -- We need the knot because 'clas' is passed into tcClassATs
-    bindTyClTyVars class_name $ \ _ binders res_kind ->
+    bindTyClTyVars class_name $ \ tc binders res_kind ->
     do { checkClassKindSig res_kind
-       ; traceTc "tcClassDecl 1" (ppr class_name $$ ppr binders)
+       ; traceTc "tcClassDecl 1" (ppr class_name $$ ppr tc $$ ppr binders)
        ; let tycon_name = class_name        -- We use the same name
              roles = roles_info tycon_name  -- for TyCon and Class
 
@@ -2509,8 +2555,8 @@ tcClassDecl1 roles_info class_name hs_ctxt meths fundeps sigs ats at_defs
                -- skolems bound by the class decl header (#17841)
                do { ctxt <- tcHsContext hs_ctxt
                   ; fds  <- mapM (addLocMA tc_fundep) fundeps
-                  ; sig_stuff <- tcClassSigs class_name sigs meths
                   ; at_stuff  <- tcClassATs class_name clas ats at_defs
+                  ; sig_stuff <- tcClassSigs class_name sigs meths
                   ; return (ctxt, fds, sig_stuff, at_stuff) }
 
        -- See Note [Error on unconstrained meta-variables] in GHC.Tc.Utils.TcMType
@@ -2537,7 +2583,7 @@ tcClassDecl1 roles_info class_name hs_ctxt meths fundeps sigs ats at_defs
 
        -- TODO: Allow us to distinguish between abstract class,
        -- and concrete class with no methods (maybe by
-       -- specifying a trailing where or not
+       -- specifying a trailing where or not)
 
        ; mindef <- tcClassMinimalDef class_name sigs sig_stuff
        ; is_boot <- tcIsHsBootOrSig
@@ -2583,7 +2629,7 @@ tcClassATs class_name cls ats at_defs
          sequence_ [ failWithTc (TcRnBadAssociatedType class_name n)
                    | n <- map at_def_tycon at_defs
                    , not (n `elemNameSet` at_names) ]
-       ; mapM tc_at ats }
+       ; concatMapM tc_at ats }
   where
     at_def_tycon :: LTyFamDefltDecl GhcRn -> Name
     at_def_tycon = tyFamInstDeclName . unLoc
@@ -2598,12 +2644,15 @@ tcClassATs class_name cls ats at_defs
     at_defs_map = foldr (\at_def nenv -> extendNameEnv_C (++) nenv
                                           (at_def_tycon at_def) [at_def])
                         emptyNameEnv at_defs
-
-    tc_at at = do { fam_tc <- addLocMA (tcFamDecl1 (Just cls)) at
+    tc_at :: LFamilyDecl GhcRn -> TcM [ClassATItem]
+    tc_at at = do { (fam_tc:wfts) <- addLocMA (tcFamDecl1 (Just cls)) at -- each at gives us a WF_ats for free
                   ; let at_defs = lookupNameEnv at_defs_map (at_fam_name at)
                                   `orElse` []
                   ; atd <- tcDefaultAssocDecl fam_tc at_defs
-                  ; return (ATI fam_tc atd) }
+                  ; traceTc "wfelab tc_at" (ppr fam_tc <+> ppr (wfMirrorTyCon_maybe fam_tc) <+> ppr wfts)
+                  ; if null wfts
+                    then return [ATI fam_tc atd]
+                    else return [ATI (head wfts) Nothing, ATI fam_tc atd]}
 
 -------------------------
 tcDefaultAssocDecl ::
@@ -2769,7 +2818,7 @@ any damage is done.
 *                                                                      *
 ********************************************************************* -}
 
-tcFamDecl1 :: Maybe Class -> FamilyDecl GhcRn -> TcM TyCon
+tcFamDecl1 :: Maybe Class -> FamilyDecl GhcRn -> TcM [TyCon]
 tcFamDecl1 parent (FamilyDecl { fdInfo = fam_info
                               , fdLName = tc_lname@(L _ tc_name)
                               , fdResultSig = L _ sig
@@ -2798,18 +2847,38 @@ tcFamDecl1 parent (FamilyDecl { fdInfo = fam_info
                               (resultVariableName sig)
                               (DataFamilyTyCon tc_rep_name)
                               parent inj
-  ; return tycon }
+  ; return [tycon] }
 
   | OpenTypeFamily <- fam_info
-  = bindTyClTyVars tc_name $ \ _ binders res_kind -> do
-  { traceTc "tcFamDecl1 open type family:" (ppr tc_name)
-  ; checkFamFlag tc_name
-  ; inj' <- tcInjectivity binders inj
-  ; checkResultSigFlag tc_name sig  -- check after injectivity for better errors
-  ; let tycon = mkFamilyTyCon tc_name binders res_kind
-                               (resultVariableName sig) OpenSynFamilyTyCon
-                               parent inj'
-  ; return tycon }
+  = do  bindTyClTyVars tc_name $ \ tc binders res_kind -> do
+          { traceTc "tcFamDecl1 open type family:" (ppr tc_name $$ ppr tc)
+          ; partyCtrs <- xoptM LangExt.PartialTypeConstructors 
+          ; checkFamFlag tc_name
+          ; inj' <- tcInjectivity binders inj
+          ; checkResultSigFlag tc_name sig  -- check after injectivity for better errors
+          ; if partyCtrs
+            then do { let tycon = mkFamilyTyCon tc_name binders res_kind
+                            (resultVariableName sig) OpenSynFamilyTyCon
+                            parent inj'
+                    ; wf_name <- mk_wf_name tc_name
+                    ; wf_tctyc <- tcLookupTcTyCon wf_name
+                    ; traceTc "wf_tctc" (ppr wf_tctyc)
+                    ; (wf_tycon, tycon') <- fixM $ (\_ -> do { let mirror_tc = mkWFMirrorTyFam wf_name n_tc
+                                                                   n_tc     = updateWfMirrorTyCon tycon $
+                                                                               Just mirror_tc
+                                                             ; return (mirror_tc, n_tc)
+                                                             }
+                                                   )
+                    ; traceTc "tcFamDecl1 wfelab" (ppr tycon' $$ ppr wf_tycon)
+                    ; traceTc "mirrorTyCon" (ppr $ wfMirrorTyCon_maybe tycon')
+                    ; return [tycon', wf_tycon] }
+            else do { let tycon = mkFamilyTyCon tc_name binders res_kind
+                                  (resultVariableName sig) OpenSynFamilyTyCon
+                                  parent inj'
+                    ; traceTc "tcFamDecl1 end" (ppr tycon)
+                    ; return [tycon]
+                    }
+          } 
 
   | ClosedTypeFamily mb_eqns <- fam_info
   = -- Closed type families are a little tricky, because they contain the definition
@@ -2829,10 +2898,10 @@ tcFamDecl1 parent (FamilyDecl { fdInfo = fam_info
          -- but eqns might be empty in the Just case as well
        ; case mb_eqns of
            Nothing   ->
-               return $ mkFamilyTyCon tc_name binders res_kind
+               return $ [mkFamilyTyCon tc_name binders res_kind
                                       (resultVariableName sig)
                                       AbstractClosedSynFamilyTyCon parent
-                                      inj'
+                                      inj']
            Just eqns -> do {
 
          -- Process the equations, creating CoAxBranches
@@ -2861,7 +2930,7 @@ tcFamDecl1 parent (FamilyDecl { fdInfo = fam_info
          -- We check for instance validity later, when doing validity
          -- checking for the tycon. Exception: checking equations
          -- overlap done by dropDominatedAxioms
-       ; return fam_tc } }
+       ; return [fam_tc] } }
 
 #if __GLASGOW_HASKELL__ <= 810
   | otherwise = panic "tcFamInst1"  -- Silence pattern-exhaustiveness checker
@@ -2914,7 +2983,7 @@ tcInjectivity tcbs (Just (L loc (InjectivityAnn _ _ lInjNames)))
        ; return $ Injective inj_bools }
 
 tcTySynRhs :: RolesInfo -> Name
-           -> LHsType GhcRn -> TcM TyCon
+           -> LHsType GhcRn -> TcM [TyCon]
 tcTySynRhs roles_info tc_name hs_ty
   = bindTyClTyVars tc_name $ \ _ binders res_kind ->
     do { env <- getLclEnv
@@ -2936,12 +3005,12 @@ tcTySynRhs roles_info tc_name hs_ty
        ; ze <- mkEmptyZonkEnv NoFlexi
        ; rhs_ty <- zonkTcTypeToTypeX ze rhs_ty
        ; let roles = roles_info tc_name
-       ; return (buildSynTyCon tc_name binders res_kind roles rhs_ty) }
+       ; return ([buildSynTyCon tc_name binders res_kind roles rhs_ty]) }
   where
     skol_info = TyConSkol TypeSynonymFlavour tc_name
 
 tcDataDefn :: SDoc -> RolesInfo -> Name
-           -> HsDataDefn GhcRn -> TcM (TyCon, [DerivInfo])
+           -> HsDataDefn GhcRn -> TcM ([TyCon], [DerivInfo])
   -- NB: not used for newtype/data instances (whether associated or not)
 tcDataDefn err_ctxt roles_info tc_name
            (HsDataDefn { dd_ND = new_or_data, dd_cType = cType
@@ -3014,7 +3083,7 @@ tcDataDefn err_ctxt roles_info tc_name
                                     , di_clauses = derivs
                                     , di_ctxt = err_ctxt }
        ; traceTc "tcDataDefn" (ppr tc_name $$ ppr tycon_binders $$ ppr extra_bndrs)
-       ; return (tycon, [deriv_info]) }
+       ; return ([tycon], [deriv_info]) }
   where
     skol_info = TyConSkol flav tc_name
     flav = newOrDataToFlavour new_or_data

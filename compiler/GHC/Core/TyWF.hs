@@ -41,14 +41,17 @@ import GHC.Builtin.Names.TH
 import GHC.Builtin.Types (liftedTypeKindTyCon, isCTupleTyConName, wfTyCon)
 import GHC.Types.Name.Reader
 -- import GHC.Types.Var.Set
-
+import GHC.Unit.Module (getModule)
+import GHC.Iface.Env(lookupOrig)
 -- import TcRnMonad (failWithTc)
 import Data.List (partition, find, isSuffixOf)
-import Data.Maybe (maybeToList)
+import Data.Maybe (maybeToList, fromJust)
 import GHC.Tc.Utils.Monad
+import GHC.Tc.Utils.Env (tcLookupTcTyCon)
 import GHC.Utils.Panic (pprPanic)
 import GHC.Utils.Outputable
 import GHC.Utils.Misc(lengthAtLeast)
+import GHC.Tc.Utils.TcMType (mk_wf_name)
 
 #if MIN_VERSION_base(4,16,0)
 import GHC.Types (Total)
@@ -285,30 +288,33 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
     -- if not isTyConPhase
     -- then -- the interaction of typesynonyms and type family is effed up
          ; if (args `lengthAtLeast` (tyConArity tycon))
-           then case coreView (TyConApp tycon args) of
+           then case coreView (mkTyConApp tycon args) of
                   Just ty   -> do { elabd <- genAtAtConstraintsExceptTcM isTyConPhase eTycons ts ty
                                   ; traceTc "tysyn tyConGenAtsTcM: " (ppr (elabTy elabd))
                                   ; concatMapM flatten_atat_constraint $ newPreds elabd }
                   Nothing   -> pprPanic "tysyn tyConGenAts" (ppr tycon)
            else failWithTc (tyConArityErr tycon args)
          }
-    -- else return []
+
   | isTyConAssoc tycon -- && not (isNewTyCon tycon)
   = do { traceTc "wfelab isTyConAssoc" (ppr tycon)
-       ; let (args', extra_args) = splitAt (tyConArity tycon) (zip3 args (tyConBinders tycon) (tyConRoles tycon))
-       -- ; traceTc "tyconassoc tyConGensAtsTcM: " (text "TyCon " <> ppr tycon
-       --                                           <+> ppr (tyConArity tycon)
-       --                                           <+> text "args " <> ppr args'
-       --                                           <+> text "extra_args " <> ppr extra_args)
-       ; recGenAts' tycon extra_args (map (\(e, _, _) -> e) args') [] ts
+       -- ; let (args', extra_args) = splitAt (tyConArity tycon) (zip3 args (tyConBinders tycon) (tyConRoles tycon))
+       ; wf_name <- mk_wf_name $ tyConName tycon
+       ; wftycon <- tcLookupTcTyCon wf_name
+       ; traceTc "wfelab lookup2" (ppr wf_name $$ ppr wftycon)
+       ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
+       ; let css = fmap newPreds elabds
+       ; return $ foldl mergeAtAtConstraints [mkTyConApp wftycon args] css
        }
   | isOpenFamilyTyCon tycon
+  
   = do { traceTc "wfelab open fam tycon" (ppr tycon)
        ; elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
        
        ; refresh <- lookupTyCon . getName $ tycon
+       ; traceTc "wfelab lookup" (ppr refresh)
        ; wftycon <- lookupWfMirrorTyCon refresh
        ; let tfwfcts::ThetaType = maybeToList $ fmap (\t -> mkTyConApp t args) wftycon
        ; traceTc "wfelab open tycon" (vcat [ ppr tycon

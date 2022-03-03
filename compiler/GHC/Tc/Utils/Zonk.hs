@@ -1887,9 +1887,15 @@ zonk_tycomapper = TyCoMapper
 zonkTcTyConToTyCon :: TcTyCon -> TcM TyCon
 zonkTcTyConToTyCon tc
   | isTcTyCon tc = do { thing <- tcLookupGlobalOnly (getName tc)
+                      ; let wf_tctc = wfMirrorTyCon_maybe tc
+                      ; wf_thing <- mapM tcLookupGlobalOnly (getName <$> wf_tctc)
                       ; case thing of
-                          ATyCon real_tc -> return real_tc
-                          _              -> pprPanic "zonkTcTyCon" (ppr tc $$ ppr thing) }
+                          (ATyCon real_tc) -> case wf_thing of
+                                                  Just (ATyCon wf_tycon) ->
+                                                       return (updateWfMirrorTyCon real_tc $ Just wf_tycon)
+                                                  _  -> pprPanic "zonkTcTyCon wfelab" (ppr tc $$ ppr wf_thing)
+                          _                -> pprPanic "zonkTcTyCon" (ppr tc $$ ppr thing)
+                      }
   | otherwise    = return tc -- it's already zonked
 
 -- Confused by zonking? See Note [What is zonking?] in GHC.Tc.Utils.TcMType.
