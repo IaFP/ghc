@@ -18,15 +18,25 @@ instance Collection [a] where
   cons = (:)
 
 
-class SingKind k where
-  type DemoteRep k :: Type
-  fromSing :: Sing (a :: k) -> DemoteRep k
+-- some higher order order assocated types
 
-instance SingKind Symbol where
-  type DemoteRep Symbol = String
-  fromSing (SSym :: Sing s) = symbolVal (Proxy :: Proxy s)
+class Gen a where
+  type Repr a :: Type -> Type
+  -- WFT (Repr a) :: Type -> Constraint
+  from :: a -> (Repr a) x
+  to :: (Repr a) x -> a
 
-data family Sing (a :: k)
 
-data SSymbol :: Symbol -> Type where
-  SSym :: KnownSymbol s => SSymbol s
+-- data Pair a b = Pair a b
+-- data Ord a => OrdPair a b = OrdPair a b
+
+-- instance Gen (Pair a b) where -- I don't know how to write this tbh i suspect i'm missing :*: things
+--   type Repr (Pair a b) = (,) a
+--   from (Pair a b) = (a, b)
+--   to (a, b) = Pair a b
+
+
+-- instance Gen (OrdPair a b) where
+--   type Repr (OrdPair a b) = (,) a
+--   from (OrdPair a b) = (a, b)
+--   to (a, b) = OrdPair a b

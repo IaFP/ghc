@@ -45,10 +45,8 @@ import GHC.Tc.Validity
 import GHC.Tc.Utils.Zonk
 import GHC.Tc.TyCl.Utils
 import GHC.Tc.TyCl.Class
--- import GHC.Tc.TyWF 
 import {-# SOURCE #-} GHC.Tc.TyCl.Instance( tcInstDecls1 )
-import GHC.Tc.Deriv (DerivInfo(..), mk_atat_fam, mk_atat_fam_except_units
-                    , genMirrorWFTyFams)
+import GHC.Tc.Deriv
 import GHC.Tc.Gen.HsType
 import GHC.Tc.Instance.Class( AssocInstInfo(..) )
 import GHC.Tc.Utils.TcMType
@@ -251,7 +249,7 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
 
                    -- Step 1. Get the typefamilies out of the way
                    ; let (locsAndTFs, locsAndTyClss') = partition (isTypeFamilyTyCon . snd) locsAndTcs
-                   ; mirrors_and_tyfams <- genMirrorWFTyFams (fmap snd locsAndTFs)
+                   ; mirrors_and_tyfams <- genWFMirrorTyCons (fmap snd locsAndTFs)
                    ; let (wf_mirrors, tyfams') = unzip mirrors_and_tyfams
 
                    
@@ -1519,18 +1517,11 @@ get_fam_decl_initial_kind mb_parent_tycon
                , fdInfo      = info }
   = do { partyCtrs <- xoptM LangExt.PartialTypeConstructors
        ; aTtc <- kcDeclHeader InitialKindInfer name flav ktvs $
-                    case resultSig of
-                      KindSig _ ki                            -> TheKind <$> tcLHsKindSig ctxt ki
-                      TyVarSig _ (L _ (KindedTyVar _ _ _ ki)) -> TheKind <$> tcLHsKindSig ctxt ki
-                      _ -- open type families have * return kind by default
-                        | tcFlavourIsOpen flav              -> return (TheKind liftedTypeKind)
-                      -- closed type families have their return kind inferred
-                      -- by default
-                        | otherwise                         -> return AnyKind
+                       genResultKind id resultSig
        ; wf_tycon <- if partyCtrs
                      then do { wf_name <- mk_wf_name name
                              ; tc <- kcDeclHeader InitialKindInfer wf_name flav ktvs $
-                                      return $ TheKind constraintKind -- TODO should actualy be similar to above
+                                      genResultKind replaceResultWithConstraint resultSig
                              ; return $ Just tc
                              }
                      else return Nothing
@@ -1539,6 +1530,17 @@ get_fam_decl_initial_kind mb_parent_tycon
   where
     flav = getFamFlav mb_parent_tycon info
     ctxt = TyFamResKindCtxt name
+
+    genResultKind f resultSig =
+      case resultSig of
+        KindSig _ ki                            -> TheKind . f <$> tcLHsKindSig ctxt ki
+        TyVarSig _ (L _ (KindedTyVar _ _ _ ki)) -> TheKind . f <$> tcLHsKindSig ctxt ki
+        _ -- open type families have * return kind by default
+          | tcFlavourIsOpen flav              -> return (TheKind . f $ liftedTypeKind)
+        -- closed type families have their return kind inferred
+        -- by default
+          | otherwise                         -> return AnyKind
+
 
 -- See Note [Standalone kind signatures for associated types]
 check_initial_kind_assoc_fam
@@ -1553,13 +1555,12 @@ check_initial_kind_assoc_fam cls
     , fdInfo      = info }
   = do partyCtrs <- xoptM LangExt.PartialTypeConstructors
        aTtc <- kcDeclHeader (InitialKindCheck CUSK) name flav ktvs $
-                 case famResultKindSignature resultSig of
-                    Just ksig -> TheKind <$> tcLHsKindSig ctxt ksig
-                    Nothing -> return (TheKind liftedTypeKind)
+                    genResultKind id resultSig
+
        wf_tycon <- if partyCtrs
                    then do { wf_name <- mk_wf_name name
                            ; tc <- kcDeclHeader (InitialKindCheck CUSK) wf_name flav ktvs $
-                                      return $ TheKind constraintKind -- TODO should actualy be similar to above
+                                      genResultKind replaceResultWithConstraint resultSig
                            ; return $ Just tc
                            }
                    else return Nothing
@@ -1568,7 +1569,10 @@ check_initial_kind_assoc_fam cls
     ctxt = TyFamResKindCtxt name
     flav = getFamFlav (Just cls) info
 
-
+    genResultKind f resultSig =
+                 case famResultKindSignature resultSig of
+                    Just ksig -> TheKind . f <$> tcLHsKindSig ctxt ksig
+                    Nothing -> return (TheKind . f $ liftedTypeKind)
 
 {- Note [Standalone kind signatures for associated types]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2863,12 +2867,7 @@ tcFamDecl1 parent (FamilyDecl { fdInfo = fam_info
                     ; wf_name <- mk_wf_name tc_name
                     ; wf_tctyc <- tcLookupTcTyCon wf_name
                     ; traceTc "wf_tctc" (ppr wf_tctyc)
-                    ; (wf_tycon, tycon') <- fixM $ (\_ -> do { let mirror_tc = mkWFMirrorTyFam wf_name n_tc
-                                                                   n_tc     = updateWfMirrorTyCon tycon $
-                                                                               Just mirror_tc
-                                                             ; return (mirror_tc, n_tc)
-                                                             }
-                                                   )
+                    ; (wf_tycon, tycon') <- genWFMirrorTyCon tycon
                     ; traceTc "tcFamDecl1 wfelab" (ppr tycon' $$ ppr wf_tycon)
                     ; traceTc "mirrorTyCon" (ppr $ wfMirrorTyCon_maybe tycon')
                     ; return [tycon', wf_tycon] }

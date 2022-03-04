@@ -599,7 +599,7 @@ hasStockDeriving clas
     generic gen_fn _ inst_tys dit
       = do { (binds, sigs, faminst) <- gen_fn inst_tys dit
            ; let field_names = all_field_names (dit_rep_tc dit)
-           ; return (binds, sigs, unitBag (DerivFamInst faminst), field_names) }
+           ; return (binds, sigs, listToBag (DerivFamInst <$> faminst), field_names) }
 
     -- See Note [Deriving and unused record selectors]
     all_field_names = map flSelector . concatMap dataConFieldLabels

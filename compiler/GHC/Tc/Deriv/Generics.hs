@@ -27,6 +27,7 @@ import GHC.Core.Type
 import GHC.Tc.Utils.TcType
 import GHC.Tc.Deriv.Generate
 import GHC.Tc.Deriv.Functor
+import GHC.Tc.Deriv.WF (genWFTyFamInst)
 import GHC.Tc.Errors.Types
 import GHC.Core.DataCon
 import GHC.Core.TyCon
@@ -78,7 +79,7 @@ For the generic representation we need to generate:
 -}
 
 gen_Generic_binds :: GenericKind -> [Type] -> DerivInstTys
-                  -> TcM (LHsBinds GhcPs, [LSig GhcPs], FamInst)
+                  -> TcM (LHsBinds GhcPs, [LSig GhcPs], [FamInst])
 gen_Generic_binds gk inst_tys dit = do
   dflags <- getDynFlags
   repTyInsts <- tc_mkRepFamInsts gk inst_tys dit
@@ -168,9 +169,9 @@ canDoGenerics dit@(DerivInstTys{dit_rep_tc = tc})
   where
     -- The tc can be a representation tycon. When we want to display it to the
     -- user (in an error message) we should print its parent
-    tc_name = case tyConFamInst_maybe tc of
-        Just (ptc, _) -> ptc
-        _             -> tc
+    -- tc_name = case tyConFamInst_maybe tc of
+    --     Just (ptc, _) -> ptc
+    --     _             -> tc
 
         -- Check (c) from Note [Requirements for deriving Generic and Rep].
         --
@@ -397,7 +398,7 @@ tc_mkRepFamInsts :: GenericKind   -- Gen0 or Gen1
                                   -- in the generated instance
                  -> DerivInstTys  -- Information about the last type argument,
                                   -- including the data type's TyCon
-                 -> TcM FamInst   -- Generated representation0 coercion
+                 -> TcM [FamInst]   -- Generated representation0 coercion
 tc_mkRepFamInsts gk inst_tys dit@(DerivInstTys{dit_rep_tc = tycon}) =
        -- Consider the example input tycon `D`, where data D a b = D_ a
        -- Also consider `R:DInt`, where { data family D x y :: * -> *
@@ -406,7 +407,7 @@ tc_mkRepFamInsts gk inst_tys dit@(DerivInstTys{dit_rep_tc = tycon}) =
        fam_tc <- case gk of
          Gen0 -> tcLookupTyCon repTyConName
          Gen1 -> tcLookupTyCon rep1TyConName
-
+     ; traceTc "tc_mkRepFamInsts" (ppr fam_tc <+> ppr (wfMirrorTyCon_maybe fam_tc))
      ; let -- If the derived instance is
            --   instance Generic (Foo x)
            -- then:
@@ -455,7 +456,10 @@ tc_mkRepFamInsts gk inst_tys dit@(DerivInstTys{dit_rep_tc = tycon}) =
            axiom      = mkSingleCoAxiom Nominal rep_name tvs' [] cvs'
                                         fam_tc inst_tys repTy'
 
-     ; newFamInst SynFamilyInst axiom  }
+     ; fam_inst <- newFamInst SynFamilyInst axiom
+     ; wf_fam_inst <- genWFTyFamInst fam_inst
+     ; return [fam_inst, wf_fam_inst]
+     }
 
 --------------------------------------------------------------------------------
 -- Type representation

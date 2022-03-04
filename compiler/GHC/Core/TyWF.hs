@@ -1,4 +1,7 @@
-{-# LANGUAGE CPP #-}
+{-
+(c) The University of Iowa 2022
+
+-}
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 903
 {-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
@@ -12,38 +15,26 @@ module GHC.Core.TyWF (
   genAtAtConstraintsExceptTcM,
   attachConstraints, mergeAtAtConstraints,
   elabAtAtConstraintsTcM, elabWithAtAtConstraintsTopTcM, elabAtAtConstraints, -- unelabAtAtConstraintsM, 
-  predTyArgs, predTyVars, flatten_atat_constraint, saneTyConForElab 
+  predTyArgs, predTyVars, flatten_atat_constraint, saneTyConForElab, replaceResultWithConstraint
   ) where
 
 import GHC.Tc.Instance.Family (tcGetFamInstEnvs)
 import GHC.Core.FamInstEnv (topNormaliseType)
 import GHC.Base (mapM)
 import GHC.Prelude hiding (mapM)
-import GHC.Driver.Env
--- import GHC.Data.Maybe
--- import PrelNames
--- import THNames
--- import TcRnTypes
 import GHC.Tc.Solver.Monad (matchFamTcM)
 import GHC.Tc.Utils.TcType
 import GHC.Tc.Validity (tyConArityErr)
 import GHC.Core.TyCo.Rep
 import GHC.Core.TyCon
-import GHC.Core.DataCon (dataConOrigArgTys)
 import GHC.Core.Type
 import GHC.Core.Reduction (reductionReducedType)
 import GHC.Builtin.Names
 import GHC.Types.Name
 import GHC.Types.TyThing
-import GHC.Types.TypeEnv
-import GHC.Unit.External
 import GHC.Builtin.Names.TH
 import GHC.Builtin.Types (liftedTypeKindTyCon, isCTupleTyConName, wfTyCon)
 import GHC.Types.Name.Reader
--- import GHC.Types.Var.Set
-import GHC.Unit.Module (getModule)
-import GHC.Iface.Env(lookupOrig)
--- import TcRnMonad (failWithTc)
 import Data.List (partition, find, isSuffixOf)
 import Data.Maybe (maybeToList, fromJust)
 import GHC.Tc.Utils.Monad
@@ -137,7 +128,7 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
       return $ elabDetails (FunTy VisArg v (elabTy elabd1) (elabTy elabd2))
                            (mergeAtAtConstraints (newPreds elabd1) (newPreds elabd2))
 
-  | (FunTy InvisArg v constraint ty') <- ty  = do
+  | (FunTy InvisArg _ constraint ty') <- ty  = do -- we have effectively lost v here becuase i am lazy and we don't care about linear constraints
       elabd_cs <- genAtAtConstraintsExceptTcM False tycons ts constraint
       elabd <- (genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty')
       let rty =  mkInvisFunTysMany (mergeAtAtConstraints (newPreds elabd_cs) [constraint]) (elabTy elabd)
@@ -218,15 +209,16 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
       traceTc "wfelab unknown case or nothing to do: " (ppr ty)
       return $ elabDetails ty []
 
-  where predHas :: Type -> PredType -> Bool
-        predHas tv pred = or [eqType tv x | x <- (predTyArgs pred)] -- no me likey
+  -- where predHas :: Type -> PredType -> Bool
+  --       predHas tv pred = or [eqType tv x | x <- (predTyArgs pred)] -- no me likey
 
 
 isTyConInternal :: TyCon -> Bool
 isTyConInternal tycon =
   tycon `hasKey` tYPETyConKey || tycon `hasKey` runtimeRepTyConKey
-  || tycon `hasKey` repTyConKey || tycon `hasKey` rep1TyConKey
-  || tycon `hasKey` typeRepTyConKey -- || tycon `hasKey` typeableClassKey
+  -- || tycon `hasKey` repTyConKey || tycon `hasKey` rep1TyConKey
+  -- || tycon `hasKey` typeRepTyConKey
+  -- || tycon `hasKey` typeableClassKey
   || tycon `hasKey` eqTyConKey || tycon `hasKey` heqTyConKey
   || tycon `hasKey` someTypeRepTyConKey
   || tycon `hasKey` proxyPrimTyConKey
@@ -311,7 +303,8 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; traceTc "wfelab lookup2" (ppr wf_name $$ ppr wftycon)
        ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
        ; let css = fmap newPreds elabds
-       ; return $ foldl mergeAtAtConstraints [mkTyConApp wftycon args] css
+             wftct = if isFamilyTyCon wftycon then mkFamilyTyConApp wftycon args else mkTyConApp wftycon args
+       ; return $ foldl mergeAtAtConstraints [wftct] css
        }
   | isOpenFamilyTyCon tycon
   = do { traceTc "wfelab open fam tycon" (ppr tycon)
@@ -552,16 +545,16 @@ genAtAtConstraintsExcept tycons ts ty
       elabd <- if shouldn'tAtAt
                then genAtAtConstraintsExcept tycons (bvarTy : ts) ty1
                else genAtAtConstraintsExcept tycons ts ty1
-      let (have'bvar, donthave'bvar) = partition (predHas bvarTy) (newPreds elabd)
-          r_ty = ForAllTy bndr (attachConstraints (newPreds elabd) (elabTy elabd))
-      return $ elabDetails r_ty donthave'bvar -- genAtAtConstraints ty'
+      -- let (have'bvar, donthave'bvar) = partition (predHas bvarTy) (newPreds elabd) 
+      let r_ty = ForAllTy bndr (attachConstraints (newPreds elabd) (elabTy elabd))
+      return $ elabDetails r_ty []
 
   | otherwise =
       -- do traceTc "wfelab unknown case or nothing to do: " (ppr ty)
       return $ elabDetails ty []
 
-  where predHas :: Type -> PredType -> Bool
-        predHas tv pred = or [eqType tv x | x <- (predTyArgs pred)] -- no me likey
+  -- where predHas :: Type -> PredType -> Bool
+  --       predHas tv pred = or [eqType tv x | x <- (predTyArgs pred)] -- no me likey
 
 -- recursively generates @@ constraints for a type constructor
 -- Doesn't rewrite type family constructors
@@ -629,3 +622,19 @@ lookupWfMirrorTyCon tycon
                                            ])
      ; return wf_tc
   }
+
+
+
+-- we may have a complex kind as return type for type families and not just
+-- a plain old star
+-- We thus traverse the whole type AST and replace the right most leaf by a constraint.
+-- This should be enough i guess, as we don't have fancy kinds (yet)
+-- replaceResultWithConstraint * = Constraint
+-- replaceResultWithConstraint * -> * = * -> Constraint ...
+replaceResultWithConstraint :: Kind -> Kind
+replaceResultWithConstraint kind
+  | FunTy af m arg res <- kind -- we have a higher kinded type
+  = FunTy af m arg (replaceResultWithConstraint res)
+  | TyConApp _ _ <- kind -- its likely that it is *
+  = constraintKind
+  | otherwise = kind -- not really failing here as i don't expect too fancy kinds

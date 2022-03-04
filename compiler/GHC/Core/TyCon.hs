@@ -52,7 +52,7 @@ module GHC.Core.TyCon(
         mkPromotedDataCon,
         mkTcTyCon,
         noTcTyConScopedTyVars,
-        mkWFMirrorTyFam, mkWFATMirrorTyCon,
+        mkWFMirrorTyCon, mkWFATMirrorTyCon,
 
         -- ** Predicates on TyCons
         isAlgTyCon, isVanillaAlgTyCon, isConstraintKindCon,
@@ -2123,17 +2123,38 @@ wF_TC_PREFIX = "WF_"
 
 -- ANI TODO: Shouldn't actually be a constraintKind as we can have * -> Constraint etc. tycons
 -- ANI TODO: the resVar is for injective type familes.
-mkWFMirrorTyFam :: Name -> TyCon -> TyCon
-mkWFMirrorTyFam n tc =
-  let new_tc = mkFamilyTyCon n (tyConBinders tc) constraintKind Nothing (famTcFlav tc) (tyConClass_maybe tc) (famTcInj tc)
+-- This works for both actual type family tycons and also tctycons
+mkWFMirrorTyCon :: Name -> Kind -> TyCon -> TyCon
+mkWFMirrorTyCon n res_kind tc
+  | isTypeFamilyTyCon tc
+  = let new_tc = mkFamilyTyCon n
+               (tyConBinders tc)
+               res_kind
+               Nothing
+               (famTcFlav tc)
+               (tyConClass_maybe tc)
+               (famTcInj tc)
   in new_tc { assocFamTyCon = Just tc, isMirror = True }
+  | isTcTyCon tc
+  = let new_tc = mkTcTyCon
+                 n
+                 (tyConBinders tc)
+                 (res_kind)
+                 (tcTyConScopedTyVars tc)
+                 (tcTyConIsPoly tc)
+                 (tcTyConFlavour tc)
+  in new_tc
+  | otherwise
+  = pprPanic "wfelab does not support wf mirror for tycon" (ppr tc <+> ppr (tcTyConFlavour tc))
 
 updateWfMirrorTyCon :: TyCon -> Maybe TyCon -> TyCon
 updateWfMirrorTyCon tyc@(FamilyTyCon {}) wfm = let tc = tyc { assocFamTyCon = wfm } in tc
 updateWfMirrorTyCon tyc@(TcTyCon {}) wfm = let tc = updateTcWfRef tyc wfm in tc
-updateWfMirrorTyCon tyc wfm = pprPanic "cannot update mirror for non ty fam" (ppr tyc <+> ppr wfm)
+updateWfMirrorTyCon tyc wfm = pprPanic "cannot update mirror for tycon" (ppr tyc
+                                                                         <+> ppr (tcTyConFlavour tyc)
+                                                                         <+> ppr wfm)
 
-
+-- Generates a mirror tycon for an associated type (not used)
 mkWFATMirrorTyCon :: Unique -> TyCon -> TyCon
 mkWFATMirrorTyCon u tc =
   let new_tc = mkFamilyTyCon wf_name (tyConBinders tc) constraintKind Nothing (famTcFlav tc) (tyConClass_maybe tc) (famTcInj tc)

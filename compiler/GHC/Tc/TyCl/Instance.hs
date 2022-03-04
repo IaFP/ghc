@@ -61,7 +61,6 @@ import GHC.Core.Coercion.Axiom
 import GHC.Core.DataCon
 import GHC.Core.ConLike
 import GHC.Core.Class
-import GHC.Core.TyWF (elabAtAtConstraintsTcM)
 import GHC.Types.Error
 import GHC.Types.Var as Var
 import GHC.Types.Var.Env
@@ -84,8 +83,6 @@ import GHC.Utils.Panic.Plain
 import GHC.Types.SrcLoc
 import GHC.Utils.Misc
 import GHC.Data.BooleanFormula ( isUnsatisfied, pprBooleanFormulaNice )
-import GHC.Core.TyWF
-import GHC.Builtin.Types
 import qualified GHC.LanguageExtensions as LangExt
 
 import Control.Monad
@@ -386,33 +383,6 @@ complained if 'b' is mentioned in <rhs>.
 Gather up the instance declarations from their various sources
 -}
 
-elabWfFamInst :: FamInst -> TcM FamInst
-elabWfFamInst fam_inst
-  = do { let (tfTc, ts) = famInstSplitLHS fam_inst
-       ; let rhs = famInstRHS fam_inst
-       ; let wfTc = wfMirrorTyCon tfTc
-       ; let loc = noAnnSrcSpan . getSrcSpan $ fam_inst
-       ; inst_name <- newFamInstTyConName (L loc (getName wfTc)) ts
-       ; elabDetails <- genAtAtConstraintsTcM False rhs
-       ; let preds = newPreds elabDetails
-       ; let n = length preds
-       ; rhs_ty <- if n == 1 then return . head $ preds
-                   else do { ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
-                           ; return $ mkTyConApp ctupleTyCon preds
-                           }
-       ; let tvs     = fi_tvs fam_inst
-             lhs_tys = ts
-             axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wfTc lhs_tys rhs_ty
-       ; traceTc "elabWfFamInst buildingAxiom: " (vcat [ parens (ppr inst_name)
-                                                       , ppr wfTc <+> ppr lhs_tys <+> text "~" <+> ppr rhs_ty
-                                                       ])
-       ; newFamInst SynFamilyInst axiom
-       }
-
-
-elabWfFamInsts :: [FamInst] -> TcM [FamInst]
-elabWfFamInsts = mapM elabWfFamInst
-
 tcInstDecls1    -- Deal with both source-code and imported instance decls
    :: [LInstDecl GhcRn]         -- Source code instance decls
    -> TcM (TcGblEnv,            -- The full inst env
@@ -428,8 +398,10 @@ tcInstDecls1 inst_decls
        ; let (local_infos_s, fam_insts_s, datafam_deriv_infos) = unzip3 stuff
              fam_insts   = concat fam_insts_s
              local_infos = concat local_infos_s
-
-       ; wfFamInsts <- elabWfFamInsts (filter (hasWfMirrorTyCon . famInstTyCon) fam_insts)
+       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+       ; wfFamInsts <- if partyCtrs
+                       then genWFTyFamInsts $ filter (hasWfMirrorTyCon . famInstTyCon) fam_insts
+                       else return []
        ; (gbl_env, th_bndrs) <-
            addClsInsts local_infos $
            addFamInsts (fam_insts ++ wfFamInsts)

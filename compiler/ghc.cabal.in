@@ -596,6 +596,7 @@ Library
         GHC.Tc.Deriv.Generics
         GHC.Tc.Deriv.Infer
         GHC.Tc.Deriv.Utils
+        GHC.Tc.Deriv.WF
         GHC.Tc.Errors
         GHC.Tc.Errors.Hole
         GHC.Tc.Errors.Hole.FitTypes
