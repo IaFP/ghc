@@ -300,12 +300,14 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
   = do { traceTc "wfelab isTyConAssoc" (ppr tycon)
        -- ; let (args', extra_args) = splitAt (tyConArity tycon) (zip3 args (tyConBinders tycon) (tyConRoles tycon))
        ; wf_name <- mk_wf_name $ tyConName tycon
+       ; refresh <- lookupTyCon . getName $ tycon
        -- depending on the stage that we are in, either typechecking a class or an instance we need
        -- to look either in the local environment or a global environment
        ; wftycon <- if isTcTyCon tycon then tcLookupTcTyCon wf_name
          -- BUG: I still shouldn't be looking in the local environment.
          -- Ideally I should find it attached to the tycon.
-                    else return $ wfMirrorTyCon tycon
+                    else do wft <- lookupWfMirrorTyCon refresh
+                            return $ fromJust wft
        ; traceTc "wfelab lookup2" (ppr wf_name $$ ppr wftycon)
        ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
        ; let css = fmap newPreds elabds

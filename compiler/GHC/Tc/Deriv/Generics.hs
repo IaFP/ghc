@@ -82,6 +82,7 @@ gen_Generic_binds :: GenericKind -> [Type] -> DerivInstTys
 gen_Generic_binds gk inst_tys dit = do
   dflags <- getDynFlags
   repTyInsts <- tc_mkRepFamInsts gk inst_tys dit
+  -- ANI TODO Also generate wf type instances here
   let (binds, sigs) = mkBindsRep dflags gk dit
   return (binds, sigs, repTyInsts)
 
