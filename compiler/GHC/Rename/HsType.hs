@@ -61,7 +61,6 @@ import GHC.Tc.Utils.Monad
 import GHC.Types.Name.Reader
 import GHC.Builtin.Names
 import GHC.Types.Name
-import GHC.Core.TyCon (wF_TC_PREFIX)
 import GHC.Types.SrcLoc
 import GHC.Types.Name.Set
 import GHC.Types.FieldLabel
@@ -2043,17 +2042,17 @@ extract_hs_tv_bndrs_kvs tv_bndrs =
           [k | L _ (KindedTyVar _ _ _ k) <- tv_bndrs]
 
 extract_tv :: LocatedN RdrName -> FreeKiTyVars -> FreeKiTyVars
-extract_tv tv@(L l e) acc =
+extract_tv tv@(L _ e) acc =
   if isRdrTyVar e then {-
     if isRdrTyVar wf_rdr_n then 
       tv:tv':acc else -} tv:acc else acc
-  where
+{-  where
     tv':: LocatedN RdrName
     tv' = L l wf_rdr_n
     wf_rdr_n = k e
     k :: RdrName -> RdrName
     k n = mkRdrUnqual $ mkOccName (rdrNameSpace n) (wF_TC_PREFIX ++ occNameString (rdrNameOcc n))
-      
+-}      
 
 -- Deletes duplicates in a list of Located things. This is used to:
 --

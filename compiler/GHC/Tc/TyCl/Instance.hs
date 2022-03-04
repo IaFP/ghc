@@ -546,7 +546,7 @@ tcClsInstDecl (L loc (ClsInstDecl { cid_poly_ty = hs_ty, cid_binds = binds
                                                  , ai_inst_env = mini_env }
                     ; df_stuff  <- mapAndRecoverM (tcDataFamInstDecl mb_info tv_skol_env) adts
                     ; tf_insts1 <- mapAndRecoverM (tcTyFamInstDecl mb_info)   ats
-
+                    
                       -- Check for missing associated types and build them
                       -- from their defaults (if available)
                     ; is_boot <- tcIsHsBootOrSig

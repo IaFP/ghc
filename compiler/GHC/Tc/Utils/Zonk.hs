@@ -87,7 +87,7 @@ import GHC.Types.SrcLoc
 import GHC.Types.Unique.FM
 import GHC.Types.TyThing
 import GHC.Driver.Session( getDynFlags, targetPlatform )
-
+import qualified GHC.LanguageExtensions as LangExt
 import GHC.Data.Maybe
 import GHC.Data.Bag
 
@@ -1887,13 +1887,17 @@ zonk_tycomapper = TyCoMapper
 zonkTcTyConToTyCon :: TcTyCon -> TcM TyCon
 zonkTcTyConToTyCon tc
   | isTcTyCon tc = do { thing <- tcLookupGlobalOnly (getName tc)
-                      ; let wf_tctc = wfMirrorTyCon_maybe tc
-                      ; wf_thing <- mapM tcLookupGlobalOnly (getName <$> wf_tctc)
+                      -- ; let wf_tctc = wfMirrorTyCon_maybe tc
+                      -- ; wf_thing <- mapM tcLookupGlobalOnly (getName <$> wf_tctc)
+                      -- ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
                       ; case thing of
-                          (ATyCon real_tc) -> case wf_thing of
-                                                  Just (ATyCon wf_tycon) ->
-                                                       return (updateWfMirrorTyCon real_tc $ Just wf_tycon)
-                                                  _  -> pprPanic "zonkTcTyCon wfelab" (ppr tc $$ ppr wf_thing)
+                          (ATyCon real_tc) -> -- if partyCtrs
+                                              -- then case wf_thing of
+                                              --       Just (ATyCon wf_tycon) ->
+                                              --         return (updateWfMirrorTyCon real_tc $ Just wf_tycon)
+                                              --       _  -> pprPanic "zonkTcTyCon wfelab" (ppr tc $$ ppr wf_thing)
+                                              -- else 
+                            return real_tc
                           _                -> pprPanic "zonkTcTyCon" (ppr tc $$ ppr thing)
                       }
   | otherwise    = return tc -- it's already zonked

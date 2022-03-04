@@ -1,18 +1,32 @@
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE PartialTypeConstructors, DataKinds #-}
 
 module Associated where
+import GHC.Types
+import Data.Proxy
+import GHC.TypeLits
 
 class Collection a where
-  type family Elem a
+  type Elem a
+  e :: a
   cons :: Elem a -> a -> a
 
 
--- instance Collection [a] where
---   type instance Elem [a] = a
---   e = []
---   cons = (:)
+instance Collection [a] where
+  type Elem [a] = a
+  e = []
+  cons = (:)
 
 
--- class Cls t a where
---   methBlah :: t a -> a
+class SingKind k where
+  type DemoteRep k :: Type
+  fromSing :: Sing (a :: k) -> DemoteRep k
+
+instance SingKind Symbol where
+  type DemoteRep Symbol = String
+  fromSing (SSym :: Sing s) = symbolVal (Proxy :: Proxy s)
+
+data family Sing (a :: k)
+
+data SSymbol :: Symbol -> Type where
+  SSym :: KnownSymbol s => SSymbol s

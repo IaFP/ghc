@@ -233,7 +233,7 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    ; fam_insts <-  if (length tyclds == 1)
                                                 -- for now we can only reason about non-circular datatypes
                                    then concatMapM (\(l, tc) -> mk_atat_fam l tc) locsAndTcs
-                                                  -- We generate T @@ a ~ () axioms here
+                                                  -- We generate T @ a ~ () axioms here
                                                   -- for all the mutually recursive datatypes
                                                   -- thats the best we can do atm
                                    else concatMapM (\(l, tc) -> mk_atat_fam_except_units l tc tyclss)
@@ -2856,7 +2856,7 @@ tcFamDecl1 parent (FamilyDecl { fdInfo = fam_info
           ; checkFamFlag tc_name
           ; inj' <- tcInjectivity binders inj
           ; checkResultSigFlag tc_name sig  -- check after injectivity for better errors
-          ; if partyCtrs
+          ; if partyCtrs && isJust parent -- do this only for associated types for now.
             then do { let tycon = mkFamilyTyCon tc_name binders res_kind
                             (resultVariableName sig) OpenSynFamilyTyCon
                             parent inj'
