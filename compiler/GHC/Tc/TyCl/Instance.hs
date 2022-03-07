@@ -405,7 +405,6 @@ tcInstDecls1 inst_decls
        ; (gbl_env, th_bndrs) <-
            addClsInsts local_infos $
            addFamInsts (fam_insts ++ wfFamInsts)
-
        ; return ( gbl_env
                 , local_infos
                 , concat datafam_deriv_infos

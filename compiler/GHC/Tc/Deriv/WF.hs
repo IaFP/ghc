@@ -10,7 +10,8 @@
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 module GHC.Tc.Deriv.WF ( mk_atat_fam, mk_atat_fam_except
                        , mk_atat_fam_units, mk_atat_fam_except_units
-                       , elabTyCons, saneTyConForElab
+                       -- , elabTyCons
+                       , saneTyConForElab
                        , genWFMirrorTyCons, genWFMirrorTyCon, replaceResultWithConstraint
                        , genWFTyFamInst, genWFTyFamInsts
                        ) where
@@ -23,6 +24,7 @@ import GHC.Hs
 import GHC.Tc.Utils.Monad
 import GHC.Tc.Instance.Family
 import GHC.Tc.Utils.Env
+import GHC.Tc.Utils.TcMType (mk_wf_name)
 import GHC.Core.FamInstEnv
 
 import GHC.Core.TyCo.Rep
@@ -31,16 +33,10 @@ import GHC.Core.Type
 import GHC.Core.DataCon
 import GHC.Types.Name
 import GHC.Core.TyCon
-import GHC.Core.TyWF (WfElabTypeDetails(..), genAtAtConstraintsExceptTcM
-                     , genAtAtConstraintsTcM, mergeAtAtConstraints
-                     , predTyArgs, flatten_atat_constraint, saneTyConForElab
-                     , replaceResultWithConstraint)
-import GHC.Builtin.Types (wfTyConName, wfTyCon, cTupleTyConName)
+import GHC.Core.TyWF
+import GHC.Builtin.Types (wfTyConName, wfTyCon, cTupleTyConName, constraintKind)
 import GHC.Types.SrcLoc
 import GHC.Utils.Outputable as Outputable
-import GHC.Utils.Panic
-import GHC.Unit.Module (getModule)
-import GHC.Iface.Env ({- newGlobalBinder,-} lookupOrig)
 
 
 {-
@@ -61,7 +57,7 @@ we want to generate the type family instance
    type instance BST @ a = Ord a
 
 we can easily get hold of the rhs of the type family using the stupid theta.
-for lhs of the equation is just a simple singleCoAxiom
+The lhs of the equation is just a simple singleCoAxiom
 
 if the datatype is complete i.e. the context is empty then we need
 to emit a unit type family instance
@@ -79,9 +75,12 @@ we generate these type instances:
 type famiy T @ a = C a
 type family T a @ b = C2 b
 
-We also need to bubble out constraints from the data constructors
-consider:
-data Ord a => T a b c = forall d e. MkT1 a b e | forall e. MkT2 (D1 c) (D2 e) ...
+
+We don't bubble out the constraints yet.
+We also need to bubble out constraints
+from the data constructors consider:
+data Ord a => T a b c = forall d e. MkT1 a b e
+                      | forall e. MkT2 (D1 c) (D2 e) ...
 
 we would want to bubble these out as:
 type instance T a b @ c = D1 @ c
@@ -98,34 +97,32 @@ mk_atat_fam' :: SrcSpan
             -> ([TyVar],[(TyVar, Bool)])   -- Type Variables (done, (left, shouldInclude?))
             -> ThetaType                   -- Datatype context (done, left)
             -> TcM [FamInst]
-mk_atat_fam' loc acc tc uTys (tyd, ty:tyl) (tyvarsd, (tyvar, shouldInc):tyvarsl) ctxt =
-  do { let tyd' = tyd ++ [ty]
-           tyvarsd' = tyvarsd ++ [tyvar]
-     ; if shouldInc
-       then do { mpred <- getMatchingPredicates ty (tyl ++ uTys) ctxt
+mk_atat_fam' loc acc tc uTys (tyd, ty:tyl) (tyvarsd, (tyvar, shouldInc):tyvarsl) ctxt
+  | shouldInc
+  = do { mpred <- getMatchingPredicates ty (tyl ++ uTys) ctxt
                 -- ; sizeof mpred <= sizeof mkTyConApp (mkTyConApp tc tyd) ty
-               ; inst_name <- newFamInstTyConName (L (noAnnSrcSpan loc) wfTyConName) tyd'
-               ; let argK = tcTypeKind ty
-                     f = mkTyConApp tc tyd
-                     fk = tcTypeKind f
-                     resK = piResultTy fk argK
-                     axiom = mkSingleCoAxiom Nominal inst_name tyvarsd' [] [] wfTyCon
+       ; inst_name <- newFamInstTyConName (L (noAnnSrcSpan loc) wfTyConName) tyd'
+       ; let argK = tcTypeKind ty
+             f = mkTyConApp tc tyd
+             fk = tcTypeKind f
+             resK = piResultTy fk argK
+             axiom = mkSingleCoAxiom Nominal inst_name tyvarsd' [] [] wfTyCon
                                [argK, resK, f, ty] mpred
-               ; traceTc "building axiom " (vcat [ parens (ppr f <> dcolon <> ppr fk)
-                                                  <+> ppr wfTyCon
-                                                  <+> parens (ppr ty <> dcolon <> ppr argK)
-                                                , text "isForallTy: " <> ppr (isForAllTy argK)])
+       ; traceTc "building axiom " (vcat [ parens (ppr f <> dcolon <> ppr fk)
+                                           <+> ppr wfTyCon
+                                           <+> parens (ppr ty <> dcolon <> ppr argK)
+                                         , text "isForallTy: " <> ppr (isForAllTy argK)])
 
-               ; fam <- newFamInst SynFamilyInst axiom
-               -- ; traceTc "matching predicates for "
-               --   (vcat [ ppr fam
-               --         , ppr mpred
-               --         , text "new ty: " <> ppr ty <+> text "tys left:" <+> ppr tyl])
-               ; mk_atat_fam' loc (fam:acc) tc uTys (tyd', tyl) (tyvarsd', tyvarsl) ctxt }
-       else mk_atat_fam' loc acc tc uTys (tyd', tyl) (tyvarsd', tyvarsl) ctxt
-     }
+       ; fam <- newFamInst SynFamilyInst axiom
+       ; mk_atat_fam' loc (fam:acc) tc uTys (tyd', tyl) (tyvarsd', tyvarsl) ctxt }
+    | otherwise
+    =  mk_atat_fam' loc acc tc uTys (tyd', tyl) (tyvarsd', tyvarsl) ctxt
+  where
+    tyd' = tyd ++ [ty]
+    tyvarsd' = tyvarsd ++ [tyvar]
 mk_atat_fam' _ acc _ _ _ _ _ = return acc
-     
+
+{-                               
 -- mk_atat_datacon :: SrcSpan -> TyCon -> DataCon -> TcM ThetaType
 -- mk_atat_datacon loc tycon dc = mk_atat_datacon_except loc tycon [] dc
 -- Consider
@@ -157,7 +154,7 @@ mk_atat_datacon_except tycon skip_tcs dc =
     isGoodTyArg :: TyCon -> Type -> Bool
     isGoodTyArg tc (TyConApp tyc _) = not (tc == tyc)
     isGoodTyArg _ _ = True
-
+-}
 
 mk_atat_fam :: SrcSpan -> TyCon -> TcM [FamInst]
 mk_atat_fam loc tc = mk_atat_fam_except loc tc []
@@ -172,10 +169,10 @@ mk_atat_fam_except loc tc skip_tcs
   = return []
   | (isAlgTyCon tc && saneTyConForElab tc) -- is this a vanilla tycon
     || isNewTyCon tc 
-  = do { elabds <- mapM (genAtAtConstraintsExceptTcM False [tc] []) dt_ctx
-       -- ; let css = fmap newPreds elabds
-       --       elab_dt_ctx = foldl mergeAtAtConstraints [] css
-       ; mk_atat_fam' loc [] tc univTys ([], tyargs) ([], tyvars_binder_type) dt_ctx }
+  = do { elabds <- mapM (genAtAtConstraintsExceptTcM False (tc:skip_tcs) []) dt_ctx
+       ; let css = fmap newPreds elabds
+             elab_dt_ctx = foldl mergeAtAtConstraints [] css
+       ; mk_atat_fam' loc [] tc univTys ([], tyargs) ([], tyvars_binder_type) (mergeAtAtConstraints elab_dt_ctx dt_ctx) }
   | isDataFamilyTyCon tc
   = mk_atat_fam_units loc tc
   | otherwise
@@ -197,7 +194,7 @@ mk_atat_fam_except loc tc skip_tcs
 
 -- | TODO: Can optimize and skip on the matching pred funtion call, but meh.
 mk_atat_fam_except_units :: SrcSpan -> TyCon -> [TyCon] -> TcM [FamInst]
-mk_atat_fam_except_units loc tc skip_tcs
+mk_atat_fam_except_units loc tc _
   | isAlgTyCon tc && saneTyConForElab tc
   -- we don't want class tycons to creep in
   -- maybe simplify to isDataTyCon?
@@ -253,80 +250,24 @@ getMatchingPredicates' tv tvs preds =
           && not (or [eqType tv' t | tv' <- tvs, t <- predTyArgs p])
 
 
-elabTyCons :: TyCon -> TcM TyCon
-elabTyCons tc
-  -- | isDataTyCon tc =  -- elabTcDataConsCtxt tc
-  -- | isTypeSynonymTyCon tc = elabTySynRhs tc
-  | otherwise = return tc 
-
-
--- | Go into each of the datacons of the tycon and elaborate their context with wf(res_type)
---   This is needed so that the desugarer that converts each datacon to core exp expects the right number of arguments
---   We do it this way as we cannot add this context into the datacon while building it due to recursive knot nonsense.
---   We also cache the algTcWfTheta in the tycon
-elabTcDataConsCtxt :: TyCon -> TcM TyCon
-elabTcDataConsCtxt tc
-  -- | isDataTyCon tc && saneTyConForElab tc && not (isNewTyCon tc)
-  = do { let dcs = tyConDataCons tc
-       ; dcs' <- mapM (elabDataConCtxt tc) dcs
-       ; return (updateAlgTyCon tc (mkDataTyConRhs (dcs')))
-       }
-
-  
--- update the theta of each datacon, also update the return type of the rep tycon
--- as during the creation of the worker/wrapper the worker doesn't get assigned the correct theta
-elabDataConCtxt :: TyCon -> DataCon -> TcM DataCon
-elabDataConCtxt tc dc =
-  do { -- traceTc "elabDataConCtx" (ppr dc)
-     ; let res_ty = dataConOrigResTy dc
-           arg_tys = fmap scaledThing $ dataConOrigArgTys dc
-     ; eds <- mapM (genAtAtConstraintsExceptTcM True [tc] []) arg_tys
-     ; r_eds <- genAtAtConstraintsExceptTcM True [] [] res_ty
-     ; fwftys <- concatMapM flatten_atat_constraint (concat $ map newPreds eds)
-     ; fwftys_ret <- concatMapM flatten_atat_constraint (newPreds r_eds)
-     ; elab_ctx <- concatMapM flatten_atat_constraint $ stableMergeTypes (fwftys_ret) (fwftys) -- fwftys --
-     ; traceTc  "elabDataConCtxt" (ppr dc <+> ppr elab_ctx)
-     ; us <- newUniqueSupply 
-     ; if null elab_ctx && not (isPromotedDataCon tc)
-       then return dc
-       else return $ updateDataCon us dc elab_ctx
-     }
-
-
-elabTySynRhs :: TyCon -> TcM TyCon
-elabTySynRhs tc = do
-  { d <- case synTyConRhs_maybe tc of
-             Just ty -> genAtAtConstraintsTcM True ty
-             Nothing -> pprPanic "Shouldn't happen while elaborating type synonym" (ppr tc)
-  ; let np = filter (\p -> f (predTyArgs p) (fmap mkTyVarTy $ tyConTyVars tc)) (newPreds d) -- make sure we don't escape scope
-  ; return $ updateSynonymTyConRhs tc
-                    (attachConstraints np (elabTy d))
-                    (null np) -- this should ideally check for type families but because we flatten them out I guess
-                                     -- we don't need to do a detailed check.
-  }
-  where
-    f :: [Type] -> [Type] -> Bool
-    f candidates should'exist = and [any (c `eqType`) should'exist | c <- candidates ]
-
 genWFMirrorTyCons :: [TyCon] -> TcM [(TyCon, TyCon)]
 genWFMirrorTyCons = mapM genWFMirrorTyCon
 
 genWFMirrorTyCon :: TyCon -> TcM (TyCon, TyCon)
 genWFMirrorTyCon tc
   | isOpenFamilyTyCon tc
-  = do {
-       ; m <- getModule
-       ; let occ = mkTcOcc $ wF_TC_PREFIX ++ (occNameString . nameOccName . tyConName $ tc)
-       ; name <- lookupOrig m occ
-       ; (mirror_tc, n_tc) <- fixM $ (\_ -> do { let mirror_tc = mkWFMirrorTyCon
-                                                                  name
-                                                                  (replaceResultWithConstraint $ tyConResKind tc)
-                                                                  n_tc
-                                                     n_tc      = updateWfMirrorTyCon tc $ Just mirror_tc
-                                               ; return (mirror_tc, n_tc)
-                                               }
-                                     )
-       ; traceTc "wf tf mirror open occname:" (ppr name <+> ppr (nameUnique name))
+  = do { wf_tc_name <- mk_wf_name $ tyConName tc
+       ; (mirror_tc, n_tc) <- fixM $
+         (\_ -> do { let mirror_tc = mkWFMirrorTyCon
+                                     wf_tc_name
+                                     constraintKind
+                                     -- (replaceResultWithConstraint $ tyConResKind tc)
+                                     n_tc
+                         n_tc      = updateWfMirrorTyCon tc $ Just mirror_tc
+                   ; return (mirror_tc, n_tc)
+                   }
+         )
+       ; traceTc "wf tf mirror open occname:" (ppr wf_tc_name)
        ; return $ (mirror_tc, n_tc)
        }
   | otherwise
@@ -340,6 +281,7 @@ genWFMirrorTyCon tc
 -- D a b ~ T a b
 -- generates a WF_D a equation
 -- WF_D a b ~ wf(T a b)
+-- WF_D a b ~ (T @ a, T a @ b)
 genWFTyFamInst :: FamInst -> TcM FamInst
 genWFTyFamInst fam_inst
   = do { let (tfTc, ts) = famInstSplitLHS fam_inst
@@ -349,7 +291,7 @@ genWFTyFamInst fam_inst
        ; inst_name <- newFamInstTyConName (L loc (getName wfTc)) ts
        ; elabDetails <- genAtAtConstraintsTcM False rhs
        ; let preds = newPreds elabDetails
-       ; let n = length preds
+             n = length preds
        ; rhs_ty <- if n == 1 then return . head $ preds
                    else do { ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
                            ; return $ mkTyConApp ctupleTyCon preds

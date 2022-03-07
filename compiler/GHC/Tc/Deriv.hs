@@ -52,7 +52,6 @@ import GHC.Core.DataCon
 import GHC.Data.Maybe
 import GHC.Types.Name.Reader
 import GHC.Types.Name
-import GHC.Types.Avail
 import GHC.Types.Name.Set as NameSet
 import GHC.Core.TyCon
 import GHC.Tc.Utils.TcType
@@ -67,8 +66,6 @@ import GHC.Utils.Panic
 import GHC.Utils.Panic.Plain
 import GHC.Utils.Logger
 import GHC.Data.Bag
-import GHC.Unit.Module (getModule)
-import GHC.Iface.Env ({- newGlobalBinder,-} lookupOrig)
 import GHC.Utils.FV as FV (fvVarList, unionFV, mkFVs)
 import qualified GHC.LanguageExtensions as LangExt
 

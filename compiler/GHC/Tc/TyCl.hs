@@ -1525,7 +1525,7 @@ get_fam_decl_initial_kind mb_parent_tycon
                              ; return $ Just tc
                              }
                      else return Nothing
-       ; return $ (updateTcWfRef aTtc wf_tycon):(maybeToList wf_tycon)
+       ; return $ (updateWfMirrorTyCon aTtc wf_tycon):(maybeToList wf_tycon)
        }
   where
     flav = getFamFlav mb_parent_tycon info
