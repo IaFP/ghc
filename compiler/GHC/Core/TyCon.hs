@@ -2117,10 +2117,6 @@ mkFamilyTyCon name binders res_kind resVar flav parent inj
             }
     in tc
 
-wF_TC_PREFIX :: String -- ANI TODO: restrict this to OccNames perhaps or renamer? It should also be a FS and not a string
-wF_TC_PREFIX = "WF_"
--- WF_TC_PREFIX = "$tc_wf'"
-
 -- ANI TODO: Shouldn't actually be a constraintKind as we can have * -> Constraint etc. tycons
 -- ANI TODO: the resVar is for injective type familes.
 -- This works for both actual type family tycons and also tctycons

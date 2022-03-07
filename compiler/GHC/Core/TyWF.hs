@@ -10,12 +10,15 @@ module GHC.Core.TyWF (
 
   ------------------------------
   -- wellformed constraint generation
-  WfElabTypeDetails (..),
-  genWfConstraints,  genAtAtConstraintsTcM, -- genAtAtConstraintsExcept,
-  genAtAtConstraintsExceptTcM,
-  attachConstraints, mergeAtAtConstraints,
-  elabAtAtConstraintsTcM, elabWithAtAtConstraintsTopTcM, elabAtAtConstraints, -- unelabAtAtConstraintsM, 
-  predTyArgs, predTyVars, flatten_atat_constraint, saneTyConForElab, replaceResultWithConstraint
+  WfElabTypeDetails (..)
+  , genWfConstraints,  genAtAtConstraintsTcM
+  , genAtAtConstraintsExceptTcM
+  , attachConstraints, mergeAtAtConstraints
+  , elabAtAtConstraintsTcM, elabWithAtAtConstraintsTopTcM
+  , elabAtAtConstraints -- unelabAtAtConstraintsM, 
+  , predTyArgs, predTyVars, flatten_atat_constraint
+  , saneTyConForElab, replaceResultWithConstraint
+  , lookupWfMirrorTyCon
   ) where
 
 import GHC.Tc.Instance.Family (tcGetFamInstEnvs)
@@ -43,6 +46,7 @@ import GHC.Utils.Panic (pprPanic)
 import GHC.Utils.Outputable
 import GHC.Utils.Misc(lengthAtLeast)
 import GHC.Tc.Utils.TcMType (mk_wf_name)
+import GHC.Tc.Utils.Env (tcLookupTcTyCon)
 
 #if MIN_VERSION_base(4,16,0)
 import GHC.Types (Total)
@@ -152,8 +156,9 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
       -- if isHigherKinded ty1 -- Don't break * types apart as we don't have a theory for that yet
       -- then return (ty, [])
       -- else
-        if any (eqType ty2) (star:ts)
-        then do { elabd1 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
+        if any (ty2 `tcEqType`) (star:ts)
+        then do { traceTc "wfelab appty1" (ppr ty1 <+> ppr ty2)
+                ; elabd1 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
                 -- ; elabd2 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty2
                 ; return $ elabDetails (AppTy (elabTy elabd1) ty2) (newPreds elabd1)
                 }
@@ -255,16 +260,12 @@ saneTyConForElab tycon =
 tyConGenAtsTcM :: Bool
                -> [TyCon]
                -> [Type] --- things to ignore
-               -> TyCon -> [Type] -> TcM ThetaType
+               -> TyCon
+               -> [Type]
+               -> TcM ThetaType
 tyConGenAtsTcM isTyConPhase eTycons ts tycon args
-  | isTyConInternal tycon
-  = do { traceTc "wfelab internalTyCon" (ppr tycon)
-       ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
-       ; let css = fmap newPreds elabds
-       ; return $ foldl mergeAtAtConstraints [] css
-       }
-  | isClassTyCon tycon
-  = do { traceTc "wfelab ClassTyCon" (ppr tycon)
+  | isTyConInternal tycon || isClassTyCon tycon
+  = do { traceTc "wfelab internalTyCon/ClassTyCon" (ppr tycon)
        ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
        ; let css = fmap newPreds elabds
        ; return $ foldl mergeAtAtConstraints [] css
@@ -300,10 +301,11 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
          -- Ideally I should find it attached to the tycon.
                     else do wft <- lookupWfMirrorTyCon refresh
                             return $ fromJust wft
-       ; traceTc "wfelab lookup2" (ppr wf_name $$ ppr wftycon)
+       ; traceTc "wfelab lookup2" (ppr wf_name $$ ppr (tyConArity wftycon))
        ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
        ; let css = fmap newPreds elabds
-             wftct = if isFamilyTyCon wftycon then mkFamilyTyConApp wftycon args else mkTyConApp wftycon args
+             wf_arity = tyConArity wftycon
+             wftct = mkFamilyTyConApp wftycon (take wf_arity args)
        ; return $ foldl mergeAtAtConstraints [wftct] css
        }
   | isOpenFamilyTyCon tycon
@@ -601,8 +603,15 @@ tyConGenAts eTycons ts tycon args
 
 lookupWfMirrorTyCon :: TyCon -> TcM (Maybe TyCon)
 lookupWfMirrorTyCon tycon
- | Just wf_tc <-  wfMirrorTyCon_maybe tycon = return (Just wf_tc)
- | otherwise = do {
+  | Just wf_tc <-  wfMirrorTyCon_maybe tycon
+  = return (Just wf_tc)
+  | isTcTyCon tycon
+  = do { wf_name <- mk_wf_name (tyConName tycon)
+       ; traceTc "lookupWfMirrorTycon tcTyCon" (ppr tycon)
+       ; wf_tc_tycon <- tcLookupTcTyCon wf_name
+       ; return $ Just wf_tc_tycon
+       }
+  | otherwise = do {
      -- This is a hack.
      -- We search through the Rdr names and find the Name
      -- of the WF constraint. We then fetch the TyCon given the name.
@@ -613,12 +622,12 @@ lookupWfMirrorTyCon tycon
            wf_name = find (\name -> tfName `isSuffixOf` (get_tf_name name)) rdr_names
      ; wf_tc <- case wf_name of
                   Nothing -> return Nothing
-                  Just wf_name -> fmap Just (lookupTyCon wf_name)
+                  Just wf_name' -> fmap Just (lookupTyCon wf_name')
      ; traceTc "lookupWfMirrorTyCon" (vcat [text "wf_tc" <+> ppr wf_tc
                                            , text "name:" <+> ppr wf_name
                                            , text "tfname:" <+> ppr tfName
                                            , text "tycon:" <+> ppr tycon
-                                             -- , text "rdr_names" <+> ppr rdr_names
+                                           , text "rdr_names" <+> ppr rdr_names
                                            ])
      ; return wf_tc
   }

@@ -38,6 +38,8 @@ import GHC.Builtin.Types (wfTyConName, wfTyCon, cTupleTyConName, constraintKind)
 import GHC.Types.SrcLoc
 import GHC.Utils.Outputable as Outputable
 
+import Data.Maybe (fromJust)
+
 
 {-
 ************************************************************************
@@ -285,9 +287,10 @@ genWFMirrorTyCon tc
 genWFTyFamInst :: FamInst -> TcM FamInst
 genWFTyFamInst fam_inst
   = do { let (tfTc, ts) = famInstSplitLHS fam_inst
-       ; let rhs = famInstRHS fam_inst
-       ; let wfTc = wfMirrorTyCon tfTc
-       ; let loc = noAnnSrcSpan . getSrcSpan $ fam_inst
+             rhs = famInstRHS fam_inst
+       ; wfTc_mb <- lookupWfMirrorTyCon tfTc
+       ; let wfTc = fromJust wfTc_mb
+             loc = noAnnSrcSpan . getSrcSpan $ fam_inst
        ; inst_name <- newFamInstTyConName (L loc (getName wfTc)) ts
        ; elabDetails <- genAtAtConstraintsTcM False rhs
        ; let preds = newPreds elabDetails

@@ -10,6 +10,7 @@ import GHC.Base
 newtype f @ p => M1 (i :: Type) (f :: k -> Type) (p :: k) =
     M1 { unM1 :: f p }
 
+
 deriving instance (Eq (f p)) => Eq (M1 i f p) -- this fails because of an extra constraint in the rhs of the typeid of == @M1
 deriving instance (Read (f p)) => Read (M1 i f p)
 deriving instance (Functor (f p)) => Functor (M1 i f)

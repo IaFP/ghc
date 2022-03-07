@@ -91,7 +91,7 @@ module GHC.Builtin.Types (
         anyTyCon, anyTy, anyTypeOfKind,
 
         -- * Well formed or @@ predicates
-        wfTyCon, wfTyConName, totalTyCon, totalTyConName, totalClass, -- total2TyCon, total2TyConName, total2Class,
+        wfTyCon, wfTyConName, wfRepTyCon, wfRep1TyCon,
    
 
         -- * Recovery TyCon
@@ -303,7 +303,8 @@ wiredInTyCons = [ -- Units are not treated like other tuples, because they
                 , heqTyCon
                 , eqTyCon
                 , wfTyCon
-                -- , totalTyCon
+                , wfRepTyCon
+                , wfRep1TyCon
                 , coercibleTyCon
                 , typeSymbolKindCon
                 , runtimeRepTyCon
@@ -507,7 +508,7 @@ anyTypeOfKind :: Kind -> Type
 anyTypeOfKind kind = mkTyConApp anyTyCon [kind]
 
 
-{- Wired in representation of @@ type family instance -}
+{- Wired in representation of @ type family instance -}
 wfTyConName :: Name
 wfTyConName =
     mkWiredInTyConName BuiltInSyntax gHC_TYPES (fsLit "@") wfTyConKey wfTyCon
@@ -520,44 +521,27 @@ wfTyCon = mkFamilyTyCon wfTyConName binders constraintKind (Just wfTyConName)
   where
     binders = mkTemplateTyConBinders [liftedTypeKind, liftedTypeKind] (\[k1, k2] -> [(k1 `mkVisFunTyMany` k2), k1])
 
--- type (@@) :: k1 k2 (a :: k1 -> k2) (b :: k2)
+-- type (@) :: k1 k2 (a :: k1 -> k2) (b :: k2)
 --   tyConBinders = [ Bndr (k1::*)   (NamedTCB Inferred)
 --                  , Bndr (k2::*)   (NamedTCB Inferred)
 --                  , Bndr (a::k1->k2) AnonTCB
 --                  , Bndr (b::k1)     AnonTCB ]
 
-
-totalTyConName :: Name
-totalTyConName = mkWiredInTyConName BuiltInSyntax gHC_TYPES (fsLit "Total") totalTyConKey totalTyCon
-
-totalDataConName :: Name
-totalDataConName = mkWiredInDataConName BuiltInSyntax gHC_TYPES (fsLit "MkTotal") totalDataConKey totalDataCon
-
--- class Total (f :: k' -> k)
--- forall k' k f :: k' -> k. Total f
-totalTyCon :: TyCon
-totalClass :: Class
-totalDataCon :: DataCon
-(totalTyCon, totalClass, totalDataCon)
-  = (tycon, klass, datacon)
+wfRepTyCon :: TyCon
+wfRepTyCon = mkFamilyTyCon wfRepTyConName binders constraintKind (Just wfRepTyConName)
+               OpenSynFamilyTyCon
+               Nothing
+               NotInjective
   where
-    tycon     = mkClassTyCon totalTyConName binders roles
-                             rhs klass
-                             (mkPrelTyConRepName totalTyConName)
-    klass     = mk_class tycon sc_pred sc_sel_id
+    binders = mkTemplateTyConBinders [liftedTypeKind] id
 
-    -- Kind: 
-    datacon   = pcDataCon totalDataConName tvs [sc_pred] tycon
-
-    binders   = mkTemplateTyConBinders [liftedTypeKind, liftedTypeKind] (\[k1, k2] -> [k1 `mkVisFunTyMany` k2])
-    roles     = [Nominal, Nominal, Representational]
-    rhs       = mkDataTyConRhs [datacon]
-
-    tvs         = binderVars binders
-    sc_pred     = mkTyConApp tycon (mkTyVarTys tvs)
-    sc_sel_id   = mkDictSelId totalSCSelIdName klass
-
-    totalSCSelIdName = mkWiredInIdName gHC_TYPES (fsLit "total_sel") totalSCSelIdKey sc_sel_id
+wfRep1TyCon :: TyCon
+wfRep1TyCon = mkFamilyTyCon wfRep1TyConName binders constraintKind (Just wfRep1TyConName)
+               OpenSynFamilyTyCon
+               Nothing
+               NotInjective
+  where
+    binders = mkTemplateTyConBinders [liftedTypeKind] id
 
 
 -- | Make a fake, recovery 'TyCon' from an existing one.

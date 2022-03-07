@@ -38,13 +38,11 @@ import GHC.Tc.Instance.Family ( tcTopNormaliseNewTypeTF_maybe )
 import GHC.Types.Var
 import GHC.Types.Var.Env( mkInScopeSet )
 import GHC.Types.Var.Set( delVarSetList, anyVarSet )
-import GHC.Types.Unique ( hasKey )
 import GHC.Utils.Outputable
 import GHC.Utils.Panic
 import GHC.Utils.Panic.Plain
 import GHC.Builtin.Types ( anyTypeOfKind )
 import GHC.Builtin.Types.Prim ( concretePrimTyCon )
-import GHC.Builtin.Names (wfTyConKey)
 import GHC.Types.Name.Set
 import GHC.Types.Name.Reader
 import GHC.Hs.Type( HsIPName(..) )

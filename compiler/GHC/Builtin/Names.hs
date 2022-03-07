@@ -157,6 +157,11 @@ allNameStrings :: [String]
 -- Infinite list of a,b,c...z, aa, ab, ac, ... etc
 allNameStrings = [ c:cs | cs <- "" : allNameStrings, c <- ['a'..'z'] ]
 
+wF_TC_PREFIX :: String -- ANI TODO: restrict this to OccNames perhaps or renamer? It should also be a FS and not a string
+wF_TC_PREFIX = "WF_" -- fsList "$WF_"
+-- WF_TC_PREFIX = "$tc_wf'"
+
+
 {-
 ************************************************************************
 *                                                                      *
@@ -502,7 +507,8 @@ genericTyConNames = [
     compTyConName, rTyConName, dTyConName,
     cTyConName, sTyConName, rec0TyConName,
     d1TyConName, c1TyConName, s1TyConName,
-    repTyConName, rep1TyConName, uRecTyConName,
+    repTyConName, rep1TyConName, wfRepTyConName, wfRep1TyConName,
+    uRecTyConName,
     uAddrTyConName, uCharTyConName, uDoubleTyConName,
     uFloatTyConName, uIntTyConName, uWordTyConName,
     prefixIDataConName, infixIDataConName, leftAssociativeDataConName,
@@ -955,7 +961,8 @@ v1TyConName, u1TyConName, par1TyConName, rec1TyConName,
   compTyConName, rTyConName, dTyConName,
   cTyConName, sTyConName, rec0TyConName,
   d1TyConName, c1TyConName, s1TyConName,
-  repTyConName, rep1TyConName, uRecTyConName,
+  repTyConName, rep1TyConName, wfRepTyConName, wfRep1TyConName,
+  uRecTyConName,
   uAddrTyConName, uCharTyConName, uDoubleTyConName,
   uFloatTyConName, uIntTyConName, uWordTyConName,
   prefixIDataConName, infixIDataConName, leftAssociativeDataConName,
@@ -989,6 +996,10 @@ s1TyConName  = tcQual gHC_GENERICS (fsLit "S1") s1TyConKey
 
 repTyConName  = tcQual gHC_GENERICS (fsLit "Rep")  repTyConKey
 rep1TyConName = tcQual gHC_GENERICS (fsLit "Rep1") rep1TyConKey
+
+wfRepTyConName  = tcQual gHC_GENERICS (fsLit "WF_Rep")  wfRepTyConKey
+wfRep1TyConName = tcQual gHC_GENERICS (fsLit "WF_Rep1") wfRep1TyConKey
+
 
 uRecTyConName      = tcQual gHC_GENERICS (fsLit "URec") uRecTyConKey
 uAddrTyConName     = tcQual gHC_GENERICS (fsLit "UAddr") uAddrTyConKey
@@ -1911,7 +1922,8 @@ v1TyConKey, u1TyConKey, par1TyConKey, rec1TyConKey,
   compTyConKey, rTyConKey, dTyConKey,
   cTyConKey, sTyConKey, rec0TyConKey,
   d1TyConKey, c1TyConKey, s1TyConKey,
-  repTyConKey, rep1TyConKey, uRecTyConKey,
+  repTyConKey, rep1TyConKey, wfRepTyConKey, wfRep1TyConKey,
+  uRecTyConKey,
   uAddrTyConKey, uCharTyConKey, uDoubleTyConKey,
   uFloatTyConKey, uIntTyConKey, uWordTyConKey :: Unique
 
@@ -1938,6 +1950,8 @@ s1TyConKey    = mkPreludeTyConUnique 153
 
 repTyConKey  = mkPreludeTyConUnique 155
 rep1TyConKey = mkPreludeTyConUnique 156
+wfRepTyConKey  = mkPreludeTyConUnique 902
+wfRep1TyConKey = mkPreludeTyConUnique 903
 
 uRecTyConKey    = mkPreludeTyConUnique 157
 uAddrTyConKey   = mkPreludeTyConUnique 158
@@ -2002,9 +2016,6 @@ multMulTyConKey = mkPreludeTyConUnique 199
 
 wfTyConKey :: Unique
 wfTyConKey = mkPreludeTyConUnique 900
-
-totalTyConKey :: Unique
-totalTyConKey = mkPreludeTyConUnique 901
 
 ---------------- Template Haskell -------------------
 --      GHC.Builtin.Names.TH: USES TyConUniques 200-299
