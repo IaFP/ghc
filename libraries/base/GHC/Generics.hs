@@ -867,11 +867,9 @@ newtype f @ p => Rec1 (f :: k -> Type) (p :: k) = Rec1 { unRec1 :: f p }
            , Read     -- ^ @since 4.7.0.0
            , Show     -- ^ @since 4.7.0.0
            , Functor  -- ^ @since 4.9.0.0
-           -- , Generic  -- ^ @since 4.7.0.0
+           , Generic  -- ^ @since 4.7.0.0
            , Generic1 -- ^ @since 4.9.0.0
            )
-
-deriving instance (Total f, Functor f) => Generic (Rec1 f a)
 
 
 -- | @since 4.9.0.0
@@ -942,11 +940,9 @@ newtype f @ p => M1 (i :: Type) (c :: Meta) (f :: k -> Type) (p :: k) =
            , Read     -- ^ @since 4.7.0.0
            , Show     -- ^ @since 4.7.0.0
            , Functor  -- ^ @since 4.9.0.0
-           -- , Generic  -- ^ @since 4.7.0.0
+           , Generic  -- ^ @since 4.7.0.0
            , Generic1 -- ^ @since 4.9.0.0
            )
-
-deriving instance (Total f, Functor f) => Generic (M1 i c f p)
 
 -- | Sums: encode choice between constructors
 infixr 5 :+:
@@ -956,10 +952,9 @@ data (f @ p, g @ p) => (:+:) (f :: k -> Type) (g :: k -> Type) (p :: k) = L1 (f 
            , Read     -- ^ @since 4.7.0.0
            , Show     -- ^ @since 4.7.0.0
            , Functor  -- ^ @since 4.9.0.0
-           -- , Generic  -- ^ @since 4.7.0.0
+           , Generic  -- ^ @since 4.7.0.0
            , Generic1 -- ^ @since 4.9.0.0
            )
-deriving instance (Total f, Total g, Functor f, Functor g) => Generic ((f :+: g) p)
 
 -- | Products: encode multiple arguments to constructors
 infixr 6 :*:
@@ -969,10 +964,9 @@ data (f @ p, g @ p) => (:*:) (f :: k -> Type) (g :: k -> Type) (p :: k) = f p :*
            , Read     -- ^ @since 4.7.0.0
            , Show     -- ^ @since 4.7.0.0
            , Functor  -- ^ @since 4.9.0.0
-           -- , Generic  -- ^ @since 4.7.0.0
+           , Generic  -- ^ @since 4.7.0.0
            , Generic1 -- ^ @since 4.9.0.0
            )
-deriving instance (Total f, Total g, Functor f, Functor g) => Generic ((f :*: g) p)
 
 -- | @since 4.9.0.0
 instance (Total f, Total g, Applicative f, Applicative g) => Applicative (f :*: g) where
@@ -1014,12 +1008,9 @@ newtype (f @ g p, g @ p) => (:.:) (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) =
            , Read     -- ^ @since 4.7.0.0
            , Show     -- ^ @since 4.7.0.0
            , Functor  -- ^ @since 4.9.0.0
-           -- , Generic  -- ^ @since 4.7.0.0
-           -- , Generic1 -- ^ @since 4.9.0.0 -- cant deduce f @ Rec1 g a
+           , Generic  -- ^ @since 4.7.0.0
+           , Generic1 -- ^ @since 4.9.0.0 
            )
-
-deriving instance (Total f, Total g, Functor f, Functor g) => Generic ((f :.: g) p)
-deriving instance (Total f, Total g, Functor f, Functor g) => Generic1 (f :.: g)
 
 -- | @since 4.9.0.0
 instance (Total f, Total g, Applicative f, Applicative g) => Applicative (f :.: g) where

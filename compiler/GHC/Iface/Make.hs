@@ -499,14 +499,7 @@ tyConToIfaceDecl env tycon
                    })
 
   | Just fam_flav <- famTyConFlav_maybe tycon
-  = ( tc_env1
-    , IfaceFamily { ifName    = getName tycon,
-                    ifResVar  = if_res_var,
-                    ifFamFlav = to_if_fam_flav fam_flav,
-                    ifBinders = if_binders,
-                    ifResKind = if_res_kind,
-                    ifFamInj  = tyConInjectivityInfo tycon
-                  })
+  = tyFamToIfaceDecl env fam_flav tycon
 
   | isAlgTyCon tycon
   = ( tc_env1
@@ -544,25 +537,12 @@ tyConToIfaceDecl env tycon
                      -- No tidying of the binders; they are already tidy
     if_res_kind    = tidyToIfaceType tc_env1 (tyConResKind tycon)
     if_syn_type ty = tidyToIfaceType tc_env1 ty
-    if_res_var     = getOccFS `fmap` tyConFamilyResVar_maybe tycon
 
     parent = case tyConFamInstSig_maybe tycon of
                Just (tc, ty, ax) -> IfDataInstance (coAxiomName ax)
                                                    (toIfaceTyCon tc)
                                                    (tidyToIfaceTcArgs tc_env1 tc ty)
                Nothing           -> IfNoParent
-
-    to_if_fam_flav OpenSynFamilyTyCon             = IfaceOpenSynFamilyTyCon
-    to_if_fam_flav AbstractClosedSynFamilyTyCon   = IfaceAbstractClosedSynFamilyTyCon
-    to_if_fam_flav (DataFamilyTyCon {})           = IfaceDataFamilyTyCon
-    to_if_fam_flav (BuiltInSynFamTyCon {})        = IfaceBuiltInSynFamTyCon
-    to_if_fam_flav (ClosedSynFamilyTyCon Nothing) = IfaceClosedSynFamilyTyCon Nothing
-    to_if_fam_flav (ClosedSynFamilyTyCon (Just ax))
-      = IfaceClosedSynFamilyTyCon (Just (axn, ibr))
-      where defs = fromBranches $ coAxiomBranches ax
-            lhss = map coAxBranchLHS defs
-            ibr  = map (coAxBranchToIfaceBranch tycon lhss) defs
-            axn  = coAxiomName ax
 
     ifaceConDecls (NewTyCon { data_con = con })    = IfNewTyCon  (ifaceConDecl con)
     ifaceConDecls (DataTyCon { data_cons = cons }) = IfDataTyCon (map ifaceConDecl cons)
@@ -672,6 +652,48 @@ classToIfaceDecl env clas
 
     toIfaceFD (tvs1, tvs2) = (map (tidyTyVar env1) tvs1
                              ,map (tidyTyVar env1) tvs2)
+
+
+
+tyFamToIfaceDecl :: TidyEnv -> FamTyConFlav -> TyCon -> (TidyEnv, IfaceDecl)
+tyFamToIfaceDecl env fam_flav tycon = 
+  ( tc_env1
+  , IfaceFamily { ifName    = getName tycon,
+                  ifResVar  = if_res_var,
+                  ifFamFlav = to_if_fam_flav fam_flav,
+                  ifBinders = if_binders,
+                  ifResKind = if_res_kind,
+                  ifFamInj  = tyConInjectivityInfo tycon,
+                  ifWFMirror = NoWFMirror
+                })
+  where
+    (tc_env1, tc_binders) = tidyTyConBinders env (tyConBinders tycon)
+    -- d = tyConToIfaceWFMirror tc_env1 (wfMirrorTyCon_maybe tycon)
+
+    if_binders     = toIfaceTyCoVarBinders tc_binders
+                     -- No tidying of the binders; they are already tidy
+    if_res_kind    = tidyToIfaceType tc_env1 (tyConResKind tycon)
+    if_res_var     = getOccFS `fmap` tyConFamilyResVar_maybe tycon
+
+    to_if_fam_flav OpenSynFamilyTyCon             = IfaceOpenSynFamilyTyCon
+    to_if_fam_flav AbstractClosedSynFamilyTyCon   = IfaceAbstractClosedSynFamilyTyCon
+    to_if_fam_flav (DataFamilyTyCon {})           = IfaceDataFamilyTyCon
+    to_if_fam_flav (BuiltInSynFamTyCon {})        = IfaceBuiltInSynFamTyCon
+    to_if_fam_flav (ClosedSynFamilyTyCon Nothing) = IfaceClosedSynFamilyTyCon Nothing
+    to_if_fam_flav (ClosedSynFamilyTyCon (Just ax))
+      = IfaceClosedSynFamilyTyCon (Just (axn, ibr))
+      where defs = fromBranches $ coAxiomBranches ax
+            lhss = map coAxBranchLHS defs
+            ibr  = map (coAxBranchToIfaceBranch tycon lhss) defs
+            axn  = coAxiomName ax
+
+    tyConToIfaceWFMirror :: TidyEnv -> Maybe TyCon -> ({-TidyEnv,-} IfaceWFMirror)
+    tyConToIfaceWFMirror _ Nothing = ({-env,-} NoWFMirror)
+    tyConToIfaceWFMirror env (Just tycon) = ({-e,-} IfaceWFMirror d)
+      where
+        (e, d) = tyConToIfaceDecl env tycon
+
+
 
 --------------------------
 

@@ -90,8 +90,8 @@ module GHC.Builtin.Types (
         -- * Any
         anyTyCon, anyTy, anyTypeOfKind,
 
-        -- * Well formed or @@ predicates
-        wfTyCon, wfTyConName, wfRepTyCon, wfRep1TyCon,
+        -- * Well formed or @ predicates
+        wfTyCon, wfTyConName, -- wfRepTyCon, wfRep1TyCon,
    
 
         -- * Recovery TyCon
@@ -303,8 +303,8 @@ wiredInTyCons = [ -- Units are not treated like other tuples, because they
                 , heqTyCon
                 , eqTyCon
                 , wfTyCon
-                , wfRepTyCon
-                , wfRep1TyCon
+                -- , wfRepTyCon
+                -- , wfRep1TyCon
                 , coercibleTyCon
                 , typeSymbolKindCon
                 , runtimeRepTyCon
@@ -497,6 +497,7 @@ anyTyCon = mkFamilyTyCon anyTyConName binders res_kind Nothing
                          (ClosedSynFamilyTyCon Nothing)
                          Nothing
                          NotInjective
+                         Nothing
   where
     binders@[kv] = mkTemplateKindTyConBinders [liftedTypeKind]
     res_kind = mkTyVarTy (binderVar kv)
@@ -518,6 +519,7 @@ wfTyCon = mkFamilyTyCon wfTyConName binders constraintKind (Just wfTyConName)
             OpenSynFamilyTyCon
             Nothing
             NotInjective
+            Nothing
   where
     binders = mkTemplateTyConBinders [liftedTypeKind, liftedTypeKind] (\[k1, k2] -> [(k1 `mkVisFunTyMany` k2), k1])
 
@@ -527,21 +529,21 @@ wfTyCon = mkFamilyTyCon wfTyConName binders constraintKind (Just wfTyConName)
 --                  , Bndr (a::k1->k2) AnonTCB
 --                  , Bndr (b::k1)     AnonTCB ]
 
-wfRepTyCon :: TyCon
-wfRepTyCon = mkFamilyTyCon wfRepTyConName binders constraintKind (Just wfRepTyConName)
-               OpenSynFamilyTyCon
-               Nothing
-               NotInjective
-  where
-    binders = mkTemplateTyConBinders [liftedTypeKind] id
+-- wfRepTyCon :: TyCon
+-- wfRepTyCon = mkFamilyTyCon wfRepTyConName binders constraintKind (Just wfRepTyConName)
+--                OpenSynFamilyTyCon
+--                Nothing
+--                NotInjective
+--   where
+--     binders = mkTemplateTyConBinders [liftedTypeKind] id
 
-wfRep1TyCon :: TyCon
-wfRep1TyCon = mkFamilyTyCon wfRep1TyConName binders constraintKind (Just wfRep1TyConName)
-               OpenSynFamilyTyCon
-               Nothing
-               NotInjective
-  where
-    binders = mkTemplateTyConBinders [liftedTypeKind] id
+-- wfRep1TyCon :: TyCon
+-- wfRep1TyCon = mkFamilyTyCon wfRep1TyConName binders constraintKind (Just wfRep1TyConName)
+--                OpenSynFamilyTyCon
+--                Nothing
+--                NotInjective
+--   where
+--     binders = mkTemplateTyConBinders [liftedTypeKind] id
 
 
 -- | Make a fake, recovery 'TyCon' from an existing one.
@@ -1495,6 +1497,7 @@ multMulTyCon = mkFamilyTyCon multMulTyConName binders multiplicityTy Nothing
                          (BuiltInSynFamTyCon trivialBuiltInFamily)
                          Nothing
                          NotInjective
+                         Nothing
   where
     binders = mkTemplateAnonTyConBinders [multiplicityTy, multiplicityTy]
 

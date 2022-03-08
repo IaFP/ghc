@@ -45,7 +45,7 @@ import Control.Monad
 import GHC.Driver.Session
 import GHC.Parser.PostProcess ( setRdrNameSpace )
 import Data.Either            ( partitionEithers )
-import Data.List (find, isSuffixOf, isPrefixOf)
+import Data.List (isPrefixOf)
 import qualified GHC.LanguageExtensions as LangExt
 
 
@@ -149,7 +149,7 @@ accumExports f = fmap (concat . snd) . mapAccumLM f' emptyExportAccum
     f' acc x = do
           m <- attemptM (f acc x)
           pure $ case m of
-            Just [(acc', y),(acc'', y')]  -> (acc'', [y, y'])
+            Just [(_, y),(acc'', y')]  -> (acc'', [y, y'])
             -- this is the case where y can have an accompayning wellformedness type family
             Just [(acc', y)]              -> (acc', [y])
             _                             -> (acc, [])

@@ -474,10 +474,12 @@ rnIfaceDecl d@IfaceFamily{} = do
             binders <- mapM rnIfaceTyConBinder (ifBinders d)
             fam_kind <- rnIfaceType (ifResKind d)
             fam_flav <- rnIfaceFamTyConFlav (ifFamFlav d)
+            wf_mirror <- rnIfaceWFMirror $ ifWFMirror d
             return d { ifName = name
                      , ifBinders = binders
                      , ifResKind = fam_kind
                      , ifFamFlav = fam_flav
+                     , ifWFMirror = wf_mirror
                      }
 rnIfaceDecl d@IfaceClass{} = do
             name <- rnIfaceGlobal (ifName d)
@@ -534,6 +536,10 @@ rnIfaceFamTyConFlav flav = pure flav
 rnIfaceAT :: Rename IfaceAT
 rnIfaceAT (IfaceAT decl mb_ty)
     = IfaceAT <$> rnIfaceDecl decl <*> T.traverse rnIfaceType mb_ty
+
+rnIfaceWFMirror :: Rename IfaceWFMirror
+rnIfaceWFMirror (IfaceWFMirror d) =  IfaceWFMirror <$> rnIfaceDecl d
+rnIfaceWFMirror NoWFMirror = pure NoWFMirror
 
 rnIfaceTyConParent :: Rename IfaceTyConParent
 rnIfaceTyConParent (IfDataInstance n tc args)

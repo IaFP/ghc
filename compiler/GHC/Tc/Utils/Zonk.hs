@@ -87,7 +87,6 @@ import GHC.Types.SrcLoc
 import GHC.Types.Unique.FM
 import GHC.Types.TyThing
 import GHC.Driver.Session( getDynFlags, targetPlatform )
-import qualified GHC.LanguageExtensions as LangExt
 import GHC.Data.Maybe
 import GHC.Data.Bag
 

@@ -206,8 +206,8 @@ mkDataConStupidTheta tycon arg_tys univ_tvs
         -- Start by instantiating the master copy of the
         -- stupid theta, taken from the TyCon
 
-    arg_tyvars      = tyCoVarsOfTypes arg_tys
-    in_arg_tys pred = tyCoVarsOfType pred `intersectsVarSet` arg_tyvars
+    -- arg_tyvars      = tyCoVarsOfTypes arg_tys
+    -- in_arg_tys pred = tyCoVarsOfType pred `intersectsVarSet` arg_tyvars
 
 
 ------------------------------------------------------

@@ -736,13 +736,17 @@ tc_iface_decl parent _ (IfaceFamily {ifName = tc_name,
                                      ifFamFlav = fam_flav,
                                      ifBinders = binders,
                                      ifResKind = res_kind,
-                                     ifResVar = res, ifFamInj = inj })
+                                     ifResVar = res,
+                                     ifFamInj = inj,
+                                     ifWFMirror = wfm
+                                    })
    = bindIfaceTyConBinders_AT binders $ \ binders' -> do
      { res_kind' <- tcIfaceType res_kind    -- Note [Synonym kind loop]
      ; rhs      <- forkM (mk_doc tc_name) $
                    tc_fam_flav tc_name fam_flav
      ; res_name <- traverse (newIfaceName . mkTyVarOccFS) res
-     ; let tycon = mkFamilyTyCon tc_name binders' res_kind' res_name rhs parent inj
+     ; wf_tycon_mb <- tcIfaceWFMirror wfm
+     ; let tycon = mkFamilyTyCon tc_name binders' res_kind' res_name rhs parent inj wf_tycon_mb
      ; return (ATyCon tycon) }
    where
      mk_doc n = text "Type synonym" <+> ppr n
@@ -1031,6 +1035,11 @@ tc_ax_branch prev_branches
                           , cab_rhs     = tc_rhs
                           , cab_incomps = map (prev_branches `getNth`) incomps }
     ; return (prev_branches ++ [br]) }
+
+tcIfaceWFMirror :: IfaceWFMirror -> IfL (Maybe TyCon)
+tcIfaceWFMirror NoWFMirror = return Nothing
+tcIfaceWFMirror (IfaceWFMirror d) = do tything <- tcIfaceDecl False d
+                                       return (Just $ tyThingTyCon tything)
 
 tcIfaceDataCons :: Name -> TyCon -> [TyConBinder] -> IfaceConDecls -> IfL AlgTyConRhs
 tcIfaceDataCons tycon_name tycon tc_tybinders if_cons

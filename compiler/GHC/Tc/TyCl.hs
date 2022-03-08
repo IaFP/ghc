@@ -307,7 +307,6 @@ pprtc tc
   | isOpenFamilyTyCon tc
   = text "open tyfam tycon=" <> ppr tc
     <+> text "mirror tycon=" <> ppr (wfMirrorTyCon_maybe tc)
-    <+> text "parent tycon=" <> ppr (wfOrigTyCon_maybe tc)
   | otherwise =
     text "tycon=" <> ppr tc
 
@@ -2850,7 +2849,7 @@ tcFamDecl1 parent (FamilyDecl { fdInfo = fam_info
                               res_kind
                               (resultVariableName sig)
                               (DataFamilyTyCon tc_rep_name)
-                              parent inj
+                              parent inj Nothing
   ; return [tycon] }
 
   | OpenTypeFamily <- fam_info
@@ -2863,7 +2862,7 @@ tcFamDecl1 parent (FamilyDecl { fdInfo = fam_info
           ; if partyCtrs && isJust parent -- do this only for associated types for now.
             then do { let tycon = mkFamilyTyCon tc_name binders res_kind
                             (resultVariableName sig) OpenSynFamilyTyCon
-                            parent inj'
+                            parent inj' Nothing
                     ; wf_name <- mk_wf_name tc_name
                     ; wf_tctyc <- tcLookupTcTyCon wf_name
                     ; traceTc "wf_tctc" (ppr wf_tctyc)
@@ -2873,7 +2872,7 @@ tcFamDecl1 parent (FamilyDecl { fdInfo = fam_info
                     ; return [tycon', wf_tycon] }
             else do { let tycon = mkFamilyTyCon tc_name binders res_kind
                                   (resultVariableName sig) OpenSynFamilyTyCon
-                                  parent inj'
+                                  parent inj' Nothing
                     ; traceTc "tcFamDecl1 end" (ppr tycon)
                     ; return [tycon]
                     }
@@ -2900,7 +2899,7 @@ tcFamDecl1 parent (FamilyDecl { fdInfo = fam_info
                return $ [mkFamilyTyCon tc_name binders res_kind
                                       (resultVariableName sig)
                                       AbstractClosedSynFamilyTyCon parent
-                                      inj']
+                                      inj' Nothing]
            Just eqns -> do {
 
          -- Process the equations, creating CoAxBranches
@@ -2924,7 +2923,7 @@ tcFamDecl1 parent (FamilyDecl { fdInfo = fam_info
               | otherwise = Just (mkBranchedCoAxiom co_ax_name fam_tc branches)
 
              fam_tc = mkFamilyTyCon tc_name binders res_kind (resultVariableName sig)
-                      (ClosedSynFamilyTyCon mb_co_ax) parent inj'
+                      (ClosedSynFamilyTyCon mb_co_ax) parent inj' Nothing
 
          -- We check for instance validity later, when doing validity
          -- checking for the tycon. Exception: checking equations

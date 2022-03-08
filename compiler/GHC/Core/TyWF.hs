@@ -38,7 +38,7 @@ import GHC.Types.TyThing
 import GHC.Builtin.Names.TH
 import GHC.Builtin.Types (liftedTypeKindTyCon, isCTupleTyConName, wfTyCon)
 import GHC.Types.Name.Reader
-import Data.List (partition, find, isSuffixOf)
+import Data.List (find, isSuffixOf)
 import Data.Maybe (maybeToList, fromJust)
 import GHC.Tc.Utils.Monad
 import GHC.Tc.Utils.Env (tcLookupTcTyCon)
@@ -46,7 +46,6 @@ import GHC.Utils.Panic (pprPanic)
 import GHC.Utils.Outputable
 import GHC.Utils.Misc(lengthAtLeast)
 import GHC.Tc.Utils.TcMType (mk_wf_name)
-import GHC.Tc.Utils.Env (tcLookupTcTyCon)
 
 #if MIN_VERSION_base(4,16,0)
 import GHC.Types (Total)
@@ -305,8 +304,10 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
        ; let css = fmap newPreds elabds
              wf_arity = tyConArity wftycon
-             wftct = mkFamilyTyConApp wftycon (take wf_arity args)
-       ; return $ foldl mergeAtAtConstraints [wftct] css
+             wftct = mkTyConApp wftycon (take wf_arity args)
+             extra_args = drop wf_arity args
+       ; extra_css <- sequenceAtAts tycon (take wf_arity args) extra_args
+       ; return $ foldl mergeAtAtConstraints (wftct:extra_css) css
        }
   | isOpenFamilyTyCon tycon
   = do { traceTc "wfelab open fam tycon" (ppr tycon)
@@ -385,7 +386,7 @@ recGenAts' tyc ((hd, bndr, r) : tl) tycargs' acc ts
                       || any (eqType hd) (star:ts) -- we don't want f @@ * creaping in
                       -- || r == Phantom
                    then []
-                   else [(TyConApp tyc (tycargs')) `at'at` hd]
+                   else [(mkTyConApp tyc (tycargs')) `at'at` hd]
        ; recGenAts' tyc tl (tycargs' ++ [hd]) (mergeAtAtConstraints acc atc) ts
        }
 
@@ -399,6 +400,21 @@ at'at f arg = mkTyConApp wfTyCon [argk, resk, f, arg]
   where argk = tcTypeKind arg
         fk   = tcTypeKind f
         resk = piResultTy fk argk
+
+sequenceAtAts :: Monad m
+              => TyCon -- base tycon
+              -> [Type] -- done
+              -> [Type] -- to process
+              -> m ThetaType
+sequenceAtAts btc args extra_args = sequenceAtAts_aux [] btc args extra_args
+  where
+    sequenceAtAts_aux :: Monad m => ThetaType -> TyCon -> [Type] -> [Type] -> m ThetaType
+    sequenceAtAts_aux acc _ _ [] = return acc
+    sequenceAtAts_aux acc btc args (x:xs) = do
+      let new_at = (mkTyConApp btc args) `at'at` x
+      sequenceAtAts_aux (new_at:acc) btc (args ++ [x]) xs
+  
+
 
 -- Merges two thetas to a theta with unique constraints
 mergeAtAtConstraints :: ThetaType -> ThetaType ->  ThetaType

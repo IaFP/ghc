@@ -252,6 +252,7 @@ typeNatCmpTyCon =
     (BuiltInSynFamTyCon ops)
     Nothing
     NotInjective
+    Nothing
 
   where
   name = mkWiredInTyConName UserSyntax gHC_TYPENATS_INTERNAL (fsLit "CmpNat")
@@ -271,6 +272,7 @@ typeSymbolCmpTyCon =
     (BuiltInSynFamTyCon ops)
     Nothing
     NotInjective
+    Nothing
 
   where
   name = mkWiredInTyConName UserSyntax gHC_TYPELITS_INTERNAL (fsLit "CmpSymbol")
@@ -301,6 +303,7 @@ typeConsSymbolTyCon =
     (BuiltInSynFamTyCon ops)
     Nothing
     (Injective [True, True])
+    Nothing
   where
   name = mkWiredInTyConName UserSyntax gHC_TYPELITS (fsLit "ConsSymbol")
                   typeConsSymbolTyFamNameKey typeConsSymbolTyCon
@@ -319,6 +322,7 @@ typeUnconsSymbolTyCon =
     (BuiltInSynFamTyCon ops)
     Nothing
     (Injective [True])
+    Nothing
   where
   name = mkWiredInTyConName UserSyntax gHC_TYPELITS (fsLit "UnconsSymbol")
                   typeUnconsSymbolTyFamNameKey typeUnconsSymbolTyCon
@@ -337,6 +341,7 @@ typeCharToNatTyCon =
     (BuiltInSynFamTyCon ops)
     Nothing
     (Injective [True])
+    Nothing
   where
   name = mkWiredInTyConName UserSyntax gHC_TYPELITS (fsLit "CharToNat")
                   typeCharToNatTyFamNameKey typeCharToNatTyCon
@@ -356,6 +361,7 @@ typeNatToCharTyCon =
     (BuiltInSynFamTyCon ops)
     Nothing
     (Injective [True])
+    Nothing
   where
   name = mkWiredInTyConName UserSyntax gHC_TYPELITS (fsLit "NatToChar")
                   typeNatToCharTyFamNameKey typeNatToCharTyCon
@@ -375,6 +381,7 @@ mkTypeNatFunTyCon1 op tcb =
     (BuiltInSynFamTyCon tcb)
     Nothing
     NotInjective
+    Nothing
 
 -- Make a binary built-in constructor of kind: Nat -> Nat -> Nat
 mkTypeNatFunTyCon2 :: Name -> BuiltInSynFamily -> TyCon
@@ -386,6 +393,7 @@ mkTypeNatFunTyCon2 op tcb =
     (BuiltInSynFamTyCon tcb)
     Nothing
     NotInjective
+    Nothing
 
 -- Make a binary built-in constructor of kind: Symbol -> Symbol -> Symbol
 mkTypeSymbolFunTyCon2 :: Name -> BuiltInSynFamily -> TyCon
@@ -397,6 +405,7 @@ mkTypeSymbolFunTyCon2 op tcb =
     (BuiltInSynFamTyCon tcb)
     Nothing
     NotInjective
+    Nothing
 
 {-------------------------------------------------------------------------------
 Built-in rules axioms
@@ -1129,6 +1138,7 @@ typeCharCmpTyCon =
     (BuiltInSynFamTyCon ops)
     Nothing
     NotInjective
+    Nothing
   where
   name = mkWiredInTyConName UserSyntax gHC_TYPELITS_INTERNAL (fsLit "CmpChar")
                   typeCharCmpTyFamNameKey typeCharCmpTyCon

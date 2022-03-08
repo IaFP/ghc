@@ -10,6 +10,7 @@ module GHC.Iface.Syntax (
         module GHC.Iface.Type,
 
         IfaceDecl(..), IfaceFamTyConFlav(..), IfaceClassOp(..), IfaceAT(..),
+        IfaceWFMirror(..),
         IfaceConDecl(..), IfaceConDecls(..), IfaceEqSpec,
         IfaceExpr(..), IfaceAlt(..), IfaceLetBndr(..), IfaceJoinInfo(..),
         IfaceBinding(..), IfaceConAlt(..),
@@ -147,7 +148,8 @@ data IfaceDecl
                    ifBinders :: [IfaceTyConBinder],
                    ifResKind :: IfaceKind,         -- Kind of the *tycon*
                    ifFamFlav :: IfaceFamTyConFlav,
-                   ifFamInj  :: Injectivity }      -- injectivity information
+                   ifFamInj  :: Injectivity,       -- injectivity information
+                   ifWFMirror :: IfaceWFMirror } -- Datatype asserting Well formedness of this family tycon
 
   | IfaceClass { ifName    :: IfaceTopBndr,             -- Name of the class TyCon
                  ifRoles   :: [Role],                   -- Roles
@@ -218,6 +220,9 @@ data IfaceAT = IfaceAT  -- See GHC.Core.Class.ClassATItem
                   IfaceDecl          -- The associated type declaration
                   (Maybe IfaceType)  -- Default associated type instance, if any
 
+
+data IfaceWFMirror = NoWFMirror
+                   | IfaceWFMirror IfaceDecl
 
 -- This is just like CoAxBranch
 data IfaceAxBranch = IfaceAxBranch { ifaxbTyVars    :: [IfaceTvBndr]
@@ -968,7 +973,7 @@ pprIfaceDecl ss (IfaceSynonym { ifName    = tc
 pprIfaceDecl ss (IfaceFamily { ifName = tycon
                              , ifFamFlav = rhs, ifBinders = binders
                              , ifResKind = res_kind
-                             , ifResVar = res_var, ifFamInj = inj })
+                             , ifResVar = res_var, ifFamInj = inj, ifWFMirror = wfm })
   | IfaceDataFamilyTyCon <- rhs
   = vcat [ pprStandaloneKindSig name_doc (mkIfaceTyConKind binders res_kind)
          , text "data family" <+> pprIfaceDeclHead suppress_bndr_sig [] ss tycon binders
@@ -979,9 +984,9 @@ pprIfaceDecl ss (IfaceFamily { ifName = tycon
          , hang (text "type family"
                    <+> pprIfaceDeclHead suppress_bndr_sig [] ss tycon binders
                    <+> ppShowRhs ss (pp_where rhs))
-              2 (pp_inj res_var inj <+> ppShowRhs ss (pp_rhs rhs))
-           $$
-           nest 2 (ppShowRhs ss (pp_branches rhs))
+              2 (pp_inj res_var inj <+> ppShowRhs ss (pp_rhs rhs)
+                 $$ ppr wfm)
+           $$ nest 2 (ppShowRhs ss (pp_branches rhs))
          ]
   where
     name_doc = pprPrefixIfDeclBndr (ss_how_much ss) (occName tycon)
@@ -1120,6 +1125,15 @@ pprIfaceAT ss (IfaceAT d mb_def)
               Nothing  -> Outputable.empty
               Just rhs -> nest 2 $
                           text "Default:" <+> ppr rhs ]
+
+instance Outputable IfaceWFMirror where
+  ppr = pprIfaceWFMirror
+
+pprIfaceWFMirror :: IfaceWFMirror -> SDoc
+pprIfaceWFMirror NoWFMirror = text "no mirror"
+pprIfaceWFMirror (IfaceWFMirror decl) = text "wfmirror" <+> ppr (ifName decl)
+
+
 
 instance Outputable IfaceTyConParent where
   ppr p = pprIfaceTyConParent p
@@ -1529,10 +1543,11 @@ freeNamesIfDecl (IfaceSynonym { ifBinders = bndrs, ifResKind = res_k
     freeNamesIfType rhs
 
 freeNamesIfDecl (IfaceFamily { ifBinders = bndrs, ifResKind = res_k
-                             , ifFamFlav = flav })
+                             , ifFamFlav = flav, ifWFMirror = wfm })
   = freeNamesIfVarBndrs bndrs &&&
     freeNamesIfKind res_k &&&
-    freeNamesIfFamFlav flav
+    freeNamesIfFamFlav flav &&&
+    freeNamesIfWFMirror wfm
 
 freeNamesIfDecl (IfaceClass{ ifBinders = bndrs, ifBody = cls_body })
   = freeNamesIfVarBndrs bndrs &&&
@@ -1603,6 +1618,10 @@ freeNamesIfAT (IfaceAT decl mb_def)
     case mb_def of
       Nothing  -> emptyNameSet
       Just rhs -> freeNamesIfType rhs
+
+freeNamesIfWFMirror :: IfaceWFMirror -> NameSet
+freeNamesIfWFMirror NoWFMirror        = emptyNameSet
+freeNamesIfWFMirror (IfaceWFMirror d) = freeNamesIfDecl d
 
 freeNamesIfClsSig :: IfaceClassOp -> NameSet
 freeNamesIfClsSig (IfaceClassOp _n ty dm) = freeNamesIfType ty &&& freeNamesDM dm
@@ -1872,7 +1891,7 @@ instance Binary IfaceDecl where
         put_ bh a4
         put_ bh a5
 
-    put_ bh (IfaceFamily a1 a2 a3 a4 a5 a6) = do
+    put_ bh (IfaceFamily a1 a2 a3 a4 a5 a6 a7) = do
         putByte bh 4
         putIfaceTopBndr bh a1
         put_ bh a2
@@ -1880,6 +1899,7 @@ instance Binary IfaceDecl where
         put_ bh a4
         put_ bh a5
         put_ bh a6
+        put_ bh a7       
 
     -- NB: Written in a funny way to avoid an interface change
     put_ bh (IfaceClass {
@@ -1966,7 +1986,8 @@ instance Binary IfaceDecl where
                     a4 <- get bh
                     a5 <- get bh
                     a6 <- get bh
-                    return (IfaceFamily a1 a2 a3 a4 a5 a6)
+                    a7 <- get bh
+                    return (IfaceFamily a1 a2 a3 a4 a5 a6 a7)
             5 -> do a1 <- get bh
                     a2 <- getIfaceTopBndr bh
                     a3 <- get bh
@@ -2077,6 +2098,20 @@ instance Binary IfaceAT where
         dec  <- get bh
         defs <- get bh
         return (IfaceAT dec defs)
+
+instance Binary IfaceWFMirror where
+    put_ bh NoWFMirror = putByte bh 0
+    put_ bh (IfaceWFMirror m) = putByte bh 1 >> put_ bh m
+
+    get bh = do
+       { h <- getByte bh
+       ; case h of
+           0 -> return NoWFMirror
+           1 -> do { m <- get bh
+                   ; return (IfaceWFMirror m) }
+           _ -> pprPanic "Binary.get(IfaceWFMirror): Invalid tag"
+                         (ppr (fromIntegral h :: Int))
+       }
 
 instance Binary IfaceAxBranch where
     put_ bh (IfaceAxBranch a1 a2 a3 a4 a5 a6 a7) = do
@@ -2530,8 +2565,8 @@ instance NFData IfaceDecl where
     IfaceSynonym f1 f2 f3 f4 f5 ->
       rnf f1 `seq` f2 `seq` seqList f3 `seq` rnf f4 `seq` rnf f5
 
-    IfaceFamily f1 f2 f3 f4 f5 f6 ->
-      rnf f1 `seq` rnf f2 `seq` seqList f3 `seq` rnf f4 `seq` rnf f5 `seq` f6 `seq` ()
+    IfaceFamily f1 f2 f3 f4 f5 f6 f7 ->
+      rnf f1 `seq` rnf f2 `seq` seqList f3 `seq` rnf f4 `seq` rnf f5 `seq` f6 `seq` rnf f7
 
     IfaceClass f1 f2 f3 f4 f5 ->
       rnf f1 `seq` f2 `seq` seqList f3 `seq` rnf f4 `seq` rnf f5
@@ -2557,6 +2592,11 @@ instance NFData IfaceClassBody where
 
 instance NFData IfaceAT where
   rnf (IfaceAT f1 f2) = rnf f1 `seq` rnf f2
+
+instance NFData IfaceWFMirror where
+  rnf = \case
+    IfaceWFMirror f1 -> rnf f1 `seq` ()
+    NoWFMirror       -> ()
 
 instance NFData IfaceClassOp where
   rnf (IfaceClassOp f1 f2 f3) = rnf f1 `seq` rnf f2 `seq` f3 `seq` ()
