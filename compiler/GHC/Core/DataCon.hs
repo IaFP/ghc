@@ -50,8 +50,6 @@ module GHC.Core.DataCon (
         dataConImplicitTyThings,
         dataConRepStrictness, dataConImplBangs, dataConBoxer,
 
-        updateDataCon,
-        
         splitDataProductType_maybe,
 
         -- ** Predicates on DataCons
@@ -84,7 +82,6 @@ import GHC.Types.Name hiding (varName)
 import GHC.Builtin.Names
 import GHC.Core.Predicate
 import GHC.Types.Var
-import {-# SOURCE #-} GHC.Types.Id.Make (mkDataConWorkId, updateDataConRep)
 import GHC.Types.Var.Env
 import GHC.Types.Basic
 import GHC.Data.FastString
@@ -94,8 +91,6 @@ import GHC.Utils.Binary
 import GHC.Types.Unique.FM ( UniqFM )
 import GHC.Types.Unique.Set
 import GHC.Builtin.Uniques( mkAlphaTyVarUnique )
-import GHC.Types.Unique.Supply (UniqSupply)
-
 
 import GHC.Utils.Outputable
 import GHC.Utils.Misc
@@ -1437,7 +1432,7 @@ dataConWrapperType :: DataCon -> Type
 -- mentions the family tycon, not the internal one.
 dataConWrapperType (MkData { dcUserTyVarBinders = user_tvbs,
                              dcOtherTheta = theta, dcOrigArgTys = arg_tys,
-                             dcStupidTheta = s_theta,
+                             -- dcStupidTheta = s_theta,
                              dcOrigResTy = res_ty })
   = mkInvisForAllTys user_tvbs $
     mkInvisFunTysMany theta $
@@ -1446,7 +1441,7 @@ dataConWrapperType (MkData { dcUserTyVarBinders = user_tvbs,
 
 dataConNonlinearType :: DataCon -> Type
 dataConNonlinearType (MkData { dcUserTyVarBinders = user_tvbs,
-                               dcOtherTheta = theta, dcStupidTheta = s_theta, dcOrigArgTys = arg_tys,
+                               dcOtherTheta = theta, {-dcStupidTheta = s_theta,-} dcOrigArgTys = arg_tys,
                                dcOrigResTy = res_ty })
   = let arg_tys' = map (\(Scaled w t) -> Scaled (case w of One -> Many; _ -> w) t) arg_tys
     in mkInvisForAllTys user_tvbs $
@@ -1710,7 +1705,7 @@ splitDataProductType_maybe ty
   = Nothing
 
 
-
+{-
 -- | Enriches the well formed theta information in the rep type of the datacon
 -- There are 3 things we need to update here:
 -- 1. The data con itself
@@ -1749,3 +1744,4 @@ updateDataCon us dc wfth = new_dc
                   dcStupidTheta = stableMergeTypes wfth s_th
                 -- , dcWorkId = work_id
                 }
+-}

@@ -52,6 +52,7 @@ import GHC.Utils.Panic
 import Control.Monad ( liftM )
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Class
+import Data.Maybe (maybeToList)
 #if MIN_VERSION_base(4,16,0)
 import GHC.Types (type(@), Total)
 #endif
@@ -189,6 +190,8 @@ implicitTyConThings tc
       -- or type family axioms
     implicitCoTyCon tc ++
 
+    wftyfam ++
+
       -- for each data constructor in order,
       --   the constructor, worker, and (possibly) wrapper
     [ thing | dc    <- tyConDataCons tc
@@ -199,6 +202,7 @@ implicitTyConThings tc
     class_stuff = case tyConClass_maybe tc of
         Nothing -> []
         Just cl -> implicitClassThings cl
+    wftyfam =  fmap ATyCon (maybeToList $ wfMirrorTyCon_maybe tc)
 
 -- For newtypes and closed type families (only) add the implicit coercion tycon
 implicitCoTyCon :: TyCon -> [TyThing]

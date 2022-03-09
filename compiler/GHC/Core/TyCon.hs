@@ -1988,8 +1988,9 @@ mkTcTyCon :: Name
                                  -- see Note [How TcTyCons work] in GHC.Tc.TyCl
           -> Bool                -- ^ Is this TcTyCon generalised already?
           -> TyConFlavour        -- ^ What sort of 'TyCon' this represents
+          -> Maybe TyCon         -- ^ Associated well formed type family constructor
           -> TyCon
-mkTcTyCon name binders res_kind scoped_tvs poly flav
+mkTcTyCon name binders res_kind scoped_tvs poly flav wfref_mb
   = let tc =
           TcTyCon { tyConUnique  = getUnique name
                   , tyConName    = name
@@ -2002,7 +2003,7 @@ mkTcTyCon name binders res_kind scoped_tvs poly flav
                   , tcTyConScopedTyVars = scoped_tvs
                   , tcTyConIsPoly       = poly
                   , tcTyConFlavour      = flav
-                  , tyConWfRef = Nothing}
+                  , tyConWfRef = wfref_mb }
     in tc
 
 updateTcWfRef :: TyCon -> Maybe TyCon -> TyCon
@@ -2134,7 +2135,8 @@ mkWFMirrorTyCon n res_kind tc
                  (tcTyConScopedTyVars tc)
                  (tcTyConIsPoly tc)
                  (tcTyConFlavour tc)
-  in new_tc { tyConWfRef = Just tc }
+                 (Just tc)
+  in new_tc
   | otherwise
   = pprPanic "wfelab does not support wf mirror for tycon" (ppr tc <+> ppr (tcTyConFlavour tc))
 

@@ -19,3 +19,4 @@ isFunTyCon          :: TyCon -> Bool
 tyConRepName_maybe  :: TyCon -> Maybe TyConRepName
 mkPrelTyConRepName  :: Name -> TyConRepName
 tyConName :: TyCon -> Name
+

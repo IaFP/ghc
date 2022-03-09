@@ -52,7 +52,6 @@ import GHC.Exts( oneShot )
 import GHC.Utils.Panic
 import GHC.Utils.Panic.Plain
 import GHC.Data.FastString
-import GHC.Builtin.Names (wfTyConKey)
 
 import Data.Data ( Data )
 import Data.List ( mapAccumL )

@@ -555,6 +555,7 @@ makeRecoveryTyCon tc
               noTcTyConScopedTyVars
               True             -- Fully generalised
               flavour          -- Keep old flavour
+              Nothing
   where
     flavour = tyConFlavour tc
     [kv] = mkTemplateKindVars [liftedTypeKind]
