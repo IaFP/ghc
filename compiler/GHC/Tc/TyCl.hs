@@ -1456,7 +1456,7 @@ getInitialKind strategy
        ; inner_tcs <-
            tcExtendNameTyVarEnv parent_tv_prs $
            mapM (addLocMA (getAssocFamInitialKind cls)) ats
-       ; return (cls : concat inner_tcs) }
+       ; return (cls : inner_tcs) }
   where
     getAssocFamInitialKind cls =
       case strategy of
@@ -1478,7 +1478,7 @@ getInitialKind strategy
 
 getInitialKind InitialKindInfer (FamDecl { tcdFam = decl })
   = do { tcs <- get_fam_decl_initial_kind  Nothing decl
-       ; return tcs }
+       ; return [tcs] }
 
 getInitialKind (InitialKindCheck msig) (FamDecl { tcdFam =
   FamilyDecl { fdLName     = unLoc -> name
@@ -1516,8 +1516,7 @@ get_fam_decl_initial_kind mb_parent_tycon
                , fdTyVars    = ktvs
                , fdResultSig = L _ resultSig
                , fdInfo      = info }
-  = do tc <- kcDeclHeader GenerateMirror InitialKindInfer name flav ktvs $ genResultKind resultSig
-       return [tc, wfMirrorTyCon tc]   
+  = kcDeclHeader GenerateMirror InitialKindInfer name flav ktvs $ genResultKind resultSig
   where
     flav = getFamFlav mb_parent_tycon info
     ctxt = TyFamResKindCtxt name
@@ -1537,16 +1536,15 @@ get_fam_decl_initial_kind mb_parent_tycon
 check_initial_kind_assoc_fam
   :: TcTyCon -- parent class
   -> FamilyDecl GhcRn
-  -> TcM [TcTyCon]
+  -> TcM TcTyCon
 check_initial_kind_assoc_fam cls
   FamilyDecl
     { fdLName     = unLoc -> name
     , fdTyVars    = ktvs
     , fdResultSig = unLoc -> resultSig
     , fdInfo      = info }
-  = do tc <- kcDeclHeader GenerateMirror (InitialKindCheck CUSK) name flav ktvs $
+  = do kcDeclHeader GenerateMirror (InitialKindCheck CUSK) name flav ktvs $
                     genResultKind resultSig
-       return [tc, wfMirrorTyCon tc]
 
   where
     ctxt = TyFamResKindCtxt name

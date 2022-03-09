@@ -616,7 +616,7 @@ mkDataConWrapperOcc, mkWorkerOcc,
         mkDefaultMethodOcc,
         mkClassDataConOcc, mkDictOcc,
         mkIPOcc, mkSpecOcc, mkForeignExportOcc, mkRepEqOcc,
-        mkGenR, mkGen1R,
+        mkGenR, mkGen1R, mkWFTyConOcc,
         mkDataConWorkerOcc, mkNewTyCoOcc,
         mkInstTyCoOcc, mkEqPredCoOcc, mkClassOpAuxOcc,
         mkCon2TagOcc, mkTag2ConOcc, mkMaxTagOcc, mkDataTOcc, mkDataCOcc,
@@ -639,7 +639,7 @@ mkClassDataConOcc   = mk_simple_deriv dataName "C:"   -- Data con for a class
 mkNewTyCoOcc        = mk_simple_deriv tcName   "N:"   -- Coercion for newtypes
 mkInstTyCoOcc       = mk_simple_deriv tcName   "D:"   -- Coercion for type functions
 mkEqPredCoOcc       = mk_simple_deriv tcName   "$co"
-mkWFTyConOcc        = mk_simple_deriv tcName   "WF_"
+mkWFTyConOcc        = mk_simple_deriv tcName   "$WF_"
 -- Used in derived instances for the names of auxiliary bindings.
 -- See Note [Auxiliary binders] in GHC.Tc.Deriv.Generate.
 mkCon2TagOcc        = mk_simple_deriv varName  "$con2tag_"

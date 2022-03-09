@@ -17,8 +17,8 @@ module GHC.Core.TyWF (
   , elabAtAtConstraintsTcM, elabWithAtAtConstraintsTopTcM
   , elabAtAtConstraints -- unelabAtAtConstraintsM, 
   , predTyArgs, predTyVars, flatten_atat_constraint
-  , saneTyConForElab, replaceResultWithConstraint
-  , lookupWfMirrorTyCon
+  , saneTyConForElab
+  -- , replaceResultWithConstraint -- , lookupWfMirrorTyCon
   ) where
 
 import GHC.Tc.Instance.Family (tcGetFamInstEnvs)
@@ -37,15 +37,12 @@ import GHC.Types.Name
 import GHC.Types.TyThing
 import GHC.Builtin.Names.TH
 import GHC.Builtin.Types (liftedTypeKindTyCon, isCTupleTyConName, wfTyCon)
-import GHC.Types.Name.Reader
-import Data.List (find, isSuffixOf)
 import Data.Maybe (maybeToList, fromJust)
 import GHC.Tc.Utils.Monad
 import GHC.Tc.Utils.Env (tcLookupTcTyCon)
 import GHC.Utils.Panic (pprPanic)
 import GHC.Utils.Outputable
 import GHC.Utils.Misc(lengthAtLeast)
-import GHC.Tc.Utils.TcMType (mk_wf_name)
 
 #if MIN_VERSION_base(4,16,0)
 import GHC.Types (Total)
@@ -245,12 +242,9 @@ saneTyConForElab tycon =
   not (isUnboxedTupleTyCon tycon
        || isPrimTyCon tycon
        || isPromotedDataCon tycon
-       -- || isClassTyCon tycon
        || isFunTyCon tycon
        || isDataFamilyTyCon tycon
        || isClosedTypeFamilyTyCon tycon
-       -- || isTypeSynonymTyCon tycon
-       -- || isNewTyCon tycon 
       )
 
 
@@ -290,21 +284,19 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
 
   | isTyConAssoc tycon && not (isClosedTypeFamilyTyCon tycon)
   = do { traceTc "wfelab isTyConAssoc" (ppr tycon)
-       -- ; let (args', extra_args) = splitAt (tyConArity tycon) (zip3 args (tyConBinders tycon) (tyConRoles tycon))
-
+       ; let extra_args_tc = drop (tyConArity tycon)
+                                  (zip3 args (tyConBinders tycon) (tyConRoles tycon))
+             args_tc = take (tyConArity tycon) args
        -- depending on the stage that we are in, either typechecking a class or an instance we need
        -- to look either in the local environment or a global environment
        ; refresh <- if isTcTyCon tycon then tcLookupTcTyCon . getName $ tycon
                     else lookupTyCon . getName $ tycon
        ; let wftycon = wfMirrorTyCon refresh
-       
        ; traceTc "wfelab lookup2" (ppr wftycon <+> ppr (tyConArity wftycon))
        ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
        ; let css = fmap newPreds elabds
-             wf_arity = tyConArity wftycon
-             wftct = mkTyConApp wftycon (take wf_arity args)
-             extra_args = drop wf_arity args
-       ; extra_css <- sequenceAtAts tycon (take wf_arity args) extra_args
+             wftct = mkTyConApp wftycon args_tc
+       ; extra_css <- recGenAts' tycon extra_args_tc args_tc [] []
        ; return $ foldl mergeAtAtConstraints (wftct:extra_css) css
        }
   | isOpenFamilyTyCon tycon
@@ -315,7 +307,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        
        ; refresh <- lookupTyCon . getName $ tycon
        ; traceTc "wfelab lookup" (ppr refresh)
-       ; wftycon <- lookupWfMirrorTyCon refresh
+       ; let wftycon = wfMirrorTyCon_maybe refresh
        ; let tfwfcts::ThetaType = maybeToList $ fmap (\t -> mkTyConApp t args) wftycon
        ; traceTc "wfelab open tycon" (vcat [ ppr tycon
                                            , ppr (wfMirrorTyCon_maybe tycon)
@@ -399,18 +391,18 @@ at'at f arg = mkTyConApp wfTyCon [argk, resk, f, arg]
         fk   = tcTypeKind f
         resk = piResultTy fk argk
 
-sequenceAtAts :: Monad m
-              => TyCon -- base tycon
-              -> [Type] -- done
-              -> [Type] -- to process
-              -> m ThetaType
-sequenceAtAts btc args extra_args = sequenceAtAts_aux [] btc args extra_args
-  where
-    sequenceAtAts_aux :: Monad m => ThetaType -> TyCon -> [Type] -> [Type] -> m ThetaType
-    sequenceAtAts_aux acc _ _ [] = return acc
-    sequenceAtAts_aux acc btc args (x:xs) = do
-      let new_at = (mkTyConApp btc args) `at'at` x
-      sequenceAtAts_aux (new_at:acc) btc (args ++ [x]) xs
+-- sequenceAtAts :: Monad m
+--               => TyCon -- base tycon
+--               -> [Type] -- done
+--               -> [Type] -- to process
+--               -> m ThetaType
+-- sequenceAtAts btc args extra_args = sequenceAtAts_aux [] btc args extra_args
+--   where
+--     sequenceAtAts_aux :: Monad m => ThetaType -> TyCon -> [Type] -> [Type] -> m ThetaType
+--     sequenceAtAts_aux acc _ _ [] = return acc
+--     sequenceAtAts_aux acc btc args (x:xs) = do
+--       let new_at = (mkTyConApp btc args) `at'at` x
+--       sequenceAtAts_aux (new_at:acc) btc (args ++ [x]) xs
   
 
 
@@ -614,50 +606,3 @@ tyConGenAts eTycons ts tycon args
        ; return $ foldl mergeAtAtConstraints [] css
        }
   | otherwise = recGenAts tycon args ts
-
-lookupWfMirrorTyCon :: TyCon -> TcM (Maybe TyCon)
-lookupWfMirrorTyCon tycon
-  | Just wf_tc <-  wfMirrorTyCon_maybe tycon
-  = return (Just wf_tc)
-  | isTcTyCon tycon
-  = do { wf_name <- mk_wf_name (tyConName tycon)
-       ; traceTc "lookupWfMirrorTycon tcTyCon" (ppr tycon)
-       ; wf_tc_tycon <- tcLookupTcTyCon wf_name
-       ; return $ Just wf_tc_tycon
-       }
-  | otherwise = do {
-     -- This is a hack.
-     -- We search through the Rdr names and find the Name
-     -- of the WF constraint. We then fetch the TyCon given the name.
-     ; rdr_elts <- fmap (concat . nonDetOccEnvElts . tcg_rdr_env) getGblEnv
-     ; let rdr_names = map greMangledName rdr_elts
-           get_tf_name = occNameString . nameOccName
-           tfName =  wF_TC_PREFIX ++ (get_tf_name (tyConName tycon))
-           wf_name = find (\name -> tfName `isSuffixOf` (get_tf_name name)) rdr_names
-     ; wf_tc <- case wf_name of
-                  Nothing -> return Nothing
-                  Just wf_name' -> fmap Just (lookupTyCon wf_name')
-     ; traceTc "lookupWfMirrorTyCon" (vcat [text "wf_tc" <+> ppr wf_tc
-                                           , text "name:" <+> ppr wf_name
-                                           , text "tfname:" <+> ppr tfName
-                                           , text "tycon:" <+> ppr tycon
-                                           , text "rdr_names" <+> ppr rdr_names
-                                           ])
-     ; return wf_tc
-  }
-
-
-
--- we may have a complex kind as return type for type families and not just
--- a plain old star
--- We thus traverse the whole type AST and replace the right most leaf by a constraint.
--- This should be enough i guess, as we don't have fancy kinds (yet)
--- replaceResultWithConstraint * = Constraint
--- replaceResultWithConstraint * -> * = * -> Constraint ...
-replaceResultWithConstraint :: Kind -> Kind
-replaceResultWithConstraint kind
-  | FunTy af m arg res <- kind -- we have a higher kinded type
-  = FunTy af m arg (replaceResultWithConstraint res)
-  | TyConApp _ _ <- kind -- its likely that it is *
-  = constraintKind
-  | otherwise = kind -- not really failing here as i don't expect too fancy kinds

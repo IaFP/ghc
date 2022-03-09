@@ -628,9 +628,10 @@ classToIfaceDecl env clas
 
     toIfaceAT :: ClassATItem -> IfaceAT
     toIfaceAT (ATI tc def)
-      = IfaceAT if_decl (fmap (tidyToIfaceType env2 . fst) def)
+      = IfaceAT if_decl wf_if_decl (fmap (tidyToIfaceType env2 . fst) def)
       where
         (env2, if_decl) = tyConToIfaceDecl env1 tc
+        (_, wf_if_decl) = tyConToIfaceDecl env1 (wfMirrorTyCon tc)
 
     toIfaceClassOp (sel_id, def_meth)
         = assert (sel_tyvars == binderVars tc_binders) $
@@ -663,8 +664,8 @@ tyFamToIfaceDecl env fam_flav tycon =
                   ifFamFlav = to_if_fam_flav fam_flav,
                   ifBinders = if_binders,
                   ifResKind = if_res_kind,
-                  ifFamInj  = tyConInjectivityInfo tycon,
-                  ifWFMirror = NoWFMirror
+                  ifFamInj  = tyConInjectivityInfo tycon
+                  -- ifWFMirror = NoWFMirror
                 })
   where
     (tc_env1, tc_binders) = tidyTyConBinders env (tyConBinders tycon)

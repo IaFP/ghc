@@ -12,7 +12,7 @@ module GHC.Tc.Deriv.WF ( mk_atat_fam, mk_atat_fam_except
                        , mk_atat_fam_units, mk_atat_fam_except_units
                        -- , elabTyCons
                        , saneTyConForElab
-                       , genWFMirrorTyCons, genWFMirrorTyCon, replaceResultWithConstraint
+                       , genWFMirrorTyCons, genWFMirrorTyCon -- replaceResultWithConstraint
                        , genWFTyFamInst, genWFTyFamInsts
                        ) where
 
@@ -277,8 +277,6 @@ genWFMirrorTyCon tc
        ; return (tc, tc)
        }
 
-
-
 -- given a type family instance equation -
 -- D a b ~ T a b
 -- generates a WF_D a equation
@@ -288,7 +286,7 @@ genWFTyFamInst :: FamInst -> TcM FamInst
 genWFTyFamInst fam_inst
   = do { let (tfTc, ts) = famInstSplitLHS fam_inst
              rhs = famInstRHS fam_inst
-       ; wfTc_mb <- lookupWfMirrorTyCon tfTc
+       ; let wfTc_mb = wfMirrorTyCon_maybe tfTc
        ; let wfTc = fromJust wfTc_mb
              loc = noAnnSrcSpan . getSrcSpan $ fam_inst
        ; inst_name <- newFamInstTyConName (L loc (getName wfTc)) ts

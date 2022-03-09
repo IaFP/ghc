@@ -1009,8 +1009,10 @@ newtype (f @ g p, g @ p) => (:.:) (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) =
            , Show     -- ^ @since 4.7.0.0
            , Functor  -- ^ @since 4.9.0.0
            , Generic  -- ^ @since 4.7.0.0
-           , Generic1 -- ^ @since 4.9.0.0 
+           -- , Generic1 -- ^ @since 4.9.0.0 
            )
+
+instance (Total f, Total g, Functor f, Functor g) => Generic1 (f :.: g)
 
 -- | @since 4.9.0.0
 instance (Total f, Total g, Applicative f, Applicative g) => Applicative (f :.: g) where
