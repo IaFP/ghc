@@ -514,12 +514,11 @@ wfTyConName :: Name
 wfTyConName =
     mkWiredInTyConName BuiltInSyntax gHC_TYPES (fsLit "@") wfTyConKey wfTyCon
 
-wfTyCon  :: TyCon
-wfTyCon = mkFamilyTyCon wfTyConName binders constraintKind (Just wfTyConName)
+wfTyCon  :: TyCon -- This is a special mirror as only one exists for data & newtype tycons
+wfTyCon = mkWFFamilyTyCon wfTyConName binders constraintKind (Just wfTyConName)
             OpenSynFamilyTyCon
             Nothing
             NotInjective
-            Nothing
   where
     binders = mkTemplateTyConBinders [liftedTypeKind, liftedTypeKind] (\[k1, k2] -> [(k1 `mkVisFunTyMany` k2), k1])
 
@@ -528,22 +527,6 @@ wfTyCon = mkFamilyTyCon wfTyConName binders constraintKind (Just wfTyConName)
 --                  , Bndr (k2::*)   (NamedTCB Inferred)
 --                  , Bndr (a::k1->k2) AnonTCB
 --                  , Bndr (b::k1)     AnonTCB ]
-
--- wfRepTyCon :: TyCon
--- wfRepTyCon = mkFamilyTyCon wfRepTyConName binders constraintKind (Just wfRepTyConName)
---                OpenSynFamilyTyCon
---                Nothing
---                NotInjective
---   where
---     binders = mkTemplateTyConBinders [liftedTypeKind] id
-
--- wfRep1TyCon :: TyCon
--- wfRep1TyCon = mkFamilyTyCon wfRep1TyConName binders constraintKind (Just wfRep1TyConName)
---                OpenSynFamilyTyCon
---                Nothing
---                NotInjective
---   where
---     binders = mkTemplateTyConBinders [liftedTypeKind] id
 
 
 -- | Make a fake, recovery 'TyCon' from an existing one.

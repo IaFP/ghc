@@ -737,16 +737,21 @@ tc_iface_decl parent _ (IfaceFamily {ifName = tc_name,
                                      ifBinders = binders,
                                      ifResKind = res_kind,
                                      ifResVar = res,
-                                     ifFamInj = inj
-                                     -- ifWFMirror = wfm
+                                     ifFamInj = inj,
+                                     ifMirror = m
                                     })
    = bindIfaceTyConBinders_AT binders $ \ binders' -> do
      { res_kind' <- tcIfaceType res_kind    -- Note [Synonym kind loop]
      ; rhs      <- forkM (mk_doc tc_name) $
                    tc_fam_flav tc_name fam_flav
      ; res_name <- traverse (newIfaceName . mkTyVarOccFS) res
-     ; wf_tycon_mb <- return Nothing -- tcIfaceWFMirror wfm
-     ; let tycon = mkFamilyTyCon tc_name binders' res_kind' res_name rhs parent inj wf_tycon_mb
+     -- ; wf_tycon_mb <- return Nothing -- tcIfaceWFMirror wfm
+     ; tycon <- if m then
+                  return $ mkWFFamilyTyCon tc_name binders' constraintKind res_name rhs parent inj 
+                else do { let wf_tc = mkWFFamilyTyCon tc_name binders'
+                                          constraintKind res_name rhs parent inj 
+                        ; return $ mkFamilyTyCon tc_name binders'
+                                           res_kind' res_name rhs parent inj (Just wf_tc) }
      ; return (ATyCon tycon) }
    where
      mk_doc n = text "Type synonym" <+> ppr n
@@ -795,7 +800,7 @@ tc_iface_decl _parent ignore_prags
     ; traceIf (text "tc-iface-class3" <+> ppr tc_name)
     ; mindef <- traverse (lookupIfaceTop . mkVarOccFS) mindef_occ
     ; cls  <- fixM $ \ cls -> do
-              { ats  <- mapM (tc_at cls) rdr_ats
+              { ats  <- concatMapM (tc_at cls) rdr_ats
               ; traceIf (text "tc-iface-class4" <+> ppr tc_name)
               ; buildClass tc_name binders' roles fds (Just (ctxt, ats, sigs, mindef)) }
     ; return (ATyCon (classTyCon cls)) }
@@ -831,20 +836,22 @@ tc_iface_decl _parent ignore_prags
 
    tc_at cls (IfaceAT tc_decl wf_tc_decl if_def)
      = do ATyCon tc <- tc_iface_decl (Just cls) ignore_prags tc_decl
-          ATyCon wf_tc <- tc_iface_decl (Just cls) ignore_prags wf_tc_decl
+          mb_wf_tc <- traverse (tc_iface_decl (Just cls) ignore_prags) wf_tc_decl
+          let wf_tc_ati = if isJust mb_wf_tc then [ATI ((tyThingTyCon . fromJust) mb_wf_tc) Nothing] else []
           mb_def <- case if_def of
                       Nothing  -> return Nothing
-                      Just def -> forkM (mk_at_doc tc)                 $
+                      Just def -> forkM (mk_at_doc tc mb_wf_tc)           $
                                   extendIfaceTyVarEnv (tyConTyVars tc) $
                                   do { tc_def <- tcIfaceType def
                                      ; return (Just (tc_def, NoATVI)) }
                   -- Must be done lazily in case the RHS of the defaults mention
                   -- the type constructor being defined here
                   -- e.g.   type AT a; type AT b = AT [b]   #8002
-          return (ATI (updateWfMirrorTyCon tc (Just wf_tc)) mb_def)
+          return $ (ATI (updateWfMirrorTyCon tc (tyThingTyCon <$> mb_wf_tc)) mb_def):wf_tc_ati 
 
    mk_sc_doc pred = text "Superclass" <+> ppr pred
-   mk_at_doc tc = text "Associated type" <+> ppr tc
+   mk_at_doc tc wf_tc = text "Associated types " <+> ppr tc
+                        <+> text "; WF type" <+> ppr wf_tc
    mk_op_doc op_name op_ty = text "Class op" <+> sep [ppr op_name, ppr op_ty]
 
 tc_iface_decl _ _ (IfaceAxiom { ifName = tc_name, ifTyCon = tc

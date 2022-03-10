@@ -261,14 +261,14 @@ mkIface_ hsc_env
         semantic_mod = homeModuleNameInstantiation home_unit (moduleName this_mod)
         entities = typeEnvElts type_env
         show_linear_types = xopt LangExt.LinearTypes (hsc_dflags hsc_env)
-        decls  = [ tyThingToIfaceDecl show_linear_types entity
-                 | entity <- entities,
-                   let name = getName entity,
-                   not (isImplicitTyThing entity),
-                      -- No implicit Ids and class tycons in the interface file
-                   not (isWiredInName name),
-                      -- Nor wired-in things; the compiler knows about them anyhow
-                   nameIsLocalOrFrom semantic_mod name  ]
+        decls  = concat [ tyThingToIfaceDecl show_linear_types entity
+                        | entity <- entities
+                        , let name = getName entity
+                        , not (isImplicitTyThing entity)
+                        -- No implicit Ids and class tycons in the interface file
+                        , not (isWiredInName name)
+                        -- Nor wired-in things; the compiler knows about them anyhow
+                        , nameIsLocalOrFrom semantic_mod name  ]
                       -- Sigh: see Note [Root-main Id] in GHC.Tc.Module
                       -- NB: ABSOLUTELY need to check against semantic_mod,
                       -- because all of the names in an hsig p[H=<H>]:H
@@ -413,13 +413,14 @@ so we may need to split up a single Avail into multiple ones.
 ************************************************************************
 -}
 
-tyThingToIfaceDecl :: Bool -> TyThing -> IfaceDecl
-tyThingToIfaceDecl _ (AnId id)      = idToIfaceDecl id
+tyThingToIfaceDecl :: Bool -> TyThing -> [IfaceDecl]
+tyThingToIfaceDecl _ (AnId id)      = [idToIfaceDecl id]
 tyThingToIfaceDecl _ (ATyCon tycon) = snd (tyConToIfaceDecl emptyTidyEnv tycon)
-tyThingToIfaceDecl _ (ACoAxiom ax)  = coAxiomToIfaceDecl ax
+                                      : (maybeToList $ fmap (snd . (tyConToIfaceDecl emptyTidyEnv)) (wfMirrorTyCon_maybe tycon))
+tyThingToIfaceDecl _ (ACoAxiom ax)  = [coAxiomToIfaceDecl ax]
 tyThingToIfaceDecl show_linear_types (AConLike cl)  = case cl of
-    RealDataCon dc -> dataConToIfaceDecl show_linear_types dc -- for ppr purposes only
-    PatSynCon ps   -> patSynToIfaceDecl ps
+    RealDataCon dc -> [dataConToIfaceDecl show_linear_types dc] -- for ppr purposes only
+    PatSynCon ps   -> [patSynToIfaceDecl ps]
 
 --------------------------
 idToIfaceDecl :: Id -> IfaceDecl
@@ -628,7 +629,10 @@ classToIfaceDecl env clas
 
     toIfaceAT :: ClassATItem -> IfaceAT
     toIfaceAT (ATI tc def)
-      = IfaceAT if_decl wf_if_decl (fmap (tidyToIfaceType env2 . fst) def)
+      | isWFMirrorTyCon tc
+      = IfaceAT if_decl Nothing (fmap (tidyToIfaceType env2 . fst) def)
+      | otherwise
+      = IfaceAT if_decl (Just wf_if_decl) (fmap (tidyToIfaceType env2 . fst) def)
       where
         (env2, if_decl) = tyConToIfaceDecl env1 tc
         (_, wf_if_decl) = tyConToIfaceDecl env1 (wfMirrorTyCon tc)
@@ -664,12 +668,11 @@ tyFamToIfaceDecl env fam_flav tycon =
                   ifFamFlav = to_if_fam_flav fam_flav,
                   ifBinders = if_binders,
                   ifResKind = if_res_kind,
-                  ifFamInj  = tyConInjectivityInfo tycon
-                  -- ifWFMirror = NoWFMirror
+                  ifFamInj  = tyConInjectivityInfo tycon,
+                  ifMirror  = isWFMirrorTyCon tycon
                 })
   where
     (tc_env1, tc_binders) = tidyTyConBinders env (tyConBinders tycon)
-    -- d = tyConToIfaceWFMirror tc_env1 (wfMirrorTyCon_maybe tycon)
 
     if_binders     = toIfaceTyCoVarBinders tc_binders
                      -- No tidying of the binders; they are already tidy

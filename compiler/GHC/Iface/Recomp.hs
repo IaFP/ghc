@@ -975,7 +975,8 @@ addFingerprints hsc_env iface0
        mk_put_name :: OccEnv (OccName,Fingerprint)
                    -> BinHandle -> Name -> IO  ()
        mk_put_name local_env bh name
-          | isWiredInName name  =  putNameLiterally bh name
+          | isWiredInName name
+          = putNameLiterally bh name
            -- wired-in names don't have fingerprints
           | otherwise
           = assertPpr (isExternalName name) (ppr name) $
@@ -1010,10 +1011,10 @@ addFingerprints hsc_env iface0
        fingerprint_group (local_env, decls_w_hashes) (AcyclicSCC abi)
           = do let hash_fn = mk_put_name local_env
                    decl = abiDecl abi
-               pprTrace "fingerprinting" (ppr (ifName decl) ) $ do
-                 hash <- computeFingerprint hash_fn abi
-                 env' <- extend_hash_env local_env (hash,decl)
-                 return (env', (hash,decl) : decls_w_hashes)
+               -- pprTrace "fingerprinting non-rec" (ppr (ifName decl) ) $ do
+               hash <- computeFingerprint hash_fn abi
+               env' <- extend_hash_env local_env (hash,decl)
+               return (env', (hash,decl) : decls_w_hashes)
 
        fingerprint_group (local_env, decls_w_hashes) (CyclicSCC abis)
           = do let stable_abis = sortBy cmp_abiNames abis
@@ -1022,13 +1023,13 @@ addFingerprints hsc_env iface0
                                    (zip (map mkRecFingerprint [0..]) stable_decls)
                 -- See Note [Fingerprinting recursive groups]
                let hash_fn = mk_put_name local_env1
-               pprTrace "fingerprinting" (ppr (map ifName decls) ) $ do
+               -- pprTrace "fingerprinting rec" (ppr (map ifName decls) ) $ do
                 -- put the cycle in a canonical order
-                 hash <- computeFingerprint hash_fn stable_abis
-                 let pairs = zip (map (bumpFingerprint hash) [0..]) stable_decls
+               hash <- computeFingerprint hash_fn stable_abis
+               let pairs = zip (map (bumpFingerprint hash) [0..]) stable_decls
                 -- See Note [Fingerprinting recursive groups]
-                 local_env2 <- foldM extend_hash_env local_env pairs
-                 return (local_env2, pairs ++ decls_w_hashes)
+               local_env2 <- foldM extend_hash_env local_env pairs
+               return (local_env2, pairs ++ decls_w_hashes)
 
        -- Make a fingerprint from the ordinal position of a binding in its group.
        mkRecFingerprint :: Word64 -> Fingerprint
@@ -1460,7 +1461,7 @@ declExtras fix_fn ann_fn rule_env inst_env fi_env dm_env decl
         n = getOccName decl
         id_extras occ = IdExtras (fix_fn occ) (lookupOccEnvL rule_env occ) (ann_fn occ)
         at_extras (IfaceAT decl wf_decl _) = lookupOccEnvL inst_env (getOccName decl)
-                                             ++ lookupOccEnvL inst_env (getOccName wf_decl)
+                                             ++ (concat . maybeToList) ((lookupOccEnvL inst_env . getOccName) <$> wf_decl)
 
 
 {- Note [default method Name] (see also #15970)

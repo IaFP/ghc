@@ -39,7 +39,6 @@ import GHC.Builtin.Names.TH
 import GHC.Builtin.Types (liftedTypeKindTyCon, isCTupleTyConName, wfTyCon)
 import Data.Maybe (maybeToList, fromJust)
 import GHC.Tc.Utils.Monad
-import GHC.Tc.Utils.Env (tcLookupTcTyCon)
 import GHC.Utils.Panic (pprPanic)
 import GHC.Utils.Outputable
 import GHC.Utils.Misc(lengthAtLeast)
@@ -136,7 +135,8 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
 
   -- recursively build @@ constraints for type constructor
   | (TyConApp tyc tycargs) <- ty =
-      if tyc `hasKey` typeRepTyConKey -- this is supposed to save us from sometyperep, typerep nonsense.
+      if tyc `hasKey` typeRepTyConKey || isWFMirrorTyCon tyc
+      -- this is supposed to save us from sometyperep, typerep nonsense.
         then return $ elabDetails ty []
         else do
         { elabTys_and_atats <- mapM (genAtAtConstraintsExceptTcM isTyConPhase (tyc:tycons) ts) tycargs
@@ -199,7 +199,9 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
                else genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
       c_extra <- concatMapM flatten_atat_constraint (newPreds elabd)
       -- let (have'bvar, donthave'bvar) = partition (predHas bvarTy) c_extra
-      let r_ty = ForAllTy bndr (attachConstraints c_extra (elabTy elabd)) -- it is unlikely that we find a type application that is _not_ related to this binder. May have to change this later
+      let r_ty = ForAllTy bndr (attachConstraints c_extra (elabTy elabd))
+      -- it is unlikely that we find a type application that is _not_ related to this binder.
+      -- May have to change this later
       return $ elabDetails r_ty [] -- genAtAtConstraints ty'
 
    | CastTy ty1 kco <- ty = do
@@ -236,6 +238,7 @@ isTyConInternal tycon =
   -- || tycon `hasKey` tExpTyConKey
   || tycon == funTyCon
   || isWfTyCon tycon
+  || isWFMirrorTyCon tycon
 
 saneTyConForElab :: TyCon -> Bool
 saneTyConForElab tycon =
@@ -257,6 +260,8 @@ tyConGenAtsTcM :: Bool
                -> [Type]
                -> TcM ThetaType
 tyConGenAtsTcM isTyConPhase eTycons ts tycon args
+  | isWFMirrorTyCon tycon -- leave the wftycons untouched
+  = do { traceTc "wfelab mirrorTyCon" (ppr tycon); return [] }
   | isTyConInternal tycon || isClassTyCon tycon
   = do { traceTc "wfelab internalTyCon/ClassTyCon" (ppr tycon)
        ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
@@ -282,16 +287,12 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
            else failWithTc (tyConArityErr tycon args)
          }
 
-  | isTyConAssoc tycon && not (isClosedTypeFamilyTyCon tycon)
+  | isTyConAssoc tycon && not (isClosedTypeFamilyTyCon tycon) && not (isWFMirrorTyCon tycon)
   = do { traceTc "wfelab isTyConAssoc" (ppr tycon)
        ; let extra_args_tc = drop (tyConArity tycon)
                                   (zip3 args (tyConBinders tycon) (tyConRoles tycon))
              args_tc = take (tyConArity tycon) args
-       -- depending on the stage that we are in, either typechecking a class or an instance we need
-       -- to look either in the local environment or a global environment
-       ; refresh <- if isTcTyCon tycon then tcLookupTcTyCon . getName $ tycon
-                    else lookupTyCon . getName $ tycon
-       ; let wftycon = wfMirrorTyCon refresh
+       ; let wftycon = wfMirrorTyCon tycon
        ; traceTc "wfelab lookup2" (ppr wftycon <+> ppr (tyConArity wftycon))
        ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
        ; let css = fmap newPreds elabds

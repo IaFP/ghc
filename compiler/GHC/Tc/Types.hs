@@ -118,7 +118,7 @@ import GHC.Tc.Errors.Types
 
 import GHC.Core.Reduction ( Reduction(..) )
 import GHC.Core.Type
-import GHC.Core.TyCon  ( TyCon, tyConKind )
+import GHC.Core.TyCon  ( TyCon, tyConKind, wfMirrorTyCon_maybe )
 import GHC.Core.PatSyn ( PatSyn )
 import GHC.Core.Lint   ( lintAxioms )
 import GHC.Core.UsageEnv
@@ -1161,6 +1161,7 @@ instance Outputable TcTyThing where     -- Debugging only
    ppr (ATyVar n tv)    = text "Type variable" <+> quotes (ppr n) <+> equals <+> ppr tv
                             <+> dcolon <+> ppr (varType tv)
    ppr (ATcTyCon tc)    = text "ATcTyCon" <+> ppr tc <+> dcolon <+> ppr (tyConKind tc)
+                          <+> ppr (wfMirrorTyCon_maybe tc)
    ppr (APromotionErr err) = text "APromotionErr" <+> ppr err
 
 -- | IdBindingInfo describes how an Id is bound.

@@ -167,7 +167,7 @@ pprTyThing :: ShowSub -> TyThing -> SDoc
 -- See Note [Pretty printing via Iface syntax]
 pprTyThing ss ty_thing
   = sdocOption sdocLinearTypes $ \show_linear_types ->
-      pprIfaceDecl ss' (tyThingToIfaceDecl show_linear_types ty_thing)
+      vcat $ fmap (pprIfaceDecl ss') (tyThingToIfaceDecl show_linear_types ty_thing)
   where
     ss' = case ss_how_much ss of
       ShowHeader (AltPpr Nothing)  -> ss { ss_how_much = ShowHeader ppr' }

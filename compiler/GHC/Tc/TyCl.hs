@@ -247,7 +247,7 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    -- bit its rarely the case that the group is more than 3-4 dependent tycons
 
                    -- Step 1. Get the typefamilies out of the way
-                   ; let (locsAndTFs, locsAndTyClss') = partition (isTypeFamilyTyCon . snd) locsAndTcs
+                   ; let (locsAndTFs, locsAndTyClss') = partition (isOpenTypeFamilyTyCon . snd) locsAndTcs
                    ; mirrors_and_tyfams <- genWFMirrorTyCons (fmap snd locsAndTFs)
                    ; let (wf_mirrors, tyfams') = unzip mirrors_and_tyfams
 
@@ -389,10 +389,9 @@ zipRecTyClss tc_tycons' rec_tycons'
     rec_tc_env = foldr add_tc emptyNameEnv rec_tycons
 
     add_tc :: TyCon -> NameEnv TyCon -> NameEnv TyCon
-    add_tc tc env = foldr add_one_tc env (tc : ats ++ wf_ats)
+    add_tc tc env = foldr add_one_tc env (tc : ats)
       where
         ats = tyConATs tc
-        wf_ats = fmap wfMirrorTyCon ats
     add_one_tc :: TyCon -> NameEnv TyCon -> NameEnv TyCon
     add_one_tc tc env = extendNameEnv env (tyConName tc) tc
 
@@ -1031,18 +1030,21 @@ generaliseTcTyCon (tc, scoped_prs, tc_res_kind)
                                  , specified_tcbs
                                  , required_tcbs ]
 
+       -- Step 5.5: (optional)
+       -- check if we have a (WF_tc) pair for this, and add that to this. We should have
+       -- already added it to the context.
+       ; mb_wf_tc <- if isWFMirrorTyCon tc then return Nothing -- we don't support mirrors of mirror 
+                        else do wf_tycon_name <- mk_wf_name $ tyConName tc
+                                return (Just $ mkWFTcTyCon (wf_tycon_name) final_tcbs tc_res_kind
+                                                   (mkTyVarNamePairs (sorted_spec_tvs ++ req_tvs))
+                                                   True {- it's generalised now -}
+                                                   (tyConFlavour tc))
        -- Step 6: Make the result TcTyCon
-             tycon' = mkTcTyCon (tyConName tc) final_tcbs tc_res_kind
+       ; let tycon = mkTcTyCon (tyConName tc) final_tcbs tc_res_kind
                             (mkTyVarNamePairs (sorted_spec_tvs ++ req_tvs))
                             True {- it's generalised now -}
                             (tyConFlavour tc)
-                            Nothing
-       -- Step 7: (optional)
-       -- check if we have a (WF_tc) pair for this, and add that to this. We should have
-       -- already added it to the context.
-       -- This is annoying. ideally I need to add a flag to tycon to say if its a wf mirror tycon or not.
-       -- but this is some start
-             tycon = updateWfMirrorTyCon tycon' (wfMirrorTyCon_maybe tc)
+                            mb_wf_tc
          
        ; traceTc "generaliseTcTyCon done" $
          vcat [ text "tycon =" <+> ppr tc <+> ppr (wfMirrorTyCon_maybe tycon)
@@ -2635,7 +2637,8 @@ tcClassATs class_name cls ats at_defs
                                   `orElse` []
                   ; atd <- tcDefaultAssocDecl fam_tc at_defs
                   ; traceTc "wfelab tc_at" (ppr fam_tc <+> ppr (wfMirrorTyCon_maybe fam_tc))
-                  ; return $ [ATI fam_tc atd] }
+                  ; let wf_mirror_at = if isWFMirrorTyCon fam_tc then [] else [ATI (wfMirrorTyCon fam_tc) Nothing]
+                  ; return $ (ATI fam_tc atd):wf_mirror_at }
 
 -------------------------
 tcDefaultAssocDecl ::
@@ -2841,9 +2844,9 @@ tcFamDecl1 parent (FamilyDecl { fdInfo = fam_info
           ; checkResultSigFlag tc_name sig  -- check after injectivity for better errors
           ; if partyCtrs && isJust parent -- do this only for associated types for now.
             then do { wf_name <- mk_wf_name tc_name
-                    ; let wf_tycon = mkFamilyTyCon wf_name binders constraintKind
+                    ; let wf_tycon = mkWFFamilyTyCon wf_name binders constraintKind
                                     (resultVariableName sig) OpenSynFamilyTyCon
-                                    parent inj' Nothing
+                                    parent inj' 
                           tycon = mkFamilyTyCon tc_name binders res_kind
                                     (resultVariableName sig) OpenSynFamilyTyCon
                                     parent inj' (Just wf_tycon)

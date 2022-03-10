@@ -534,9 +534,9 @@ rnIfaceFamTyConFlav (IfaceClosedSynFamilyTyCon (Just (n, axs)))
 rnIfaceFamTyConFlav flav = pure flav
 
 rnIfaceAT :: Rename IfaceAT
-rnIfaceAT (IfaceAT decl wf_decl mb_ty)
+rnIfaceAT (IfaceAT decl mb_wf_decl mb_ty)
     = do d <- rnIfaceDecl decl
-         wf_d <- rnIfaceDecl wf_decl
+         wf_d <- T.traverse rnIfaceDecl mb_wf_decl
          def <- T.traverse rnIfaceType mb_ty
          return $ IfaceAT d wf_d def
 

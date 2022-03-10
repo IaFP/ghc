@@ -946,20 +946,20 @@ getLocalNonValBinders fixity_env
              ; if partyCtrs
                then  case unLoc tc_decl of
                        FamDecl {}
-                         -> do { m <- getModule
-                               ; wf_name <- newWFGlobalBinder m main_name
-                               ; return [(availTC main_name names flds', fld_env)
-                                        ,((availTC wf_name [wf_name] []), [])]
-                               }
+                         -> if isWiredInName main_name || isSystemName main_name || isExternalName main_name
+                            then return [(availTC main_name names flds', fld_env)]
+                            else do { m <- getModule
+                                    ; wf_name <- newWFGlobalBinder m main_name
+                                    ; return [ (availTC main_name names flds', fld_env)
+                                             , ((availTC wf_name [wf_name] []), []) ]
+                                    }
                        ClassDecl {}                 -- pick out each of the sub_names
                                                     -- that look like a tycon and
                                                     -- generate a WF_* name for them
                          -> do { m <- getModule
                                ; let ats_names = filter isTyConName sub_names 
                                ; wf_names <- mapM (newWFGlobalBinder m) ats_names
-                               ; -- fmap (\n -> ((availTC n [n] []), [])) wf_names
-                               ; return [(availTC main_name (names++wf_names) (flds'), fld_env)]
-                                 -- ANI TODO: This is not quite what we want, but a good starter.
+                               ; return [(availTC main_name (names ++ wf_names) (flds'), fld_env)]
                                }
                        _          -> return $ [(availTC main_name names flds', fld_env)]
                else return $ [(availTC main_name names flds', fld_env)]

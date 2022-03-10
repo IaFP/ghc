@@ -51,7 +51,7 @@ import GHC.Core.Coercion ( pprCoAxiom )
 import GHC.Driver.Session
 import GHC.Tc.Instance.Family
 import GHC.Core.FamInstEnv
--- import GHC.Core.TyWF (elabAtAtConstraintsTcM)
+import GHC.Tc.Deriv.WF (genWFTyFamInst)
 import GHC.Types.Error
 import GHC.Types.Id
 import GHC.Types.Name
@@ -73,7 +73,7 @@ import GHC.Utils.Misc
 
 import Control.Monad
 import Data.List ( mapAccumL, partition )
--- import qualified GHC.LanguageExtensions as LangExt
+import qualified GHC.LanguageExtensions as LangExt
 
 {-
 Dictionary handling
@@ -557,7 +557,9 @@ tcATDefault loc inst_subst defined_ats (ATI fam_tc defs)
        ; traceTc "mk_deflt_at_instance" (vcat [ ppr fam_tc, ppr rhs_ty
                                               , pprCoAxiom axiom ])
        ; fam_inst <- newFamInst SynFamilyInst axiom
-       ; return [fam_inst] }
+       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+       ; wf_fam_inst <- if partyCtrs then mapM genWFTyFamInst [fam_inst] else return []
+       ; return $ fam_inst:wf_fam_inst }
 
    -- No defaults ==> generate a warning
   | otherwise  -- defs = Nothing

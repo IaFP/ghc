@@ -2458,8 +2458,9 @@ kcCheckDeclHeader_cusk mflag name flav
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
        ; mb_wf_tctycon <- if partyCtrs && genWFMirror mflag
                           then do { wf_name <- mk_wf_name name
-                                  ; let mirror_tycon = mkTcTyCon wf_name final_tc_binders constraintKind all_tv_prs
-                                                       True flav Nothing
+                                  ; let mirror_tycon = mkWFTcTyCon wf_name final_tc_binders
+                                                          constraintKind all_tv_prs
+                                                          True flav 
                                   ; return $ Just mirror_tycon
                                   }
                           else return Nothing
@@ -2542,8 +2543,8 @@ kcInferDeclHeader mflag name flav
       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
       ; mb_wf_tctycon <- if partyCtrs && genWFMirror mflag
                          then do { wf_name <- mk_wf_name name
-                                 ; let mirror_tycon = mkTcTyCon wf_name tc_binders constraintKind all_tv_prs
-                                                      False flav Nothing
+                                 ; let mirror_tycon = mkWFTcTyCon wf_name tc_binders constraintKind all_tv_prs
+                                                      False flav
                                  ; return $ Just mirror_tycon
                                  }
                           else return Nothing
@@ -2668,8 +2669,8 @@ kcCheckDeclHeader_sig mflag kisig name flav
         ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
         ; mb_wf_tctycon <- if partyCtrs && genWFMirror mflag
                           then do { wf_name <- mk_wf_name name
-                                  ; let mirror_tycon = mkTcTyCon wf_name tcbs constraintKind all_tv_prs
-                                                       True flav Nothing
+                                  ; let mirror_tycon = mkWFTcTyCon wf_name tcbs constraintKind all_tv_prs
+                                                       True flav
                                   ; return $ Just mirror_tycon
                                   }
                           else return Nothing

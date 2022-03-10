@@ -20,7 +20,6 @@ import GHC.Utils.Misc
 import GHC.Utils.Fingerprint
 import GHC.Utils.Panic
 
-import GHC.Core.TyCon (wF_TC_PREFIX)
 import GHC.Types.Name
 import GHC.Types.Name.Set ( NameSet, allUses )
 import GHC.Types.Unique.Set

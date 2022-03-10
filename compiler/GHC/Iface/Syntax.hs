@@ -148,8 +148,8 @@ data IfaceDecl
                    ifBinders :: [IfaceTyConBinder],
                    ifResKind :: IfaceKind,         -- Kind of the *tycon*
                    ifFamFlav :: IfaceFamTyConFlav,
-                   ifFamInj  :: Injectivity }       -- injectivity information
-                   -- ifWFMirror :: IfaceWFMirror } -- Datatype asserting Well formedness of this family tycon
+                   ifFamInj  :: Injectivity,       -- injectivity information
+                   ifMirror  :: Bool }             -- Is this a mirror tycon
 
   | IfaceClass { ifName    :: IfaceTopBndr,             -- Name of the class TyCon
                  ifRoles   :: [Role],                   -- Roles
@@ -218,7 +218,7 @@ data IfaceClassOp
 
 data IfaceAT = IfaceAT  -- See GHC.Core.Class.ClassATItem
                   IfaceDecl          -- The associated type declaration
-                  IfaceDecl          -- The well Formedness type declaration. This makes the interfaced
+                  (Maybe IfaceDecl)  -- The well Formedness type declaration. This makes the interfaced
                                      -- backward incompatible
                   (Maybe IfaceType)  -- Default associated type instance, if any
 
@@ -1122,13 +1122,16 @@ instance Outputable IfaceAT where
    ppr = pprIfaceAT showToIface
 
 pprIfaceAT :: ShowSub -> IfaceAT -> SDoc
-pprIfaceAT ss (IfaceAT d wf_d mb_def)
+pprIfaceAT ss (IfaceAT d mb_wf_d mb_def)
   = vcat [ pprIfaceDecl ss d
          , case mb_def of
               Nothing  -> Outputable.empty
               Just rhs -> nest 2 $
-                          text "Default:" <+> ppr rhs
-         , text "WF Mirror" <+> ppr wf_d ]
+                          text "Default:"  <+> ppr rhs
+         , case mb_wf_d of
+             Nothing  -> Outputable.empty
+             Just rhs -> nest 2 $
+                         text "WF Mirror:" <+> ppr (ifName rhs) ]
 
 instance Outputable IfaceWFMirror where
   ppr = pprIfaceWFMirror
@@ -1617,12 +1620,14 @@ freeNamesIfContext :: IfaceContext -> NameSet
 freeNamesIfContext = fnList freeNamesIfType
 
 freeNamesIfAT :: IfaceAT -> NameSet
-freeNamesIfAT (IfaceAT decl wf_decl mb_def)
+freeNamesIfAT (IfaceAT decl mb_wf_decl mb_def)
   = freeNamesIfDecl decl &&&
-    freeNamesIfDecl wf_decl &&&
-    case mb_def of
+    (case mb_def of
       Nothing  -> emptyNameSet
-      Just rhs -> freeNamesIfType rhs
+      Just rhs -> freeNamesIfType rhs) &&&
+    (case mb_wf_decl of
+      Nothing  -> emptyNameSet
+      Just rhs -> freeNamesIfDecl rhs)
 
 freeNamesIfWFMirror :: IfaceWFMirror -> NameSet
 freeNamesIfWFMirror NoWFMirror        = emptyNameSet
@@ -1896,7 +1901,7 @@ instance Binary IfaceDecl where
         put_ bh a4
         put_ bh a5
 
-    put_ bh (IfaceFamily a1 a2 a3 a4 a5 a6) = do
+    put_ bh (IfaceFamily a1 a2 a3 a4 a5 a6 a7) = do
         putByte bh 4
         putIfaceTopBndr bh a1
         put_ bh a2
@@ -1904,7 +1909,7 @@ instance Binary IfaceDecl where
         put_ bh a4
         put_ bh a5
         put_ bh a6
-        -- put_ bh a7       
+        put_ bh a7       
 
     -- NB: Written in a funny way to avoid an interface change
     put_ bh (IfaceClass {
@@ -1991,8 +1996,8 @@ instance Binary IfaceDecl where
                     a4 <- get bh
                     a5 <- get bh
                     a6 <- get bh
-                    -- a7 <- get bh
-                    return (IfaceFamily a1 a2 a3 a4 a5 a6)
+                    a7 <- get bh
+                    return (IfaceFamily a1 a2 a3 a4 a5 a6 a7)
             5 -> do a1 <- get bh
                     a2 <- getIfaceTopBndr bh
                     a3 <- get bh
@@ -2572,8 +2577,8 @@ instance NFData IfaceDecl where
     IfaceSynonym f1 f2 f3 f4 f5 ->
       rnf f1 `seq` f2 `seq` seqList f3 `seq` rnf f4 `seq` rnf f5
 
-    IfaceFamily f1 f2 f3 f4 f5 f6 ->
-      rnf f1 `seq` rnf f2 `seq` seqList f3 `seq` rnf f4 `seq` rnf f5 `seq` f6 `seq` (){-`seq` rnf f7-}
+    IfaceFamily f1 f2 f3 f4 f5 f6 f7 ->
+      rnf f1 `seq` rnf f2 `seq` seqList f3 `seq` rnf f4 `seq` rnf f5 `seq` f6 `seq` f7 `seq` ()
 
     IfaceClass f1 f2 f3 f4 f5 ->
       rnf f1 `seq` f2 `seq` seqList f3 `seq` rnf f4 `seq` rnf f5

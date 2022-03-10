@@ -58,7 +58,7 @@ module GHC.Types.Name (
         nameSrcLoc, nameSrcSpan, pprNameDefnLoc, pprDefinedAt,
 
         -- ** Predicates on 'Name's
-        isSystemName, isInternalName, isExternalName,
+        isSystemName, isInternalName, isExternalName, isWFName,
         isTyVarName, isTyConName, isDataConName,
         isValName, isVarName, isDynLinkName,
         isWiredInName, isWiredIn, isBuiltInSyntax,
@@ -75,6 +75,8 @@ module GHC.Types.Name (
         pprInfixName, pprPrefixName, pprModulePrefix, pprNameUnqualified,
         nameStableString,
 
+         wF_TC_PREFIX,
+        
         -- Re-export the OccName stuff
         module GHC.Types.Name.Occurrence
     ) where
@@ -95,6 +97,7 @@ import GHC.Utils.Binary
 import GHC.Data.FastString
 import GHC.Utils.Outputable
 import GHC.Utils.Panic
+import Data.List (isPrefixOf)
 
 import Control.DeepSeq
 import Data.Data
@@ -261,6 +264,7 @@ isInternalName    :: Name -> Bool
 isExternalName    :: Name -> Bool
 isSystemName      :: Name -> Bool
 isWiredInName     :: Name -> Bool
+isWFName          :: Name -> Bool
 
 isWiredInName (Name {n_sort = WiredIn _ _ _}) = True
 isWiredInName _                               = False
@@ -404,6 +408,13 @@ isVarName = isVarOcc . nameOccName
 
 isSystemName (Name {n_sort = System}) = True
 isSystemName _                        = False
+
+isWFName n = wF_TC_PREFIX `isPrefixOf` (occNameString . nameOccName) n
+
+wF_TC_PREFIX :: String -- ANI TODO: restrict this to OccNames perhaps or renamer? It should also be a FS and not a string
+wF_TC_PREFIX = "$wf'" -- fsList "$WF_"
+-- WF_TC_PREFIX = "$tc_wf'"
+
 
 {-
 ************************************************************************

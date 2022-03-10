@@ -157,10 +157,6 @@ allNameStrings :: [String]
 -- Infinite list of a,b,c...z, aa, ab, ac, ... etc
 allNameStrings = [ c:cs | cs <- "" : allNameStrings, c <- ['a'..'z'] ]
 
-wF_TC_PREFIX :: String -- ANI TODO: restrict this to OccNames perhaps or renamer? It should also be a FS and not a string
-wF_TC_PREFIX = "WF_" -- fsList "$WF_"
--- WF_TC_PREFIX = "$tc_wf'"
-
 
 {-
 ************************************************************************

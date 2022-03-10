@@ -37,6 +37,7 @@ import GHC.Core.TyWF
 import GHC.Builtin.Types (wfTyConName, wfTyCon, cTupleTyConName, constraintKind)
 import GHC.Types.SrcLoc
 import GHC.Utils.Outputable as Outputable
+import GHC.Utils.Panic
 
 import Data.Maybe (fromJust)
 
@@ -257,25 +258,18 @@ genWFMirrorTyCons = mapM genWFMirrorTyCon
 
 genWFMirrorTyCon :: TyCon -> TcM (TyCon, TyCon)
 genWFMirrorTyCon tc
-  | isOpenFamilyTyCon tc
+  | isOpenFamilyTyCon tc && not (isWFMirrorTyCon tc)
   = do { wf_tc_name <- mk_wf_name $ tyConName tc
-       ; (mirror_tc, n_tc) <- fixM $
-         (\_ -> do { let mirror_tc = mkWFMirrorTyCon
-                                     wf_tc_name
-                                     constraintKind
-                                     -- (replaceResultWithConstraint $ tyConResKind tc)
-                                     n_tc
-                         n_tc      = updateWfMirrorTyCon tc $ Just mirror_tc
-                   ; return (mirror_tc, n_tc)
-                   }
-         )
+       ; let mirror_tc = mkWFMirrorTyCon
+                         wf_tc_name
+                         constraintKind
+                         tc
+             n_tc      = updateWfMirrorTyCon tc $ Just mirror_tc
        ; traceTc "wf tf mirror open occname:" (ppr wf_tc_name)
-       ; return $ (mirror_tc, n_tc)
+       ; return (mirror_tc, n_tc)
        }
   | otherwise
-  = do { traceTc "wf tf mirror unknown case:" (ppr (famTyConFlav_maybe tc) <+> ppr tc)
-       ; return (tc, tc)
-       }
+  = do { pprPanic "wf tf mirror unknown case:" (ppr (famTyConFlav_maybe tc) <+> ppr tc) }
 
 -- given a type family instance equation -
 -- D a b ~ T a b
