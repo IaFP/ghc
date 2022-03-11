@@ -399,6 +399,7 @@ tcInstDecls1 inst_decls
              fam_insts   = concat fam_insts_s
              local_infos = concat local_infos_s
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+       ; traceTc "tcInstDecls1 fam_insts: " (ppr fam_insts)
        ; wfFamInsts <- if partyCtrs
                        then genWFTyFamInsts $ filter (hasWfMirrorTyCon . famInstTyCon) fam_insts
                        else return []
