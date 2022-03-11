@@ -247,7 +247,7 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    -- bit its rarely the case that the group is more than 3-4 dependent tycons
 
                    -- Step 1. Get the typefamilies out of the way
-                   ; let (locsAndTFs, locsAndTyClss') = partition (isOpenTypeFamilyTyCon . snd) locsAndTcs
+                   ; let (locsAndTFs, locsAndTyClss') = partition (isTypeFamilyTyCon . snd) locsAndTcs
                    ; mirrors_and_tyfams <- genWFMirrorTyCons (fmap snd locsAndTFs)
                    ; let (wf_mirrors, tyfams') = unzip mirrors_and_tyfams
 

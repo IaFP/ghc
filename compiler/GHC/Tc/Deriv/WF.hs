@@ -258,14 +258,14 @@ genWFMirrorTyCons = mapM genWFMirrorTyCon
 
 genWFMirrorTyCon :: TyCon -> TcM (TyCon, TyCon)
 genWFMirrorTyCon tc
-  | isOpenFamilyTyCon tc && not (isWFMirrorTyCon tc)
+  | isTypeFamilyTyCon tc && not (isWFMirrorTyCon tc)
   = do { wf_tc_name <- mk_wf_name $ tyConName tc
        ; let mirror_tc = mkWFMirrorTyCon
                          wf_tc_name
                          constraintKind
                          tc
              n_tc      = updateWfMirrorTyCon tc $ Just mirror_tc
-       ; traceTc "wf tf mirror open occname:" (ppr wf_tc_name)
+       ; traceTc "wf tf mirror occname:" (ppr wf_tc_name)
        ; return (mirror_tc, n_tc)
        }
   | otherwise

@@ -247,7 +247,6 @@ saneTyConForElab tycon =
        || isPromotedDataCon tycon
        || isFunTyCon tycon
        || isDataFamilyTyCon tycon
-       || isClosedTypeFamilyTyCon tycon
       )
 
 
@@ -300,15 +299,15 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; extra_css <- recGenAts' tycon extra_args_tc args_tc [] []
        ; return $ foldl mergeAtAtConstraints (wftct:extra_css) css
        }
-  | isOpenFamilyTyCon tycon
-  = do { traceTc "wfelab open fam tycon" (ppr tycon)
+  | (isOpenFamilyTyCon tycon || isClosedTypeFamilyTyCon tycon)
+  = do { traceTc "wfelab open/closed fam tycon" (ppr tycon)
        ; elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
               
        ; let wftycon = wfMirrorTyCon_maybe tycon
        ; let tfwfcts::ThetaType = maybeToList $ fmap (\t -> mkTyConApp t args) wftycon
-       ; traceTc "wfelab open tycon" (vcat [ ppr tycon
+       ; traceTc "wfelab open/closed tycon" (vcat [ ppr tycon
                                            , ppr (wfMirrorTyCon_maybe tycon)
                                            , ppr tfwfcts])
        ; case co_ty_mb of
