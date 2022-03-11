@@ -2636,9 +2636,10 @@ tcClassATs class_name cls ats at_defs
                   ; let at_defs = lookupNameEnv at_defs_map (at_fam_name at)
                                   `orElse` []
                   ; atd <- tcDefaultAssocDecl fam_tc at_defs
+                  -- ANI TODO: if there's a default definition, we might as well generate a WF for it?
                   ; traceTc "wfelab tc_at" (ppr fam_tc <+> ppr (wfMirrorTyCon_maybe fam_tc))
                   ; let wf_mirror_at = if isWFMirrorTyCon fam_tc then [] else [ATI (wfMirrorTyCon fam_tc) Nothing]
-                  ; return $ (ATI fam_tc atd):wf_mirror_at }
+                  ; return $ wf_mirror_at ++ [ATI fam_tc atd] }
 
 -------------------------
 tcDefaultAssocDecl ::

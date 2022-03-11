@@ -8,6 +8,7 @@ module GHC.Iface.Env (
         lookupIfaceTop,
         lookupOrig, lookupOrigIO, lookupOrigNameCache,
         newIfaceName, newIfaceNames,
+        newWFIfaceName,
         extendIfaceIdEnv, extendIfaceTyVarEnv,
         tcIfaceLclId, tcIfaceTyVar, lookupIfaceVar,
         lookupIfaceTyVar, extendIfaceEnvs,
@@ -277,3 +278,9 @@ trace_if logger doc = when (logHasDumpFlag logger Opt_D_dump_if_trace) $ putMsg 
 trace_hi_diffs :: Logger -> SDoc -> IO ()
 {-# INLINE trace_hi_diffs #-}
 trace_hi_diffs logger doc = when (logHasDumpFlag logger Opt_D_dump_hi_diffs) $ putMsg logger doc
+
+
+newWFIfaceName :: OccName -> IfL Name
+newWFIfaceName n = do { let wf_occ = mkTcOcc $ wF_TC_PREFIX ++ (occNameString n)
+                  ; newIfaceName wf_occ
+                  }

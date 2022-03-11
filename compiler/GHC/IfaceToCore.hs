@@ -745,16 +745,18 @@ tc_iface_decl parent _ (IfaceFamily {ifName = tc_name,
      ; rhs      <- forkM (mk_doc tc_name) $
                    tc_fam_flav tc_name fam_flav
      ; res_name <- traverse (newIfaceName . mkTyVarOccFS) res
-     -- ; wf_tycon_mb <- return Nothing -- tcIfaceWFMirror wfm
      ; tycon <- if m then
                   return $ mkWFFamilyTyCon tc_name binders' constraintKind res_name rhs parent inj 
-                else do { let wf_tc = mkWFFamilyTyCon tc_name binders'
-                                          constraintKind res_name rhs parent inj 
+                else do { wf_name <- (newWFIfaceName . nameOccName) tc_name
+                        ; let wf'tc = mkWFFamilyTyCon wf_name binders'
+                                          constraintKind res_name rhs parent inj
+                              -- ANI TODO: this is not quite right.
+                              -- We need to find the exact same $wf'tc that we should have previously generated.
                         ; return $ mkFamilyTyCon tc_name binders'
-                                           res_kind' res_name rhs parent inj (Just wf_tc) }
+                                           res_kind' res_name rhs parent inj (Just wf_tc) } 
      ; return (ATyCon tycon) }
    where
-     mk_doc n = text "Type synonym" <+> ppr n
+     mk_doc n = text "Type family synonym" <+> ppr n
 
      tc_fam_flav :: Name -> IfaceFamTyConFlav -> IfL FamTyConFlav
      tc_fam_flav tc_name IfaceDataFamilyTyCon
