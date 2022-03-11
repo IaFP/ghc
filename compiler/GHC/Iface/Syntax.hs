@@ -10,7 +10,6 @@ module GHC.Iface.Syntax (
         module GHC.Iface.Type,
 
         IfaceDecl(..), IfaceFamTyConFlav(..), IfaceClassOp(..), IfaceAT(..),
-        IfaceWFMirror(..),
         IfaceConDecl(..), IfaceConDecls(..), IfaceEqSpec,
         IfaceExpr(..), IfaceAlt(..), IfaceLetBndr(..), IfaceJoinInfo(..),
         IfaceBinding(..), IfaceConAlt(..),
@@ -222,9 +221,6 @@ data IfaceAT = IfaceAT  -- See GHC.Core.Class.ClassATItem
                                      -- backward incompatible
                   (Maybe IfaceType)  -- Default associated type instance, if any
 
-
-data IfaceWFMirror = NoWFMirror
-                   | IfaceWFMirror IfaceDecl
 
 -- This is just like CoAxBranch
 data IfaceAxBranch = IfaceAxBranch { ifaxbTyVars    :: [IfaceTvBndr]
@@ -1133,14 +1129,6 @@ pprIfaceAT ss (IfaceAT d mb_wf_d mb_def)
              Just rhs -> nest 2 $
                          text "WF Mirror:" <+> ppr (ifName rhs) ]
 
-instance Outputable IfaceWFMirror where
-  ppr = pprIfaceWFMirror
-
-pprIfaceWFMirror :: IfaceWFMirror -> SDoc
-pprIfaceWFMirror NoWFMirror = text "no mirror"
-pprIfaceWFMirror (IfaceWFMirror decl) = text "wfmirror" <+> ppr (ifName decl)
-
-
 
 instance Outputable IfaceTyConParent where
   ppr p = pprIfaceTyConParent p
@@ -1629,10 +1617,6 @@ freeNamesIfAT (IfaceAT decl mb_wf_decl mb_def)
       Nothing  -> emptyNameSet
       Just rhs -> freeNamesIfDecl rhs)
 
-freeNamesIfWFMirror :: IfaceWFMirror -> NameSet
-freeNamesIfWFMirror NoWFMirror        = emptyNameSet
-freeNamesIfWFMirror (IfaceWFMirror d) = freeNamesIfDecl d
-
 freeNamesIfClsSig :: IfaceClassOp -> NameSet
 freeNamesIfClsSig (IfaceClassOp _n ty dm) = freeNamesIfType ty &&& freeNamesDM dm
 
@@ -2110,20 +2094,6 @@ instance Binary IfaceAT where
         wf_dec <- get bh
         defs <- get bh
         return (IfaceAT dec wf_dec defs)
-
-instance Binary IfaceWFMirror where
-    put_ bh NoWFMirror = putByte bh 0
-    put_ bh (IfaceWFMirror m) = putByte bh 1 >> put_ bh m
-
-    get bh = do
-       { h <- getByte bh
-       ; case h of
-           0 -> return NoWFMirror
-           1 -> do { m <- get bh
-                   ; return (IfaceWFMirror m) }
-           _ -> pprPanic "Binary.get(IfaceWFMirror): Invalid tag"
-                         (ppr (fromIntegral h :: Int))
-       }
 
 instance Binary IfaceAxBranch where
     put_ bh (IfaceAxBranch a1 a2 a3 a4 a5 a6 a7) = do
@@ -2604,11 +2574,6 @@ instance NFData IfaceClassBody where
 
 instance NFData IfaceAT where
   rnf (IfaceAT f1 f2 f3) = rnf f1 `seq` rnf f2 `seq` rnf f3
-
-instance NFData IfaceWFMirror where
-  rnf = \case
-    IfaceWFMirror f1 -> rnf f1 `seq` ()
-    NoWFMirror       -> ()
 
 instance NFData IfaceClassOp where
   rnf (IfaceClassOp f1 f2 f3) = rnf f1 `seq` rnf f2 `seq` f3 `seq` ()

@@ -540,10 +540,6 @@ rnIfaceAT (IfaceAT decl mb_wf_decl mb_ty)
          def <- T.traverse rnIfaceType mb_ty
          return $ IfaceAT d wf_d def
 
-rnIfaceWFMirror :: Rename IfaceWFMirror
-rnIfaceWFMirror (IfaceWFMirror d) =  IfaceWFMirror <$> rnIfaceDecl d
-rnIfaceWFMirror NoWFMirror = pure NoWFMirror
-
 rnIfaceTyConParent :: Rename IfaceTyConParent
 rnIfaceTyConParent (IfDataInstance n tc args)
     = IfDataInstance <$> rnIfaceGlobal n

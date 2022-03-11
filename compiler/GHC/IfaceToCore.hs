@@ -1046,11 +1046,6 @@ tc_ax_branch prev_branches
                           , cab_incomps = map (prev_branches `getNth`) incomps }
     ; return (prev_branches ++ [br]) }
 
-tcIfaceWFMirror :: IfaceWFMirror -> IfL (Maybe TyCon)
-tcIfaceWFMirror NoWFMirror = return Nothing
-tcIfaceWFMirror (IfaceWFMirror d) = do tything <- tcIfaceDecl False d
-                                       return (Just $ tyThingTyCon tything)
-
 tcIfaceDataCons :: Name -> TyCon -> [TyConBinder] -> IfaceConDecls -> IfL AlgTyConRhs
 tcIfaceDataCons tycon_name tycon tc_tybinders if_cons
   = case if_cons of

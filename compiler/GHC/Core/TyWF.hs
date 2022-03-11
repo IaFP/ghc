@@ -33,11 +33,9 @@ import GHC.Core.TyCon
 import GHC.Core.Type
 import GHC.Core.Reduction (reductionReducedType)
 import GHC.Builtin.Names
-import GHC.Types.Name
-import GHC.Types.TyThing
 import GHC.Builtin.Names.TH
 import GHC.Builtin.Types (liftedTypeKindTyCon, isCTupleTyConName, wfTyCon)
-import Data.Maybe (maybeToList, fromJust)
+import Data.Maybe (maybeToList)
 import GHC.Tc.Utils.Monad
 import GHC.Utils.Panic (pprPanic)
 import GHC.Utils.Outputable

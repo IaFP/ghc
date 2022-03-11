@@ -2639,7 +2639,7 @@ tcClassATs class_name cls ats at_defs
                   -- ANI TODO: if there's a default definition, we might as well generate a WF for it?
                   ; traceTc "wfelab tc_at" (ppr fam_tc <+> ppr (wfMirrorTyCon_maybe fam_tc))
                   ; let wf_mirror_at = if isWFMirrorTyCon fam_tc then [] else [ATI (wfMirrorTyCon fam_tc) Nothing]
-                  ; return $ wf_mirror_at ++ [ATI fam_tc atd] }
+                  ; return $ (ATI fam_tc atd):wf_mirror_at }
 
 -------------------------
 tcDefaultAssocDecl ::
