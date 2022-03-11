@@ -753,7 +753,7 @@ tc_iface_decl parent _ (IfaceFamily {ifName = tc_name,
                               -- ANI TODO: this is not quite right.
                               -- We need to find the exact same $wf'tc that we should have previously generated.
                         ; return $ mkFamilyTyCon tc_name binders'
-                                           res_kind' res_name rhs parent inj (Just wf_tc) } 
+                                           res_kind' res_name rhs parent inj (Just wf'tc) } 
      ; return (ATyCon tycon) }
    where
      mk_doc n = text "Type family synonym" <+> ppr n
