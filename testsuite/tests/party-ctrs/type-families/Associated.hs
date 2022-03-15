@@ -1,10 +1,8 @@
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE PartialTypeConstructors, DataKinds #-}
+{-# LANGUAGE DataKinds #-}
 
 module Associated where
 import GHC.Types
-import Data.Proxy
-import GHC.TypeLits
 
 class Collection a where
   type Elem a
@@ -23,8 +21,8 @@ instance Collection [a] where
 class Gen a where
   type Repr a :: Type -> Type
   -- WFT (Repr a) :: Type -> Constraint
-  from :: a -> (Repr a) x
-  to :: (Repr a) x -> a
+  reprFrom :: a -> (Repr a) x
+  toRepr :: (Repr a) x -> a
 
 
 -- data Pair a b = Pair a b

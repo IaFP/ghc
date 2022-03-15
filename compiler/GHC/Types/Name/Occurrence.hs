@@ -62,7 +62,7 @@ module GHC.Types.Name.Occurrence (
         mkCon2TagOcc, mkTag2ConOcc, mkMaxTagOcc,
         mkClassDataConOcc, mkDictOcc, mkIPOcc,
         mkSpecOcc, mkForeignExportOcc, mkRepEqOcc,
-        mkGenR, mkGen1R,
+        mkGenR, mkGen1R, mkWFTyConOcc,
         mkDataTOcc, mkDataCOcc, mkDataConWorkerOcc,
         mkSuperDictSelOcc, mkSuperDictAuxOcc,
         mkLocalOcc, mkMethodOcc, mkInstTyTcOcc,
@@ -610,6 +610,14 @@ isTypeableBindOcc occ =
      '$':'t':'c':_ -> True  -- mkTyConRepOcc
      '$':'t':'r':_ -> True  -- Module binding
      _ -> False
+
+isWFTyConOcc :: OccName -> Bool
+isWFTyConOcc occ =
+   case occNameString occ of
+     '$':'w':'f':_ -> True  -- mkTyConRepOcc
+     _ -> False
+
+
 
 mkDataConWrapperOcc, mkWorkerOcc,
         mkMatcherOcc, mkBuilderOcc,

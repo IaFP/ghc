@@ -190,8 +190,6 @@ implicitTyConThings tc
       -- or type family axioms
     implicitCoTyCon tc ++
 
-    wftyfam ++
-
       -- for each data constructor in order,
       --   the constructor, worker, and (possibly) wrapper
     [ thing | dc    <- tyConDataCons tc
@@ -202,7 +200,7 @@ implicitTyConThings tc
     class_stuff = case tyConClass_maybe tc of
         Nothing -> []
         Just cl -> implicitClassThings cl
-    wftyfam =  fmap ATyCon (maybeToList $ wfMirrorTyCon_maybe tc)
+    -- wftyfam =  fmap ATyCon (maybeToList $ wfMirrorTyCon_maybe tc)
 
 -- For newtypes and closed type families (only) add the implicit coercion tycon
 implicitCoTyCon :: TyCon -> [TyThing]

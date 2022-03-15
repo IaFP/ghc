@@ -5,22 +5,20 @@
 
 module TypeFamilies where
 
+import GHC.Types
+-- data Ord a => BST a = Tip | Branch a (BST a) (BST a)
 
-data Ord a => BST a = Tip | Branch a (BST a) (BST a)
+data Blah a 
+data Either a b = L a | R b
+  
+type family NTF a :: Type
+type instance NTF (Blah a) = a
 
-type family F a :: *
-type instance F a = BST a 
+type family HTF a :: Type -> Type
+type instance HTF (Blah a) = Either a
 
-f :: a -> F a -> F a   -- this is fine as F ~> BST and BST Int is well defined
-f = insert'bst
+-- foobar :: Elem [a] -> a
+-- foobar = undefined
 
-insert'bst :: a -> BST a -> BST a
-insert'bst v Tip = Branch v Tip Tip
-insert'bst v n@(Branch h l r)
-  | v == h = n
-  | v < h = Branch h (insert'bst v l) r
-  | otherwise  = Branch h l (insert'bst v r)
-
--- fail_bst = f id Tip -- This should fail
-
-ok_bst = f 3 Tip
+-- barfoo :: HTF (Blah a) b -> Either a b
+-- barfoo = \x -> x

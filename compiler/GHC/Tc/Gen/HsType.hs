@@ -50,7 +50,7 @@ module GHC.Tc.Gen.HsType (
         InitialKindStrategy(..),
         SAKS_or_CUSK(..),
         ContextKind(..),
-        GenerateWFMirrorFlag (..),
+        GenerateWFMirrorFlag (..), genWFMirror,
         kcDeclHeader,
         tcHsLiftedType,   tcHsOpenType,
         tcHsLiftedTypeNC, tcHsOpenTypeNC,
@@ -94,6 +94,7 @@ import GHC.Tc.Utils.Zonk
 import GHC.Core.TyCo.Rep
 import GHC.Core.TyCo.Ppr
 import GHC.Tc.Utils.TcType
+import GHC.Tc.TyCl.Build (mk_wf_name)
 import GHC.Tc.Utils.Instantiate ( tcInstInvisibleTyBinders, tcInstInvisibleTyBindersN,
                                   tcInstInvisibleTyBinder )
 import GHC.Core.Type
@@ -396,14 +397,14 @@ tcClassSigType :: [LocatedN Name] -> LHsSigType GhcRn -> TcM Type
 tcClassSigType names sig_ty
   = addSigCtxt sig_ctxt sig_ty $
     do { (implic, ty) <- tc_lhs_sig_type skol_info sig_ty (TheKind liftedTypeKind)
-       ; emitImplication implic
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
        ; ty <- if partyCtrs
-               then do { eTy <- elabAtAtConstraintsTcM False ty
-                       ; traceTc "tcClassSigType before elaborating: " (ppr ty)
+               then do { traceTc "tcClassSigType before elaborating: " (ppr ty)
+                       ; eTy <- elabAtAtConstraintsTcM False ty
                        ; traceTc "tcClassSigType elaborated signature: " (ppr $ eTy)
                        ; return $ eTy }
                else return ty
+       ; emitImplication implic
        ; return ty }
        -- Do not zonk-to-Type, nor perform a validity check
        -- We are in a knot with the class and associated types
@@ -460,8 +461,8 @@ tcHsSigType ctxt sig_ty
        ; ty <- zonkTcType ty
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
        ; ty <- if partyCtrs
-               then do { elabTy <- elabAtAtConstraintsTcM False ty
-                       ; traceTc "tc_hs_sig_type before elaborating: " (ppr ty)
+               then do { traceTc "tc_hs_sig_type before elaborating: " (ppr ty)
+                       ; elabTy <- elabAtAtConstraintsTcM False ty
                        ; traceTc "tc_hs_sig_type elaborated signature: " (ppr elabTy)
                        ; return elabTy }
                else return ty
@@ -2020,10 +2021,12 @@ tcTyVar mode name         -- Could be a tyvar, a tycon, or a datacon
            -- See Note [Recursion through the kinds]
            ATcTyCon tc_tc
              -> do { check_tc tc_tc
+                   ; traceTc "ATcTyCon" (ppr tc_tc <+> ppr (wfMirrorTyCon_maybe tc_tc))
                    ; return (mkTyConTy tc_tc, tyConKind tc_tc) }
 
            AGlobal (ATyCon tc)
              -> do { check_tc tc
+                   ; traceTc "AGlobalTyCon" (ppr tc <+> ppr (wfMirrorTyCon_maybe tc))
                    ; return (mkTyConTy tc, tyConKind tc) }
 
            AGlobal (AConLike (RealDataCon dc))
@@ -2558,7 +2561,8 @@ kcInferDeclHeader mflag name flav
        ; traceTc "kcInferDeclHeader: not-cusk" $
          vcat [ ppr name, ppr kv_ns, ppr hs_tvs
               , ppr scoped_kvs
-              , ppr tc_tvs, ppr (mkTyConKind tc_binders res_kind) ]
+              , ppr tc_tvs, ppr (mkTyConKind tc_binders res_kind)
+              , ppr $ wfMirrorTyCon_maybe tycon ]
        ; return tycon }
   where
     ctxt_kind | tcFlavourIsOpen flav = TheKind liftedTypeKind
