@@ -301,9 +301,6 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; let (args_tc, extra_args_tc) = splitAt (tyConArity tycon) args
        ; let wftycon = wfMirrorTyCon tycon -- this better exist
        ; traceTc "wfelab lookup2" (ppr wftycon)
-                                  -- -- $$ 
-                                  --  ppr extra_args_tc
-                                  --  $$ ppr args_tc)
          -- This tycon may be oversaturated so we break down the args into 2 parts:
          -- 1. args_tc which is of length tycon arity
          -- 2. extra_args_tc which is the rest of the args
@@ -321,11 +318,9 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        }
   | isOpenTypeFamilyTyCon tycon
   = do { traceTc "wfelab open typefam" (ppr tycon <+> ppr args)
-       ; let (args, extra_args) = splitAt (tyConArity tycon) args
+       ; let (args_tc, extra_args_tc) = splitAt (tyConArity tycon) args
        ; let wftycon = wfMirrorTyCon tycon -- this better exist
-       ; traceTc "wfelab lookup2" (ppr wftycon <+> ppr (tyConArity wftycon)
-                                  $$ ppr extra_args
-                                  $$ ppr args)
+       ; traceTc "wfelab lookup2" (ppr wftycon)
          -- This tycon may be oversaturated so we break down the args into 2 parts:
          -- 1. args_tc which is of length tycon arity
          -- 2. extra_args_tc which is the rest of the args
@@ -335,9 +330,10 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
          -- wf (Rep a x) = [$wf'Rep a, Rep a @ x]
          
        ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
+       ; traceTc "wfelab lookup3" (ppr wftycon)
        ; let css = fmap newPreds elabds
-             wftct = mkTyConApp wftycon args
-       ; extra_css <- sequenceAts tycon args extra_args [] []
+             wftct = mkTyConApp wftycon args_tc
+       ; extra_css <- sequenceAts tycon args_tc extra_args_tc [] []
        ; return $ foldl mergeAtAtConstraints (wftct:extra_css) css
        }
 

@@ -748,7 +748,7 @@ tc_iface_decl parent _ (IfaceFamily {ifName = tc_name,
      ; tycon <- if m then
                   return $ mkWFFamilyTyCon tc_name binders' constraintKind res_name rhs parent inj 
                 else do forkM (mk_doc_wf tc_name) $
-                          do { wf_name <- (newWFIfaceName . nameOccName) tc_name
+                          do { wf_name <- mk_wf_name tc_name
                              ; let wf'tc = mkWFFamilyTyCon wf_name binders'
                                               constraintKind res_name rhs parent inj
                               -- ANI TODO: this is not quite right.
