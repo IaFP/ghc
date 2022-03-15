@@ -7,8 +7,8 @@ module ImportAssoTypes where
 import GHC.Types
 import AssoTypes
 
--- blahType :: Elem a -> a
--- blahType = undefined
+blahType :: Elem a -> a
+blahType = undefined
 
 
 instance Collection [a] where
