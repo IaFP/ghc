@@ -2161,7 +2161,7 @@ mkWFFamilyTyCon name binders res_kind resVar flav parent inj
             , famTcResVar  = resVar
             , famTcFlav    = flav
             , famTcParent  = classTyCon <$> parent
-            , famTcInj     = inj
+            , famTcInj     = NotInjective
             , tyConWfRef   = Nothing
             , isMirror     = True
             }

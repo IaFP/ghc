@@ -162,11 +162,7 @@ pp_st_suffix NoSourceText         _ doc = doc
 pp_st_suffix (SourceText st) suffix _   = text st <> suffix
 
 -- in debug mode, print the expression that it's resolved to, too
-instance (
-#if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)),
-#endif
-  OutputableBndrId p)
+instance (OutputableBndrId p)
        => Outputable (HsOverLit (GhcPass p)) where
   ppr (OverLit {ol_val=val, ol_ext=ext})
         = ppr val <+> (whenPprDebug (parens (pprXOverLit (ghcPass @p) ext)))

@@ -1039,8 +1039,8 @@ ppr_mono_lty :: (
 #if MIN_VERSION_base(4,16,0)
   WFT (XRec (GhcPass p) (ConDeclField (GhcPass p)))
   , WFT (Anno (ConDeclField (GhcPass p)))
-  , WFT XRec (GhcPass p) [GenLocated SrcSpanAnnA (HsType (GhcPass p))]
-  , WFT Anno [GenLocated SrcSpanAnnA (HsType (GhcPass p))]
+  , WFT (XRec (GhcPass p) [GenLocated SrcSpanAnnA (HsType (GhcPass p))])
+  , WFT (Anno [GenLocated SrcSpanAnnA (HsType (GhcPass p))])
   ,
 #endif
   OutputableBndrId p)

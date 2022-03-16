@@ -83,6 +83,9 @@ import GHC.Driver.Session
 import qualified GHC.LanguageExtensions as LangExt
 import Data.Data
 import Data.Void
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types(WFT)
+#endif
 
 
 type instance XWildPat GhcPs = NoExtField
@@ -260,14 +263,22 @@ hsRecUpdFieldOcc = fmap unambiguousFieldOcc . hfbLHS
 ************************************************************************
 -}
 
-instance OutputableBndrId p => Outputable (Pat (GhcPass p)) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p) => Outputable (Pat (GhcPass p)) where
     ppr = pprPat
 
 -- See Note [Rebindable syntax and HsExpansion].
 instance (Outputable a, Outputable b) => Outputable (HsPatExpansion a b) where
   ppr (HsPatExpanded a b) = ifPprDebug (vcat [ppr a, ppr b]) (ppr a)
 
-pprLPat :: (OutputableBndrId p) => LPat (GhcPass p) -> SDoc
+pprLPat :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+#endif
+    OutputableBndrId p) => LPat (GhcPass p) -> SDoc
 pprLPat (L _ e) = pprPat e
 
 -- | Print with type info if -dppr-debug is on
@@ -282,7 +293,7 @@ pprParendLPat :: (OutputableBndrId p)
               => PprPrec -> LPat (GhcPass p) -> SDoc
 pprParendLPat p = pprParendPat p . unLoc
 
-pprParendPat :: forall p. OutputableBndrId p
+pprParendPat :: forall p. (OutputableBndrId p)
              => PprPrec
              -> Pat (GhcPass p)
              -> SDoc
@@ -303,7 +314,11 @@ pprParendPat p pat = sdocOption sdocPrintTypecheckerElaboration $ \ print_tc_ela
       -- But otherwise the CoPat is discarded, so it
       -- is the pattern inside that matters.  Sigh.
 
-pprPat :: forall p. (OutputableBndrId p) => Pat (GhcPass p) -> SDoc
+pprPat :: forall p. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)) -- ANI todo: some how we don't have $wf'XOverLit (GhcPass p) = () being generated.
+#endif
+  , OutputableBndrId p) => Pat (GhcPass p) -> SDoc
 pprPat (VarPat _ lvar)          = pprPatBndr (unLoc lvar)
 pprPat (WildPat _)              = char '_'
 pprPat (LazyPat _ pat)          = char '~' <> pprParendLPat appPrec pat
