@@ -47,6 +47,7 @@ import GHC.Tc.Utils.TcType
 import GHC.Tc.Utils.Monad
 import GHC.Tc.TyCl.Build( TcMethInfo )
 import GHC.Core.Class
+import GHC.Core.TyWF
 import GHC.Core.Coercion ( pprCoAxiom )
 import GHC.Driver.Session
 import GHC.Tc.Instance.Family
@@ -166,7 +167,7 @@ tcClassSigs clas sigs def_methods
            -> TcM [TcMethInfo]
     tc_sig gen_dm_env (op_names, op_hs_ty)
       = do { traceTc "ClsSig 1" (ppr op_names)
-           ; op_ty <- tcClassSigType op_names op_hs_ty
+           ; op_ty <- tcClassSigType op_names op_hs_ty           
                    -- Class tyvars already in scope
            ; traceTc "ClsSig 2" (ppr op_names $$ ppr op_ty)
            ; return [ (op_name, op_ty, f op_name) | L _ op_name <- op_names ] }

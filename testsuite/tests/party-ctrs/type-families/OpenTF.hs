@@ -3,15 +3,19 @@
 
 module OpenTF where
 
--- import GHC.Types 
+import GHC.Types 
 
 data Blah a 
+data Either a b = L a | R b
+  
+type family Elem a :: Type
+type instance Elem (Blah a) = a
 
-type family Elem a
--- type instance Elem [a] = a
+type family HTF a :: Type -> Type
+type instance HTF (Blah a) = Either a
 
-foobar :: Elem [a] -> a
-foobar = undefined
+-- foobar :: Elem [a] -> a
+-- foobar = undefined
 
-barfoo :: Elem (Blah a) -> a
-barfoo = undefined
+-- barfoo :: HTF (Blah a) b -> Either a b
+-- barfoo = \x -> x

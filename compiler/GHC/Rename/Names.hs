@@ -946,7 +946,7 @@ getLocalNonValBinders fixity_env
              ; if partyCtrs
                then  case unLoc tc_decl of
                        FamDecl {}
-                         -> if isWiredInName main_name || isSystemName main_name || isExternalName main_name
+                         -> if isWiredInName main_name
                             then return [(availTC main_name names flds', fld_env)]
                             else do { m <- getModule
                                     ; wf_name <- newWFGlobalBinder m main_name

@@ -10,9 +10,8 @@
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 module GHC.Tc.Deriv.WF ( mk_atat_fam, mk_atat_fam_except
                        , mk_atat_fam_units, mk_atat_fam_except_units
-                       -- , elabTyCons
                        , saneTyConForElab
-                       , genWFMirrorTyCons, genWFMirrorTyCon -- replaceResultWithConstraint
+                       , genWFMirrorTyCons, genWFMirrorTyCon
                        , genWFTyFamInst, genWFTyFamInsts
                        ) where
 
@@ -24,9 +23,8 @@ import GHC.Hs
 import GHC.Tc.Utils.Monad
 import GHC.Tc.Instance.Family
 import GHC.Tc.Utils.Env
-import GHC.Tc.Utils.TcMType (mk_wf_name)
 import GHC.Core.FamInstEnv
-
+import GHC.Tc.TyCl.Build (mk_wf_name)
 import GHC.Core.TyCo.Rep
 
 import GHC.Core.Type
@@ -103,7 +101,6 @@ mk_atat_fam' :: SrcSpan
 mk_atat_fam' loc acc tc uTys (tyd, ty:tyl) (tyvarsd, (tyvar, shouldInc):tyvarsl) ctxt
   | shouldInc
   = do { mpred <- getMatchingPredicates ty (tyl ++ uTys) ctxt
-                -- ; sizeof mpred <= sizeof mkTyConApp (mkTyConApp tc tyd) ty
        ; inst_name <- newFamInstTyConName (L (noAnnSrcSpan loc) wfTyConName) tyd'
        ; let argK = tcTypeKind ty
              f = mkTyConApp tc tyd
@@ -168,7 +165,7 @@ mk_atat_fam_units loc tc = mk_atat_fam_except_units loc tc []
 
 mk_atat_fam_except :: SrcSpan -> TyCon -> [TyCon] -> TcM [FamInst]
 mk_atat_fam_except loc tc skip_tcs
-  | isClassTyCon tc
+  | isClassTyCon tc || isWFMirrorTyCon tc
   = return []
   | (isAlgTyCon tc && saneTyConForElab tc) -- is this a vanilla tycon
     || isNewTyCon tc 

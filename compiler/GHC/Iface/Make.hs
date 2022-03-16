@@ -691,13 +691,6 @@ tyFamToIfaceDecl env fam_flav tycon =
             ibr  = map (coAxBranchToIfaceBranch tycon lhss) defs
             axn  = coAxiomName ax
 
-    tyConToIfaceWFMirror :: TidyEnv -> Maybe TyCon -> ({-TidyEnv,-} IfaceWFMirror)
-    tyConToIfaceWFMirror _ Nothing = ({-env,-} NoWFMirror)
-    tyConToIfaceWFMirror env (Just tycon) = ({-e,-} IfaceWFMirror d)
-      where
-        (e, d) = tyConToIfaceDecl env tycon
-
-
 
 --------------------------
 

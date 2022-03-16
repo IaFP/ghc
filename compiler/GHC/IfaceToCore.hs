@@ -747,16 +747,19 @@ tc_iface_decl parent _ (IfaceFamily {ifName = tc_name,
      ; res_name <- traverse (newIfaceName . mkTyVarOccFS) res
      ; tycon <- if m then
                   return $ mkWFFamilyTyCon tc_name binders' constraintKind res_name rhs parent inj 
-                else do { wf_name <- (newWFIfaceName . nameOccName) tc_name
-                        ; let wf'tc = mkWFFamilyTyCon wf_name binders'
-                                          constraintKind res_name rhs parent inj
+                else do forkM (mk_doc_wf tc_name) $
+                          do { wf_name <- mk_wf_name tc_name
+                             ; let wf'tc = mkWFFamilyTyCon wf_name binders'
+                                              constraintKind res_name rhs parent inj
                               -- ANI TODO: this is not quite right.
                               -- We need to find the exact same $wf'tc that we should have previously generated.
-                        ; return $ mkFamilyTyCon tc_name binders'
-                                           res_kind' res_name rhs parent inj (Just wf'tc) } 
+                             ; return $ mkFamilyTyCon tc_name binders'
+                                           res_kind' res_name rhs parent inj (Just wf'tc) }
      ; return (ATyCon tycon) }
    where
      mk_doc n = text "Type family synonym" <+> ppr n
+     mk_doc_wf tc = text "WF Type family synonym"
+                          <+> ppr tc
 
      tc_fam_flav :: Name -> IfaceFamTyConFlav -> IfL FamTyConFlav
      tc_fam_flav tc_name IfaceDataFamilyTyCon
@@ -836,24 +839,26 @@ tc_iface_decl _parent ignore_prags
              ; ty' <- forkM (doc <+> text "dm") $ tcIfaceType ty
              ; return (Just (GenericDM (noSrcSpan, ty'))) }
 
-   tc_at cls (IfaceAT tc_decl wf_tc_decl if_def)
+   tc_at cls (IfaceAT tc_decl (Just _) if_def)
      = do ATyCon tc <- tc_iface_decl (Just cls) ignore_prags tc_decl
-          mb_wf_tc <- traverse (tc_iface_decl (Just cls) ignore_prags) wf_tc_decl
-          let wf_tc_ati = if isJust mb_wf_tc then [ATI ((tyThingTyCon . fromJust) mb_wf_tc) Nothing] else []
+          let wf_tc = wfMirrorTyCon tc -- this better not fail as we know this is not a mirror
           mb_def <- case if_def of
                       Nothing  -> return Nothing
-                      Just def -> forkM (mk_at_doc tc mb_wf_tc)           $
+                      Just def -> forkM (mk_at_doc tc)           $
                                   extendIfaceTyVarEnv (tyConTyVars tc) $
                                   do { tc_def <- tcIfaceType def
                                      ; return (Just (tc_def, NoATVI)) }
                   -- Must be done lazily in case the RHS of the defaults mention
                   -- the type constructor being defined here
                   -- e.g.   type AT a; type AT b = AT [b]   #8002
-          return $ (ATI (updateWfMirrorTyCon tc (tyThingTyCon <$> mb_wf_tc)) mb_def):wf_tc_ati 
-
+          let wf_tc_ati = ATI wf_tc Nothing
+          let tc_ati = ATI tc mb_def
+          return $ [tc_ati , wf_tc_ati]
+   tc_at _ (IfaceAT _ Nothing _) = return []
+   
    mk_sc_doc pred = text "Superclass" <+> ppr pred
-   mk_at_doc tc wf_tc = text "Associated types " <+> ppr tc
-                        <+> text "; WF type" <+> ppr wf_tc
+   mk_at_doc tc = text "Associated type " <+> ppr tc
+                  <+> text "WF type" <+> ppr (wfMirrorTyCon tc)
    mk_op_doc op_name op_ty = text "Class op" <+> sep [ppr op_name, ppr op_ty]
 
 tc_iface_decl _ _ (IfaceAxiom { ifName = tc_name, ifTyCon = tc
@@ -922,6 +927,9 @@ tc_iface_decl_fingerprint ignore_prags (_version, decl)
                 -- the names associated with the decl
           let main_name = ifName decl
 
+        -- If decl is a family decl, then we know that there's a hidden wf_tc in there.
+        -- We would also want to fish that out in to this name -> tything mapping
+        
         -- Typecheck the thing, lazily
         -- NB. Firstly, the laziness is there in case we never need the
         -- declaration (in one-shot mode), and secondly it is there so that
@@ -1045,11 +1053,6 @@ tc_ax_branch prev_branches
                           , cab_rhs     = tc_rhs
                           , cab_incomps = map (prev_branches `getNth`) incomps }
     ; return (prev_branches ++ [br]) }
-
-tcIfaceWFMirror :: IfaceWFMirror -> IfL (Maybe TyCon)
-tcIfaceWFMirror NoWFMirror = return Nothing
-tcIfaceWFMirror (IfaceWFMirror d) = do tything <- tcIfaceDecl False d
-                                       return (Just $ tyThingTyCon tything)
 
 tcIfaceDataCons :: Name -> TyCon -> [TyConBinder] -> IfaceConDecls -> IfL AlgTyConRhs
 tcIfaceDataCons tycon_name tycon tc_tybinders if_cons

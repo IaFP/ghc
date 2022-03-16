@@ -27,7 +27,6 @@ module GHC.Tc.Utils.TcMType (
   newMetaKindVar, newMetaKindVars, newMetaTyVarTyAtLevel,
   newAnonMetaTyVar, cloneMetaTyVar,
   newCycleBreakerTyVar,
-  mk_wf_name,
 
   newMultiplicityVar,
   readMetaTyVar, writeMetaTyVar, writeMetaTyVarRef,
@@ -143,8 +142,6 @@ import GHC.Utils.Panic
 import GHC.Utils.Panic.Plain
 import GHC.Utils.Constants (debugIsOn)
 import GHC.Utils.Trace
-import GHC.Unit.Module
-import GHC.Iface.Env (lookupOrig)
  
 import Control.Monad
 import GHC.Data.Maybe
@@ -2731,11 +2728,3 @@ naughtyQuantification orig_ty tv escapees
                         ]
 
        ; failWithTcM (env, msg) }
-
-
-mk_wf_name :: Name -> TcM Name
-mk_wf_name n = do { m <- getModule
-                  ; let wf_occ = mkTcOcc $ wF_TC_PREFIX ++ (occNameString $ nameOccName n)
-                  ; wf_name <- lookupOrig m wf_occ
-                  ; return wf_name
-                  }
