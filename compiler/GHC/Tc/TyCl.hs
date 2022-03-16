@@ -236,6 +236,8 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                                                   -- thats the best we can do atm
                                    else concatMapM (\(l, tc) -> mk_atat_fam_except_units l tc tyclss)
                                                   locsAndTcs
+                                                  
+
                    -- ANI: This should be pushed in the actual declaration flow, its a fairly simple
                    -- one-to-many mapping with the tycls
                    -- I say many because a class could have multiple associated types
@@ -244,17 +246,17 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    -- a knot-tied tycon decl will cause the compiler to loop/hang
                    -- TODO: maybe do a single pass and classify all the tycons in one go
                    -- but its rarely the case that the group is more than 3-4 dependent tycons
-                   
+
                    -- Step 1. Get the typefamilies out of the way
-                   ; let (openLocsAndTFs, locsAndTyClss') = partition (isOpenTypeFamilyTyCon . snd) locsAndTcs
-                         open_wf_mirrors = fmap (wfMirrorTyCon . snd) openLocsAndTFs
-                         (closedLocsAndTFs, locsAndTyClss'') = partition (isClosedTypeFamilyTyCon . snd) locsAndTyClss'
-                         closed_wf_mirrors = fmap (wfMirrorTyCon . snd) closedLocsAndTFs                         
-                         
+                   ; let (locsAndTFs, locsAndTyClss') = partition (isOpenTypeFamilyTyCon . snd) locsAndTcs
+                   -- ; mirrors_and_tyfams <- genWFMirrorTyCons (fmap snd locsAndTFs)
+                         wf_mirrors = fmap (wfMirrorTyCon . snd) locsAndTFs
+                   -- ; let (wf_mirrors, tyfams') = unzip mirrors_and_tyfams
+                   
+                   
                    ; traceTc "wfelab partition"
-                       (vcat [ text "Open TFs:" <+> (vcat $ fmap (ppr . snd) openLocsAndTFs)
-                             , text "Closed TFs:" <+> (vcat $ fmap (ppr . snd) closedLocsAndTFs)
-                             , text "Others:" <+> (vcat $ fmap (ppr . snd) locsAndTyClss'')
+                       (vcat [ text "TFs:" <+> (vcat $ fmap (ppr . snd) locsAndTFs)
+                             , text "Others:" <+> (vcat $ fmap (ppr . snd) locsAndTyClss')
                              ])
                      
                    -- ; traceTc "Starting validity check post WF enrichment" (vcat $ fmap pprtc wf_mirrors)
@@ -262,7 +264,7 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    -- ; traceTc "Done validity check post WF enrichment" (vcat $ fmap pprtc wf_mirrors')
                    ; traceTc "---- end wf enrichment ---- }" empty
                    ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $
-                                                        (fmap snd locsAndTcs) ++ open_wf_mirrors)
+                                                        (fmap snd locsAndTcs) ++ wf_mirrors)
                    }
            else do { addTyConsToGblEnv tyclss }
 
@@ -305,9 +307,6 @@ pprtc tc
     <+> text "isFamFree" <+> ppr (isFamFreeTyCon tc)
   | isOpenFamilyTyCon tc
   = text "open tyfam tycon=" <> ppr tc
-    <+> text "mirror tycon=" <> ppr (wfMirrorTyCon_maybe tc)
-  | isClosedTypeFamilyTyCon tc
-  = text "closed tyfam tycon=" <> ppr tc
     <+> text "mirror tycon=" <> ppr (wfMirrorTyCon_maybe tc)
   | otherwise =
     text "tycon=" <> ppr tc
