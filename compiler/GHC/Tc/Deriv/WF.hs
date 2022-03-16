@@ -12,6 +12,7 @@ module GHC.Tc.Deriv.WF ( mk_atat_fam, mk_atat_fam_except
                        , mk_atat_fam_units, mk_atat_fam_except_units
                        , saneTyConForElab
                        , genWFMirrorTyCons, genWFMirrorTyCon
+                       , mkWFCoAxBranch
                        , genWFTyFamInst, genWFTyFamInsts
                        ) where
 
@@ -28,6 +29,8 @@ import GHC.Tc.TyCl.Build (mk_wf_name)
 import GHC.Core.TyCo.Rep
 
 import GHC.Core.Type
+import GHC.Core.FamInstEnv
+import GHC.Core.Coercion.Axiom
 import GHC.Core.DataCon
 import GHC.Types.Name
 import GHC.Core.TyCon
@@ -300,3 +303,22 @@ genWFTyFamInst fam_inst
 
 genWFTyFamInsts :: [FamInst] -> TcM [FamInst]
 genWFTyFamInsts = mapM genWFTyFamInst
+
+
+-- Take a CoAx for a TF (call it F) and
+-- make a corresponding axiom for $wf'F.
+mkWFCoAxBranch :: CoAxBranch -> TcM CoAxBranch
+mkWFCoAxBranch (CoAxBranch { cab_tvs = qtvs, cab_lhs = pats, cab_loc = loc, cab_rhs = rhs })
+  = do {
+       ; elabDetails <- genAtAtConstraintsTcM False rhs
+       ; let preds = newPreds elabDetails
+             n = length preds
+       ; rhs_ty <- if n == 1 then return . head $ preds
+                   else do { ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
+                           ; return $ mkTyConApp ctupleTyCon preds
+                           }
+       ; return (mkCoAxBranch qtvs [] [] pats rhs_ty
+                              (map (const Nominal) qtvs)
+                              loc)
+       -- ; return $ coAx { cab_rhs = rhs_ty }
+       }

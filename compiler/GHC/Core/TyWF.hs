@@ -347,7 +347,8 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
              wftct = mkTyConApp wftycon args_tc
        ; extra_css <- sequenceAts tycon args_tc extra_args_tc [] []
        ; return $ foldl mergeAtAtConstraints (wftct:extra_css) css
-       }      
+       }  
+    
   | isTypeFamilyTyCon tycon
     || isDataFamilyTyCon tycon
   = do { traceTc "wfelab datafam/typefam tycon" (ppr tycon)

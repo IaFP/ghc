@@ -47,6 +47,7 @@ import GHC.Tc.TyCl.Utils
 import GHC.Tc.TyCl.Class
 import {-# SOURCE #-} GHC.Tc.TyCl.Instance( tcInstDecls1 )
 import GHC.Tc.Deriv
+import GHC.Tc.Deriv.WF
 import GHC.Tc.Gen.HsType
 import GHC.Tc.Instance.Class( AssocInstInfo(..) )
 import GHC.Tc.Utils.TcMType
@@ -248,11 +249,10 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    -- but its rarely the case that the group is more than 3-4 dependent tycons
 
                    -- Step 1. Get the typefamilies out of the way
-                   ; let (locsAndTFs, locsAndTyClss') = partition (isOpenTypeFamilyTyCon . snd) locsAndTcs
-                   -- ; mirrors_and_tyfams <- genWFMirrorTyCons (fmap snd locsAndTFs)
+                   ; let
+                         allowed tc = isOpenTypeFamilyTyCon tc || isClosedTypeFamilyTyCon tc
+                         (locsAndTFs, locsAndTyClss') = partition (allowed . snd) locsAndTcs
                          wf_mirrors = fmap (wfMirrorTyCon . snd) locsAndTFs
-                   -- ; let (wf_mirrors, tyfams') = unzip mirrors_and_tyfams
-                   
                    
                    ; traceTc "wfelab partition"
                        (vcat [ text "TFs:" <+> (vcat $ fmap (ppr . snd) locsAndTFs)
@@ -2836,7 +2836,7 @@ any damage is done.
 
 tcFamDecl1 :: Maybe Class -> Maybe Name -> FamilyDecl GhcRn -> TcM TyCon
 tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
-                              , fdLName = tc_lname@(L _ tc_name)
+                              , fdLName = tc_lname@(L src_span tc_name)
                               , fdResultSig = L _ sig
                               , fdInjectivityAnn = inj })
   | DataFamily <- fam_info
@@ -2900,9 +2900,10 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
             <- bindTyClTyVars tc_name $ \ _ binders res_kind ->
                do { inj' <- tcInjectivity binders inj
                   ; return (inj', binders, res_kind) }
-
+       
        ; checkFamFlag tc_name -- make sure we have -XTypeFamilies
        ; checkResultSigFlag tc_name sig
+       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
 
          -- If Nothing, this is an abstract family in a hs-boot file;
          -- but eqns might be empty in the Just case as well
@@ -2912,36 +2913,70 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
                                       (resultVariableName sig)
                                       AbstractClosedSynFamilyTyCon parent
                                       inj' Nothing
-           Just eqns -> do {
+           Just eqns -> if partyCtrs && isJust wfname
+             then do {
+               ; let wf_name = fromJust wfname
+                     tc_fam_tc = mkTcTyCon tc_name binders res_kind
+                                 noTcTyConScopedTyVars
+                                 False 
+                                 ClosedTypeFamilyFlavour
+                                 (Just tc_wf_fam_tc)
+                     tc_wf_fam_tc = mkWFTcTyCon wf_name binders constraintKind
+                                 noTcTyConScopedTyVars
+                                 False 
+                                 ClosedTypeFamilyFlavour
 
-         -- Process the equations, creating CoAxBranches
-       ; let tc_fam_tc = mkTcTyCon tc_name binders res_kind
-                                   noTcTyConScopedTyVars
-                                   False {- this doesn't matter here -}
-                                   ClosedTypeFamilyFlavour
-                                   Nothing
+               ; branches <- mapAndReportM (tcTyFamInstEqn tc_fam_tc NotAssociated) eqns
+               ; co_ax_name <- newFamInstAxiomName tc_lname []
 
-       ; branches <- mapAndReportM (tcTyFamInstEqn tc_fam_tc NotAssociated) eqns
-         -- Do not attempt to drop equations dominated by earlier
-         -- ones here; in the case of mutual recursion with a data
-         -- type, we get a knot-tying failure.  Instead we check
-         -- for this afterwards, in GHC.Tc.Validity.checkValidCoAxiom
-         -- Example: tc265
+               ; wf_branches <- mapM mkWFCoAxBranch branches
+               ; wf_co_ax_name <- newFamInstAxiomName (L src_span wf_name) []
 
-         -- Create a CoAxiom, with the correct src location.
-       ; co_ax_name <- newFamInstAxiomName tc_lname []
+               ; let mb_co_ax
+                       | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
+                       | otherwise = Just (mkBranchedCoAxiom co_ax_name fam_tc branches)
+                       
+                     mb_wf_co_ax
+                       | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
+                       | otherwise = Just (mkBranchedCoAxiom wf_co_ax_name wf_tycon wf_branches)  
 
-       ; let mb_co_ax
-              | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
-              | otherwise = Just (mkBranchedCoAxiom co_ax_name fam_tc branches)
+                     fam_tc = mkFamilyTyCon tc_name binders res_kind (resultVariableName sig)
+                       (ClosedSynFamilyTyCon mb_co_ax) parent inj' (Just wf_tycon)
+                       
+                     wf_tycon = mkWFFamilyTyCon wf_name binders constraintKind
+                                (resultVariableName sig) (ClosedSynFamilyTyCon mb_wf_co_ax)
+                                parent inj'
 
-             fam_tc = mkFamilyTyCon tc_name binders res_kind (resultVariableName sig)
-                      (ClosedSynFamilyTyCon mb_co_ax) parent inj' Nothing
+               ; return fam_tc }
+             else do {
+               -- Process the equations, creating CoAxBranches
+               ; let tc_fam_tc = mkTcTyCon tc_name binders res_kind
+                                 noTcTyConScopedTyVars
+                                 False {- this doesn't matter here -}
+                                 ClosedTypeFamilyFlavour
+                                 Nothing                           
 
-         -- We check for instance validity later, when doing validity
-         -- checking for the tycon. Exception: checking equations
-         -- overlap done by dropDominatedAxioms
-       ; return fam_tc } }
+               ; branches <- mapAndReportM (tcTyFamInstEqn tc_fam_tc NotAssociated) eqns
+               -- Do not attempt to drop equations dominated by earlier
+               -- ones here; in the case of mutual recursion with a data
+               -- type, we get a knot-tying failure.  Instead we check
+               -- for this afterwards, in GHC.Tc.Validity.checkValidCoAxiom
+               -- Example: tc265
+
+               -- Create a CoAxiom, with the correct src location.
+               ; co_ax_name <- newFamInstAxiomName tc_lname []
+
+               ; let mb_co_ax
+                       | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
+                       | otherwise = Just (mkBranchedCoAxiom co_ax_name fam_tc branches)
+
+                     fam_tc = mkFamilyTyCon tc_name binders res_kind (resultVariableName sig)
+                       (ClosedSynFamilyTyCon mb_co_ax) parent inj' Nothing
+
+               -- We check for instance validity later, when doing validity
+               -- checking for the tycon. Exception: checking equations
+               -- overlap done by dropDominatedAxioms
+               ; return fam_tc } }
 
 #if __GLASGOW_HASKELL__ <= 810
   | otherwise = panic "tcFamInst1"  -- Silence pattern-exhaustiveness checker
