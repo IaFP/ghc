@@ -30,9 +30,6 @@ module GHC.Core.TyCon(
         tyConBinderArgFlag, tyConBndrVisArgFlag, isNamedTyConBinder,
         isVisibleTyConBinder, isInvisibleTyConBinder,
 
-        -- ** Constants
-        wF_TC_PREFIX,
-
         -- ** Field labels
         tyConFieldLabels, lookupTyConFieldLabel,
 
