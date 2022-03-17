@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 {-# LANGUAGE ConstraintKinds #-}
 {-|
 Module      : GHC.Hs.Utils
@@ -152,7 +156,9 @@ import Data.Either
 import Data.Function
 import Data.List ( partition, deleteBy )
 import Data.Proxy
-
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 {-
 ************************************************************************
 *                                                                      *
@@ -324,12 +330,20 @@ mkRnBindStmt :: LPat GhcRn -> LocatedA (bodyR GhcRn)
 mkTcBindStmt :: LPat GhcTc -> LocatedA (bodyR GhcTc)
              -> StmtLR GhcTc GhcTc (LocatedA (bodyR GhcTc))
 
-emptyRecStmt     :: (Anno [GenLocated
+emptyRecStmt     :: (
+#if MIN_VERSION_base(4,16,0)
+                     WFT (Anno (StmtLR (GhcPass idL) GhcPs bodyR)),
+#endif
+                          Anno [GenLocated
                              (Anno (StmtLR (GhcPass idL) GhcPs bodyR))
                              (StmtLR (GhcPass idL) GhcPs bodyR)]
                         ~ SrcSpanAnnL)
                  => StmtLR (GhcPass idL) GhcPs bodyR
-emptyRecStmtName :: (Anno [GenLocated
+emptyRecStmtName :: (
+#if MIN_VERSION_base(4,16,0)
+                     WFT (Anno (StmtLR GhcRn GhcRn bodyR)),
+#endif
+                     Anno [GenLocated
                              (Anno (StmtLR GhcRn GhcRn bodyR))
                              (StmtLR GhcRn GhcRn bodyR)]
                         ~ SrcSpanAnnL)
@@ -404,8 +418,12 @@ mkTcBindStmt pat body = BindStmt (XBindStmtTc { xbstc_bindOp = noSyntaxExpr,
                                                 xbstc_boundResultMult = Many,
                                                 xbstc_failOp = Nothing }) pat body
 
-emptyRecStmt' :: forall idL idR body .
-  (WrapXRec (GhcPass idR) [LStmtLR (GhcPass idL) (GhcPass idR) body], IsPass idR)
+emptyRecStmt' :: forall idL idR body . (
+#if MIN_VERSION_base(4,16,0)
+    WFT (Anno [GenLocated (Anno (StmtLR (GhcPass idL) (GhcPass idR) body))
+                             (StmtLR (GhcPass idL) (GhcPass idR) body)]),
+#endif
+  WrapXRec (GhcPass idR) [LStmtLR (GhcPass idL) (GhcPass idR) body], IsPass idR)
               => XRecStmt (GhcPass idL) (GhcPass idR) body
               -> StmtLR (GhcPass idL) (GhcPass idR) body
 emptyRecStmt' tyVal =
@@ -865,7 +883,12 @@ mkPatSynBind name details lpat dir anns = PatSynBind noExtField psb
 
 -- |If any of the matches in the 'FunBind' are infix, the 'FunBind' is
 -- considered infix.
-isInfixFunBind :: forall id1 id2. UnXRec id2 => HsBindLR id1 id2 -> Bool
+isInfixFunBind :: forall id1 id2. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec id2 (Match id2 (XRec id2 (HsExpr id2)))),
+  WFT (XRec id2 [XRec id2 (Match id2 (XRec id2 (HsExpr id2)))]),
+#endif
+  UnXRec id2) => HsBindLR id1 id2 -> Bool
 isInfixFunBind (FunBind { fun_matches = MG _ matches _ })
   = any (isInfixMatch . unXRec @id2) (unXRec @id2 matches)
 isInfixFunBind _ = False
@@ -1004,7 +1027,12 @@ isBangedHsBind (PatBind {pat_lhs = pat})
 isBangedHsBind _
   = False
 
-collectLocalBinders :: CollectPass (GhcPass idL)
+collectLocalBinders :: (
+#if MIN_VERSION_base(4,16,0)
+                      WFT (Anno (IdGhcP idL)),
+                      WFT (XXPat (GhcPass idL)),  
+#endif
+                       CollectPass (GhcPass idL))
                     => CollectFlag (GhcPass idL)
                     -> HsLocalBindsLR (GhcPass idL) (GhcPass idR)
                     -> [IdP (GhcPass idL)]
@@ -1014,40 +1042,76 @@ collectLocalBinders flag = \case
     HsIPBinds {}       -> []
     EmptyLocalBinds _  -> []
 
-collectHsIdBinders :: CollectPass (GhcPass idL)
+collectHsIdBinders :: (
+#if MIN_VERSION_base(4,16,0)
+                      WFT (Anno (IdGhcP idL)),
+                      WFT (XXPat (GhcPass idL)),  
+#endif
+                      CollectPass (GhcPass idL))
                    => CollectFlag (GhcPass idL)
                    -> HsValBindsLR (GhcPass idL) (GhcPass idR)
                    -> [IdP (GhcPass idL)]
 -- ^ Collect 'Id' binders only, or 'Id's + pattern synonyms, respectively
 collectHsIdBinders flag = collect_hs_val_binders True flag
 
-collectHsValBinders :: CollectPass (GhcPass idL)
+collectHsValBinders :: (
+#if MIN_VERSION_base(4,16,0)
+                      WFT (Anno (IdGhcP idL)),
+                      WFT (XXPat (GhcPass idL)),
+#endif
+                       CollectPass (GhcPass idL))
                     => CollectFlag (GhcPass idL)
                     -> HsValBindsLR (GhcPass idL) (GhcPass idR)
                     -> [IdP (GhcPass idL)]
 collectHsValBinders flag = collect_hs_val_binders False flag
 
-collectHsBindBinders :: CollectPass p
+collectHsBindBinders :: (
+#if MIN_VERSION_base(4,16,0)
+                          WFT (XRec p (Pat p)), WFT (XRec p (IdP p)),
+                          WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
+                          WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+                          WFT (XXPat p),
+#endif
+                        CollectPass p)
                      => CollectFlag p
                      -> HsBindLR p idR
                      -> [IdP p]
 -- ^ Collect both 'Id's and pattern-synonym binders
 collectHsBindBinders flag b = collect_bind False flag b []
 
-collectHsBindsBinders :: CollectPass p
+collectHsBindsBinders :: (
+#if MIN_VERSION_base(4,16,0)
+                          WFT (XRec p (Pat p)), WFT (XRec p (IdP p)),
+                          WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
+                          WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+                          WFT (XXPat p),
+#endif
+                         CollectPass p)
                       => CollectFlag p
                       -> LHsBindsLR p idR
                       -> [IdP p]
 collectHsBindsBinders flag binds = collect_binds False flag binds []
 
-collectHsBindListBinders :: forall p idR. CollectPass p
+collectHsBindListBinders :: forall p idR. (
+#if MIN_VERSION_base(4,16,0)
+                            WFT (XRec p (Pat p)), WFT (XRec p (IdP p)),
+                            WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
+                            WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+                            WFT (XXPat p),
+#endif
+                            CollectPass p)
                          => CollectFlag p
                          -> [LHsBindLR p idR]
                          -> [IdP p]
 -- ^ Same as 'collectHsBindsBinders', but works over a list of bindings
 collectHsBindListBinders flag = foldr (collect_bind False flag . unXRec @p) []
 
-collect_hs_val_binders :: CollectPass (GhcPass idL)
+collect_hs_val_binders :: (
+#if MIN_VERSION_base(4,16,0)
+                          WFT (Anno (IdGhcP idL)),
+                          WFT (XXPat (GhcPass idL)),
+#endif
+                          CollectPass (GhcPass idL))
                        => Bool
                        -> CollectFlag (GhcPass idL)
                        -> HsValBindsLR (GhcPass idL) (GhcPass idR)
@@ -1056,14 +1120,28 @@ collect_hs_val_binders ps flag = \case
     ValBinds _ binds _              -> collect_binds ps flag binds []
     XValBindsLR (NValBinds binds _) -> collect_out_binds ps flag binds
 
-collect_out_binds :: forall p. CollectPass p
+collect_out_binds :: forall p. (
+#if MIN_VERSION_base(4,16,0)
+                     WFT (XRec p (Pat p)), WFT (XRec p (IdP p)),
+                     WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
+                     WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+                     WFT (XXPat p),
+#endif
+                     CollectPass p)
                   => Bool
                   -> CollectFlag p
                   -> [(RecFlag, LHsBinds p)]
                   -> [IdP p]
 collect_out_binds ps flag = foldr (collect_binds ps flag . snd) []
 
-collect_binds :: forall p idR. CollectPass p
+collect_binds :: forall p idR. (
+#if MIN_VERSION_base(4,16,0)
+                WFT (XRec p (Pat p)), WFT (XRec p (IdP p)),
+                WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
+                WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+                WFT (XXPat p),
+#endif
+                 CollectPass p)
               => Bool
               -> CollectFlag p
               -> LHsBindsLR p idR
@@ -1072,7 +1150,14 @@ collect_binds :: forall p idR. CollectPass p
 -- ^ Collect 'Id's, or 'Id's + pattern synonyms, depending on boolean flag
 collect_binds ps flag binds acc = foldr (collect_bind ps flag . unXRec @p) acc binds
 
-collect_bind :: forall p idR. CollectPass p
+collect_bind :: forall p idR. (
+#if MIN_VERSION_base(4,16,0)
+                WFT (XRec p (Pat p)), WFT (XRec p (IdP p)),
+                WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
+                WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+                WFT (XXPat p),
+#endif
+                CollectPass p)
              => Bool
              -> CollectFlag p
              -> HsBindLR p idR
@@ -1103,28 +1188,49 @@ collectMethodBinders binds = foldr (get . unXRec @idL) [] binds
 ----------------- Statements --------------------------
 --
 collectLStmtsBinders
-  :: CollectPass (GhcPass idL)
+  :: (
+#if MIN_VERSION_base(4,16,0)
+     WFT (Anno (StmtLR (GhcPass idL) (GhcPass idR) body)),
+     WFT (Anno (IdGhcP idL)),
+     WFT (XXPat (GhcPass idL)),
+#endif
+    CollectPass (GhcPass idL))
   => CollectFlag (GhcPass idL)
   -> [LStmtLR (GhcPass idL) (GhcPass idR) body]
   -> [IdP (GhcPass idL)]
 collectLStmtsBinders flag = concatMap (collectLStmtBinders flag)
 
 collectStmtsBinders
-  :: (CollectPass (GhcPass idL))
+  :: (
+#if MIN_VERSION_base(4,16,0)
+     WFT (Anno (StmtLR (GhcPass idL) (GhcPass idR) body)),
+     WFT (Anno (IdGhcP idL)), WFT (XXPat (GhcPass idL)),  
+#endif
+     CollectPass (GhcPass idL))
   => CollectFlag (GhcPass idL)
   -> [StmtLR (GhcPass idL) (GhcPass idR) body]
   -> [IdP (GhcPass idL)]
 collectStmtsBinders flag = concatMap (collectStmtBinders flag)
 
 collectLStmtBinders
-  :: (CollectPass (GhcPass idL))
+  :: (
+#if MIN_VERSION_base(4,16,0)
+     WFT (Anno (StmtLR (GhcPass idL) (GhcPass idR) body)),
+     WFT (Anno (IdGhcP idL)), WFT (XXPat (GhcPass idL)),
+#endif
+     CollectPass (GhcPass idL))
   => CollectFlag (GhcPass idL)
   -> LStmtLR (GhcPass idL) (GhcPass idR) body
   -> [IdP (GhcPass idL)]
 collectLStmtBinders flag = collectStmtBinders flag . unLoc
 
 collectStmtBinders
-  :: CollectPass (GhcPass idL)
+  :: (
+#if MIN_VERSION_base(4,16,0)
+     WFT (Anno (StmtLR (GhcPass idL) (GhcPass idR) body)),
+     WFT (Anno (IdGhcP idL)), WFT (XXPat (GhcPass idL)),
+#endif
+     CollectPass (GhcPass idL))
   => CollectFlag (GhcPass idL)
   -> StmtLR (GhcPass idL) (GhcPass idR) body
   -> [IdP (GhcPass idL)]
@@ -1147,14 +1253,28 @@ collectStmtBinders flag = \case
 ----------------- Patterns --------------------------
 
 collectPatBinders
-    :: CollectPass p
+    :: (
+#if MIN_VERSION_base(4,16,0)
+         WFT (XRec p (IdP p)), 
+         WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
+         WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+         WFT (XXPat p), WFT(XRec p (Pat p)),
+#endif
+       CollectPass p)
     => CollectFlag p
     -> LPat p
     -> [IdP p]
 collectPatBinders flag pat = collect_lpat flag pat []
 
 collectPatsBinders
-    :: CollectPass p
+    :: (
+#if MIN_VERSION_base(4,16,0)
+         WFT (XRec p (IdP p)), 
+         WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
+         WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+         WFT (XXPat p), WFT(XRec p (Pat p)),         
+#endif
+       CollectPass p)
     => CollectFlag p
     -> [LPat p]
     -> [IdP p]
@@ -1176,14 +1296,28 @@ data CollectFlag p where
     -- | Collect evidence binders
     CollWithDictBinders :: CollectFlag GhcTc
 
-collect_lpat :: forall p. (CollectPass p)
+collect_lpat :: forall p. (
+#if MIN_VERSION_base(4,16,0)
+                WFT (XRec p (IdP p)),
+                WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
+                WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+                WFT (XXPat p), WFT(XRec p (Pat p)),                
+#endif
+                CollectPass p)
              => CollectFlag p
              -> LPat p
              -> [IdP p]
              -> [IdP p]
 collect_lpat flag pat bndrs = collect_pat flag (unXRec @p pat) bndrs
 
-collect_pat :: forall p. CollectPass p
+collect_pat :: forall p. (
+#if MIN_VERSION_base(4,16,0)
+               WFT (XRec p (IdP p)),
+               WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
+               WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+               WFT (XXPat p), WFT(XRec p (Pat p)),
+#endif
+               CollectPass p)
             => CollectFlag p
             -> Pat p
             -> [IdP p]
@@ -1229,7 +1363,11 @@ add_ev_bndr (EvBind { eb_lhs = b }) bs | isId b    = b:bs
 --
 -- In particular, Haddock already makes use of this, with an instance for its 'DocNameI' pass so that
 -- it can reuse the code in GHC for collecting binders.
-class UnXRec p => CollectPass p where
+class (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XXPat p),
+#endif
+  UnXRec p) => CollectPass p where
   collectXXPat :: Proxy p -> CollectFlag p -> XXPat p -> [IdP p] -> [IdP p]
 
 instance IsPass p => CollectPass (GhcPass p) where
@@ -1525,15 +1663,27 @@ is used but it's only used for one specific purpose in one place so it seemed
 easier.
 -}
 
-lStmtsImplicits :: [LStmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR)))]
+lStmtsImplicits ::
+#if MIN_VERSION_base(4,16,0)
+                WFT (Anno (StmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR))))) =>
+#endif
+                   [LStmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR)))]
                 -> [(SrcSpan, [Name])]
 lStmtsImplicits = hs_lstmts
   where
-    hs_lstmts :: [LStmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR)))]
+    hs_lstmts ::
+#if MIN_VERSION_base(4,16,0)
+                WFT (Anno (StmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR))))) =>
+#endif
+                 [LStmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR)))]
               -> [(SrcSpan, [Name])]
     hs_lstmts = concatMap (hs_stmt . unLoc)
 
-    hs_stmt :: StmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR)))
+    hs_stmt ::
+#if MIN_VERSION_base(4,16,0)
+                WFT (Anno (StmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR))))) =>
+#endif
+                StmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR)))
             -> [(SrcSpan, [Name])]
     hs_stmt (BindStmt _ pat _) = lPatImplicits pat
     hs_stmt (ApplicativeStmt _ args _) = concatMap do_arg args

@@ -71,6 +71,9 @@ import qualified Data.Data as Data (Fixity(..))
 import qualified Data.Kind
 import Data.Maybe (isJust)
 import Data.Void  ( Void )
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 {- *********************************************************************
 *                                                                      *
@@ -476,16 +479,28 @@ data XXExprGhcTc
 *                                                                      *
 ********************************************************************* -}
 
-instance (OutputableBndrId p) => Outputable (HsExpr (GhcPass p)) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p) => Outputable (HsExpr (GhcPass p)) where
     ppr expr = pprExpr expr
 
 -----------------------
 -- pprExpr, pprLExpr, pprBinds call pprDeeper;
 -- the underscore versions do not
-pprLExpr :: (OutputableBndrId p) => LHsExpr (GhcPass p) -> SDoc
+pprLExpr :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p) => LHsExpr (GhcPass p) -> SDoc
 pprLExpr (L _ e) = pprExpr e
 
-pprExpr :: (OutputableBndrId p) => HsExpr (GhcPass p) -> SDoc
+pprExpr :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p) => HsExpr (GhcPass p) -> SDoc
 pprExpr e | isAtomicHsExpr e || isQuietHsExpr e =            ppr_expr e
           | otherwise                           = pprDeeper (ppr_expr e)
 
@@ -505,10 +520,18 @@ pprBinds :: (OutputableBndrId idL, OutputableBndrId idR)
 pprBinds b = pprDeeper (ppr b)
 
 -----------------------
-ppr_lexpr :: (OutputableBndrId p) => LHsExpr (GhcPass p) -> SDoc
+ppr_lexpr :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p) => LHsExpr (GhcPass p) -> SDoc
 ppr_lexpr e = ppr_expr (unLoc e)
 
-ppr_expr :: forall p. (OutputableBndrId p)
+ppr_expr :: forall p. (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p)
          => HsExpr (GhcPass p) -> SDoc
 ppr_expr (HsVar _ (L _ v))   = pprPrefixOcc v
 ppr_expr (HsUnboundVar _ uv) = pprPrefixOcc uv
@@ -730,7 +753,11 @@ ppr_infix_expr_tc (ConLikeTc {})                   = Nothing
 ppr_infix_expr_tc (HsTick {})                      = Nothing
 ppr_infix_expr_tc (HsBinTick {})                   = Nothing
 
-ppr_apps :: (OutputableBndrId p)
+ppr_apps :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+    OutputableBndrId p)
          => HsExpr (GhcPass p)
          -> [Either (LHsExpr (GhcPass p)) (LHsWcType (NoGhcTc (GhcPass p)))]
          -> SDoc
@@ -747,18 +774,30 @@ ppr_apps fun args = hang (ppr_expr fun) 2 (fsep (map pp args))
       = text "@" <> ppr arg
 
 
-pprDebugParendExpr :: (OutputableBndrId p)
+pprDebugParendExpr :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p)
                    => PprPrec -> LHsExpr (GhcPass p) -> SDoc
 pprDebugParendExpr p expr
   = getPprDebug $ \case
       True  -> pprParendLExpr p expr
       False -> pprLExpr         expr
 
-pprParendLExpr :: (OutputableBndrId p)
+pprParendLExpr :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p)
                => PprPrec -> LHsExpr (GhcPass p) -> SDoc
 pprParendLExpr p (L _ e) = pprParendExpr p e
 
-pprParendExpr :: (OutputableBndrId p)
+pprParendExpr :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p)
               => PprPrec -> HsExpr (GhcPass p) -> SDoc
 pprParendExpr p expr
   | hsExprNeedsParens p expr = parens (pprExpr expr)
@@ -1127,16 +1166,28 @@ type instance XCmdTop  GhcTc = CmdTopTc
 
 type instance XXCmdTop (GhcPass _) = NoExtCon
 
-instance (OutputableBndrId p) => Outputable (HsCmd (GhcPass p)) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p) => Outputable (HsCmd (GhcPass p)) where
     ppr cmd = pprCmd cmd
 
 -----------------------
 -- pprCmd and pprLCmd call pprDeeper;
 -- the underscore versions do not
-pprLCmd :: (OutputableBndrId p) => LHsCmd (GhcPass p) -> SDoc
+pprLCmd :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p) => LHsCmd (GhcPass p) -> SDoc
 pprLCmd (L _ c) = pprCmd c
 
-pprCmd :: (OutputableBndrId p) => HsCmd (GhcPass p) -> SDoc
+pprCmd :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p) => HsCmd (GhcPass p) -> SDoc
 pprCmd c | isQuietHsCmd c =            ppr_cmd c
          | otherwise      = pprDeeper (ppr_cmd c)
 
@@ -1150,11 +1201,18 @@ isQuietHsCmd (HsCmdApp {}) = True
 isQuietHsCmd _ = False
 
 -----------------------
-ppr_lcmd :: (OutputableBndrId p) => LHsCmd (GhcPass p) -> SDoc
+ppr_lcmd :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p) => LHsCmd (GhcPass p) -> SDoc
 ppr_lcmd c = ppr_cmd (unLoc c)
 
-ppr_cmd :: forall p. (OutputableBndrId p
-                     ) => HsCmd (GhcPass p) -> SDoc
+ppr_cmd :: forall p. (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p) => HsCmd (GhcPass p) -> SDoc
 ppr_cmd (HsCmdPar _ _ c _) = parens (ppr_lcmd c)
 
 ppr_cmd (HsCmdApp _ c e)
@@ -1229,11 +1287,19 @@ ppr_cmd (XCmd x) = case ghcPass @p of
   GhcTc -> case x of
     HsWrap w cmd -> pprHsWrapper w (\_ -> parens (ppr_cmd cmd))
 
-pprCmdArg :: (OutputableBndrId p) => HsCmdTop (GhcPass p) -> SDoc
+pprCmdArg :: (
+#if MIN_VERSION_base(4,16,0)
+          WFT (XOverLit (GhcPass p)),
+#endif
+          OutputableBndrId p) => HsCmdTop (GhcPass p) -> SDoc
 pprCmdArg (HsCmdTop _ cmd)
   = ppr_lcmd cmd
 
-instance (OutputableBndrId p) => Outputable (HsCmdTop (GhcPass p)) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+          WFT (XOverLit (GhcPass p)),
+#endif
+          OutputableBndrId p) => Outputable (HsCmdTop (GhcPass p)) where
     ppr = pprCmdArg
 
 {-
@@ -1253,7 +1319,11 @@ type instance XXMatchGroup (GhcPass _) b = NoExtCon
 type instance XCMatch (GhcPass _) b = EpAnn [AddEpAnn]
 type instance XXMatch (GhcPass _) b = NoExtCon
 
-instance (OutputableBndrId pr, Outputable body)
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass pr)),
+#endif
+  OutputableBndrId pr, Outputable body)
             => Outputable (Match (GhcPass pr) body) where
   ppr = pprMatch
 
@@ -1269,7 +1339,11 @@ isSingletonMatchGroup matches
   | otherwise
   = False
 
-matchGroupArity :: MatchGroup (GhcPass id) body -> Arity
+matchGroupArity ::
+#if MIN_VERSION_base(4,16,0)
+  WFT (Anno (Match (GhcPass id) body)) => 
+#endif
+  MatchGroup (GhcPass id) body -> Arity
 -- Precondition: MatchGroup is non-empty
 -- This is called before type checking, when mg_arg_tys is not set
 matchGroupArity (MG { mg_alts = alts })
@@ -1299,26 +1373,43 @@ type instance XCGRHS (GhcPass _) _ = EpAnn GrhsAnn
 
 type instance XXGRHS (GhcPass _) b = NoExtCon
 
-pprMatches :: (OutputableBndrId idR, Outputable body)
+pprMatches :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass idR)),
+#endif
+  OutputableBndrId idR, Outputable body)
            => MatchGroup (GhcPass idR) body -> SDoc
 pprMatches MG { mg_alts = matches }
     = vcat (map pprMatch (map unLoc (unLoc matches)))
       -- Don't print the type; it's only a place-holder before typechecking
 
 -- Exported to GHC.Hs.Binds, which can't see the defn of HsMatchContext
-pprFunBind :: (OutputableBndrId idR)
+pprFunBind :: (
+#if MIN_VERSION_base(4,16,0)
+          WFT (XOverLit (GhcPass idR)),
+#endif
+          OutputableBndrId idR)
            => MatchGroup (GhcPass idR) (LHsExpr (GhcPass idR)) -> SDoc
 pprFunBind matches = pprMatches matches
 
 -- Exported to GHC.Hs.Binds, which can't see the defn of HsMatchContext
-pprPatBind :: forall bndr p . (OutputableBndrId bndr,
-                               OutputableBndrId p)
+pprPatBind :: forall bndr p . (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass bndr)),  
+#endif
+  OutputableBndrId bndr,
+  OutputableBndrId p)
            => LPat (GhcPass bndr) -> GRHSs (GhcPass p) (LHsExpr (GhcPass p)) -> SDoc
 pprPatBind pat grhss
  = sep [ppr pat,
        nest 2 (pprGRHSs (PatBindRhs :: HsMatchContext (GhcPass p)) grhss)]
 
-pprMatch :: (OutputableBndrId idR, Outputable body)
+pprMatch :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass idR)),
+#endif
+  OutputableBndrId idR, Outputable body)
          => Match (GhcPass idR) body -> SDoc
 pprMatch (Match { m_pats = pats, m_ctxt = ctxt, m_grhss = grhss })
   = sep [ sep (herald : map (nest 2 . pprParendLPat appPrec) other_pats)
@@ -1353,7 +1444,11 @@ pprMatch (Match { m_pats = pats, m_ctxt = ctxt, m_grhss = grhss })
                    [pat] -> (ppr pat, [])  -- No parens around the single pat in a case
                    _     -> pprPanic "pprMatch" (ppr ctxt $$ ppr pats)
 
-pprGRHSs :: (OutputableBndrId idR, Outputable body)
+pprGRHSs :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass idR)),
+#endif
+  OutputableBndrId idR, Outputable body)
          => HsMatchContext passL -> GRHSs (GhcPass idR) body -> SDoc
 pprGRHSs ctxt (GRHSs _ grhss binds)
   = vcat (map (pprGRHS ctxt . unLoc) grhss)
@@ -1362,7 +1457,11 @@ pprGRHSs ctxt (GRHSs _ grhss binds)
  $$ ppUnless (eqEmptyLocalBinds binds)
       (text "where" $$ nest 4 (pprBinds binds))
 
-pprGRHS :: (OutputableBndrId idR, Outputable body)
+pprGRHS :: (
+#if MIN_VERSION_base(4,16,0)
+   WFT (XOverLit (GhcPass idR)),
+#endif
+  OutputableBndrId idR, Outputable body)
         => HsMatchContext passL -> GRHS (GhcPass idR) body -> SDoc
 pprGRHS ctxt (GRHS _ [] body)
  =  pp_rhs ctxt body
@@ -1457,18 +1556,32 @@ type instance XApplicativeArgOne GhcTc = FailOperator GhcTc
 type instance XApplicativeArgMany (GhcPass _) = NoExtField
 type instance XXApplicativeArg    (GhcPass _) = NoExtCon
 
-instance (Outputable (StmtLR (GhcPass idL) (GhcPass idL) (LHsExpr (GhcPass idL))),
+instance (
+#if MIN_VERSION_base(4,16,0)
+          WFT (XOverLit (GhcPass idL)),
+#endif
+          Outputable (StmtLR (GhcPass idL) (GhcPass idL) (LHsExpr (GhcPass idL))),
           Outputable (XXParStmtBlock (GhcPass idL) (GhcPass idR)))
         => Outputable (ParStmtBlock (GhcPass idL) (GhcPass idR)) where
   ppr (ParStmtBlock _ stmts _ _) = interpp'SP stmts
 
-instance (OutputableBndrId pl, OutputableBndrId pr,
-                 Anno (StmtLR (GhcPass pl) (GhcPass pr) body) ~ SrcSpanAnnA,
+instance (
+#if MIN_VERSION_base(4,16,0)
+     WFT (XOverLit (GhcPass pl)),
+     WFT (XOverLit (GhcPass pr)),
+#endif
+     OutputableBndrId pl, OutputableBndrId pr,
+          Anno (StmtLR (GhcPass pl) (GhcPass pr) body) ~ SrcSpanAnnA,
           Outputable body)
          => Outputable (StmtLR (GhcPass pl) (GhcPass pr) body) where
     ppr stmt = pprStmt stmt
 
-pprStmt :: forall idL idR body . (OutputableBndrId idL,
+pprStmt :: forall idL idR body . (
+#if MIN_VERSION_base(4,16,0)
+                                  WFT (XOverLit (GhcPass idL)),
+                                  WFT (XOverLit (GhcPass idR)),  
+#endif
+                                  OutputableBndrId idL,
                                   OutputableBndrId idR,
                  Anno (StmtLR (GhcPass idL) (GhcPass idR) body) ~ SrcSpanAnnA,
                                   Outputable body)
@@ -1534,11 +1647,19 @@ pprStmt (ApplicativeStmt _ args mb_join)
 pprBindStmt :: (Outputable pat, Outputable expr) => pat -> expr -> SDoc
 pprBindStmt pat expr = hsep [ppr pat, larrow, ppr expr]
 
-instance (OutputableBndrId idL)
+instance (
+#if MIN_VERSION_base(4,16,0)
+   WFT (XOverLit (GhcPass idL)),
+#endif
+  OutputableBndrId idL)
       => Outputable (ApplicativeArg (GhcPass idL)) where
   ppr = pprArg
 
-pprArg :: forall idL . (OutputableBndrId idL) => ApplicativeArg (GhcPass idL) -> SDoc
+pprArg :: forall idL . (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass idL)),
+#endif
+  OutputableBndrId idL) => ApplicativeArg (GhcPass idL) -> SDoc
 pprArg (ApplicativeArgOne _ pat expr isBody)
   | isBody = ppr expr -- See Note [Applicative BodyStmt]
   | otherwise = pprBindStmt pat expr
@@ -1548,7 +1669,11 @@ pprArg (ApplicativeArgMany _ stmts return pat ctxt) =
      pprDo ctxt (stmts ++
                    [noLocA (LastStmt noExtField (noLocA return) Nothing noSyntaxExpr)])
 
-pprTransformStmt :: (OutputableBndrId p)
+pprTransformStmt :: (
+#if MIN_VERSION_base(4,16,0)
+          WFT (XOverLit (GhcPass p)),
+#endif
+         OutputableBndrId p)
                  => [IdP (GhcPass p)] -> LHsExpr (GhcPass p)
                  -> Maybe (LHsExpr (GhcPass p)) -> SDoc
 pprTransformStmt bndrs using by
@@ -1566,7 +1691,11 @@ pprBy :: Outputable body => Maybe body -> SDoc
 pprBy Nothing  = empty
 pprBy (Just e) = text "by" <+> ppr e
 
-pprDo :: (OutputableBndrId p, Outputable body,
+pprDo :: (
+#if MIN_VERSION_base(4,16,0)
+          WFT (XOverLit (GhcPass p)),
+#endif
+          OutputableBndrId p, Outputable body,
                  Anno (StmtLR (GhcPass p) (GhcPass p) body) ~ SrcSpanAnnA
          )
       => HsDoFlavour -> [LStmt (GhcPass p) body] -> SDoc
@@ -1578,7 +1707,11 @@ pprDo (MDoExpr m)   stmts =
 pprDo ListComp      stmts = brackets    $ pprComp stmts
 pprDo MonadComp     stmts = brackets    $ pprComp stmts
 
-pprArrowExpr :: (OutputableBndrId p, Outputable body,
+pprArrowExpr :: (
+#if MIN_VERSION_base(4,16,0)
+          WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p, Outputable body,
                  Anno (StmtLR (GhcPass p) (GhcPass p) body) ~ SrcSpanAnnA
          )
       => [LStmt (GhcPass p) body] -> SDoc
@@ -1589,14 +1722,23 @@ ppr_module_name_prefix = \case
   Nothing -> empty
   Just module_name -> ppr module_name <> char '.'
 
-ppr_do_stmts :: (OutputableBndrId idL, OutputableBndrId idR,
+ppr_do_stmts :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass idR)),
+    WFT (XOverLit (GhcPass idL)),  
+#endif
+  OutputableBndrId idL, OutputableBndrId idR,
                  Anno (StmtLR (GhcPass idL) (GhcPass idR) body) ~ SrcSpanAnnA,
                  Outputable body)
              => [LStmtLR (GhcPass idL) (GhcPass idR) body] -> SDoc
 -- Print a bunch of do stmts
 ppr_do_stmts stmts = pprDeeperList vcat (map ppr stmts)
 
-pprComp :: (OutputableBndrId p, Outputable body,
+pprComp :: (
+#if MIN_VERSION_base(4,16,0)
+          WFT (XOverLit (GhcPass p)),
+#endif
+     OutputableBndrId p, Outputable body,
                  Anno (StmtLR (GhcPass p) (GhcPass p) body) ~ SrcSpanAnnA)
         => [LStmt (GhcPass p) body] -> SDoc
 pprComp quals     -- Prints:  body | qual1, ..., qualn
@@ -1612,7 +1754,11 @@ pprComp quals     -- Prints:  body | qual1, ..., qualn
   | otherwise
   = pprPanic "pprComp" (pprQuals quals)
 
-pprQuals :: (OutputableBndrId p, Outputable body,
+pprQuals :: (
+#if MIN_VERSION_base(4,16,0)
+          WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p, Outputable body,
                  Anno (StmtLR (GhcPass p) (GhcPass p) body) ~ SrcSpanAnnA)
          => [LStmt (GhcPass p) body] -> SDoc
 -- Show list comprehension qualifiers separated by commas
@@ -1723,31 +1869,55 @@ splices. In contrast, when pretty printing the output of the type checker, we
 sense, although I hate to add another constructor to HsExpr.
 -}
 
-instance OutputableBndrId p
+instance (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+    OutputableBndrId p)
        => Outputable (HsSplicedThing (GhcPass p)) where
   ppr (HsSplicedExpr e) = ppr_expr e
   ppr (HsSplicedTy   t) = ppr t
   ppr (HsSplicedPat  p) = ppr p
 
-instance (OutputableBndrId p) => Outputable (HsSplice (GhcPass p)) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p) => Outputable (HsSplice (GhcPass p)) where
   ppr s = pprSplice s
 
-pprPendingSplice :: (OutputableBndrId p)
+pprPendingSplice :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+    OutputableBndrId p)
                  => SplicePointName -> LHsExpr (GhcPass p) -> SDoc
 pprPendingSplice n e = angleBrackets (ppr n <> comma <+> ppr (stripParensLHsExpr e))
 
-pprSpliceDecl ::  (OutputableBndrId p)
+pprSpliceDecl ::  (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+    OutputableBndrId p)
           => HsSplice (GhcPass p) -> SpliceExplicitFlag -> SDoc
 pprSpliceDecl e@HsQuasiQuote{} _ = pprSplice e
 pprSpliceDecl e ExplicitSplice   = text "$" <> ppr_splice_decl e
 pprSpliceDecl e ImplicitSplice   = ppr_splice_decl e
 
-ppr_splice_decl :: (OutputableBndrId p)
+ppr_splice_decl :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+    OutputableBndrId p)
                 => HsSplice (GhcPass p) -> SDoc
 ppr_splice_decl (HsUntypedSplice _ _ n e) = ppr_splice empty n e empty
 ppr_splice_decl e = pprSplice e
 
-pprSplice :: forall p. (OutputableBndrId p) => HsSplice (GhcPass p) -> SDoc
+pprSplice :: forall p. (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p) => HsSplice (GhcPass p) -> SDoc
 pprSplice (HsTypedSplice _ DollarSplice n e)
   = ppr_splice (text "$$") n e empty
 pprSplice (HsTypedSplice _ BareSplice _ _ )
@@ -1771,7 +1941,11 @@ ppr_quasi n quoter quote = whenPprDebug (brackets (ppr n)) <>
                            char '[' <> ppr quoter <> vbar <>
                            ppr quote <> text "|]"
 
-ppr_splice :: (OutputableBndrId p)
+ppr_splice :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p)
            => SDoc -> (IdP (GhcPass p)) -> LHsExpr (GhcPass p) -> SDoc -> SDoc
 ppr_splice herald n e trail
     = herald <> whenPprDebug (brackets (ppr n)) <> ppr e <> trail
@@ -1785,12 +1959,20 @@ type instance XVarBr      (GhcPass _) = NoExtField
 type instance XTExpBr     (GhcPass _) = NoExtField
 type instance XXBracket   (GhcPass _) = NoExtCon
 
-instance OutputableBndrId p
+instance (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p)
           => Outputable (HsBracket (GhcPass p)) where
   ppr = pprHsBracket
 
 
-pprHsBracket :: (OutputableBndrId p) => HsBracket (GhcPass p) -> SDoc
+pprHsBracket :: (
+#if MIN_VERSION_base(4,16,0)
+   WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p) => HsBracket (GhcPass p) -> SDoc
 pprHsBracket (ExpBr _ e)   = thBrackets empty (ppr e)
 pprHsBracket (PatBr _ p)   = thBrackets (char 'p') (ppr p)
 pprHsBracket (DecBrG _ gp) = thBrackets (char 'd') (ppr gp)
@@ -1823,7 +2005,11 @@ instance Outputable PendingTcSplice where
 ************************************************************************
 -}
 
-instance OutputableBndrId p
+instance (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p)),
+#endif
+    OutputableBndrId p)
          => Outputable (ArithSeqInfo (GhcPass p)) where
     ppr (From e1)             = hcat [ppr e1, pp_dotdot]
     ppr (FromThen e1 e2)      = hcat [ppr e1, comma, space, ppr e2, pp_dotdot]
@@ -1899,13 +2085,22 @@ matchDoContextErrString (MDoExpr m)  = prependQualified m (text "'mdo' block")
 matchDoContextErrString ListComp     = text "list comprehension"
 matchDoContextErrString MonadComp    = text "monad comprehension"
 
-pprMatchInCtxt :: (OutputableBndrId idR, Outputable body)
+pprMatchInCtxt :: (
+#if MIN_VERSION_base(4,16,0)
+          WFT (XOverLit (GhcPass idR)),
+#endif
+  OutputableBndrId idR, Outputable body)
                => Match (GhcPass idR) body -> SDoc
 pprMatchInCtxt match  = hang (text "In" <+> pprMatchContext (m_ctxt match)
                                         <> colon)
                              4 (pprMatch match)
 
-pprStmtInCtxt :: (OutputableBndrId idL,
+pprStmtInCtxt :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass idR)),
+    WFT (XOverLit (GhcPass idL)),  
+#endif
+                  OutputableBndrId idL,
                   OutputableBndrId idR,
                   OutputableBndrId ctx,
                   Outputable body,

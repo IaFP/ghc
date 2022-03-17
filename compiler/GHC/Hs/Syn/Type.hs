@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, TypeFamilies #-}
+#endif
 -- | Compute the 'Type' of an @'HsExpr' 'GhcTc'@ in a pure fashion.
 --
 -- Note that this does /not/ currently support the use case of annotating

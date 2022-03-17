@@ -278,7 +278,7 @@ pprLPat :: (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass p)),
 #endif
-    OutputableBndrId p) => LPat (GhcPass p) -> SDoc
+  OutputableBndrId p) => LPat (GhcPass p) -> SDoc
 pprLPat (L _ e) = pprPat e
 
 -- | Print with type info if -dppr-debug is on
@@ -289,11 +289,19 @@ pprPatBndr var
                                               -- but is it worth it?
       False -> pprPrefixOcc var
 
-pprParendLPat :: (OutputableBndrId p)
+pprParendLPat :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p)
               => PprPrec -> LPat (GhcPass p) -> SDoc
 pprParendLPat p = pprParendPat p . unLoc
 
-pprParendPat :: forall p. (OutputableBndrId p)
+pprParendPat :: forall p. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p)
              => PprPrec
              -> Pat (GhcPass p)
              -> SDoc
@@ -316,9 +324,9 @@ pprParendPat p pat = sdocOption sdocPrintTypecheckerElaboration $ \ print_tc_ela
 
 pprPat :: forall p. (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)) -- ANI todo: some how we don't have $wf'XOverLit (GhcPass p) = () being generated.
+  WFT (XOverLit (GhcPass p)),
 #endif
-  , OutputableBndrId p) => Pat (GhcPass p) -> SDoc
+  OutputableBndrId p) => Pat (GhcPass p) -> SDoc
 pprPat (VarPat _ lvar)          = pprPatBndr (unLoc lvar)
 pprPat (WildPat _)              = char '_'
 pprPat (LazyPat _ pat)          = char '~' <> pprParendLPat appPrec pat
@@ -383,13 +391,21 @@ pprPat (XPat ext) = case ghcPass @p of
         else pprPat pat
     ExpansionPat orig _ -> pprPat orig
 
-pprUserCon :: (OutputableBndr con, OutputableBndrId p,
+pprUserCon :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndr con, OutputableBndrId p,
                      Outputable (Anno (IdGhcP p)))
            => con -> HsConPatDetails (GhcPass p) -> SDoc
 pprUserCon c (InfixCon p1 p2) = ppr p1 <+> pprInfixOcc c <+> ppr p2
 pprUserCon c details          = pprPrefixOcc c <+> pprConArgs details
 
-pprConArgs :: (OutputableBndrId p,
+pprConArgs :: (
+#if MIN_VERSION_base(4,16,0)
+                     WFT (XOverLit (GhcPass p)),
+#endif
+                     OutputableBndrId p,
                      Outputable (Anno (IdGhcP p)))
            => HsConPatDetails (GhcPass p) -> SDoc
 pprConArgs (PrefixCon ts pats) = fsep (pprTyArgs ts : map (pprParendLPat appPrec) pats)
