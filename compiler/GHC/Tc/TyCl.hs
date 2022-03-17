@@ -249,6 +249,12 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    -- but its rarely the case that the group is more than 3-4 dependent tycons
 
                    -- Step 1. Get the typefamilies out of the way
+                   -- TODO: 
+                   --  - Remove logic from below, move up here
+                   --  - separate TFs into open and closed TFs
+                   --  - For each TF, create a new WF TF by
+                   --    iterating over parent TF's eqn set. All you need is RHS.
+                   --  - Add WF TF to gbl env and update parent.
                    ; let
                          allowed tc = isOpenTypeFamilyTyCon tc || isClosedTypeFamilyTyCon tc
                          (locsAndTFs, locsAndTyClss') = partition (allowed . snd) locsAndTcs
@@ -2913,7 +2919,7 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
                                       (resultVariableName sig)
                                       AbstractClosedSynFamilyTyCon parent
                                       inj' Nothing
-           Just eqns -> if partyCtrs && isJust wfname
+           Just eqns -> if False -- partyCtrs && isJust wfname
              then do {
                ; let wf_name = fromJust wfname
                      tc_fam_tc = mkTcTyCon tc_name binders res_kind
