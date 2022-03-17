@@ -102,7 +102,10 @@ elabAtAtConstraintsTcM isTyConPhase ty
   
 -- Generates all the f @@ a constraints
 genAtAtConstraintsTcM :: Bool -> Type ->  TcM WfElabTypeDetails
-genAtAtConstraintsTcM isTyConPhase ty = genAtAtConstraintsExceptTcM isTyConPhase [] [] ty
+genAtAtConstraintsTcM isTyConPhase ty = do
+  traceTc "Hello this is patrick" empty
+  traceTc "wfelab ty=" (ppr ty)
+  genAtAtConstraintsExceptTcM isTyConPhase [] [] ty
 
 -- | Elaborate the type with well formed constraints
 --   Also collapse the ones that we know are ()'s
@@ -140,7 +143,9 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
       -- this is supposed to save us from sometyperep, typerep nonsense.
         then return $ elabDetails ty []
         else do
-        { elabTys_and_atats <- mapM (genAtAtConstraintsExceptTcM isTyConPhase (tyc:tycons) ts) tycargs
+        {
+        ; traceTc "wfelab TyConApp" empty
+        ; elabTys_and_atats <- mapM (genAtAtConstraintsExceptTcM isTyConPhase (tyc:tycons) ts) tycargs
         ; let (elab_tys, atc_args) = unzip $ fmap (\d -> (elabTy d, newPreds d)) elabTys_and_atats
         ; if any (== tyc) tycons
           then return $ elabDetails (TyConApp tyc elab_tys) (foldl mergeAtAtConstraints [] atc_args)

@@ -2928,8 +2928,9 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
 
                ; branches <- mapAndReportM (tcTyFamInstEqn tc_fam_tc NotAssociated) eqns
                ; co_ax_name <- newFamInstAxiomName tc_lname []
+               ; traceTc "Gonna map over them branches now" empty
 
-               ; wf_branches <- mapM mkWFCoAxBranch branches
+               ; wf_branches <- mapAndReportM (tcTyFamInstEqn tc_wf_fam_tc NotAssociated) eqns
                ; wf_co_ax_name <- newFamInstAxiomName (L src_span wf_name) []
 
                ; let mb_co_ax
@@ -3208,7 +3209,7 @@ tcTyFamInstEqn fam_tc mb_clsinfo
                   NotAssociated {} -> empty
                   InClsInst { ai_class = cls } -> text "class" <+> ppr cls <+> pprTyVars (classTyVars cls) ]
 
-       ; checkTyFamInstEqn fam_tc eqn_tc_name hs_pats
+       -- ; checkTyFamInstEqn fam_tc eqn_tc_name hs_pats
 
        ; (qtvs, pats, rhs_ty) <- tcTyFamInstEqnGuts fam_tc mb_clsinfo
                                       outer_bndrs hs_pats hs_rhs_ty
