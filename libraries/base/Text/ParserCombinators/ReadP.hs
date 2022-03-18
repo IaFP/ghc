@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, TypeFamilies, ExistentialQuantification #-}
+#endif
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE RankNTypes #-}
@@ -77,6 +81,7 @@ import GHC.List ( replicate, null )
 import GHC.Base hiding ( many )
 
 import Control.Monad.Fail
+import GHC.Types (type(@))
 
 infixr 5 +++, <++
 
@@ -95,8 +100,16 @@ type ReadS a = String -> [(a,String)]
 -- is representation type -- should be kept abstract
 
 data P a
-  = Get (Char -> P a)
-  | Look (String -> P a)
+  =
+#if MIN_VERSION_base(4,16,0)
+    P @ a =>
+#endif
+    Get (Char -> P a)
+  |
+#if MIN_VERSION_base(4,16,0)
+    P @ a =>
+#endif
+    Look (String -> P a)
   | Fail
   | Result a (P a)
   | Final (NonEmpty (a,String))

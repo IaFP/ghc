@@ -2266,7 +2266,7 @@ isVanillaAlgTyCon :: TyCon -> Bool
 isVanillaAlgTyCon (AlgTyCon { algTcFlavour = VanillaAlgTyCon _ }) = True
 isVanillaAlgTyCon _                                              = False
 
-
+-- | Returns true if this tycon is a mirror tycon to some other type family or tctycon
 isWFMirrorTyCon :: TyCon -> Bool
 isWFMirrorTyCon (TcTyCon {isMirror = m}) = m
 isWFMirrorTyCon (FamilyTyCon {isMirror = m}) = m

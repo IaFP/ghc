@@ -3551,6 +3551,10 @@ tcConDecl new_or_data dd_info rep_tycon tc_bndrs res_kind tag_map
                  ; btys <- tcConH98Args exp_kind hs_args
                  ; field_lbls <- lookupConstructorFields name
                  ; let (arg_tys, stricts) = unzip btys
+                 -- ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+                 -- ; css <- if partyCtrs then concatMapM (\t -> genWfConstraints (scaledThing t) []) arg_tys
+                 --          else return []
+                 -- ; let ctxt = mergeAtAtConstraints css ctxt'
                  ; return (ctxt, arg_tys, field_lbls, stricts)
                  }
 
@@ -3843,10 +3847,15 @@ tcConGADTArgs exp_kind (RecConGADT fields _)
 
 tcConArg :: ContextKind  -- expected kind for args; always OpenKind for datatypes,
                          -- but might be an unlifted type with UnliftedNewtypes
+
          -> HsScaled GhcRn (LHsType GhcRn) -> TcM (Scaled TcType, HsSrcBang)
 tcConArg exp_kind (HsScaled w bty)
   = do  { traceTc "tcConArg 1" (ppr bty)
-        ; arg_ty <- tcCheckLHsType (getBangType bty) exp_kind
+        ; arg_ty' <- tcCheckLHsType (getBangType bty) exp_kind
+        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+        ; arg_ty <- if partyCtrs && (isForAllTy arg_ty')
+                    then elabAtAtConstraintsTcM False arg_ty'
+                    else return arg_ty'
         ; w' <- tcDataConMult w
         ; traceTc "tcConArg 2" (ppr bty)
         ; return (Scaled w' arg_ty, getBangStrictness bty) }

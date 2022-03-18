@@ -163,7 +163,7 @@ import Data.Char
 import Data.Data       ( dataTypeOf, fromConstr, dataTypeConstrs )
 import Data.Kind       ( Type )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total, type(@), Total2)
+import GHC.Types (Total, type(@), WFT)
 #endif
 {- **********************************************************************
 
@@ -1412,9 +1412,10 @@ checkMonadComp = do
 --
 newtype ECP =
   ECP { unECP :: forall b. (
--- #if MIN_VERSION_base(4,16,0)
---                     forall x. (Body b) @ x, -- make it fail on mightEqualLater finds an unbound cbv
--- #endif
+#if MIN_VERSION_base(4,16,0)
+                    -- forall x. (Body b) @ x, -- make it fail on mightEqualLater finds an unbound cbv
+                    WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+#endif
                     DisambECP b) => PV (LocatedA b) }
 
 ecpFromExp :: LHsExpr GhcPs -> ECP
@@ -1460,9 +1461,9 @@ type AnnoBody b
 -- See Note [Ambiguous syntactic categories]
 class (
 #if __GLASGOW_HASKELL__ >= 903
-  Body b @ GhcPs,
+  Body b @ GhcPs, WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
 #endif
-  b ~ (Body b) GhcPs, AnnoBody b) => DisambECP b where
+  (b ~ (Body b) GhcPs), AnnoBody b) => DisambECP b where
   -- | See Note [Body in DisambECP]
   type Body b :: Type -> Type
   -- | Return a command without ambiguity, or fail in a non-command context.

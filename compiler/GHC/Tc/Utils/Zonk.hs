@@ -1,4 +1,4 @@
-
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies     #-}
 
@@ -93,6 +93,9 @@ import GHC.Data.Bag
 import Control.Monad
 import Data.List  ( partition )
 import Control.Arrow ( second )
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 {- *********************************************************************
 *                                                                      *
@@ -127,7 +130,7 @@ tcShortCutLit lit@(OverLit { ol_val = val, ol_ext = OverLitRn rebindable _}) exp
        ; let platform = targetPlatform dflags
        ; case shortCutLit platform val res_ty of
             Just expr -> return $ Just $
-                         lit { ol_ext = OverLitTc False expr res_ty }
+                         OverLit { ol_ext = OverLitTc False expr res_ty, ol_val = val }
             Nothing   -> return Nothing }
   | otherwise
   = return Nothing
@@ -671,7 +674,11 @@ zonkLTcSpecPrags env ps
 ************************************************************************
 -}
 
-zonkMatchGroup :: Anno (GRHS GhcTc (LocatedA (body GhcTc))) ~ SrcAnn NoEpAnns
+zonkMatchGroup :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (Anno (Match GhcTc (LocatedA (body GhcTc)))),
+#endif
+  Anno (GRHS GhcTc (LocatedA (body GhcTc))) ~ SrcAnn NoEpAnns)
             => ZonkEnv
             -> (ZonkEnv -> LocatedA (body GhcTc) -> TcM (LocatedA (body GhcTc)))
             -> MatchGroup GhcTc (LocatedA (body GhcTc))

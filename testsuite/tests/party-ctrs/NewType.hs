@@ -1,41 +1,27 @@
 {-# LANGUAGE PolyKinds, StandaloneDeriving, GeneralizedNewtypeDeriving
-           , RoleAnnotations, RankNTypes, ExistentialQuantification #-}
+           , RoleAnnotations, RankNTypes, ExistentialQuantification, TypeFamilies, TypeFamilyDependencies #-}
 
 module NewType where
-import GHC.Types (Total)
+import GHC.Types (Total, WFT)
 
-newtype Const a b = Const { getConst :: a }
-  deriving (Eq, Ord)
+-- newtype NT f a = MkNT {unNT :: f a}
 
+data B a = B a
 
-newtype NT f a = MkNT {unNT :: f a}
-newtype NT' a f = MkNT' {unNT' :: f a}
+class C a where
+  type family T a = r | r -> a
+  mblah :: T a -> B a
+  tblah :: B a -> T a
 
-newtype Compose f g a = MkCompose {unCompose :: f (g a)}
-newtype Kleisli m a b = MkKleisli {runKleisli :: a -> m b}
+instance C Bool where
+  type instance T Bool = Bool
+  mblah b = B b
+  tblah (B b) = b
+  
+newtype ECP = ECP {unECP :: forall a. (WFT (T a), C a) => B a}
 
-
-newtype T1 a b = MkT1 {unT1 :: T2 a b }
-newtype T2 a b = MkT2 {unT2 :: T1 a b }
-
-
-type Errors e = Lift (Const e)
-
-data Lift f a = Pure a | Other (f a)
-
-failure :: e -> Errors e a
-failure e = Other (Const e)
+f :: ECP -> ECP 
+f ecp = ECP $ mblah (tblah (unECP ecp))
 
 
-
--- type role NT representational nominal
-newtype Ord a => NTO a = MkNTO { unNTO :: a }
--- This fails
--- How are newtypes represented at core level?
-
--- MkNT :: f @@ a => f a -> MKNT f a
--- unNT :: f @@ a => MKNT f a -> f @@ a => f a
--- MkNT f a ~ f a
-
--- instance (Total f, Eq (f a)) => Eq (NT f a) where
---   MkNT f == MkNT f' = f == f'
+data Ord a => Tree a = Tip | Branch a (Tree a) (Tree a)
