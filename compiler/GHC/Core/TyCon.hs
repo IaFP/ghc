@@ -2170,9 +2170,9 @@ mkWFFamilyTyCon name binders res_kind resVar flav parent inj
 -- ANI TODO: the resVar is for injective type familes.
 -- This works for both actual type family tycons and also tctycons
 -- Makes a tycon with the given WF counter part.
-mkWFMirrorTyCon :: Name -> Kind -> TyCon -> TyCon
-mkWFMirrorTyCon n res_kind tc
-  | isTypeFamilyTyCon tc
+mkWFMirrorTyCon :: Name -> Kind -> TyCon -> Maybe FamTyConFlav -> TyCon
+mkWFMirrorTyCon n res_kind tc flav
+  | isOpenTypeFamilyTyCon tc
   = let new_tc = mkWFFamilyTyCon n
                (tyConBinders tc)
                res_kind
@@ -2180,6 +2180,16 @@ mkWFMirrorTyCon n res_kind tc
                (famTcFlav tc)
                (tyConClass_maybe tc)
                (famTcInj tc)
+  in new_tc
+  | Just flav' <- flav, isClosedTypeFamilyTyCon tc
+  = let new_tc = mkWFFamilyTyCon n
+               (tyConBinders tc)
+               res_kind
+               Nothing
+               flav'
+               (tyConClass_maybe tc)
+               (famTcInj tc)
+       
   in new_tc 
   | isTcTyCon tc
   = let new_tc = mkWFTcTyCon

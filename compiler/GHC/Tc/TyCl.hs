@@ -237,40 +237,23 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                                                   -- thats the best we can do atm
                                    else concatMapM (\(l, tc) -> mk_atat_fam_except_units l tc tyclss)
                                                   locsAndTcs
-                                                  
-
-                   -- ANI: This should be pushed in the actual declaration flow, its a fairly simple
-                   -- one-to-many mapping with the tycls
-                   -- I say many because a class could have multiple associated types
-                   -- The only reason why i'm doing this here is because
-                   -- it is easier to debug and peaking (traceTc) into
-                   -- a knot-tied tycon decl will cause the compiler to loop/hang
-                   -- TODO: maybe do a single pass and classify all the tycons in one go
-                   -- but its rarely the case that the group is more than 3-4 dependent tycons
-
-                   -- Step 1. Get the typefamilies out of the way
-                   -- TODO: 
-                   --  - Remove logic from below, move up here
-                   --  - separate TFs into open and closed TFs
-                   --  - For each TF, create a new WF TF by
-                   --    iterating over parent TF's eqn set. All you need is RHS.
-                   --  - Add WF TF to gbl env and update parent.
                    ; let
-                         allowed tc = isOpenTypeFamilyTyCon tc || isClosedTypeFamilyTyCon tc
-                         (locsAndTFs, locsAndTyClss') = partition (allowed . snd) locsAndTcs
-                         wf_mirrors = fmap (wfMirrorTyCon . snd) locsAndTFs
-                   
-                   ; traceTc "wfelab partition"
-                       (vcat [ text "TFs:" <+> (vcat $ fmap (ppr . snd) locsAndTFs)
-                             , text "Others:" <+> (vcat $ fmap (ppr . snd) locsAndTyClss')
-                             ])
+                         (open, rest1)   = partition (isOpenTypeFamilyTyCon . snd) locsAndTcs
+                         (closed, rest2) = partition (isClosedTypeFamilyTyCon . snd) rest1
+                         wf_mirrors_open = fmap (wfMirrorTyCon . snd) open
+                   ; (wf_mirrors_closed, updated_closed_tfs) <- unzip <$> mapM genWFMirrorTyCon closed
+                   ;  
                      
-                   -- ; traceTc "Starting validity check post WF enrichment" (vcat $ fmap pprtc wf_mirrors)
-                   -- ; wf_mirrors' <- concatMapM checkValidTyCl (wf_mirrors) --  ++ tyfams')
-                   -- ; traceTc "Done validity check post WF enrichment" (vcat $ fmap pprtc wf_mirrors')
+                   ; traceTc "wfelab partition"
+                       (vcat [ text "Open TFs:" <+> (vcat $ fmap (pprtc . snd) open)
+                             , text "Closed TFs:" <+> (vcat $ fmap pprtc updated_closed_tfs)
+                             , text "Others:" <+> (vcat $ fmap (ppr . snd) rest2)
+                             ])
+
                    ; traceTc "---- end wf enrichment ---- }" empty
                    ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $
-                                                        (fmap snd locsAndTcs) ++ wf_mirrors)
+                                                       (fmap snd (open ++ rest2)) ++
+                                                       wf_mirrors_open ++ wf_mirrors_closed ++ updated_closed_tfs)
                    }
            else do { addTyConsToGblEnv tyclss }
 
@@ -311,7 +294,7 @@ pprtc tc
     <+> ppr (zip (tyConBinders tc) (tyConRoles tc))
     <+> text "TypeSyn RHS" <+> ppr (synTyConRhs_maybe tc)
     <+> text "isFamFree" <+> ppr (isFamFreeTyCon tc)
-  | isOpenFamilyTyCon tc
+  | isTypeFamilyTyCon tc
   = text "open tyfam tycon=" <> ppr tc
     <+> text "mirror tycon=" <> ppr (wfMirrorTyCon_maybe tc)
   | otherwise =
@@ -2919,43 +2902,7 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
                                       (resultVariableName sig)
                                       AbstractClosedSynFamilyTyCon parent
                                       inj' Nothing
-           Just eqns -> if False -- partyCtrs && isJust wfname
-             then do {
-               ; let wf_name = fromJust wfname
-                     tc_fam_tc = mkTcTyCon tc_name binders res_kind
-                                 noTcTyConScopedTyVars
-                                 False 
-                                 ClosedTypeFamilyFlavour
-                                 (Just tc_wf_fam_tc)
-                     tc_wf_fam_tc = mkWFTcTyCon wf_name binders constraintKind
-                                 noTcTyConScopedTyVars
-                                 False 
-                                 ClosedTypeFamilyFlavour
-
-               ; branches <- mapAndReportM (tcTyFamInstEqn tc_fam_tc NotAssociated) eqns
-               ; co_ax_name <- newFamInstAxiomName tc_lname []
-               ; traceTc "Gonna map over them branches now" empty
-
-               ; wf_branches <- mapAndReportM (tcTyFamInstEqn tc_wf_fam_tc NotAssociated) eqns
-               ; wf_co_ax_name <- newFamInstAxiomName (L src_span wf_name) []
-
-               ; let mb_co_ax
-                       | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
-                       | otherwise = Just (mkBranchedCoAxiom co_ax_name fam_tc branches)
-                       
-                     mb_wf_co_ax
-                       | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
-                       | otherwise = Just (mkBranchedCoAxiom wf_co_ax_name wf_tycon wf_branches)  
-
-                     fam_tc = mkFamilyTyCon tc_name binders res_kind (resultVariableName sig)
-                       (ClosedSynFamilyTyCon mb_co_ax) parent inj' (Just wf_tycon)
-                       
-                     wf_tycon = mkWFFamilyTyCon wf_name binders constraintKind
-                                (resultVariableName sig) (ClosedSynFamilyTyCon mb_wf_co_ax)
-                                parent inj'
-
-               ; return fam_tc }
-             else do {
+           Just eqns -> do {
                -- Process the equations, creating CoAxBranches
                ; let tc_fam_tc = mkTcTyCon tc_name binders res_kind
                                  noTcTyConScopedTyVars

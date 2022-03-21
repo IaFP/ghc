@@ -31,6 +31,7 @@ import GHC.Tc.Validity (tyConArityErr)
 import GHC.Core.TyCo.Rep
 import GHC.Core.TyCon
 import GHC.Core.Type
+import GHC.Types.TyThing
 import GHC.Core.Reduction (reductionReducedType)
 import GHC.Builtin.Names
 import GHC.Builtin.Names.TH
@@ -344,7 +345,8 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
   -- For now the closed branch is a duplicate of open branch.
   = do { traceTc "wfelab closed typefam" (ppr tycon <+> ppr args)
        ; let (args_tc, extra_args_tc) = splitAt (tyConArity tycon) args
-       ; let wftycon = wfMirrorTyCon tycon -- this better exist
+       ; tycon' <- lookupTyCon . tyConName $ tycon  
+       ; let wftycon = wfMirrorTyCon tycon' -- this better exist
        ; traceTc "wfelab lookup2" (ppr wftycon)
        ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
        ; traceTc "wfelab lookup3" (ppr wftycon)
