@@ -946,9 +946,11 @@ checkHiBootIface'
     find_real_dfun boot_dfun
        = [dfun | inst <- local_insts
                , let dfun = instanceDFunId inst
-               , idType dfun `eqType` boot_dfun_ty ]
+               , (wf_free_type $ idType dfun) `eqType` (wf_free_type $ boot_dfun_ty) ]
        where
           boot_dfun_ty   = idType boot_dfun
+
+
 
 
 -- In general, to perform these checks we have to
@@ -977,6 +979,14 @@ checkBootDeclM is_boot boot_thing real_thing
       | otherwise
       = nameSrcSpan (getName real_thing)
 
+-- [Note] Checking Mirror Type Family Free Type Equality
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- Ideally we should just be checking straight for equality.
+-- but extra $wf' constraints and @ constraints that get elaborated
+-- might not be elaborated in boot file. This is becuase we don't know the body of the
+-- data type defs while type checking boot.
+-- So we relax the type equality by skipping on the wf constraints
+
 -- | Compares the two things for equivalence between boot-file and normal
 -- code. Returns @Nothing@ on success or @Just "some helpful info for user"@
 -- failure. If the difference will be apparent to the user, @Just empty@ is
@@ -985,7 +995,7 @@ checkBootDecl :: Bool -> TyThing -> TyThing -> Maybe SDoc
 
 checkBootDecl _ (AnId id1) (AnId id2)
   = assert (id1 == id2) $
-    check (idType id1 `eqType` idType id2)
+    check ((wf_free_type $ idType id1) `eqType` (wf_free_type $ idType id2))
           (text "The two types are different")
 
 checkBootDecl is_boot (ATyCon tc1) (ATyCon tc2)

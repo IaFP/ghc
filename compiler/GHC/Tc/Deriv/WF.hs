@@ -161,7 +161,7 @@ mk_atat_datacon_except tycon skip_tcs dc =
 mk_atat_fam :: SrcSpan -> TyCon -> TcM [FamInst]
 mk_atat_fam loc tc = mk_atat_fam_except loc tc []
 
--- | just like mk_atat_fam but generates T @ a ~ () for all possible axioms generatable
+-- | just like mk_atat_fam but generates T @ a ~ () for all possible axioms that can be generated
 mk_atat_fam_units :: SrcSpan -> TyCon -> TcM [FamInst]
 mk_atat_fam_units loc tc = mk_atat_fam_except_units loc tc []
 
@@ -174,7 +174,9 @@ mk_atat_fam_except loc tc skip_tcs
   = do { elabds <- mapM (genAtAtConstraintsExceptTcM False (tc:skip_tcs) []) dt_ctx
        ; let css = fmap newPreds elabds
              elab_dt_ctx = foldl mergeAtAtConstraints [] css
-       ; mk_atat_fam' loc [] tc univTys ([], tyargs) ([], tyvars_binder_type) (mergeAtAtConstraints elab_dt_ctx dt_ctx) }
+             css' =  mergeAtAtConstraints elab_dt_ctx dt_ctx
+       ; mk_atat_fam' loc [] tc univTys ([], tyargs) ([], tyvars_binder_type) css'
+       }
   | isDataFamilyTyCon tc
   = mk_atat_fam_units loc tc
   | otherwise
@@ -260,13 +262,13 @@ genWFTyFamInst :: FamInst -> TcM FamInst
 genWFTyFamInst fam_inst
   = do { let (tfTc, ts) = famInstSplitLHS fam_inst
              rhs = famInstRHS fam_inst
-       ; let wfTc_mb = wfMirrorTyCon_maybe tfTc
-       ; let wfTc = fromJust wfTc_mb
+       ; let wfTc = wfMirrorTyCon tfTc
              loc = noAnnSrcSpan . getSrcSpan $ fam_inst
        ; inst_name <- newFamInstTyConName (L loc (getName wfTc)) ts
        ; elabDetails <- genAtAtConstraintsTcM False rhs
-       ; let preds = newPreds elabDetails
-             n = length preds
+       ; let preds' = newPreds elabDetails
+       ; preds <- concatMapM flatten_atat_constraint preds'
+       ; let n = length preds
        ; rhs_ty <- if n == 1 then return . head $ preds
                    else do { ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
                            ; return $ mkTyConApp ctupleTyCon preds

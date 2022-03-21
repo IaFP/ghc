@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                     #-}
 {-# LANGUAGE AllowAmbiguousTypes     #-} -- for unXRec, etc.
 {-# LANGUAGE ConstraintKinds         #-}
 {-# LANGUAGE DataKinds               #-}
@@ -27,6 +28,9 @@ import GHC.TypeLits (Symbol, KnownSymbol)
 import Data.Data hiding ( Fixity )
 import Data.Kind (Type)
 import GHC.Utils.Outputable
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 {-
 Note [Trees That Grow]
@@ -147,7 +151,11 @@ class MapXRec p where
 
 -- | The trivial wrapper that carries no additional information
 -- See Note [XRec and SrcSpans in the AST]
-class WrapXRec p a where
+class
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec p a) =>
+#endif
+  WrapXRec p a where
   wrapXRec :: a -> XRec p a
 
 -- | Maps the "normal" id type for a given pass

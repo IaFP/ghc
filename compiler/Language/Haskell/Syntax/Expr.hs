@@ -147,7 +147,7 @@ type LFieldLabelStrings p = XRec p (FieldLabelStrings p)
 
 newtype
 #if MIN_VERSION_base(4,16,0)
- WF_XRec p (DotFieldOcc p) =>
+ WFT (XRec p (DotFieldOcc p)) =>
 #endif
   FieldLabelStrings p =
   FieldLabelStrings [XRec p (DotFieldOcc p)]

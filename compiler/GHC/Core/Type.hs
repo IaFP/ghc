@@ -3094,8 +3094,9 @@ isPredTy :: HasDebugCallStack => Type -> Bool
 -- See Note [Types for coercions, predicates, and evidence] in GHC.Core.TyCo.Rep
 isPredTy ty = tcIsConstraintKind (tcTypeKind ty)
 
+-- True if this is a predicate that classifies TyCon apps as wf predicates 
 isWfPredTy :: HasDebugCallStack => Type -> Bool
-isWfPredTy ty@(TyConApp tc _) = isPredTy ty && tc `hasKey` wfTyConKey
+isWfPredTy ty@(TyConApp tc _) = isPredTy ty && (tc `hasKey` wfTyConKey || isWFMirrorTyCon tc)
 isWfPredTy _ = False
 -- tcIsConstraintKind stuff only makes sense in the typechecker
 -- After that Constraint = Type

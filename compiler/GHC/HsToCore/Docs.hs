@@ -42,7 +42,7 @@ import Data.Maybe
 import Data.Semigroup
 import GHC.IORef (readIORef)
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
+import GHC.Types (Total, WFT)
 #endif
 
 -- | Extract docs from renamer output.
@@ -146,7 +146,11 @@ looking at GHC sources). We can assume that commented instances are
 user-written. This lets us relate Names (from ClsInsts) to comments
 (associated with InstDecls and DerivDecls).
 -}
-getMainDeclBinder :: (Anno (IdGhcP p) ~ SrcSpanAnnN, CollectPass (GhcPass p))
+getMainDeclBinder :: (
+#if MIN_VERSION_base(4,16,0)
+                     WFT (XXPat (GhcPass p)),
+#endif
+                     Anno (IdGhcP p) ~ SrcSpanAnnN, CollectPass (GhcPass p))
                   => HsDecl (GhcPass p) -> [IdP (GhcPass p)]
 getMainDeclBinder (TyClD _ d) = [tcdName d]
 getMainDeclBinder (ValD _ d) =
@@ -159,7 +163,11 @@ getMainDeclBinder (ForD _ (ForeignExport _ _ _ _)) = []
 getMainDeclBinder _ = []
 
 
-sigNameNoLoc :: forall pass. UnXRec pass => Sig pass -> [IdP pass]
+sigNameNoLoc :: forall pass. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec pass (IdP pass)),
+#endif
+  UnXRec pass) => Sig pass -> [IdP pass]
 sigNameNoLoc (TypeSig    _   ns _)         = map (unXRec @pass) ns
 sigNameNoLoc (ClassOpSig _ _ ns _)         = map (unXRec @pass) ns
 sigNameNoLoc (PatSynSig  _   ns _)         = map (unXRec @pass) ns

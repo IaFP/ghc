@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 903
-{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, GADTs #-}
 #endif
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveTraversable #-}
@@ -175,7 +175,12 @@ data Pat p
                                         -- Used for *non-overloaded* literal patterns:
                                         -- Int#, Char#, Int, Char, String, etc.
 
-  | NPat                -- Natural Pattern
+  |
+#if MIN_VERSION_base(4,16,0)
+    (WFT (XRec p (HsOverLit p))
+    , WFT (HsOverLit p))  =>
+#endif
+    NPat                -- Natural Pattern
                         -- Used for all overloaded literals,
                         -- including overloaded strings with -XOverloadedStrings
                     (XNPat p)            -- Overall type of pattern. Might be
@@ -192,7 +197,12 @@ data Pat p
   -- - 'GHC.Parser.Annotation.AnnKeywordId' : 'GHC.Parser.Annotation.AnnVal' @'+'@
 
   -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
-  | NPlusKPat       (XNPlusKPat p)           -- Type of overall pattern
+  |
+#if MIN_VERSION_base(4,16,0)
+    (WFT (XRec p (HsOverLit p))
+    , WFT (HsOverLit p))  =>
+#endif
+  NPlusKPat       (XNPlusKPat p)           -- Type of overall pattern
                     (LIdP p)                 -- n+k pattern
                     (XRec p (HsOverLit p))   -- It'll always be an HsIntegral
                     (HsOverLit p)            -- See Note [NPlusK patterns] in GHC.Tc.Gen.Pat
@@ -229,7 +239,7 @@ type HsConPatDetails p = HsConDetails (HsPatSigType (NoGhcTc p)) (LPat p) (HsRec
 
 hsConPatArgs :: forall p . (
 #if MIN_VERSION_base(4,16,0)
-  WF_XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p))),
+  WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))), -- TODO This should go away
 #endif
   UnXRec p) => HsConPatDetails p -> [LPat p]
 hsConPatArgs (PrefixCon _ ps) = ps
@@ -240,11 +250,16 @@ hsConPatArgs (InfixCon p1 p2) = [p1,p2]
 --
 -- HsRecFields is used only for patterns and expressions (not data type
 -- declarations)
-data HsRecFields p arg         -- A bunch of record fields
+data
+#if MIN_VERSION_base(4,16,0)
+    ( WFT (XRec p (HsRecField  p arg))
+    , WFT (XRec p (FieldOcc p))) =>  -- ANI Todo Should go away
+#endif
+  HsRecFields p arg         -- A bunch of record fields
                                 --      { x = 3, y = True }
         -- Used for both expressions and patterns
   = HsRecFields { rec_flds   :: [LHsRecField p arg],
-                  rec_dotdot :: Maybe (Located Int) }  -- Note [DotDot fields]
+                rec_dotdot :: Maybe (Located Int) }  -- Note [DotDot fields]
   -- AZ:The XRec for LHsRecField makes the derivings fail.
   -- deriving (Functor, Foldable, Traversable)
 
@@ -345,19 +360,10 @@ data HsFieldBind lhs rhs = HsFieldBind {
 --
 -- See also Note [Disambiguating record fields] in GHC.Tc.Gen.Head.
 
-hsRecFields :: forall p arg. (
-#if MIN_VERSION_base(4,16,0)
-  WFT (XRec p (FieldOcc p)),
-  WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) arg)),
-#endif
-  UnXRec p) => HsRecFields p arg -> [XCFieldOcc p]
+hsRecFields :: forall p arg. UnXRec p => HsRecFields p arg -> [XCFieldOcc p]
 hsRecFields rbinds = map (hsRecFieldSel . unXRec @p) (rec_flds rbinds)
 
-hsRecFieldsArgs :: forall p arg. (
-#if MIN_VERSION_base(4,16,0)
-  WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) arg)),
-#endif
-  UnXRec p) => HsRecFields p arg -> [arg]
+hsRecFieldsArgs :: forall p arg. UnXRec p => HsRecFields p arg -> [arg]
 hsRecFieldsArgs rbinds = map (hfbRHS . unXRec @p) (rec_flds rbinds)
 
 hsRecFieldSel :: forall p arg. UnXRec p => HsRecField p arg -> XCFieldOcc p

@@ -221,14 +221,14 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
          -- That information should be accesible from TcM but i don't know whats the best
          -- way to get it..
        ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
+       ; isBootFile <- tcIsHsBootOrSig
        ; (gbl_env, th_bndrs) <-
-           if enblPCtrs
+           if enblPCtrs && (not isBootFile)
            then do { traceTc "---- start wf enrichment ---- { " empty
 
                    ; let locs::[SrcSpan] = map (locA . getLoc) tyclds
                              -- ; let tAndR = thisAndRest tyclss
                          locsAndTcs = zip locs tyclss
-                             
                    ; fam_insts <-  if (length tyclds == 1)
                                                 -- for now we can only reason about non-circular datatypes
                                    then concatMapM (\(l, tc) -> mk_atat_fam l tc) locsAndTcs

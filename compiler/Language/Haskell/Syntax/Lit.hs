@@ -1,7 +1,7 @@
 
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 903
-{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, GADTs #-}
 #endif
 {-# LANGUAGE ConstraintKinds      #-}
 {-# LANGUAGE DeriveDataTypeable   #-}
@@ -103,16 +103,20 @@ instance Eq (HsLit x) where
   _                   == _                   = False
 
 -- | Haskell Overloaded Literal
-data
+data HsOverLit p
+  =
 #if MIN_VERSION_base(4,16,0)
-  (WFT (XOverLit p)) =>
+    WFT (XOverLit p) => 
 #endif
-  HsOverLit p
-  = OverLit {
+    OverLit {
       ol_ext :: (XOverLit p),
       ol_val :: OverLitVal}
 
-  | XOverLit
+  |
+#if MIN_VERSION_base(4,16,0)
+    WFT (XXOverLit p) => 
+#endif
+    XOverLit
       !(XXOverLit p)
 
 -- Note [Literal source text] in GHC.Types.Basic for SourceText fields in

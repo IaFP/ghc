@@ -1,4 +1,4 @@
-
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -130,6 +130,9 @@ import GHC.Types.ForeignCall
 import GHC.Data.Bag
 import GHC.Data.Maybe
 import Data.Data (Data)
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 {-
 ************************************************************************
@@ -506,7 +509,11 @@ type instance XXFamilyDecl    (GhcPass _) = NoExtCon
 familyDeclLName :: FamilyDecl (GhcPass p) -> XRec (GhcPass p) (IdP (GhcPass p))
 familyDeclLName (FamilyDecl { fdLName = n }) = n
 
-familyDeclName :: FamilyDecl (GhcPass p) -> IdP (GhcPass p)
+familyDeclName ::
+#if MIN_VERSION_base(4,16,0)
+  WFT (Anno (IdGhcP p)) =>
+#endif
+  FamilyDecl (GhcPass p) -> IdP (GhcPass p)
 familyDeclName = unLoc . familyDeclLName
 
 famResultKindSignature :: FamilyResultSig (GhcPass p) -> Maybe (LHsKind (GhcPass p))
