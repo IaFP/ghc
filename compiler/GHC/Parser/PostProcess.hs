@@ -163,7 +163,7 @@ import Data.Char
 import Data.Data       ( dataTypeOf, fromConstr, dataTypeConstrs )
 import Data.Kind       ( Type )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total, type(@), WFT)
+import GHC.Types (type(@), WFT)
 #endif
 {- **********************************************************************
 
@@ -1413,9 +1413,9 @@ checkMonadComp = do
 newtype ECP =
   ECP { unECP :: forall b. (
 #if MIN_VERSION_base(4,16,0)
-                    -- forall x. (Body b) @ x, -- make it fail on mightEqualLater finds an unbound cbv
- WFT (Body (Body b GhcPs)),
- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+ -- forall x. (Body b) @ x, -- make it fail on mightEqualLater finds an unbound cbv
+ -- WFT (Body (Body b GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
  -- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
  -- WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
  -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
@@ -1425,6 +1425,15 @@ newtype ECP =
  -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
  -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
  -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
 #endif
                     DisambECP b) => PV (LocatedA b) }
 
@@ -1457,6 +1466,10 @@ instance DisambInfixOp RdrName where
   mkHsVarOpPV (L l v) = return $ L l v
   mkHsInfixHolePV l _ = addFatalError $ mkPlainErrorMsgEnvelope l $ PsErrInvalidInfixHole
 
+type instance Anno (GRHS      GhcPs         (LocatedA (body GhcPs)))     = SrcAnn NoEpAnns
+type instance Anno (StmtLR    GhcPs   GhcPs (LocatedA (body GhcPs)))     = SrcSpanAnnA
+type instance Anno [LocatedA (StmtLR  GhcPs GhcPs (LocatedA (b GhcPs)))] = SrcSpanAnnL
+
 type AnnoBody b
   = ( Anno (GRHS GhcPs (LocatedA (Body b GhcPs))) ~ SrcAnn NoEpAnns
     , Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))] ~ SrcSpanAnnL
@@ -1471,18 +1484,32 @@ type AnnoBody b
 -- See Note [Ambiguous syntactic categories]
 class (
 #if MIN_VERSION_base(4,16,0)
-  Body b @ GhcPs,
- -- WFT (Body (Body b GhcPs)),
- -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
- -- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
- -- WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
- -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
- -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
- -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
- -- WFT (Body (FunArg (Body b GhcPs))),
- -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
- -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
- -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+ Body b @ GhcPs,
+ WFT (Body (Body b GhcPs)),
+
+ WFT (Body (FunArg (Body b GhcPs))),
+ WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ 
+ WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+ WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+
+ WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+
+ WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+ WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ 
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
 #endif
   (b ~ (Body b) GhcPs), AnnoBody b) => DisambECP b where
   -- | See Note [Body in DisambECP]
@@ -1541,7 +1568,9 @@ class (
   mkHsDoPV ::
     SrcSpan ->
     Maybe ModuleName ->
-    LocatedL [LStmt GhcPs (LocatedA b)] ->
+    LocatedL [LStmt GhcPs (LocatedA b)] -> -- LStmt GhcPs (LocatedA b)
+                                           -- ~> XRec GhcPs (StmtLR GhcPs GhcPs (LocatedA b))
+                                           -- ~> GenLocated (Anno (StmtLR GhcPs GhcPS LocatedA b)) (StmtLR GhcPs GhcPS LocatedA b)
     AnnList ->
     PV (LocatedA b)
   -- | Disambiguate "( ... )" (parentheses)

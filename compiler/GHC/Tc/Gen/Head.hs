@@ -1,5 +1,6 @@
 
 {-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -79,6 +80,10 @@ import GHC.Utils.Outputable as Outputable
 import GHC.Utils.Panic
 import GHC.Utils.Panic.Plain
 import Control.Monad
+
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 import Data.Function
 
@@ -355,7 +360,11 @@ countHsWrapperInvisArgs = go
 
     nope x = pprPanic "countHsWrapperInvisApps" (ppr x)
 
-instance OutputableBndrId (XPass p) => Outputable (HsExprArg p) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass (XPass p))),
+#endif
+  OutputableBndrId (XPass p)) => Outputable (HsExprArg p) where
   ppr (EValArg { eva_arg = arg })      = text "EValArg" <+> ppr arg
   ppr (EPrag _ p)                      = text "EPrag" <+> ppr p
   ppr (ETypeArg { eva_hs_ty = hs_ty }) = char '@' <> ppr hs_ty
@@ -366,7 +375,11 @@ instance Outputable EWrap where
   ppr (EHsWrap w)    = text "EHsWrap" <+> ppr w
   ppr (EExpand orig) = text "EExpand" <+> ppr orig
 
-instance OutputableBndrId (XPass p) => Outputable (EValArg p) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass (XPass p))),
+#endif
+  OutputableBndrId (XPass p)) => Outputable (EValArg p) where
   ppr (ValArg e) = ppr e
   ppr (ValArgQL { va_fun = fun, va_args = args, va_ty = ty})
     = hang (text "ValArgQL" <+> ppr fun)
@@ -684,9 +697,10 @@ tcInferOverLit lit@(OverLit { ol_val = val
              from_expr = mkHsWrap (wrap2 <.> wrap1) $
                          HsVar noExtField (L loc from_id)
              witness = HsApp noAnn (L (l2l loc) from_expr) lit_expr
-             lit' = lit { ol_ext = OverLitTc { ol_rebindable = rebindable
-                                             , ol_witness = witness
-                                             , ol_type = res_ty } }
+             lit' = OverLit { ol_val = val
+                            , ol_ext = OverLitTc { ol_rebindable = rebindable
+                                                 , ol_witness = witness
+                                                 , ol_type = res_ty } }
        ; return (HsOverLit noAnn lit', res_ty) }
   where
     orig   = LiteralOrigin lit

@@ -2538,13 +2538,6 @@ tcTyClDecl1 _parent roles_info
           Class declarations
 *                                                                      *
 ********************************************************************* -}
--- elabWfSigStuff :: MethInfo -> TcM MethInfo
--- elabWfSigStuff (n, ty, Just (GenericDM (s, dty))) = do elab_ty <- elabAtAtConstraintsTcM False ty
---                                                        elab_dty <- elabAtAtConstraintsTcM False dty
---                                                        return (n, elab_ty, Just (GenericDM (s, elab_dty)))
--- elabWfSigStuff (n, ty, o) = do elab_ty <- elabAtAtConstraintsTcM False ty
---                                return (n, elab_ty, o)
-
 
 tcClassDecl1 :: RolesInfo -> Name -> Maybe (LHsContext GhcRn)
              -> LHsBinds GhcRn -> [LHsFunDep GhcRn] -> [LSig GhcRn]
@@ -2567,11 +2560,6 @@ tcClassDecl1 roles_info class_name hs_ctxt meths fundeps sigs ats at_defs
                   ; fds  <- mapM (addLocMA tc_fundep) fundeps
                   ; at_stuff <- tcClassATs class_name clas ats at_defs
                   ; sig_stuff <- tcClassSigs class_name sigs meths
-                  -- ; sig_stuff <- if partyCtrs
-                  --                then mapM (\ss -> do { (n, ty, def) <- elabWfSigStuff ss
-                  --                                     ; traceTc "wfelab sig_stuff elab" (ppr $ (n, ty))
-                  --                                     ; return $ (n, ty, def) }) sig_stuff'
-                  --                else return sig_stuff'
                   ; return (ctxt, fds, at_stuff, sig_stuff) }
        
        -- See Note [Error on unconstrained meta-variables] in GHC.Tc.Utils.TcMType
@@ -3853,7 +3841,7 @@ tcConArg exp_kind (HsScaled w bty)
   = do  { traceTc "tcConArg 1" (ppr bty)
         ; arg_ty' <- tcCheckLHsType (getBangType bty) exp_kind
         ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-        ; arg_ty <- if partyCtrs && (isForAllTy arg_ty')
+        ; arg_ty <- if False
                     then elabAtAtConstraintsTcM False arg_ty'
                     else return arg_ty'
         ; w' <- tcDataConMult w

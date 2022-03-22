@@ -332,7 +332,8 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; let css = fmap newPreds elabds
              wftct = mkTyConApp wftycon args_tc
        ; extra_css <- sequenceAts tycon args_tc extra_args_tc [] []
-       ; return $ foldl mergeAtAtConstraints (wftct:extra_css) css
+       ; extra_css' <- concatMapM flatten_atat_constraint (wftct:extra_css)
+       ; return $ foldl mergeAtAtConstraints extra_css' css
        }
 
       
