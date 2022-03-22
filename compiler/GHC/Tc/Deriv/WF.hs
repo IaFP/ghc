@@ -13,7 +13,8 @@ module GHC.Tc.Deriv.WF ( mk_atat_fam, mk_atat_fam_except
                        , saneTyConForElab
                        , genWFMirrorTyCon
                        , mkWFCoAxBranch
-                       , genWFTyFamInst, genWFTyFamInsts
+                       , genWFTyFamInst, genWFTyFamInsts,
+                         updateClosedWFMirrorAxioms
                        ) where
 
 
@@ -254,22 +255,13 @@ getMatchingPredicates' tv tvs preds =
           any (eqType tv) (predTyArgs p)
           && not (or [eqType tv' t | tv' <- tvs, t <- predTyArgs p])
 
-genWFMirrorTyCon :: (SrcSpan, TyCon) -> TcM (TyCon, TyCon)
-genWFMirrorTyCon (loc, tc)
-  | isOpenTypeFamilyTyCon tc && not (isWFMirrorTyCon tc)
-  = do { wf_tc_name <- mk_wf_name $ tyConName tc
-       ; let mirror_tc = mkWFMirrorTyCon
-                         wf_tc_name
-                         constraintKind
-                         tc
-                         Nothing
-             n_tc      = updateWfMirrorTyCon tc $ Just mirror_tc
-       ; traceTc "wf tf mirror occname:" (ppr wf_tc_name)
-       ; return (mirror_tc, n_tc)
-       }
+updateClosedWFMirrorAxioms :: (SrcSpan, TyCon) -> TcM (TyCon, TyCon)
+updateClosedWFMirrorAxioms (loc, tc)
   | Just branches <- isClosedSynFamilyTyConWithAxiom_maybe tc
-  = do {
-       ; wf_tc_name <- mk_wf_name $ tyConName tc
+  = do
+      {
+       ; let wf_tc = wfMirrorTyCon tc
+             wf_tc_name = tyConName wf_tc
        ; co_ax_name <- newFamInstAxiomName (L (noAnnSrcSpan loc) wf_tc_name) []
        ; wf_branches <- mapM mkWFCoAxBranch (fromBranches . coAxiomBranches $ branches)
       
@@ -283,7 +275,22 @@ genWFMirrorTyCon (loc, tc)
            n_tc      = updateWfMirrorTyCon tc $ Just mirror_tc
        ; traceTc "wf tf mirror occname:" (ppr wf_tc_name)
        ; return (mirror_tc, n_tc)
+       }
+  | otherwise
+  = do { pprPanic "Tried to update CoAxioms, but this TyCon has none." (ppr tc) }
 
+genWFMirrorTyCon :: (SrcSpan, TyCon) -> TcM (TyCon, TyCon)
+genWFMirrorTyCon (loc, tc)
+  | isOpenTypeFamilyTyCon tc && not (isWFMirrorTyCon tc)
+  = do { wf_tc_name <- mk_wf_name $ tyConName tc
+       ; let mirror_tc = mkWFMirrorTyCon
+                         wf_tc_name
+                         constraintKind
+                         tc
+                         Nothing
+             n_tc      = updateWfMirrorTyCon tc $ Just mirror_tc
+       ; traceTc "wf tf mirror occname:" (ppr wf_tc_name)
+       ; return (mirror_tc, n_tc)
        }
   | otherwise
   = do { pprPanic "wf tf mirror unknown case:" (ppr (famTyConFlav_maybe tc) <+> ppr tc) }

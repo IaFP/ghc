@@ -240,19 +240,19 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    ; let
                          (open, rest1)   = partition (isOpenTypeFamilyTyCon . snd) locsAndTcs
                          (closed, rest2) = partition (isClosedTypeFamilyTyCon . snd) rest1
-                         wf_mirrors = fmap (wfMirrorTyCon . snd) (open ++ closed)
-                   -- ; (wf_mirrors_closed, updated_closed_tfs) <- unzip <$> mapM genWFMirrorTyCon closed
+                         wf_mirrors_open = fmap (wfMirrorTyCon . snd) open
+                   ; (wf_mirrors_closed, updated_closed_tfs) <- unzip <$> mapM updateClosedWFMirrorAxioms closed
                      
                    ; traceTc "wfelab partition"
                        (vcat [ text "Open TFs:" <+> (vcat $ fmap (pprtc . snd) open)
-                             , text "Closed TFs:" <+> (vcat $ fmap (pprtc . snd) closed)
+                             , text "Closed TFs:" <+> (vcat $ fmap pprtc updated_closed_tfs)
                              , text "Others:" <+> (vcat $ fmap (ppr . snd) rest2)
                              ])
 
                    ; traceTc "---- end wf enrichment ---- }" empty
                    ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $
-                                                       (fmap snd locsAndTcs) ++
-                                                       wf_mirrors)
+                                                       (fmap snd (open ++ rest2)) ++
+                                                       wf_mirrors_closed ++ wf_mirrors_open ++ updated_closed_tfs)
                    }
            else do { addTyConsToGblEnv tyclss }
 
@@ -2916,26 +2916,21 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
 
                ; branches <- mapAndReportM (tcTyFamInstEqn tc_fam_tc NotAssociated) eqns
                ; co_ax_name <- newFamInstAxiomName tc_lname []
-               ; traceTc "Gonna map over them branches now" empty
-
-               ; wf_branches <- mapM mkWFCoAxBranch branches -- mapAndReportM (tcTyFamInstEqn tc_wf_fam_tc NotAssociated) eqns
-               ; wf_co_ax_name <- newFamInstAxiomName (L src_span wf_name) []
 
                ; let mb_co_ax
                        | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
                        | otherwise = Just (mkBranchedCoAxiom co_ax_name fam_tc branches)
 
-                     mb_wf_co_ax
-                       | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
-                       | otherwise = Just (mkBranchedCoAxiom wf_co_ax_name wf_tycon wf_branches)  
-
                      fam_tc = mkFamilyTyCon tc_name binders res_kind (resultVariableName sig)
                        (ClosedSynFamilyTyCon mb_co_ax) parent inj' (Just wf_tycon)
 
                      wf_tycon = mkWFFamilyTyCon wf_name binders constraintKind
-                                (resultVariableName sig) (ClosedSynFamilyTyCon mb_wf_co_ax)
+                                (resultVariableName sig) (ClosedSynFamilyTyCon Nothing)
                                 parent inj'
 
+               -- Testing here to see what sort of horseshit we have with
+               -- the mb_co_ax
+               
                ; return fam_tc }
              else do {
                -- Process the equations, creating CoAxBranches
