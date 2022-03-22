@@ -361,6 +361,8 @@ class Coercible (a :: k) (b :: k)
 type family (@) (t :: k' -> k) (u :: k') :: Constraint
 
 type WFT t = t ~ t
+-- class WFT a
+-- instance a ~ a => WFT a
 
 -- class Total (f :: k' -> k)
 -- Total a = forall a. f @@ a

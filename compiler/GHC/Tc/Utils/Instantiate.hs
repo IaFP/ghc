@@ -1,4 +1,4 @@
-
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DisambiguateRecordFields #-}
 
@@ -689,9 +689,10 @@ newNonTrivialOverloadedLit
                       \_ _ -> return ()
         ; let L _ witness = nlHsSyntaxApps fi' [nlHsLit hs_lit]
         ; res_ty <- readExpType res_ty
-        ; return (lit { ol_ext = OverLitTc { ol_rebindable = rebindable
-                                           , ol_witness = witness
-                                           , ol_type = res_ty } }) }
+        ; return (OverLit { ol_val = val,
+                            ol_ext = OverLitTc { ol_rebindable = rebindable
+                                               , ol_witness = witness
+                                               , ol_type = res_ty } }) }
   where
     orig = LiteralOrigin lit
 
