@@ -103,10 +103,7 @@ elabAtAtConstraintsTcM isTyConPhase ty
   
 -- Generates all the f @@ a constraints
 genAtAtConstraintsTcM :: Bool -> Type ->  TcM WfElabTypeDetails
-genAtAtConstraintsTcM isTyConPhase ty = do
-  traceTc "Hello this is patrick" empty
-  traceTc "wfelab ty=" (ppr ty)
-  genAtAtConstraintsExceptTcM isTyConPhase [] [] ty
+genAtAtConstraintsTcM isTyConPhase ty = genAtAtConstraintsExceptTcM isTyConPhase [] [] ty
 
 -- | Elaborate the type with well formed constraints
 --   Also collapse the ones that we know are ()'s
@@ -148,9 +145,14 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
         ; traceTc "wfelab TyConApp" empty
         ; elabTys_and_atats <- mapM (genAtAtConstraintsExceptTcM isTyConPhase (tyc:tycons) ts) tycargs
         ; let (elab_tys, atc_args) = unzip $ fmap (\d -> (elabTy d, newPreds d)) elabTys_and_atats
+        ; traceTc "tyc: " (ppr tyc)
+        ; traceTc "tycons: " (ppr tycons)
+        ; traceTc "elab_tys: " (ppr elab_tys)
+        ; traceTc "atc_args: " (ppr atc_args)
         ; if any (== tyc) tycons
           then return $ elabDetails (TyConApp tyc elab_tys) (foldl mergeAtAtConstraints [] atc_args)
           else do { atc_tycon <- tyConGenAtsTcM isTyConPhase tycons ts tyc elab_tys
+                  ; traceTc "atc_tycon:" (ppr atc_tycon)
                   ; return $ elabDetails (TyConApp tyc elab_tys) (foldl mergeAtAtConstraints atc_tycon atc_args)
                   }
         }
@@ -345,8 +347,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
   -- For now the closed branch is a duplicate of open branch.
   = do { traceTc "wfelab closed typefam" (ppr tycon <+> ppr args)
        ; let (args_tc, extra_args_tc) = splitAt (tyConArity tycon) args
-       ; tycon' <- lookupTyCon . tyConName $ tycon  
-       ; let wftycon = wfMirrorTyCon tycon' -- this better exist
+       ; let wftycon = wfMirrorTyCon tycon -- this better exist
        ; traceTc "wfelab lookup2" (ppr wftycon)
        ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
        ; traceTc "wfelab lookup3" (ppr wftycon)

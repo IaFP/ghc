@@ -330,13 +330,13 @@ mkWFCoAxBranch (CoAxBranch { cab_tvs = qtvs, cab_lhs = pats, cab_loc = loc, cab_
        ; traceTc "mkWFCoAxBranch { " empty
        ; traceTc "coax type : " (ppr rhs)
        ; elabDetails <- genAtAtConstraintsTcM False rhs
-       ; traceTc "mkWFCoAxBranch :: after elaborating RHS " empty
        ; let preds = newPreds elabDetails
              n = length preds
        ; rhs_ty <- if n == 1 then return . head $ preds
                    else do { ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
                            ; return $ mkTyConApp ctupleTyCon preds
                            }
+       ; traceTc "mkWFCoAxBranch } " empty
        ; return (mkCoAxBranch qtvs [] [] pats rhs_ty
                               (map (const Nominal) qtvs)
                               loc)

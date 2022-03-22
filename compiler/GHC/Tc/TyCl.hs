@@ -242,7 +242,6 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                          (closed, rest2) = partition (isClosedTypeFamilyTyCon . snd) rest1
                          wf_mirrors_open = fmap (wfMirrorTyCon . snd) open
                    ; (wf_mirrors_closed, updated_closed_tfs) <- unzip <$> mapM genWFMirrorTyCon closed
-                   ;  
                      
                    ; traceTc "wfelab partition"
                        (vcat [ text "Open TFs:" <+> (vcat $ fmap (pprtc . snd) open)
