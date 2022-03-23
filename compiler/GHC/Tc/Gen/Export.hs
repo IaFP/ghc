@@ -352,7 +352,8 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                                     , (L loc new_ie, [avail]))]
 
       
-     ---- 
+     ----
+    -- ANI TODO: This is not quite right. We don't want to exprt wf'DataType names
     lookup_wf_ie :: LIEWrappedName (IdP GhcPs) -> RnM [(IE GhcRn, AvailInfo)]
     lookup_wf_ie (L l rdr)
         = do { (name, _) <- lookupGreAvailRn $ ieWrappedName rdr
@@ -362,13 +363,8 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
              ; m <- getModule
              ; n::[Name] <- mapM (lookupOrig m) wf_name
              ; let wf_rdr_name = fmap nukeExact n
-             -- rdr_elts <- fmap (concat . nonDetOccEnvElts . tcg_rdr_env) getGblEnv
-             -- let -- rdr_names = fmap greMangledName rdr_elts
-             --     wf_rdr_name = find (n `isSuffixOf`) rdr_elts
-             -- [(wf_name, wf_avail)] <- mapM lookupGreAvailRn wf_rdr_name
              ; grenames <- mapM lookupGlobalOccRn wf_rdr_name
-             -- traceRn "lookup_ie IEThingsAbs" (ppr n $$ ppr wf_name $$ ppr wf_avail)
-             ; traceRn "lookup_wf_ie IEThingsAbs " (ppr grenames $$ ppr n)
+                 ; traceRn "lookup_wf_ie" (ppr grenames $$ ppr n)
              ; if length grenames > 0 && length n > 0
                then return [ (IEThingAbs noAnn (L l (replaceWrappedName rdr (head n)))
                            , availTC (head n) n []) ]
