@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, TypeFamilies #-}
+#endif
 {-
 (c) The University of Glasgow 2006
 (c) The GRASP/AQUA Project, Glasgow University, 1998
@@ -103,6 +107,9 @@ import qualified Data.ByteString.Lazy    as LBS
 import qualified Data.Data as Data
 import Data.Char
 import Data.List( find )
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@))
+#endif
 
 {-
 Data constructor representation
@@ -1173,7 +1180,11 @@ dataConUserTyVars (MkData { dcUserTyVarBinders = tvbs }) = binderVars tvbs
 -- See Note [DataCon user type variable binders]
 -- | 'InvisTVBinder's for the type variables of the constructor, in the order the
 -- user wrote them
-dataConUserTyVarBinders :: DataCon -> [InvisTVBinder]
+dataConUserTyVarBinders ::
+#if MIN_VERSION_base(4,16,0)
+  (VarBndr @ TyVar, VarBndr TyVar @ Specificity) =>
+#endif
+ DataCon -> [InvisTVBinder]
 dataConUserTyVarBinders = dcUserTyVarBinders
 
 -- | Equalities derived from the result type of the data constructor, as written
@@ -1363,7 +1374,11 @@ dataConInstSig con@(MkData { dcUnivTyVars = univ_tvs, dcExTyCoVars = ex_tvs
 --    annotations
 --
 -- 6) The original result type of the 'DataCon'
-dataConFullSig :: DataCon
+dataConFullSig ::
+#if MIN_VERSION_base(4,16,0)
+                  (Scaled @ Type) =>
+#endif
+                  DataCon
                -> ([TyVar], [TyCoVar], [EqSpec], ThetaType, [Scaled Type], Type)
 dataConFullSig (MkData {dcUnivTyVars = univ_tvs, dcExTyCoVars = ex_tvs,
                         dcEqSpec = eq_spec, dcOtherTheta = theta,  -- dcStupidTheta = s_theta,
@@ -1474,8 +1489,11 @@ dataConInstArgTys dc@(MkData {dcUnivTyVars = univ_tvs,
 
 -- | Returns just the instantiated /value/ argument types of a 'DataCon',
 -- (excluding dictionary args)
-dataConInstOrigArgTys
-        :: DataCon      -- Works for any DataCon
+dataConInstOrigArgTys ::
+#if MIN_VERSION_base(4,16,0)
+          (Scaled @ Type) =>
+#endif
+           DataCon      -- Works for any DataCon
         -> [Type]       -- Includes existential tyvar args, but NOT
                         -- equality constraints or dicts
         -> [Scaled Type]

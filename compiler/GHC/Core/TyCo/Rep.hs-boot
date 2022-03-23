@@ -1,8 +1,4 @@
 {-# LANGUAGE NoPolyKinds #-}
-{-# LANGUAGE CPP #-}
-#if __GLASGOW_HASKELL__ >= 903
-{-# LANGUAGE NoPartialTypeConstructors #-}
-#endif
 module GHC.Core.TyCo.Rep where
 
 import GHC.Utils.Outputable ( Outputable )

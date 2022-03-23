@@ -1,7 +1,3 @@
-{-# LANGUAGE CPP #-}
-#if __GLASGOW_HASKELL__ >= 903
-{-# LANGUAGE NoPartialTypeConstructors #-}
-#endif
 module GHC.Core.DataCon where
 
 import GHC.Prelude

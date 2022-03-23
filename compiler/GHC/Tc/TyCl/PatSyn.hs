@@ -727,8 +727,8 @@ tc_patsyn_finish lname dir is_infix lpat' prag_fn
 
        -- Selectors
        ; has_sel <- xopt_FieldSelectors <$> getDynFlags
-       ; let rn_rec_sel_binds = mkPatSynRecSelBinds patSyn (patSynFieldLabels patSyn) has_sel
-             tything = AConLike (PatSynCon patSyn)
+       ; rn_rec_sel_binds <- mkPatSynRecSelBinds patSyn (patSynFieldLabels patSyn) has_sel
+       ; let tything = AConLike (PatSynCon patSyn)
        ; tcg_env <- tcExtendGlobalEnv [tything] $
                     tcRecSelBinds rn_rec_sel_binds
 
@@ -835,10 +835,9 @@ tcPatSynMatcher (L loc name) lpat prag_fn
 mkPatSynRecSelBinds :: PatSyn
                     -> [FieldLabel]  -- ^ Visible field labels
                     -> FieldSelectors
-                    -> [(Id, LHsBind GhcRn)]
+                    -> TcM [(Id, LHsBind GhcRn)]
 mkPatSynRecSelBinds ps fields has_sel
-  = [ mkOneRecordSelector [PatSynCon ps] (RecSelPatSyn ps) fld_lbl has_sel
-    | fld_lbl <- fields ]
+  = mapM (\fld_lbl -> mkOneRecordSelector [PatSynCon ps] (RecSelPatSyn ps) fld_lbl has_sel) fields
 
 isUnidirectional :: HsPatSynDir a -> Bool
 isUnidirectional Unidirectional          = True

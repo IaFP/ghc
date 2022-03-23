@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, TypeFamilies #-}
+#endif
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -30,7 +34,7 @@ import GHC.Prelude
 import Language.Haskell.Syntax.Binds
 
 import {-# SOURCE #-} GHC.Hs.Expr ( pprExpr, pprFunBind, pprPatBind )
-import {-# SOURCE #-} GHC.Hs.Pat  (pprLPat )
+import {-# SOURCE #-} GHC.Hs.Pat  ( pprLPat )
 
 import Language.Haskell.Syntax.Extension
 import GHC.Hs.Extension
@@ -54,6 +58,11 @@ import GHC.Utils.Panic
 import Data.List (sortBy)
 import Data.Function
 import Data.Data (Data)
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT, type(@))
+import {-# SOURCE #-} Language.Haskell.Syntax.Pat (Pat)
+import {-# SOURCE #-} Language.Haskell.Syntax.Expr (HsExpr)
+#endif
 
 {-
 ************************************************************************
@@ -343,13 +352,40 @@ Specifically,
     it's just an error thunk
 -}
 
-instance (OutputableBndrId pl, OutputableBndrId pr)
+instance (
+#if MIN_VERSION_base(4,16,0)
+           WFT (XOverLit (GhcPass pr)),
+           WFT (XOverLit (GhcPass (NoGhcTcPass pr))),
+           WFT (XOverLit GhcRn),-- ANI YUCK!
+           WFT (Anno (Pat (GhcPass pl))), Pat @ GhcPass pl,
+           WFT (Anno (HsExpr (GhcPass pr))), HsExpr @ GhcPass pr,
+           WFT (XOverLit (GhcPass pl)), WFT (XOverLit (GhcPass (NoGhcTcPass pl))),
+           WFT (Anno (Pat (GhcPass pr))), Pat @ GhcPass pr,
+           WFT (Anno (HsExpr (GhcPass pl))), HsExpr @ GhcPass pl, 
+#endif
+           OutputableBndrId pl, OutputableBndrId pr)
         => Outputable (HsLocalBindsLR (GhcPass pl) (GhcPass pr)) where
   ppr (HsValBinds _ bs)   = ppr bs
   ppr (HsIPBinds _ bs)    = ppr bs
   ppr (EmptyLocalBinds _) = empty
 
-instance (OutputableBndrId pl, OutputableBndrId pr)
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass pr)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass pr))),
+  WFT (XOverLit (GhcRn)), -- ANI HUH?
+  WFT (Anno (Pat (GhcPass pl))),
+  Pat @ GhcPass pl,
+  WFT (Anno (HsExpr (GhcPass pr))),
+  HsExpr @ GhcPass pr,
+  WFT (XOverLit (GhcPass pl)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass pl))),
+  WFT (Anno (Pat (GhcPass pr))),
+  Pat @ GhcPass pr,
+  WFT (Anno (HsExpr (GhcPass pl))),
+  HsExpr @ GhcPass pl,
+#endif
+  OutputableBndrId pl, OutputableBndrId pr)
         => Outputable (HsValBindsLR (GhcPass pl) (GhcPass pr)) where
   ppr (ValBinds _ binds sigs)
    = pprDeclList (pprLHsBindsForUser binds sigs)
@@ -364,15 +400,44 @@ instance (OutputableBndrId pl, OutputableBndrId pr)
      pp_rec Recursive    = text "rec"
      pp_rec NonRecursive = text "nonrec"
 
-pprLHsBinds :: (OutputableBndrId idL, OutputableBndrId idR)
-            => LHsBindsLR (GhcPass idL) (GhcPass idR) -> SDoc
+pprLHsBinds :: (
+#if MIN_VERSION_base(4,16,0)
+           WFT (XOverLit (GhcPass idR)),
+           WFT (XOverLit (GhcPass (NoGhcTcPass idR))),
+           WFT (Anno (Pat (GhcPass idL))),
+           Pat @ GhcPass idL,
+           WFT (Anno (HsExpr (GhcPass idR))),
+           HsExpr @ GhcPass idR, WFT (XOverLit (GhcPass idL)),
+           WFT (XOverLit (GhcPass (NoGhcTcPass idL))),
+           WFT (Anno (Pat (GhcPass idR))),
+           Pat @ GhcPass idR,
+           WFT (Anno (HsExpr (GhcPass idL))),
+           HsExpr @ GhcPass idL,
+#endif
+             OutputableBndrId idL, OutputableBndrId idR)
+          => LHsBindsLR (GhcPass idL) (GhcPass idR) -> SDoc
 pprLHsBinds binds
   | isEmptyLHsBinds binds = empty
   | otherwise = pprDeclList (map ppr (bagToList binds))
 
-pprLHsBindsForUser :: (OutputableBndrId idL,
-                       OutputableBndrId idR,
-                       OutputableBndrId id2)
+pprLHsBindsForUser :: (
+#if MIN_VERSION_base(4,16,0)
+           WFT (XOverLit (GhcPass id2)),
+           WFT (XOverLit (GhcPass (NoGhcTcPass id2))),
+           WFT (Anno (Pat (GhcPass idL))),
+           Pat @ GhcPass idL, WFT (Anno (HsExpr (GhcPass idR))),
+           HsExpr @ GhcPass idR, WFT (XOverLit (GhcPass idR)),
+           WFT (XOverLit (GhcPass idL)),
+           WFT (XOverLit (GhcPass (NoGhcTcPass idR))),
+           WFT (XOverLit (GhcPass (NoGhcTcPass idL))),
+           WFT (Anno (Pat (GhcPass idR))),
+           Pat @ GhcPass idR,
+           WFT (Anno (HsExpr (GhcPass idL))),
+           HsExpr @ GhcPass idL,
+#endif
+           OutputableBndrId idL,
+           OutputableBndrId idR,
+           OutputableBndrId id2)
      => LHsBindsLR (GhcPass idL) (GhcPass idR) -> [LSig (GhcPass id2)] -> [SDoc]
 --  pprLHsBindsForUser is different to pprLHsBinds because
 --  a) No braces: 'let' and 'where' include a list of HsBindGroups
@@ -434,12 +499,38 @@ plusHsValBinds (XValBindsLR (NValBinds ds1 sigs1))
 plusHsValBinds _ _
   = panic "HsBinds.plusHsValBinds"
 
-instance (OutputableBndrId pl, OutputableBndrId pr)
+instance (
+#if MIN_VERSION_base(4,16,0)
+                  WFT (Anno (Pat (GhcPass pl))),
+                  WFT (Anno (HsExpr (GhcPass pr))),
+                  WFT (XOverLit (GhcPass pr)),
+                  WFT (XOverLit (GhcPass pl)),
+                  WFT (XOverLit (GhcPass (NoGhcTcPass pr))),
+                  WFT (XOverLit (GhcPass (NoGhcTcPass pl))),
+                  WFT (Anno (Pat (GhcPass pr))),
+                  Pat @ GhcPass pr,
+                  WFT (Anno (HsExpr (GhcPass pl))),
+                  HsExpr @ GhcPass pl,
+#endif
+            OutputableBndrId pl, OutputableBndrId pr)
          => Outputable (HsBindLR (GhcPass pl) (GhcPass pr)) where
     ppr mbind = ppr_monobind mbind
 
 ppr_monobind :: forall idL idR.
-                (OutputableBndrId idL, OutputableBndrId idR)
+                (
+#if MIN_VERSION_base(4,16,0)
+                  WFT (Anno (Pat (GhcPass idL))),
+                  WFT (Anno (HsExpr (GhcPass idR))),
+                  WFT (XOverLit (GhcPass idR)),
+                  WFT (XOverLit (GhcPass idL)),
+                  WFT (XOverLit (GhcPass (NoGhcTcPass idR))),
+                  WFT (XOverLit (GhcPass (NoGhcTcPass idL))),
+                  WFT (Anno (Pat (GhcPass idR))),
+                  Pat @ GhcPass idR,
+                  WFT (Anno (HsExpr (GhcPass idL))),
+                  HsExpr @ GhcPass idL,                  
+#endif
+                  OutputableBndrId idL, OutputableBndrId idR)
              => HsBindLR (GhcPass idL) (GhcPass idR) -> SDoc
 
 ppr_monobind (PatBind { pat_lhs = pat, pat_rhs = grhss })
@@ -481,7 +572,13 @@ instance OutputableBndrId p => Outputable (ABExport (GhcPass p)) where
            , nest 2 (pprTcSpecPrags prags)
            , pprIfTc @p $ nest 2 (text "wrap:" <+> ppr wrap) ]
 
-instance (OutputableBndrId l, OutputableBndrId r)
+instance (
+#if MIN_VERSION_base(4,16,0)
+                  WFT (Anno (Pat (GhcPass r))),
+                  WFT (XOverLit (GhcPass r)),
+                  WFT (Anno (HsExpr (GhcPass r))),
+#endif
+  OutputableBndrId l, OutputableBndrId r)
           => Outputable (PatSynBind (GhcPass l) (GhcPass r)) where
   ppr (PSB{ psb_id = (L _ psyn), psb_args = details, psb_def = pat,
             psb_dir = dir })
@@ -554,12 +651,22 @@ isEmptyIPBindsTc (IPBinds ds is) = null is && isEmptyTcEvBinds ds
 type instance XCIPBind    (GhcPass p) = EpAnn [AddEpAnn]
 type instance XXIPBind    (GhcPass p) = NoExtCon
 
-instance OutputableBndrId p
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p)
        => Outputable (HsIPBinds (GhcPass p)) where
   ppr (IPBinds ds bs) = pprDeeperList vcat (map ppr bs)
                         $$ whenPprDebug (pprIfTc @p $ ppr ds)
 
-instance OutputableBndrId p => Outputable (IPBind (GhcPass p)) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p) => Outputable (IPBind (GhcPass p)) where
   ppr (IPBind _ lr rhs) = name <+> equals <+> pprExpr (unLoc rhs)
     where name = case lr of
                    Left (L _ ip) -> pprBndr LetBind ip
@@ -597,10 +704,20 @@ data AnnSig
       } deriving Data
 
 
-instance OutputableBndrId p => Outputable (Sig (GhcPass p)) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p) => Outputable (Sig (GhcPass p)) where
     ppr sig = ppr_sig sig
 
-ppr_sig :: forall p. OutputableBndrId p
+ppr_sig :: forall p. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p)
         => Sig (GhcPass p) -> SDoc
 ppr_sig (TypeSig _ vars ty)  = pprVarSig (map unLoc vars) (ppr ty)
 ppr_sig (ClassOpSig _ is_deflt vars ty)

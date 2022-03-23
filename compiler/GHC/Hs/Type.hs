@@ -356,12 +356,22 @@ arrowToHsType (HsLinearArrow _) = noLocA oneDataConHsTy
 arrowToHsType (HsExplicitMult _ p _) = p
 
 instance
-      (OutputableBndrId pass) =>
+      (
+#if MIN_VERSION_base(4,16,0)
+        WFT (XOverLit (GhcPass pass)),
+        WFT (XOverLit (GhcPass (NoGhcTcPass pass))),
+#endif
+        OutputableBndrId pass) =>
       Outputable (HsArrow (GhcPass pass)) where
   ppr arr = parens (pprHsArrow arr)
 
 -- See #18846
-pprHsArrow :: (OutputableBndrId pass) => HsArrow (GhcPass pass) -> SDoc
+pprHsArrow :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass pass)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass pass))),
+#endif
+  OutputableBndrId pass) => HsArrow (GhcPass pass) -> SDoc
 pprHsArrow (HsUnrestrictedArrow _) = arrow
 pprHsArrow (HsLinearArrow _) = lollipop
 pprHsArrow (HsExplicitMult _ p _) = mulArrow (ppr p)
@@ -369,7 +379,12 @@ pprHsArrow (HsExplicitMult _ p _) = mulArrow (ppr p)
 type instance XConDeclField  (GhcPass _) = EpAnn [AddEpAnn]
 type instance XXConDeclField (GhcPass _) = NoExtCon
 
-instance OutputableBndrId p
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),  
+#endif
+          OutputableBndrId p)
        => Outputable (ConDeclField (GhcPass p)) where
   ppr (ConDeclField _ fld_n fld_ty _) = ppr fld_n <+> dcolon <+> ppr fld_ty
 
@@ -867,7 +882,12 @@ ambiguousFieldOcc (FieldOcc sel rdr) = Unambiguous sel rdr
 -}
 
 class OutputableBndrFlag flag p where
-    pprTyVarBndr :: OutputableBndrId p
+    pprTyVarBndr :: (
+#if MIN_VERSION_base(4,16,0)
+                      WFT (XOverLit (GhcPass p)),
+                      WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+#endif
+                     OutputableBndrId p)
                  => HsTyVarBndr flag (GhcPass p) -> SDoc
 
 instance OutputableBndrFlag () p where
@@ -908,18 +928,37 @@ instance OutputableBndrFlag Specificity p where
           GhcRn -> ppr n
           GhcTc -> ppr n
 
-instance OutputableBndrId p => Outputable (HsSigType (GhcPass p)) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (XOverLit (GhcPass p)),
+#endif
+  OutputableBndrId p) => Outputable (HsSigType (GhcPass p)) where
     ppr (HsSig { sig_bndrs = outer_bndrs, sig_body = body }) =
       pprHsOuterSigTyVarBndrs outer_bndrs <+> ppr body
 
-instance OutputableBndrId p => Outputable (HsType (GhcPass p)) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),  
+#endif
+  OutputableBndrId p) => Outputable (HsType (GhcPass p)) where
     ppr ty = pprHsType ty
 
-instance OutputableBndrId p
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+#endif
+  OutputableBndrId p)
        => Outputable (LHsQTyVars (GhcPass p)) where
     ppr (HsQTvs { hsq_explicit = tvs }) = interppSP tvs
 
-instance (OutputableBndrFlag flag p,
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+#endif
+  OutputableBndrFlag flag p,
           OutputableBndrFlag flag (NoGhcTcPass p),
           OutputableBndrId p)
        => Outputable (HsOuterTyVarBndrs flag (GhcPass p)) where
@@ -931,14 +970,24 @@ instance (OutputableBndrFlag flag p,
     ppr (HsOuterExplicit{hso_bndrs = exp_tvs}) =
       text "HsOuterExplicit:" <+> ppr exp_tvs
 
-instance OutputableBndrId p
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+#endif
+          OutputableBndrId p)
        => Outputable (HsForAllTelescope (GhcPass p)) where
     ppr (HsForAllVis { hsf_vis_bndrs = bndrs }) =
       text "HsForAllVis:" <+> ppr bndrs
     ppr (HsForAllInvis { hsf_invis_bndrs = bndrs }) =
       text "HsForAllInvis:" <+> ppr bndrs
 
-instance (OutputableBndrId p, OutputableBndrFlag flag p)
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+#endif
+  OutputableBndrId p, OutputableBndrFlag flag p)
        => Outputable (HsTyVarBndr flag (GhcPass p)) where
     ppr = pprTyVarBndr
 
@@ -946,7 +995,12 @@ instance Outputable thing
        => Outputable (HsWildCardBndrs (GhcPass p) thing) where
     ppr (HsWC { hswc_body = ty }) = ppr ty
 
-instance (OutputableBndrId p)
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+#endif
+  OutputableBndrId p)
        => Outputable (HsPatSigType (GhcPass p)) where
     ppr (HsPS { hsps_body = ty }) = ppr ty
 
@@ -955,7 +1009,11 @@ pprAnonWildCard = char '_'
 
 -- | Prints the explicit @forall@ in a type family equation if one is written.
 -- If there is no explicit @forall@, nothing is printed.
-pprHsOuterFamEqnTyVarBndrs :: OutputableBndrId p
+pprHsOuterFamEqnTyVarBndrs :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+#endif
+  OutputableBndrId p)
                            => HsOuterFamEqnTyVarBndrs (GhcPass p) -> SDoc
 pprHsOuterFamEqnTyVarBndrs (HsOuterImplicit{}) = empty
 pprHsOuterFamEqnTyVarBndrs (HsOuterExplicit{hso_bndrs = qtvs}) =
@@ -963,7 +1021,11 @@ pprHsOuterFamEqnTyVarBndrs (HsOuterExplicit{hso_bndrs = qtvs}) =
 
 -- | Prints the outermost @forall@ in a type signature if one is written.
 -- If there is no outermost @forall@, nothing is printed.
-pprHsOuterSigTyVarBndrs :: OutputableBndrId p
+pprHsOuterSigTyVarBndrs :: (
+#if MIN_VERSION_base(4,16,0)
+          WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+#endif
+                           OutputableBndrId p)
                         => HsOuterSigTyVarBndrs (GhcPass p) -> SDoc
 pprHsOuterSigTyVarBndrs (HsOuterImplicit{}) = empty
 pprHsOuterSigTyVarBndrs (HsOuterExplicit{hso_bndrs = bndrs}) =
@@ -971,18 +1033,32 @@ pprHsOuterSigTyVarBndrs (HsOuterExplicit{hso_bndrs = bndrs}) =
 
 -- | Prints a forall; When passed an empty list, prints @forall .@/@forall ->@
 -- only when @-dppr-debug@ is enabled.
-pprHsForAll :: forall p. OutputableBndrId p
+pprHsForAll :: forall p. (
+#if MIN_VERSION_base(4,16,0)
+               WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+               WFT (XOverLit (GhcPass p)),
+#endif
+               OutputableBndrId p)
             => HsForAllTelescope (GhcPass p)
             -> Maybe (LHsContext (GhcPass p)) -> SDoc
 pprHsForAll tele cxt
   = pp_tele tele <+> pprLHsContext cxt
   where
-    pp_tele :: HsForAllTelescope (GhcPass p) -> SDoc
+    pp_tele ::
+#if MIN_VERSION_base(4,16,0)
+               WFT (XOverLit (GhcPass p)) => 
+#endif
+      HsForAllTelescope (GhcPass p) -> SDoc
     pp_tele tele = case tele of
       HsForAllVis   { hsf_vis_bndrs   = qtvs } -> pp_forall (space <> arrow) qtvs
       HsForAllInvis { hsf_invis_bndrs = qtvs } -> pp_forall dot qtvs
 
-    pp_forall :: forall flag p. (OutputableBndrId p, OutputableBndrFlag flag p)
+    pp_forall :: forall flag p. (
+#if MIN_VERSION_base(4,16,0)
+               WFT (XOverLit (GhcPass p)),
+               WFT (XOverLit (GhcPass (NoGhcTcPass p))),  
+#endif
+      OutputableBndrId p, OutputableBndrFlag flag p)
               => SDoc -> [LHsTyVarBndr flag (GhcPass p)] -> SDoc
     pp_forall separator qtvs
       | null qtvs = whenPprDebug (forAllLit <> separator)
@@ -991,13 +1067,23 @@ pprHsForAll tele cxt
   -- be updated to match.
       | otherwise = forAllLit <+> interppSP qtvs <> separator
 
-pprLHsContext :: (OutputableBndrId p)
+pprLHsContext :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+#endif
+  OutputableBndrId p)
               => Maybe (LHsContext (GhcPass p)) -> SDoc
 pprLHsContext Nothing = empty
 pprLHsContext (Just lctxt) = pprLHsContextAlways lctxt
 
 -- For use in a HsQualTy, which always gets printed if it exists.
-pprLHsContextAlways :: (OutputableBndrId p)
+pprLHsContextAlways :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+#endif
+  OutputableBndrId p)
                     => LHsContext (GhcPass p) -> SDoc
 pprLHsContextAlways (L _ ctxt)
   = case ctxt of
@@ -1005,7 +1091,12 @@ pprLHsContextAlways (L _ ctxt)
       [L _ ty] -> ppr_mono_ty ty           <+> darrow
       _        -> parens (interpp'SP ctxt) <+> darrow
 
-pprConDeclFields :: (OutputableBndrId p)
+pprConDeclFields :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+#endif
+          OutputableBndrId p)
                  => [LConDeclField (GhcPass p)] -> SDoc
 pprConDeclFields fields = braces (sep (punctuate comma (map ppr_fld fields)))
   where
@@ -1032,7 +1123,12 @@ seems like the Right Thing anyway.)
 
 -- Printing works more-or-less as for Types
 
-pprHsType :: (OutputableBndrId p) => HsType (GhcPass p) -> SDoc
+pprHsType :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+#endif
+  OutputableBndrId p) => HsType (GhcPass p) -> SDoc
 pprHsType ty = ppr_mono_ty ty
 
 ppr_mono_lty :: (
@@ -1041,6 +1137,8 @@ ppr_mono_lty :: (
   , WFT (Anno (ConDeclField (GhcPass p)))
   , WFT (XRec (GhcPass p) [GenLocated SrcSpanAnnA (HsType (GhcPass p))])
   , WFT (Anno [GenLocated SrcSpanAnnA (HsType (GhcPass p))])
+  , WFT (XOverLit (GhcPass p))
+  , WFT (XOverLit (GhcPass (NoGhcTcPass p)))
   ,
 #endif
   OutputableBndrId p)
@@ -1055,6 +1153,8 @@ ppr_mono_ty :: (
  , WFT (Anno (ConDeclField (GhcPass p)))
  , WFT (XRec (GhcPass p) [GenLocated SrcSpanAnnA (HsType (GhcPass p))])
  , WFT (Anno [GenLocated SrcSpanAnnA (HsType (GhcPass p))])
+ , WFT (XOverLit (GhcPass p))
+ , WFT (XOverLit (GhcPass (NoGhcTcPass p)))
  ,
 #endif
   OutputableBndrId p) => HsType (GhcPass p) -> SDoc
@@ -1126,7 +1226,12 @@ ppr_mono_ty (HsDocTy _ ty doc)
 ppr_mono_ty (XHsType t) = ppr t
 
 --------------------------
-ppr_fun_ty :: (OutputableBndrId p)
+ppr_fun_ty :: (
+#if MIN_VERSION_base(4,16,0)
+             WFT (XOverLit (GhcPass p)),
+               WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+#endif
+              OutputableBndrId p)
            => HsArrow (GhcPass p) -> LHsType (GhcPass p) -> LHsType (GhcPass p) -> SDoc
 ppr_fun_ty mult ty1 ty2
   = let p1 = ppr_mono_lty ty1

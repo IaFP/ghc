@@ -46,6 +46,7 @@ import GHC.Core.Predicate
 import GHC.Core.Make( rEC_SEL_ERROR_ID )
 import GHC.Core.Class
 import GHC.Core.Type
+import GHC.Core.TyWF
 import GHC.Core.TyCon
 import GHC.Core.ConLike
 import GHC.Core.DataCon
@@ -780,7 +781,8 @@ addTyConsToGblEnv tyclss
     do { traceTc "tcAddTyCons" $ vcat
             [ text "tycons" <+> ppr tyclss
             , text "implicits" <+> ppr implicit_things ]
-       ; gbl_env <- tcRecSelBinds (mkRecSelBinds tyclss)
+       ; bs <- mkRecSelBinds tyclss
+       ; gbl_env <- tcRecSelBinds bs
        ; th_bndrs <- tcTyThBinders implicit_things
        ; return (gbl_env, th_bndrs)
        }
@@ -863,15 +865,15 @@ tcRecSelBinds sel_bind_prs
                                              , let loc = getSrcSpan sel_id ]
     binds = [(NonRecursive, unitBag bind) | (_, bind) <- sel_bind_prs]
 
-mkRecSelBinds :: [TyCon] -> [(Id, LHsBind GhcRn)]
+mkRecSelBinds :: [TyCon] -> TcM [(Id, LHsBind GhcRn)]
 -- NB We produce *un-typechecked* bindings, rather like 'deriving'
 --    This makes life easier, because the later type checking will add
 --    all necessary type abstractions and applications
 mkRecSelBinds tycons
-  = map mkRecSelBind [ (tc,fld) | tc <- tycons
+  = mapM mkRecSelBind [ (tc,fld) | tc <- tycons
                                 , fld <- tyConFieldLabels tc ]
 
-mkRecSelBind :: (TyCon, FieldLabel) -> (Id, LHsBind GhcRn)
+mkRecSelBind :: (TyCon, FieldLabel) -> TcM (Id, LHsBind GhcRn)
 mkRecSelBind (tycon, fl)
   = mkOneRecordSelector all_cons (RecSelData tycon) fl
         FieldSelectors  -- See Note [NoFieldSelectors and naughty record selectors]
@@ -879,108 +881,113 @@ mkRecSelBind (tycon, fl)
     all_cons = map RealDataCon (tyConDataCons tycon)
 
 mkOneRecordSelector :: [ConLike] -> RecSelParent -> FieldLabel -> FieldSelectors
-                    -> (Id, LHsBind GhcRn)
+                    -> TcM (Id, LHsBind GhcRn)
 mkOneRecordSelector all_cons idDetails fl has_sel
-  = (sel_id, L (noAnnSrcSpan loc) sel_bind)
-  where
-    loc      = getSrcSpan sel_name
-    loc'     = noAnnSrcSpan loc
-    locn     = noAnnSrcSpan loc
-    locc     = noAnnSrcSpan loc
-    lbl      = flLabel fl
-    sel_name = flSelector fl
+  = do { partyCtrs <- xoptM LangExt.PartialTypeConstructors
+       ; let loc      = getSrcSpan sel_name
+             loc'     = noAnnSrcSpan loc
+             locn     = noAnnSrcSpan loc
+             locc     = noAnnSrcSpan loc
+             lbl      = flLabel fl
+             sel_name = flSelector fl
 
-    sel_id = mkExportedLocalId rec_details sel_name sel_ty
-    rec_details = RecSelId { sel_tycon = idDetails, sel_naughty = is_naughty }
+             -- Find a representative constructor, con1
+             cons_w_field = conLikesWithFields all_cons [lbl]
+             con1 = assert (not (null cons_w_field)) $ head cons_w_field
 
-    -- Find a representative constructor, con1
-    cons_w_field = conLikesWithFields all_cons [lbl]
-    con1 = assert (not (null cons_w_field)) $ head cons_w_field
+             (univ_tvs, _, eq_spec, _, req_theta, _, data_ty) = conLikeFullSig con1
 
-    -- Selector type; Note [Polymorphic selectors]
-    field_ty   = conLikeFieldType con1 lbl
-    data_tvbs  = filter (\tvb -> binderVar tvb `elemVarSet` data_tv_set) $
-                 conLikeUserTyVarBinders con1
-    data_tv_set= tyCoVarsOfTypes inst_tys
-    is_naughty = not (tyCoVarsOfType field_ty `subVarSet` data_tv_set)
-                    || has_sel == NoFieldSelectors
-    sel_ty | is_naughty = unitTy  -- See Note [Naughty record selectors]
-           | otherwise  = mkForAllTys (tyVarSpecToBinders data_tvbs) $
-                          -- Urgh! See Note [The stupid context] in GHC.Core.DataCon
-                          mkPhiTy (conLikeStupidTheta con1) $
-                          -- req_theta is empty for normal DataCon
-                          mkPhiTy req_theta                 $
-                          mkVisFunTyMany data_ty            $
-                            -- Record selectors are always typed with Many. We
-                            -- could improve on it in the case where all the
-                            -- fields in all the constructor have multiplicity Many.
-                          field_ty
+             eq_subst = mkTvSubstPrs (map eqSpecPair eq_spec)
+             -- inst_tys corresponds to one of the following:
+             --
+             -- * The arguments to the user-written return type (for GADT constructors).
+             --   In this scenario, eq_subst provides a mapping from the universally
+             --   quantified type variables to the argument types. Note that eq_subst
+             --   does not need to be applied to any other part of the DataCon
+             --   (see Note [The dcEqSpec domain invariant] in GHC.Core.DataCon).
+             -- * The universally quantified type variables
+             --   (for Haskell98-style constructors and pattern synonyms). In these
+             --   scenarios, eq_subst is an empty substitution.
+             inst_tys = substTyVars eq_subst univ_tvs
 
-    -- Make the binding: sel (C2 { fld = x }) = x
-    --                   sel (C7 { fld = x }) = x
-    --    where cons_w_field = [C2,C7]
-    sel_bind = mkTopFunBind Generated sel_lname alts
-      where
-        alts | is_naughty = [mkSimpleMatch (mkPrefixFunRhs sel_lname)
-                                           [] unit_rhs]
-             | otherwise =  map mk_match cons_w_field ++ deflt
-    mk_match con = mkSimpleMatch (mkPrefixFunRhs sel_lname)
+             rec_details = RecSelId { sel_tycon = idDetails, sel_naughty = is_naughty }
+
+             -- Selector type; Note [Polymorphic selectors]
+             field_ty   = conLikeFieldType con1 lbl
+             data_tvbs  = filter (\tvb -> binderVar tvb `elemVarSet` data_tv_set) $
+                          conLikeUserTyVarBinders con1
+             data_tv_set= tyCoVarsOfTypes inst_tys
+             is_naughty = not (tyCoVarsOfType field_ty `subVarSet` data_tv_set)
+                          || has_sel == NoFieldSelectors
+             sel_ty' | is_naughty = unitTy  -- See Note [Naughty record selectors]
+                     | otherwise  = mkForAllTys (tyVarSpecToBinders data_tvbs) $
+                                   -- Urgh! See Note [The stupid context] in GHC.Core.DataCon
+                                   mkPhiTy (conLikeStupidTheta con1) $
+                                   -- req_theta is empty for normal DataCon
+                                   mkPhiTy req_theta                 $
+                                   mkVisFunTyMany data_ty            $
+                                   -- Record selectors are always typed with Many. We
+                                   -- could improve on it in the case where all the
+                                   -- fields in all the constructor have multiplicity Many.
+                                   field_ty
+       ; let isOkTyCon = case idDetails of
+               -- we want to elaborate the type signture of the field selectors
+               -- only if they are not GADTs and newtypes AKA vanilla H98 
+                       RecSelData tycon -> isVanillaAlgTyCon tycon && not (isNewTyCon tycon
+                                                                           || isGadtSyntaxTyCon tycon)
+                       _                -> False 
+       ; sel_ty <- if partyCtrs && isOkTyCon then elabAtAtConstraintsTcM True sel_ty' else return sel_ty' 
+             -- Make the binding: sel (C2 { fld = x }) = x
+             --                   sel (C7 { fld = x }) = x
+             --    where cons_w_field = [C2,C7]
+       ; let sel_id   = mkExportedLocalId rec_details sel_name sel_ty
+       ; let sel_bind = mkTopFunBind Generated sel_lname alts
+               where
+                 alts | is_naughty = [mkSimpleMatch (mkPrefixFunRhs sel_lname)
+                                       [] unit_rhs]
+                      | otherwise =  map mk_match cons_w_field ++ deflt
+             mk_match con = mkSimpleMatch (mkPrefixFunRhs sel_lname)
                                  [L loc' (mk_sel_pat con)]
                                  (L loc' (HsVar noExtField (L locn field_var)))
-    mk_sel_pat con = ConPat NoExtField (L locn (getName con)) (RecCon rec_fields)
-    rec_fields = HsRecFields { rec_flds = [rec_field], rec_dotdot = Nothing }
-    rec_field  = noLocA (HsFieldBind
-                        { hfbAnn = noAnn
-                        , hfbLHS
-                           = L locc (FieldOcc sel_name
-                                      (L locn $ mkVarUnqual lbl))
-                        , hfbRHS
-                           = L loc' (VarPat noExtField (L locn field_var))
-                        , hfbPun = False })
-    sel_lname = L locn sel_name
-    field_var = mkInternalName (mkBuiltinUnique 1) (getOccName sel_name) loc
+             mk_sel_pat con = ConPat NoExtField (L locn (getName con)) (RecCon rec_fields)
+             rec_fields = HsRecFields { rec_flds = [rec_field], rec_dotdot = Nothing }
+             rec_field  = noLocA (HsFieldBind
+                                  { hfbAnn = noAnn
+                                  , hfbLHS = L locc (FieldOcc sel_name
+                                                     (L locn $ mkVarUnqual lbl))
+                                  , hfbRHS = L loc' (VarPat noExtField (L locn field_var))
+                                  , hfbPun = False })
+             sel_lname = L locn sel_name
+             field_var = mkInternalName (mkBuiltinUnique 1) (getOccName sel_name) loc
 
-    -- Add catch-all default case unless the case is exhaustive
-    -- We do this explicitly so that we get a nice error message that
-    -- mentions this particular record selector
-    deflt | all dealt_with all_cons = []
-          | otherwise = [mkSimpleMatch CaseAlt
-                            [L loc' (WildPat noExtField)]
-                            (mkHsApp (L loc' (HsVar noExtField
-                                         (L locn (getName rEC_SEL_ERROR_ID))))
-                                     (L loc' (HsLit noComments msg_lit)))]
+             -- Add catch-all default case unless the case is exhaustive
+             -- We do this explicitly so that we get a nice error message that
+             -- mentions this particular record selector
+             deflt | all dealt_with all_cons = []
+                   | otherwise = [mkSimpleMatch CaseAlt
+                                  [L loc' (WildPat noExtField)]
+                                  (mkHsApp (L loc' (HsVar noExtField
+                                                    (L locn (getName rEC_SEL_ERROR_ID))))
+                                    (L loc' (HsLit noComments msg_lit)))]
 
-        -- Do not add a default case unless there are unmatched
-        -- constructors.  We must take account of GADTs, else we
-        -- get overlap warning messages from the pattern-match checker
-        -- NB: we need to pass type args for the *representation* TyCon
-        --     to dataConCannotMatch, hence the calculation of inst_tys
-        --     This matters in data families
-        --              data instance T Int a where
-        --                 A :: { fld :: Int } -> T Int Bool
-        --                 B :: { fld :: Int } -> T Int Char
-    dealt_with :: ConLike -> Bool
-    dealt_with (PatSynCon _) = False -- We can't predict overlap
-    dealt_with con@(RealDataCon dc) =
-      con `elem` cons_w_field || dataConCannotMatch inst_tys dc
+             -- Do not add a default case unless there are unmatched
+             -- constructors.  We must take account of GADTs, else we
+             -- get overlap warning messages from the pattern-match checker
+             -- NB: we need to pass type args for the *representation* TyCon
+             --     to dataConCannotMatch, hence the calculation of inst_tys
+             --     This matters in data families
+             --              data instance T Int a where
+             --                 A :: { fld :: Int } -> T Int Bool
+             --                 B :: { fld :: Int } -> T Int Char
+             dealt_with :: ConLike -> Bool
+             dealt_with (PatSynCon _) = False -- We can't predict overlap
+             dealt_with con@(RealDataCon dc) = con `elem` cons_w_field || dataConCannotMatch inst_tys dc
 
-    (univ_tvs, _, eq_spec, _, req_theta, _, data_ty) = conLikeFullSig con1
-
-    eq_subst = mkTvSubstPrs (map eqSpecPair eq_spec)
-    -- inst_tys corresponds to one of the following:
-    --
-    -- * The arguments to the user-written return type (for GADT constructors).
-    --   In this scenario, eq_subst provides a mapping from the universally
-    --   quantified type variables to the argument types. Note that eq_subst
-    --   does not need to be applied to any other part of the DataCon
-    --   (see Note [The dcEqSpec domain invariant] in GHC.Core.DataCon).
-    -- * The universally quantified type variables
-    --   (for Haskell98-style constructors and pattern synonyms). In these
-    --   scenarios, eq_subst is an empty substitution.
-    inst_tys = substTyVars eq_subst univ_tvs
-
-    unit_rhs = mkLHsTupleExpr [] noExtField
-    msg_lit = HsStringPrim NoSourceText (bytesFS lbl)
+             unit_rhs = mkLHsTupleExpr [] noExtField
+             msg_lit = HsStringPrim NoSourceText (bytesFS lbl)
+           
+       ; return (sel_id, L (noAnnSrcSpan loc) sel_bind)
+       }
 
 {-
 Note [Polymorphic selectors]
