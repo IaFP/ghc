@@ -213,16 +213,13 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
 
        ; traceTc "---- end tcTyClGroup ---- }" empty
 
-           -- Step 3: Add the implicit things;
-           -- we want them in the environment because
-           -- they may be mentioned in interface files
-         -- TODO: donot call mk_atat_fam if we are in boot files
-         -- That information should be accesible from TcM but i don't know whats the best
-         -- way to get it..
+         -- Step 3: Add the implicit things;
+         -- we want them in the environment because
+         -- they may be mentioned in interface files
        ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
        ; isBootFile <- tcIsHsBootOrSig
        ; (gbl_env, th_bndrs) <-
-           if enblPCtrs && (not isBootFile)
+           if enblPCtrs && (not isBootFile) -- do not call mk_atat_fam if we are in boot files
            then do { traceTc "---- start wf enrichment ---- { " empty
 
                    ; let locs::[SrcSpan] = map (locA . getLoc) tyclds
@@ -2861,20 +2858,18 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
           ; inj' <- tcInjectivity binders inj
           ; checkResultSigFlag tc_name sig  -- check after injectivity for better errors
           ; if partyCtrs && isJust wfname -- do this only for associated types for now.
-            then -- fixM $ \ _ ->
-              do { -- wf_name <- mk_wf_name tc_name
+            then
+              do {
                  ; let wf_tycon = mkWFFamilyTyCon (fromJust wfname) binders constraintKind
                                   (resultVariableName sig) OpenSynFamilyTyCon
-                                    parent inj' 
+                                    parent
                        tycon = mkFamilyTyCon tc_name binders res_kind
                                     (resultVariableName sig) OpenSynFamilyTyCon
                                     parent inj' (Just wf_tycon)
-                 -- ; traceTc "wfelab tcFamDecl1" (ppr tycon <+> ppr (wfMirrorTyCon_maybe tycon))
                  ; return tycon }
             else do { let tycon = mkFamilyTyCon tc_name binders res_kind
                                     (resultVariableName sig) OpenSynFamilyTyCon
                                     parent inj' Nothing
-                    -- ; traceTc "tcFamDecl1 no wfmirror" (ppr tycon <+> ppr (wfMirrorTyCon_maybe tycon))
                     ; return tycon }
           } 
 

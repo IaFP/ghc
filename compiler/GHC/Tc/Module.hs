@@ -995,7 +995,8 @@ checkBootDecl :: Bool -> TyThing -> TyThing -> Maybe SDoc
 
 checkBootDecl _ (AnId id1) (AnId id2)
   = assert (id1 == id2) $
-    check ((wf_free_type $ idType id1) `eqType` (wf_free_type $ idType id2))
+    check -- (idType id1 `eqType` idType id2) -- ANI: TODO Fix this
+          ((wf_free_type $ idType id1) `eqType` (wf_free_type $ idType id2))
           (text "The two types are different")
 
 checkBootDecl is_boot (ATyCon tc1) (ATyCon tc2)

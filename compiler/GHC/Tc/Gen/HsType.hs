@@ -626,7 +626,7 @@ tc_top_lhs_type :: TypeOrKind -> UserTypeCtxt -> LHsSigType GhcRn -> TcM Type
 tc_top_lhs_type tyki ctxt (L loc sig_ty@(HsSig { sig_bndrs = hs_outer_bndrs
                                                , sig_body = body }))
   = setSrcSpanA loc $
-    do { traceTc "tc_top_lhs_type {" (ppr sig_ty)
+    do { traceTc "tc_top_lhs_type {" (ppr tyki <+> ppr sig_ty)
        ; (tclvl, wanted, (outer_bndrs, ty))
               <- pushLevelAndSolveEqualitiesX "tc_top_lhs_type"    $
                  tcOuterTKBndrs skol_info hs_outer_bndrs $
@@ -640,11 +640,11 @@ tc_top_lhs_type tyki ctxt (L loc sig_ty@(HsSig { sig_bndrs = hs_outer_bndrs
        ; reportUnsolvedEqualities skol_info kvs tclvl wanted
 
        ; ze       <- mkEmptyZonkEnv NoFlexi
-       ; final_ty <- zonkTcTypeToTypeX ze (mkInfForAllTys kvs ty1)
+       ; final_ty' <- zonkTcTypeToTypeX ze (mkInfForAllTys kvs ty1)
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors 
        ; final_ty <- if partyCtrs && isTypeLevel tyki
-                     then elabAtAtConstraintsTcM False final_ty
-                     else return final_ty
+                     then elabAtAtConstraintsTcM False final_ty'
+                     else return final_ty'
 
        ; traceTc "tc_top_lhs_type }" (vcat [ppr sig_ty, ppr final_ty])
        ; return final_ty }
