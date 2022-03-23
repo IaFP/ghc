@@ -136,7 +136,7 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
       return $ elabDetails rty (newPreds elabd)
 
   -- recursively build @@ constraints for type constructor
-  | (TyConApp tyc tycargs) <- ty =
+  | (TyConApp tyc tycargs) <- ty = 
       if tyc `hasKey` typeRepTyConKey || isWFMirrorTyCon tyc
       -- this is supposed to save us from sometyperep, typerep nonsense.
         then return $ elabDetails ty []

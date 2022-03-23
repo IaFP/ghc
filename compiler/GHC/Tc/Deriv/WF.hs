@@ -335,7 +335,6 @@ mkWFCoAxBranch :: CoAxBranch -> TcM CoAxBranch
 mkWFCoAxBranch (CoAxBranch { cab_tvs = qtvs, cab_lhs = pats, cab_loc = loc, cab_rhs = rhs })
   = do {
        ; traceTc "mkWFCoAxBranch { " empty
-       ; traceTc "coax type : " (ppr rhs)
        ; elabDetails <- genAtAtConstraintsTcM False rhs
        ; let preds = newPreds elabDetails
              n = length preds
