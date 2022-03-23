@@ -3182,6 +3182,36 @@ kcTyFamInstEqn tc_fam_tc
     }
 
 --------------------------
+
+{-
+  TODO @ahubers:
+  It may be time to bite the bullet and do this the correct-ish way.
+  Maybe:
+  1. Generate a new set of fam inst eqns via replace_tycon_with_its_wf_mirror
+  2. In tcWFTyFamInstEqn, if
+       - RHS of eqn is recursive -> just do tcTyFamInstEqnGuts
+       - otherwise               -> use tcTyFamInstEqnGuts, then generate constraint from rhs_ty
+
+  This should end up working, by effectively partitioning the $wf' equations into either:
+     - knot-tied (recursive) equations. e.g,
+       F [a] = F a
+       =>
+       $wf'F [a] = $wf'F a
+  - non-recursive equations turn into constraints, e.g,
+    F (a, a) = Tree a
+    =>
+    $wf'F (a, a) = Tree @ a
+
+  The trick is, we know ahead of time (by checking the renamed LTyFamInstEqn) which
+  equations are knot-tied (and therefore cause a run-time loop).
+-}
+
+replace_tycon_with_its_wf_mirror :: TcTyCon -> LTyFamInstEqn GhcRn -> TcM (LTyFamInstEqn GhcRn)
+replace_tycon_with_its_wf_mirror = undefined
+
+tcWFTyFamInstEqn :: TcTyCon -> LTyFamInstEqn GhcRn -> TcM (KnotTied CoAxBranch)
+tcWFTyFamInstEqn = undefined
+
 tcTyFamInstEqn :: TcTyCon -> AssocInstInfo -> LTyFamInstEqn GhcRn
                -> TcM (KnotTied CoAxBranch)
 -- Needs to be here, not in GHC.Tc.TyCl.Instance, because closed families
@@ -3200,7 +3230,7 @@ tcTyFamInstEqn fam_tc mb_clsinfo
                   NotAssociated {} -> empty
                   InClsInst { ai_class = cls } -> text "class" <+> ppr cls <+> pprTyVars (classTyVars cls) ]
 
-       -- ; checkTyFamInstEqn fam_tc eqn_tc_name hs_pats
+       ; checkTyFamInstEqn fam_tc eqn_tc_name hs_pats
 
        ; (qtvs, pats, rhs_ty) <- tcTyFamInstEqnGuts fam_tc mb_clsinfo
                                       outer_bndrs hs_pats hs_rhs_ty

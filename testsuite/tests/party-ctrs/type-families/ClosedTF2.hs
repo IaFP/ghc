@@ -10,4 +10,4 @@ type family F (a :: *) :: * where
 data Ord a => Tree a = Leaf a | Node (Tree a) (Tree a)
 
 g :: a -> F (a, a)
-g = undefined
+g = Leaf

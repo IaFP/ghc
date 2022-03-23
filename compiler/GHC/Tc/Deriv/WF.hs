@@ -328,7 +328,6 @@ genWFTyFamInst fam_inst
 genWFTyFamInsts :: [FamInst] -> TcM [FamInst]
 genWFTyFamInsts = mapM genWFTyFamInst
 
-
 -- Take a CoAx for a TF (call it F) and
 -- make a corresponding axiom for $wf'F.
 mkWFCoAxBranch :: CoAxBranch -> TcM CoAxBranch
