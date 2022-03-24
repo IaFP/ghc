@@ -263,9 +263,9 @@ genWFFamInstConstraint rhs
   ; preds <- (newPreds <$> genAtAtConstraintsTcM False rhs)
   ; flattened <- concatMapM flatten_atat_constraint preds
   ; let
-      n = length preds
+      n = length flattened
   ; if n == 1
-    then return . head $ preds
+    then return . head $ flattened
     else do {
       ; ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
       ; return $ mkTyConApp ctupleTyCon flattened
