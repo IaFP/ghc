@@ -238,7 +238,6 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                          (open, rest1)   = partition (isOpenTypeFamilyTyCon . snd) locsAndTcs
                          (closed, rest2) = partition (isClosedTypeFamilyTyCon . snd) rest1
                          wf_mirrors = fmap (wfMirrorTyCon . snd) (open ++ closed)
-                   -- ; (wf_mirrors_closed, updated_closed_tfs) <- unzip <$> mapM updateClosedWFMirrorAxioms closed
                      
                    ; traceTc "wfelab partition"
                        (vcat [ text "Open TFs:" <+> (vcat $ fmap (pprtc . snd) open)
@@ -3324,8 +3323,6 @@ tcTyFamInstEqnGuts fam_tc mb_clsinfo outer_hs_bndrs hs_pats hs_rhs_ty wf_fam_tc
                <- pushLevelAndSolveEqualitiesX "tcTyFamInstEqnGuts" $
                   bindOuterFamEqnTKBndrs outer_hs_bndrs             $
                   do { (lhs_ty, rhs_kind) <- tcFamTyPats fam_tc hs_pats
-                     ; traceTc "rhs_kind: " (ppr rhs_kind)
-                     ; traceTc "hs_rhs_ty: " (ppr hs_rhs_ty)
                        -- Ensure that the instance is consistent with its
                        -- parent class (#16008)
                      ; addConsistencyConstraints mb_clsinfo lhs_ty
@@ -3362,7 +3359,6 @@ tcTyFamInstEqnGuts fam_tc mb_clsinfo outer_hs_bndrs hs_pats hs_rhs_ty wf_fam_tc
        ; rhs_ty <- case wf_fam_tc of
                      Just _  -> genWFFamInstConstraint rhs_ty
                      Nothing -> return rhs_ty
-       ; traceTc "rhs_ty: " (ppr rhs_ty)
        ; ze         <- mkEmptyZonkEnv NoFlexi
        ; (ze, qtvs) <- zonkTyBndrsX      ze qtvs
        ; lhs_ty     <- zonkTcTypeToTypeX ze lhs_ty

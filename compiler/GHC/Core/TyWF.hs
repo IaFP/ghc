@@ -143,14 +143,9 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
         ; traceTc "wfelab TyConApp" empty
         ; elabTys_and_atats <- mapM (genAtAtConstraintsExceptTcM isTyConPhase (tyc:tycons) ts) tycargs
         ; let (elab_tys, atc_args) = unzip $ fmap (\d -> (elabTy d, newPreds d)) elabTys_and_atats
-        ; traceTc "tyc: " (ppr tyc)
-        ; traceTc "tycons: " (ppr tycons)
-        ; traceTc "elab_tys: " (ppr elab_tys)
-        ; traceTc "atc_args: " (ppr atc_args)
         ; if any (== tyc) tycons
           then return $ elabDetails (TyConApp tyc elab_tys) (foldl mergeAtAtConstraints [] atc_args)
           else do { atc_tycon <- tyConGenAtsTcM isTyConPhase tycons ts tyc elab_tys
-                  ; traceTc "atc_tycon:" (ppr atc_tycon)
                   ; return $ elabDetails (TyConApp tyc elab_tys) (foldl mergeAtAtConstraints atc_tycon atc_args)
                   }
         }
@@ -347,9 +342,8 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
   = do { traceTc "wfelab closed typefam" (ppr tycon <+> ppr args)
        ; let (args_tc, extra_args_tc) = splitAt (tyConArity tycon) args
        ; let wftycon = wfMirrorTyCon tycon -- this better exist
-       ; traceTc "wfelab lookup2" (ppr wftycon)
+       ; traceTc "wfelab lookup" (ppr wftycon)
        ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
-       ; traceTc "wfelab lookup3" (ppr wftycon)
        ; let css = fmap newPreds elabds
              wftct = mkTyConApp wftycon args_tc
        ; extra_css <- sequenceAts tycon args_tc extra_args_tc [] []

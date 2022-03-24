@@ -11,11 +11,7 @@
 module GHC.Tc.Deriv.WF ( mk_atat_fam, mk_atat_fam_except
                        , mk_atat_fam_units, mk_atat_fam_except_units
                        , saneTyConForElab
-                       , genWFMirrorTyCon
-                       , mkWFCoAxBranch
-                       , genWFTyFamInst, genWFTyFamInsts,
-                         updateClosedWFMirrorAxioms,
-                         genWFFamInstConstraint
+                       , genWFTyFamInst, genWFTyFamInsts
                        ) where
 
 
@@ -256,46 +252,6 @@ getMatchingPredicates' tv tvs preds =
           any (eqType tv) (predTyArgs p)
           && not (or [eqType tv' t | tv' <- tvs, t <- predTyArgs p])
 
-updateClosedWFMirrorAxioms :: (SrcSpan, TyCon) -> TcM (TyCon, TyCon)
-updateClosedWFMirrorAxioms (loc, tc)
-  | Just branches <- isClosedSynFamilyTyConWithAxiom_maybe tc
-  = do
-      {
-       ; let wf_tc = wfMirrorTyCon tc
-             wf_tc_name = tyConName wf_tc
-       ; co_ax_name <- newFamInstAxiomName (L (noAnnSrcSpan loc) wf_tc_name) []
-       ; wf_branches <- mapM mkWFCoAxBranch (fromBranches . coAxiomBranches $ branches)
-      
-       ; let
-           mb_wf_co_ax = Just (mkBranchedCoAxiom co_ax_name mirror_tc wf_branches)
-           mirror_tc = mkWFMirrorTyCon
-                       wf_tc_name
-                       constraintKind
-                       tc
-                       (Just (ClosedSynFamilyTyCon mb_wf_co_ax))
-           n_tc      = updateWfMirrorTyCon tc $ Just mirror_tc
-       ; traceTc "wf tf mirror occname:" (ppr wf_tc_name)
-       ; return (mirror_tc, n_tc)
-       }
-  | otherwise
-  = do { pprPanic "Tried to update CoAxioms, but this TyCon has none." (ppr tc) }
-
-genWFMirrorTyCon :: (SrcSpan, TyCon) -> TcM (TyCon, TyCon)
-genWFMirrorTyCon (loc, tc)
-  | isOpenTypeFamilyTyCon tc && not (isWFMirrorTyCon tc)
-  = do { wf_tc_name <- mk_wf_name $ tyConName tc
-       ; let mirror_tc = mkWFMirrorTyCon
-                         wf_tc_name
-                         constraintKind
-                         tc
-                         Nothing
-             n_tc      = updateWfMirrorTyCon tc $ Just mirror_tc
-       ; traceTc "wf tf mirror occname:" (ppr wf_tc_name)
-       ; return (mirror_tc, n_tc)
-       }
-  | otherwise
-  = do { pprPanic "wf tf mirror unknown case:" (ppr (famTyConFlav_maybe tc) <+> ppr tc) }
-
 -- Given the RHS of a fam instance, e.g, "Tree a" in
 --   F [a] = Tree a
 -- return the corresponding constraint(s), e.g,
@@ -340,17 +296,3 @@ genWFTyFamInst fam_inst
 
 genWFTyFamInsts :: [FamInst] -> TcM [FamInst]
 genWFTyFamInsts = mapM genWFTyFamInst
-
--- Take a CoAx for a TF (call it F) and
--- make a corresponding axiom for $wf'F.
-mkWFCoAxBranch :: CoAxBranch -> TcM CoAxBranch
-mkWFCoAxBranch (CoAxBranch { cab_tvs = qtvs, cab_lhs = pats, cab_loc = loc, cab_rhs = rhs })
-  = do {
-       ; traceTc "mkWFCoAxBranch { " empty
-       ; rhs_ty <- genWFFamInstConstraint rhs
-       ; traceTc "mkWFCoAxBranch } " empty
-       ; return (mkCoAxBranch qtvs [] [] pats rhs_ty
-                              (map (const Nominal) qtvs)
-                              loc)
-       -- ; return $ coAx { cab_rhs = rhs_ty }
-       }
