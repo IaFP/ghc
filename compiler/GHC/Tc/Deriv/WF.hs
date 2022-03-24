@@ -14,7 +14,8 @@ module GHC.Tc.Deriv.WF ( mk_atat_fam, mk_atat_fam_except
                        , genWFMirrorTyCon
                        , mkWFCoAxBranch
                        , genWFTyFamInst, genWFTyFamInsts,
-                         updateClosedWFMirrorAxioms
+                         updateClosedWFMirrorAxioms,
+                         genWFFamInstConstraint
                        ) where
 
 
@@ -295,11 +296,30 @@ genWFMirrorTyCon (loc, tc)
   | otherwise
   = do { pprPanic "wf tf mirror unknown case:" (ppr (famTyConFlav_maybe tc) <+> ppr tc) }
 
--- given a type family instance equation -
--- D a b ~ T a b
--- generates a WF_D a equation
--- WF_D a b ~ wf(T a b)
--- WF_D a b ~ (T @ a, T a @ b)
+-- Given the RHS of a fam instance, e.g, "Tree a" in
+--   F [a] = Tree a
+-- return the corresponding constraint(s), e.g,
+--   Tree @ a
+genWFFamInstConstraint :: Type -> TcM Type
+genWFFamInstConstraint rhs
+  = do {
+  ; preds <- (newPreds <$> genAtAtConstraintsTcM False rhs)
+  ; flattened <- concatMapM flatten_atat_constraint preds
+  ; let
+      n = length preds
+  ; if n == 1
+    then return . head $ preds
+    else do {
+      ; ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
+      ; return $ mkTyConApp ctupleTyCon flattened
+      }
+  }
+
+-- given a type family instance equation, e.g,
+--   D a b ~ T a b
+-- generates a $wf'D a equation
+--   $wf'D a b ~ wf(T a b)
+--   $wf'D a b ~ (T @ a, T a @ b)
 genWFTyFamInst :: FamInst -> TcM FamInst
 genWFTyFamInst fam_inst
   = do { let (tfTc, ts) = famInstSplitLHS fam_inst
@@ -307,14 +327,7 @@ genWFTyFamInst fam_inst
        ; let wfTc = wfMirrorTyCon tfTc
              loc = noAnnSrcSpan . getSrcSpan $ fam_inst
        ; inst_name <- newFamInstTyConName (L loc (getName wfTc)) ts
-       ; elabDetails <- genAtAtConstraintsTcM False rhs
-       ; let preds' = newPreds elabDetails
-       ; preds <- concatMapM flatten_atat_constraint preds'
-       ; let n = length preds
-       ; rhs_ty <- if n == 1 then return . head $ preds
-                   else do { ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
-                           ; return $ mkTyConApp ctupleTyCon preds
-                           }
+       ; rhs_ty <- genWFFamInstConstraint rhs
        ; let tvs     = fi_tvs fam_inst
              lhs_tys = ts
              axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wfTc lhs_tys rhs_ty
@@ -334,13 +347,7 @@ mkWFCoAxBranch :: CoAxBranch -> TcM CoAxBranch
 mkWFCoAxBranch (CoAxBranch { cab_tvs = qtvs, cab_lhs = pats, cab_loc = loc, cab_rhs = rhs })
   = do {
        ; traceTc "mkWFCoAxBranch { " empty
-       ; elabDetails <- genAtAtConstraintsTcM False rhs
-       ; let preds = newPreds elabDetails
-             n = length preds
-       ; rhs_ty <- if n == 1 then return . head $ preds
-                   else do { ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
-                           ; return $ mkTyConApp ctupleTyCon preds
-                           }
+       ; rhs_ty <- genWFFamInstConstraint rhs
        ; traceTc "mkWFCoAxBranch } " empty
        ; return (mkCoAxBranch qtvs [] [] pats rhs_ty
                               (map (const Nominal) qtvs)

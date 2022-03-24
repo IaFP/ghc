@@ -297,7 +297,7 @@ pprtc tc
     <+> text "TypeSyn RHS" <+> ppr (synTyConRhs_maybe tc)
     <+> text "isFamFree" <+> ppr (isFamFreeTyCon tc)
   | isTypeFamilyTyCon tc
-  = text "open tyfam tycon=" <> ppr tc
+  = text "tyfam tycon=" <> ppr tc
     <+> text "mirror tycon=" <> ppr (wfMirrorTyCon_maybe tc)
   | otherwise =
     text "tycon=" <> ppr tc
@@ -2703,7 +2703,7 @@ tcDefaultAssocDecl fam_tc
        -- type default LHS can mention *different* type variables than the
        -- enclosing class. So it's treated more as a freestanding beast.
        ; (qtvs, pats, rhs_ty) <- tcTyFamInstEqnGuts fam_tc NotAssociated
-                                      outer_bndrs hs_pats hs_rhs_ty
+                                      outer_bndrs hs_pats hs_rhs_ty Nothing
 
        ; let fam_tvs = tyConTyVars fam_tc
        ; traceTc "tcDefaultAssocDecl 2" (vcat
@@ -2919,9 +2919,9 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
 
                ; branches <- mapAndReportM (tcTyFamInstEqn tc_fam_tc NotAssociated) eqns
                ; co_ax_name <- newFamInstAxiomName tc_lname []
-               
+
+               ; wf_branches <- mapM (tcWFTyFamInstEqn tc_fam_tc tc_wf_fam_tc) eqns
                ; wf_co_ax_name <- newFamInstAxiomName (L src_span wf_name) []
-               ; wf_branches <- mapM mkWFCoAxBranch branches
 
                ; let mb_co_ax
                        | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
@@ -2935,9 +2935,7 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
                                 parent inj'
 
                      mb_wf_co_ax = Just (mkBranchedCoAxiom co_ax_name wf_tycon wf_branches)
-               
-               -- Testing here to see what sort of horseshit we have with
-               -- the mb_co_ax
+
                
                ; return fam_tc }
              else do {
@@ -3182,35 +3180,39 @@ kcTyFamInstEqn tc_fam_tc
     }
 
 --------------------------
+{- Note [Generating WF mirror CoAxBranches for closed TFs]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-{-
-  TODO @ahubers:
-  It may be time to bite the bullet and do this the correct-ish way.
-  Maybe:
-  1. Generate a new set of fam inst eqns via replace_tycon_with_its_wf_mirror
-  2. In tcWFTyFamInstEqn, if
-       - RHS of eqn is recursive -> just do tcTyFamInstEqnGuts
-       - otherwise               -> use tcTyFamInstEqnGuts, then generate constraint from rhs_ty
+Generating WF equations for a closed TF, E.g, 
 
-  This should end up working, by effectively partitioning the $wf' equations into either:
-     - knot-tied (recursive) equations. e.g,
-       F [a] = F a
-       =>
-       $wf'F [a] = $wf'F a
-  - non-recursive equations turn into constraints, e.g,
+  type family F a where
+    F [a] = F a
     F (a, a) = Tree a
-    =>
+
+generates
+
+  type family $wf'F (a :: *) :: Constraint where
+    $wf'F [a] = $wf'F a
     $wf'F (a, a) = Tree @ a
 
-  The trick is, we know ahead of time (by checking the renamed LTyFamInstEqn) which
-  equations are knot-tied (and therefore cause a run-time loop).
+We have to push this logic deeper than we do for Open Type families
+because referencing `F` in the RHS of equations causes a loop, as F
+is knot-tied. So we have to generate the RHS constraints from
+TcyTyCon's before zonking to TyCon, which happens in tcTyFamInstEqnGuts.
+
 -}
-
-replace_tycon_with_its_wf_mirror :: TcTyCon -> LTyFamInstEqn GhcRn -> TcM (LTyFamInstEqn GhcRn)
-replace_tycon_with_its_wf_mirror = undefined
-
-tcWFTyFamInstEqn :: TcTyCon -> LTyFamInstEqn GhcRn -> TcM (KnotTied CoAxBranch)
-tcWFTyFamInstEqn = undefined
+tcWFTyFamInstEqn :: TcTyCon -> TcTyCon -> LTyFamInstEqn GhcRn -> TcM (KnotTied CoAxBranch)
+tcWFTyFamInstEqn fam_tc wf_fam_tc
+    (L loc (FamEqn { feqn_bndrs  = outer_bndrs
+                   , feqn_pats   = hs_pats
+                   , feqn_rhs    = hs_rhs_ty }))
+  = do {
+       ; (qtvs, pats, rhs_ty) <- tcTyFamInstEqnGuts fam_tc NotAssociated
+                                      outer_bndrs hs_pats hs_rhs_ty (Just wf_fam_tc)
+       ; return (mkCoAxBranch qtvs [] [] pats rhs_ty
+                              (map (const Nominal) qtvs)
+                              (locA loc))
+       }
 
 tcTyFamInstEqn :: TcTyCon -> AssocInstInfo -> LTyFamInstEqn GhcRn
                -> TcM (KnotTied CoAxBranch)
@@ -3233,7 +3235,7 @@ tcTyFamInstEqn fam_tc mb_clsinfo
        ; checkTyFamInstEqn fam_tc eqn_tc_name hs_pats
 
        ; (qtvs, pats, rhs_ty) <- tcTyFamInstEqnGuts fam_tc mb_clsinfo
-                                      outer_bndrs hs_pats hs_rhs_ty
+                                      outer_bndrs hs_pats hs_rhs_ty Nothing
        -- Don't print results they may be knot-tied
        -- (tcFamInstEqnGuts zonks to Type)
        ; return (mkCoAxBranch qtvs [] [] pats rhs_ty
@@ -3324,9 +3326,10 @@ tcTyFamInstEqnGuts :: TyCon -> AssocInstInfo
                    -> HsOuterFamEqnTyVarBndrs GhcRn     -- Implicit and explicit binders
                    -> HsTyPats GhcRn                    -- Patterns
                    -> LHsType GhcRn                     -- RHS
+                   -> Maybe TyCon                       -- WF Mirror
                    -> TcM ([TyVar], [TcType], TcType)   -- (tyvars, pats, rhs)
 -- Used only for type families, not data families
-tcTyFamInstEqnGuts fam_tc mb_clsinfo outer_hs_bndrs hs_pats hs_rhs_ty
+tcTyFamInstEqnGuts fam_tc mb_clsinfo outer_hs_bndrs hs_pats hs_rhs_ty wf_fam_tc
   = do { traceTc "tcTyFamInstEqnGuts {" (ppr fam_tc)
 
        -- By now, for type families (but not data families) we should
@@ -3338,6 +3341,8 @@ tcTyFamInstEqnGuts fam_tc mb_clsinfo outer_hs_bndrs hs_pats hs_rhs_ty
                <- pushLevelAndSolveEqualitiesX "tcTyFamInstEqnGuts" $
                   bindOuterFamEqnTKBndrs outer_hs_bndrs             $
                   do { (lhs_ty, rhs_kind) <- tcFamTyPats fam_tc hs_pats
+                     ; traceTc "rhs_kind: " (ppr rhs_kind)
+                     ; traceTc "hs_rhs_ty: " (ppr hs_rhs_ty)
                        -- Ensure that the instance is consistent with its
                        -- parent class (#16008)
                      ; addConsistencyConstraints mb_clsinfo lhs_ty
@@ -3371,6 +3376,10 @@ tcTyFamInstEqnGuts fam_tc mb_clsinfo outer_hs_bndrs hs_pats hs_rhs_ty
                                    , ppr rhs_ty ] ) }
        ; doNotQuantifyTyVars dvs_rhs mk_doc
 
+       ; rhs_ty <- case wf_fam_tc of
+                     Just _  -> genWFFamInstConstraint rhs_ty
+                     Nothing -> return rhs_ty
+       ; traceTc "rhs_ty: " (ppr rhs_ty)
        ; ze         <- mkEmptyZonkEnv NoFlexi
        ; (ze, qtvs) <- zonkTyBndrsX      ze qtvs
        ; lhs_ty     <- zonkTcTypeToTypeX ze lhs_ty
