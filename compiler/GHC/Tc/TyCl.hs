@@ -214,16 +214,13 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
 
        ; traceTc "---- end tcTyClGroup ---- }" empty
 
-           -- Step 3: Add the implicit things;
-           -- we want them in the environment because
-           -- they may be mentioned in interface files
-         -- TODO: donot call mk_atat_fam if we are in boot files
-         -- That information should be accesible from TcM but i don't know whats the best
-         -- way to get it..
+         -- Step 3: Add the implicit things;
+         -- we want them in the environment because
+         -- they may be mentioned in interface files
        ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
        ; isBootFile <- tcIsHsBootOrSig
        ; (gbl_env, th_bndrs) <-
-           if enblPCtrs && (not isBootFile)
+           if enblPCtrs && (not isBootFile) -- do not call mk_atat_fam if we are in boot files
            then do { traceTc "---- start wf enrichment ---- { " empty
 
                    ; let locs::[SrcSpan] = map (locA . getLoc) tyclds
@@ -2529,13 +2526,6 @@ tcTyClDecl1 _parent roles_info
           Class declarations
 *                                                                      *
 ********************************************************************* -}
--- elabWfSigStuff :: MethInfo -> TcM MethInfo
--- elabWfSigStuff (n, ty, Just (GenericDM (s, dty))) = do elab_ty <- elabAtAtConstraintsTcM False ty
---                                                        elab_dty <- elabAtAtConstraintsTcM False dty
---                                                        return (n, elab_ty, Just (GenericDM (s, elab_dty)))
--- elabWfSigStuff (n, ty, o) = do elab_ty <- elabAtAtConstraintsTcM False ty
---                                return (n, elab_ty, o)
-
 
 tcClassDecl1 :: RolesInfo -> Name -> Maybe (LHsContext GhcRn)
              -> LHsBinds GhcRn -> [LHsFunDep GhcRn] -> [LSig GhcRn]
@@ -2558,11 +2548,6 @@ tcClassDecl1 roles_info class_name hs_ctxt meths fundeps sigs ats at_defs
                   ; fds  <- mapM (addLocMA tc_fundep) fundeps
                   ; at_stuff <- tcClassATs class_name clas ats at_defs
                   ; sig_stuff <- tcClassSigs class_name sigs meths
-                  -- ; sig_stuff <- if partyCtrs
-                  --                then mapM (\ss -> do { (n, ty, def) <- elabWfSigStuff ss
-                  --                                     ; traceTc "wfelab sig_stuff elab" (ppr $ (n, ty))
-                  --                                     ; return $ (n, ty, def) }) sig_stuff'
-                  --                else return sig_stuff'
                   ; return (ctxt, fds, at_stuff, sig_stuff) }
        
        -- See Note [Error on unconstrained meta-variables] in GHC.Tc.Utils.TcMType
@@ -2864,20 +2849,18 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
           ; inj' <- tcInjectivity binders inj
           ; checkResultSigFlag tc_name sig  -- check after injectivity for better errors
           ; if partyCtrs && isJust wfname -- do this only for associated types for now.
-            then -- fixM $ \ _ ->
-              do { -- wf_name <- mk_wf_name tc_name
+            then
+              do {
                  ; let wf_tycon = mkWFFamilyTyCon (fromJust wfname) binders constraintKind
                                   (resultVariableName sig) OpenSynFamilyTyCon
-                                    parent inj' 
+                                    parent
                        tycon = mkFamilyTyCon tc_name binders res_kind
                                     (resultVariableName sig) OpenSynFamilyTyCon
                                     parent inj' (Just wf_tycon)
-                 -- ; traceTc "wfelab tcFamDecl1" (ppr tycon <+> ppr (wfMirrorTyCon_maybe tycon))
                  ; return tycon }
             else do { let tycon = mkFamilyTyCon tc_name binders res_kind
                                     (resultVariableName sig) OpenSynFamilyTyCon
                                     parent inj' Nothing
-                    -- ; traceTc "tcFamDecl1 no wfmirror" (ppr tycon <+> ppr (wfMirrorTyCon_maybe tycon))
                     ; return tycon }
           } 
 
@@ -3617,6 +3600,10 @@ tcConDecl new_or_data dd_info rep_tycon tc_bndrs res_kind tag_map
                  ; btys <- tcConH98Args exp_kind hs_args
                  ; field_lbls <- lookupConstructorFields name
                  ; let (arg_tys, stricts) = unzip btys
+                 -- ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+                 -- ; css <- if partyCtrs then concatMapM (\t -> genWfConstraints (scaledThing t) []) arg_tys
+                 --          else return []
+                 -- ; let ctxt = mergeAtAtConstraints css ctxt'
                  ; return (ctxt, arg_tys, field_lbls, stricts)
                  }
 
@@ -3909,10 +3896,15 @@ tcConGADTArgs exp_kind (RecConGADT fields _)
 
 tcConArg :: ContextKind  -- expected kind for args; always OpenKind for datatypes,
                          -- but might be an unlifted type with UnliftedNewtypes
+
          -> HsScaled GhcRn (LHsType GhcRn) -> TcM (Scaled TcType, HsSrcBang)
 tcConArg exp_kind (HsScaled w bty)
   = do  { traceTc "tcConArg 1" (ppr bty)
-        ; arg_ty <- tcCheckLHsType (getBangType bty) exp_kind
+        ; arg_ty' <- tcCheckLHsType (getBangType bty) exp_kind
+        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+        ; arg_ty <- if False
+                    then elabAtAtConstraintsTcM False arg_ty'
+                    else return arg_ty'
         ; w' <- tcDataConMult w
         ; traceTc "tcConArg 2" (ppr bty)
         ; return (Scaled w' arg_ty, getBangStrictness bty) }

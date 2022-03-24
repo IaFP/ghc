@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor       #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE RankNTypes          #-}
@@ -82,6 +83,9 @@ import qualified Data.List.NonEmpty as NE
 import Data.Maybe
 import Data.Ratio
 import GHC.Types.FieldLabel (DuplicateRecordFields(..))
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 {-
 *********************************************************
@@ -917,7 +921,12 @@ rnHsRecUpdFields flds
 getFieldIds :: [LHsRecField GhcRn arg] -> [Name]
 getFieldIds flds = map (hsRecFieldSel . unLoc) flds
 
-getFieldLbls :: forall p arg . UnXRec p => [LHsRecField p arg] -> [RdrName]
+getFieldLbls :: forall p arg . (
+#if MIN_VERSION_base(4,16,0)
+   WFT (XRec p RdrName),
+   WFT (XRec p (FieldOcc p)),
+#endif
+  UnXRec p) => [LHsRecField p arg] -> [RdrName]
 getFieldLbls flds
   = map (unXRec @p . foLabel . unXRec @p . hfbLHS . unXRec @p) flds
 
@@ -995,8 +1004,9 @@ rnOverLit origLit
         ; let std_name = hsOverLitName val
         ; (from_thing_name, fvs1) <- lookupSyntaxName std_name
         ; let rebindable = from_thing_name /= std_name
-              lit' = lit { ol_ext = OverLitRn { ol_rebindable = rebindable
-                                              , ol_from_fun = noLocA from_thing_name } }
+              lit' = OverLit { ol_val = val
+                             , ol_ext = OverLitRn { ol_rebindable = rebindable
+                                                  , ol_from_fun = noLocA from_thing_name } }
         ; if isNegativeZeroOverLit lit'
           then do { (negate_name, fvs2) <- lookupSyntaxExpr negateName
                   ; return ((lit' { ol_val = negateOverLitVal val }, Just negate_name)

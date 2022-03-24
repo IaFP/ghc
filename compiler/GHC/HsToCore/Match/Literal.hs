@@ -3,6 +3,7 @@
 {-# LANGUAGE MultiWayIf          #-}
 {-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE GADTs #-}
 
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 

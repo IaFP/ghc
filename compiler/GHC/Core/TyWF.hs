@@ -40,8 +40,6 @@ import GHC.Tc.Utils.Monad
 import GHC.Utils.Panic (pprPanic)
 import GHC.Utils.Outputable
 import GHC.Utils.Misc(lengthAtLeast)
-import GHC.Tc.TyCl.Build (mk_wf_name)
-import GHC.Tc.Utils.Env (tcLookupTcTyCon, tcLookupTyCon)
 #if MIN_VERSION_base(4,16,0)
 import GHC.Types (Total)
 #endif
@@ -55,9 +53,9 @@ import GHC.Types (Total)
 ************************************************************************
 
 -}
--- [Note isTyConPhase]
+-- Note [isTyConPhase]
 -- This is to mark that we are elaborating the type constructors.
--- setting isTyConPhase to false means we are elaborating a type signature
+-- setting isTyConPhase to false means that we are elaborating a type signature
 
 
 -- | Data that represents the return type after elaboration
@@ -341,7 +339,8 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; let css = fmap newPreds elabds
              wftct = mkTyConApp wftycon args_tc
        ; extra_css <- sequenceAts tycon args_tc extra_args_tc [] []
-       ; return $ foldl mergeAtAtConstraints (wftct:extra_css) css
+       ; extra_css' <- concatMapM flatten_atat_constraint (wftct:extra_css)
+       ; return $ foldl mergeAtAtConstraints extra_css' css
        }
   | isClosedTypeFamilyTyCon tycon
   -- For now the closed branch is a duplicate of open branch.
@@ -417,24 +416,34 @@ recGenAtsTcM tc args ts = recGenAts tc args ts
 recGenAts :: Monad m => TyCon -> [Type]
           -> [Type] -- things to ignore
           -> m ThetaType
-recGenAts tc args ts = recGenAts' tc arg_binder_role [] [] ts
+recGenAts tc args ts = recGenAts' tc arg_binders [] [] ts
   where
     binders = tyConBinders tc
-    roles = tyConRoles tc
-    arg_binder_role = zip3 args binders roles
+    arg_binders = zip args binders
 
+
+-- given TyCon T and type arguments say [a, b, c]
+-- we generate [T @ a, T a @ b, T a b @ c]
+-- only if it were that simple. Sometimes
+-- we need to worry about the invisible type applications
+-- especially for GADTs that may be kind polymorphic.
+-- Hence we zip the actual arguments with
+-- the formal arguments and then ignore the ones that are inferred
+-- i.e. automatically put in by the compiler.
+-- Fore example T (a::k) b c is actually T k a b c where k is inferred
+-- hence we would only generate [T k @ a, T k a @ b, T k a b @ c]. T @ k is skipped
+-- ref. see https://github.com/IaFP/PartialityInPractice/issues/2
 recGenAts' :: Monad m => TyCon
-                      -> [(Type, TyConBinder, Role)] -- remaning 
+                      -> [(Type, TyConBinder)] -- remaning 
                       -> [Type]                -- done
                       -> ThetaType             -- accumuator
                       -> [Type]                -- things to ignore
                       -> m ThetaType
 recGenAts' _ [] _ acc _ = return acc
-recGenAts' tyc ((hd, bndr, r) : tl) tycargs' acc ts
+recGenAts' tyc ((hd, bndr) : tl) tycargs' acc ts
   = do { let atc = if (isNamedTyConBinder bndr) -- TODO: I think there is a cannonical way to do this check.
                       || isInvisibleArgFlag (tyConBinderArgFlag bndr)
                       || any (eqType hd) (star:ts) -- we don't want f @@ * creaping in
-                      -- || r == Phantom
                    then []
                    else [(mkTyConApp tyc (tycargs')) `at'at` hd]
        ; recGenAts' tyc tl (tycargs' ++ [hd]) (mergeAtAtConstraints acc atc) ts
@@ -639,8 +648,8 @@ tyConGenAts eTycons ts tycon args
   = concatMapM (\ x -> genWfConstraints x ts) args
   | isTyConAssoc tycon && not (isNewTyCon tycon)
   = do { let (args', extra_args) = splitAt (length (tyConVisibleTyVars tycon))
-                                   (zip3 args (tyConBinders tycon) (tyConRoles tycon))
-       ; recGenAts' tycon extra_args (map (\(e, _, _) -> e) args') [] ts
+                                   (zip args (tyConBinders tycon))
+       ; recGenAts' tycon extra_args (map fst args') [] ts
        }
   | isTypeSynonymTyCon tycon =
       if (args `lengthAtLeast` (tyConArity tycon))

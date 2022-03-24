@@ -518,7 +518,6 @@ wfTyCon  :: TyCon -- This is a special mirror as only one exists for data & newt
 wfTyCon = mkWFFamilyTyCon wfTyConName binders constraintKind (Just wfTyConName)
             OpenSynFamilyTyCon
             Nothing
-            NotInjective
   where
     binders = mkTemplateTyConBinders [liftedTypeKind, liftedTypeKind] (\[k1, k2] -> [(k1 `mkVisFunTyMany` k2), k1])
 

@@ -47,7 +47,6 @@ import GHC.Tc.Utils.TcType
 import GHC.Tc.Utils.Monad
 import GHC.Tc.TyCl.Build( TcMethInfo )
 import GHC.Core.Class
-import GHC.Core.TyWF
 import GHC.Core.Coercion ( pprCoAxiom )
 import GHC.Driver.Session
 import GHC.Tc.Instance.Family
@@ -529,7 +528,7 @@ tcATDefault :: SrcSpan
             -> TcM [FamInst]
 -- ^ Construct default instances for any associated types that
 -- aren't given a user definition
--- Returns [] or singleton
+-- Returns [] or 2 tyfams 
 tcATDefault loc inst_subst defined_ats (ATI fam_tc defs)
   -- User supplied instances ==> everything is OK
   | tyConName fam_tc `elemNameSet` defined_ats
@@ -561,7 +560,8 @@ tcATDefault loc inst_subst defined_ats (ATI fam_tc defs)
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
        ; wf_fam_inst <- if partyCtrs then mapM genWFTyFamInst [fam_inst] else return []
        ; return $ fam_inst:wf_fam_inst }
-
+  | isWFMirrorTyCon fam_tc -- we would have generated wf'Tc things in Tc flow
+  = return []
    -- No defaults ==> generate a warning
   | otherwise  -- defs = Nothing
   = do { warnMissingAT (tyConName fam_tc)

@@ -175,12 +175,7 @@ data Pat p
                                         -- Used for *non-overloaded* literal patterns:
                                         -- Int#, Char#, Int, Char, String, etc.
 
-  |
-#if MIN_VERSION_base(4,16,0)
-    (WFT (XRec p (HsOverLit p))
-    , WFT (HsOverLit p))  =>
-#endif
-    NPat                -- Natural Pattern
+  | NPat                -- Natural Pattern
                         -- Used for all overloaded literals,
                         -- including overloaded strings with -XOverloadedStrings
                     (XNPat p)            -- Overall type of pattern. Might be
@@ -197,12 +192,7 @@ data Pat p
   -- - 'GHC.Parser.Annotation.AnnKeywordId' : 'GHC.Parser.Annotation.AnnVal' @'+'@
 
   -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
-  |
-#if MIN_VERSION_base(4,16,0)
-    (WFT (XRec p (HsOverLit p))
-    , WFT (HsOverLit p))  =>
-#endif
-  NPlusKPat       (XNPlusKPat p)           -- Type of overall pattern
+  | NPlusKPat       (XNPlusKPat p)           -- Type of overall pattern
                     (LIdP p)                 -- n+k pattern
                     (XRec p (HsOverLit p))   -- It'll always be an HsIntegral
                     (HsOverLit p)            -- See Note [NPlusK patterns] in GHC.Tc.Gen.Pat

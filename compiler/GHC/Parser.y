@@ -100,7 +100,7 @@ import GHC.Builtin.Types ( unitTyCon, unitDataCon, tupleTyCon, tupleDataCon, nil
 
 import qualified Data.Semigroup as Semi
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@))
+import GHC.Types (type(@), WFT)
 #endif
 
 }
@@ -3035,7 +3035,30 @@ texp :: { ECP }
 -- Though this can parse just commas (without any expressions), it won't
 -- in practice, because (,,,) is parsed as a name. See Note [ExplicitTuple]
 -- in GHC.Hs.Expr.
-tup_exprs :: { forall b. DisambECP b => PV (SumOrTuple b) }
+tup_exprs :: { forall b. (
+#if MIN_VERSION_base(4,16,0)
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Body (Body b GhcPs)),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body b GhcPs))),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+#endif
+                 DisambECP b) => PV (SumOrTuple b) }
            : texp commas_tup_tail
                            { unECP $1 >>= \ $1 ->
                              $2 >>= \ $2 ->
@@ -3054,14 +3077,60 @@ tup_exprs :: { forall b. DisambECP b => PV (SumOrTuple b) }
                   (Sum (snd $1 + 1) (snd $1 + snd $3 + 1) $2 (fst $1) (fst $3)) }
 
 -- Always starts with commas; always follows an expr
-commas_tup_tail :: { forall b. DisambECP b => PV (SrcSpan,[Either (EpAnn EpaLocation) (LocatedA b)]) }
+commas_tup_tail :: { forall b. (
+#if MIN_VERSION_base(4,16,0)
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Body (Body b GhcPs)),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body b GhcPs))),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+#endif
+  DisambECP b) => PV (SrcSpan,[Either (EpAnn EpaLocation) (LocatedA b)]) }
 commas_tup_tail : commas tup_tail
         { $2 >>= \ $2 ->
           do { let {cos = map (\l -> (Left (EpAnn (anc $ rs l) (EpaSpan $ rs l) emptyComments))) (tail $ fst $1) }
              ; return ((head $ fst $1, cos ++ $2)) } }
 
 -- Always follows a comma
-tup_tail :: { forall b. DisambECP b => PV [Either (EpAnn EpaLocation) (LocatedA b)] }
+tup_tail :: { forall b. (
+#if MIN_VERSION_base(4,16,0)
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Body (Body b GhcPs)),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body b GhcPs))),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+#endif
+                DisambECP b) => PV [Either (EpAnn EpaLocation) (LocatedA b)] }
           : texp commas_tup_tail { unECP $1 >>= \ $1 ->
                                    $2 >>= \ $2 ->
                                    do { t <- amsA $1 [AddCommaAnn (EpaSpan $ rs $ fst $2)]
@@ -3077,7 +3146,30 @@ tup_tail :: { forall b. DisambECP b => PV [Either (EpAnn EpaLocation) (LocatedA 
 -- The rules below are little bit contorted to keep lexps left-recursive while
 -- avoiding another shift/reduce-conflict.
 -- Never empty.
-list :: { forall b. DisambECP b => SrcSpan -> (AddEpAnn, AddEpAnn) -> PV (LocatedA b) }
+list :: { forall b. (
+-- #if MIN_VERSION_base(4,16,0)
+--  WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+--  WFT (Body (Body b GhcPs)),
+--  WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+--  WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+--  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+--  WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+--  WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+--  WFT (Body (FunArg (Body b GhcPs))),
+--  WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+--  WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+--  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+--  WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+--  WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+--  WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+--  WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+--  Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+--  WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+--  WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+--  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+-- #endif
+            DisambECP b) => SrcSpan -> (AddEpAnn, AddEpAnn) -> PV (LocatedA b) }
         : texp    { \loc (ao,ac) -> unECP $1 >>= \ $1 ->
                             mkHsExplicitListPV loc [$1] (AnnList Nothing (Just ao) (Just ac) [] []) }
         | lexps   { \loc (ao,ac) -> $1 >>= \ $1 ->
@@ -3108,7 +3200,30 @@ list :: { forall b. DisambECP b => SrcSpan -> (AddEpAnn, AddEpAnn) -> PV (Locate
                 ; acsA (\cs -> L loc $ mkHsCompAnns ctxt (unLoc $3) t (EpAnn (spanAsAnchor loc) (AnnList Nothing (Just ao) (Just ac) [] []) cs))
                     >>= ecpFromExp' } }
 
-lexps :: { forall b. DisambECP b => PV [LocatedA b] }
+lexps :: { forall b. (
+-- #if MIN_VERSION_base(4,16,0)
+--  WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+--  WFT (Body (Body b GhcPs)),
+--  WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+--  WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+--  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+--  WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+--  WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+--  WFT (Body (FunArg (Body b GhcPs))),
+--  WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+--  WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+--  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+--  WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+--  WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+--  WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+--  WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+--  Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+--  WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+--  WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+--  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+-- #endif
+             DisambECP b) => PV [LocatedA b] }
         : lexps ',' texp           { $1 >>= \ $1 ->
                                      unECP $3 >>= \ $3 ->
                                      case $1 of
@@ -3211,7 +3326,30 @@ guardquals1 :: { Located [LStmt GhcPs (LHsExpr GhcPs)] }
 -----------------------------------------------------------------------------
 -- Case alternatives
 
-altslist :: { forall b. DisambECP b => PV (LocatedL [LMatch GhcPs (LocatedA b)]) }
+altslist :: { forall b. (
+-- #if MIN_VERSION_base(4,16,0)
+--  WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+--  WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+--  WFT (Body (Body b GhcPs)),
+--  WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+--  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+--  WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+--  WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+--  WFT (Body (FunArg (Body b GhcPs))),
+--  WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+--  WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+--  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+--  WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+--  WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+--  WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+--  WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+--  Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+--  WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+--  WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+--  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+-- #endif
+                DisambECP b) => PV (LocatedL [LMatch GhcPs (LocatedA b)]) }
         : '{'            alts '}'  { $2 >>= \ $2 -> amsrl
                                      (sLL $1 $> (reverse (snd $ unLoc $2)))
                                                (AnnList (Just $ glR $2) (Just $ moc $1) (Just $ mcc $3) (fst $ unLoc $2) []) }
@@ -3221,14 +3359,60 @@ altslist :: { forall b. DisambECP b => PV (LocatedL [LMatch GhcPs (LocatedA b)])
         | '{'                 '}'    { amsrl (sLL $1 $> []) (AnnList Nothing (Just $ moc $1) (Just $ mcc $2) [] []) }
         |     vocurly          close { return $ noLocA [] }
 
-alts    :: { forall b. DisambECP b => PV (Located ([AddEpAnn],[LMatch GhcPs (LocatedA b)])) }
+alts    :: { forall b. (
+-- #if MIN_VERSION_base(4,16,0)
+--                 WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+--                 WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+--                 WFT (Body (Body b GhcPs)),
+--  WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+--  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+--  WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+--  WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+--  WFT (Body (FunArg (Body b GhcPs))),
+--  WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+--  WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+--  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+--  WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+--  WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+--  WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+--  WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+--  Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+--  WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+--  WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+--  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+-- #endif
+               DisambECP b) => PV (Located ([AddEpAnn],[LMatch GhcPs (LocatedA b)])) }
         : alts1                    { $1 >>= \ $1 -> return $
                                      sL1 $1 (fst $ unLoc $1,snd $ unLoc $1) }
         | ';' alts                 { $2 >>= \ $2 -> return $
                                      sLL $1 $> (((mz AnnSemi $1) ++ (fst $ unLoc $2) )
                                                ,snd $ unLoc $2) }
 
-alts1   :: { forall b. DisambECP b => PV (Located ([AddEpAnn],[LMatch GhcPs (LocatedA b)])) }
+alts1   :: { forall b. (
+-- #if MIN_VERSION_base(4,16,0)
+--                 WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+--                 WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+--                 WFT (Body (Body b GhcPs)),
+--  WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+--  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+--  WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+--  WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+--  WFT (Body (FunArg (Body b GhcPs))),
+--  WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+--  WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+--  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+--  WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+--  WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+--  WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+--  WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+--  Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+--  WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+--  WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+--  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+-- #endif
+               DisambECP b) => PV (Located ([AddEpAnn],[LMatch GhcPs (LocatedA b)])) }
         : alts1 ';' alt         { $1 >>= \ $1 ->
                                   $3 >>= \ $3 ->
                                      case snd $ unLoc $1 of
@@ -3248,7 +3432,27 @@ alts1   :: { forall b. DisambECP b => PV (Located ([AddEpAnn],[LMatch GhcPs (Loc
 
 alt     :: { forall b. (
 #if MIN_VERSION_base(4,16,0)
-                     Body b @ GhcPs,
+  Body b @ GhcPs,
+ --  WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+ --  WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+ --  WFT (Body (Body b GhcPs)),
+ --  WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ --  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body b GhcPs))),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
 #endif
                DisambECP b) => PV (LMatch GhcPs (LocatedA b)) }
            : pat alt_rhs  { $2 >>= \ $2 ->
@@ -3260,7 +3464,27 @@ alt     :: { forall b. (
 
 alt_rhs :: { forall b. (
 #if MIN_VERSION_base(4,16,0)
-                     Body b @ GhcPs,
+  Body b @ GhcPs,
+ --  WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+ --  WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+ --  WFT (Body (Body b GhcPs)),
+ --  WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ --  WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body b GhcPs))),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
 #endif
                DisambECP b) => PV (Located (GRHSs GhcPs (LocatedA b))) }
         : ralt wherebinds           { $1 >>= \alt ->
@@ -3269,7 +3493,26 @@ alt_rhs :: { forall b. (
 
 ralt :: { forall b. (
 #if MIN_VERSION_base(4,16,0)
-                     Body b @ GhcPs,
+ Body b @ GhcPs,
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Body (Body b GhcPs)),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body b GhcPs))),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
 #endif
             DisambECP b) => PV (Located [LGRHS GhcPs (LocatedA b)]) }
         : '->' exp            { unECP $2 >>= \ $2 ->
@@ -3277,7 +3520,30 @@ ralt :: { forall b. (
         | gdpats              { $1 >>= \gdpats ->
                                 return $ sL1 gdpats (reverse (unLoc gdpats)) }
 
-gdpats :: { forall b. DisambECP b => PV (Located [LGRHS GhcPs (LocatedA b)]) }
+gdpats :: { forall b. (
+#if MIN_VERSION_base(4,16,0)
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Body (Body b GhcPs)),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body b GhcPs))),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+#endif
+              DisambECP b) => PV (Located [LGRHS GhcPs (LocatedA b)]) }
         : gdpats gdpat { $1 >>= \gdpats ->
                          $2 >>= \gdpat ->
                          return $ sLL gdpats (reLoc gdpat) (gdpat : unLoc gdpats) }
@@ -3292,7 +3558,30 @@ ifgdpats :: { Located ([AddEpAnn],[LGRHS GhcPs (LHsExpr GhcPs)]) }
          |     gdpats close               {% runPV $1 >>= \ $1 ->
                                              return $ sL1 $1 ([],unLoc $1) }
 
-gdpat   :: { forall b. DisambECP b => PV (LGRHS GhcPs (LocatedA b)) }
+gdpat   :: { forall b. (
+#if MIN_VERSION_base(4,16,0)
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Body (Body b GhcPs)),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body b GhcPs))),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+#endif
+               DisambECP b) => PV (LGRHS GhcPs (LocatedA b)) }
         : '|' guardquals '->' exp
                                    { unECP $4 >>= \ $4 ->
                                      acsA (\cs -> sL (comb2A $1 $>) $ GRHS (EpAnn (glR $1) (GrhsAnn (Just $ glAA $1) (mu AnnRarrow $3)) cs) (unLoc $2) $4) }
@@ -3319,7 +3608,30 @@ apats  :: { [LPat GhcPs] }
 -----------------------------------------------------------------------------
 -- Statement sequences
 
-stmtlist :: { forall b. DisambECP b => PV (LocatedL [LocatedA (Stmt GhcPs (LocatedA b))]) }
+stmtlist :: { forall b. (
+#if MIN_VERSION_base(4,16,0)
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Body (Body b GhcPs)),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body b GhcPs))),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+#endif
+                DisambECP b) => PV (LocatedL [LocatedA (Stmt GhcPs (LocatedA b))]) }
         : '{'           stmts '}'       { $2 >>= \ $2 -> amsrl
                                           (sLL $1 $> (reverse $ snd $ unLoc $2)) (AnnList (Just $ glR $2) (Just $ moc $1) (Just $ mcc $3) (fromOL $ fst $ unLoc $2) []) }
         |     vocurly   stmts close     { $2 >>= \ $2 -> amsrl
@@ -3331,7 +3643,30 @@ stmtlist :: { forall b. DisambECP b => PV (LocatedL [LocatedA (Stmt GhcPs (Locat
 -- So we use BodyStmts throughout, and switch the last one over
 -- in ParseUtils.checkDo instead
 
-stmts :: { forall b. DisambECP b => PV (Located (OrdList AddEpAnn,[LStmt GhcPs (LocatedA b)])) }
+stmts :: { forall b. (
+#if MIN_VERSION_base(4,16,0)
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Body (Body b GhcPs)),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body b GhcPs))),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+#endif
+                      DisambECP b) => PV (Located (OrdList AddEpAnn,[LStmt GhcPs (LocatedA b)])) }
         : stmts ';' stmt  { $1 >>= \ $1 ->
                             $3 >>= \ ($3 :: LStmt GhcPs (LocatedA b)) ->
                             case (snd $ unLoc $1) of
@@ -3362,7 +3697,29 @@ maybe_stmt :: { Maybe (LStmt GhcPs (LHsExpr GhcPs)) }
 e_stmt :: { LStmt GhcPs (LHsExpr GhcPs) }
         : stmt                          {% runPV $1 }
 
-stmt  :: { forall b. DisambECP b => PV (LStmt GhcPs (LocatedA b)) }
+stmt  :: { forall b. (
+#if MIN_VERSION_base(4,16,0)
+ -- WFT (Body (Body b GhcPs)),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body b GhcPs))),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+#endif
+             DisambECP b) => PV (LStmt GhcPs (LocatedA b)) }
         : qual                          { $1 }
         | 'rec' stmtlist                {  $2 >>= \ $2 ->
                                            acsA (\cs -> (sLL $1 (reLoc $>) $ mkRecStmt
@@ -3372,6 +3729,25 @@ stmt  :: { forall b. DisambECP b => PV (LStmt GhcPs (LocatedA b)) }
 qual  :: { forall b. (
 #if MIN_VERSION_base(4,16,0)
                     Body b @ GhcPs,
+ --                    WFT (Body (Body b GhcPs)),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body b GhcPs))),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
 #endif
              DisambECP b) => PV (LStmt GhcPs (LocatedA b)) }
     : bindpat '<-' exp                   { unECP $3 >>= \ $3 ->
@@ -3385,11 +3761,57 @@ qual  :: { forall b. (
 -----------------------------------------------------------------------------
 -- Record Field Update/Construction
 
-fbinds  :: { forall b. DisambECP b => PV ([Fbind b], Maybe SrcSpan) }
+fbinds  :: { forall b. (
+#if MIN_VERSION_base(4,16,0)
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Body (Body b GhcPs)),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body b GhcPs))),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+#endif
+               DisambECP b) => PV ([Fbind b], Maybe SrcSpan) }
         : fbinds1                       { $1 }
         | {- empty -}                   { return ([], Nothing) }
 
-fbinds1 :: { forall b. DisambECP b => PV ([Fbind b], Maybe SrcSpan) }
+fbinds1 :: { forall b. (
+#if MIN_VERSION_base(4,16,0)
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Body (Body b GhcPs)),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body b GhcPs))),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+#endif
+               DisambECP b) => PV ([Fbind b], Maybe SrcSpan) }
         : fbind ',' fbinds1
                  { $1 >>= \ $1 ->
                    $3 >>= \ $3 -> do
@@ -3399,7 +3821,30 @@ fbinds1 :: { forall b. DisambECP b => PV ([Fbind b], Maybe SrcSpan) }
                                           return ([$1], Nothing) }
         | '..'                          { return ([],   Just (getLoc $1)) }
 
-fbind   :: { forall b. DisambECP b => PV (Fbind b) }
+fbind   :: { forall b. (
+#if MIN_VERSION_base(4,16,0)
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Body (Body b GhcPs)),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body b GhcPs))),
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+
+ -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
+ -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+#endif
+             DisambECP b) => PV (Fbind b) }
         : qvar '=' texp  { unECP $3 >>= \ $3 ->
                            fmap Left $ acsA (\cs -> sLL (reLocN $1) (reLoc $>) $ HsFieldBind (EpAnn (glNR $1) [mj AnnEqual $2] cs) (sL1l $1 $ mkFieldOcc $1) $3 False) }
                         -- RHS is a 'texp', allowing view patterns (#6038)

@@ -2143,8 +2143,8 @@ mkFamilyTyCon name binders res_kind resVar flav parent inj wfm
 -- | Create a well formed type family 'TyCon'
 mkWFFamilyTyCon :: Name -> [TyConBinder] -> Kind  -- ^ /result/ kind
               -> Maybe Name -> FamTyConFlav
-              -> Maybe Class -> Injectivity -> TyCon
-mkWFFamilyTyCon name binders res_kind resVar flav parent inj
+              -> Maybe Class -> TyCon
+mkWFFamilyTyCon name binders res_kind resVar flav parent
   = let tc =
           FamilyTyCon
             { tyConUnique  = nameUnique name
@@ -2166,8 +2166,6 @@ mkWFFamilyTyCon name binders res_kind resVar flav parent inj
 
 
 
--- ANI TODO: Shouldn't actually be a constraintKind as we can have * -> Constraint etc. tycons
--- ANI TODO: the resVar is for injective type familes.
 -- This works for both actual type family tycons and also tctycons
 -- Makes a tycon with the given WF counter part.
 mkWFMirrorTyCon :: Name -> Kind -> TyCon -> Maybe FamTyConFlav -> TyCon
@@ -2179,23 +2177,12 @@ mkWFMirrorTyCon n res_kind tc flav
                Nothing
                (famTcFlav tc)
                (tyConClass_maybe tc)
-               (famTcInj tc)
-  in new_tc
-  | Just flav' <- flav, isClosedTypeFamilyTyCon tc
-  = let new_tc = mkWFFamilyTyCon n
-               (tyConBinders tc)
-               res_kind
-               Nothing
-               flav'
-               (tyConClass_maybe tc)
-               (famTcInj tc)
-       
   in new_tc 
   | isTcTyCon tc
   = let new_tc = mkWFTcTyCon
                  n
                  (tyConBinders tc)
-                 (res_kind)
+                 res_kind
                  (tcTyConScopedTyVars tc)
                  (tcTyConIsPoly tc)
                  (tcTyConFlavour tc)
@@ -2273,7 +2260,7 @@ isVanillaAlgTyCon :: TyCon -> Bool
 isVanillaAlgTyCon (AlgTyCon { algTcFlavour = VanillaAlgTyCon _ }) = True
 isVanillaAlgTyCon _                                              = False
 
-
+-- | Returns true if this tycon is a mirror tycon to some other type family or tctycon
 isWFMirrorTyCon :: TyCon -> Bool
 isWFMirrorTyCon (TcTyCon {isMirror = m}) = m
 isWFMirrorTyCon (FamilyTyCon {isMirror = m}) = m

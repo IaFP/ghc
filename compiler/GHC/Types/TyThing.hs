@@ -52,7 +52,6 @@ import GHC.Utils.Panic
 import Control.Monad ( liftM )
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Class
-import Data.Maybe (maybeToList)
 #if MIN_VERSION_base(4,16,0)
 import GHC.Types (type(@), Total)
 #endif

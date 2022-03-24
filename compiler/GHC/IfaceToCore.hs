@@ -746,11 +746,11 @@ tc_iface_decl parent _ (IfaceFamily {ifName = tc_name,
                    tc_fam_flav tc_name fam_flav
      ; res_name <- traverse (newIfaceName . mkTyVarOccFS) res
      ; tycon <- if m then
-                  return $ mkWFFamilyTyCon tc_name binders' constraintKind res_name rhs parent inj 
+                  return $ mkWFFamilyTyCon tc_name binders' constraintKind res_name rhs parent
                 else do forkM (mk_doc_wf tc_name) $
                           do { wf_name <- mk_wf_name tc_name
                              ; let wf'tc = mkWFFamilyTyCon wf_name binders'
-                                              constraintKind res_name rhs parent inj
+                                              constraintKind res_name rhs parent
                               -- ANI TODO: this is not quite right.
                               -- We need to find the exact same $wf'tc that we should have previously generated.
                              ; return $ mkFamilyTyCon tc_name binders'
