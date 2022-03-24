@@ -12,6 +12,7 @@ module GHC.Tc.Deriv.WF ( mk_atat_fam, mk_atat_fam_except
                        , mk_atat_fam_units, mk_atat_fam_except_units
                        , saneTyConForElab
                        , genWFTyFamInst, genWFTyFamInsts
+                       , genWFFamInstConstraint
                        ) where
 
 

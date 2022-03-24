@@ -2914,7 +2914,7 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
 
                      wf_tycon = mkWFFamilyTyCon wf_name binders constraintKind
                                 (resultVariableName sig) (ClosedSynFamilyTyCon mb_wf_co_ax)
-                                parent inj'
+                                parent
 
                      mb_wf_co_ax = Just (mkBranchedCoAxiom co_ax_name wf_tycon wf_branches)
 
