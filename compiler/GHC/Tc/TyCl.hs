@@ -2943,7 +2943,7 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
                        | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
                        | otherwise = Just (mkBranchedCoAxiom co_ax_name fam_tc branches)
 
-                     mkFamilyTyCon tc_name binders res_kind (resultVariableName sig)
+                     fam_tc = mkFamilyTyCon tc_name binders res_kind (resultVariableName sig)
                        (ClosedSynFamilyTyCon mb_co_ax) parent inj' Nothing
 
                -- We check for instance validity later, when doing validity
@@ -2951,7 +2951,7 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
                -- overlap done by dropDominatedAxioms
                ; return fam_tc }
            
-           return fam_tc;
+       ; return fam_tc
        }
 
 #if __GLASGOW_HASKELL__ <= 810
