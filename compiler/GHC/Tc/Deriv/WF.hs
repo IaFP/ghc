@@ -260,16 +260,16 @@ getMatchingPredicates' tv tvs preds =
 genWFFamInstConstraint :: Type -> TcM Type
 genWFFamInstConstraint rhs
   = do {
-  ; preds <- (newPreds <$> genAtAtConstraintsTcM False rhs)
+  ; preds <- newPreds <$> genAtAtConstraintsTcM False rhs
   ; flattened <- concatMapM flatten_atat_constraint preds
   ; let
       n = length flattened
   ; if n == 1
     then return . head $ flattened
     else do {
-      ; ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
-      ; return $ mkTyConApp ctupleTyCon flattened
-      }
+              ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
+            ; return $ mkTyConApp ctupleTyCon flattened
+            }
   }
 
 -- given a type family instance equation, e.g,
