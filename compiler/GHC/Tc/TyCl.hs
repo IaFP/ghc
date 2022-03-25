@@ -2903,7 +2903,7 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
                ; branches <- mapAndReportM (tcTyFamInstEqn tc_fam_tc NotAssociated) eqns
                ; co_ax_name <- newFamInstAxiomName tc_lname []
 
-               ; wf_branches <- mapM (tcWFTyFamInstEqn tc_fam_tc tc_wf_fam_tc) eqns
+               ; wf_branches <- mapM (tcWFTyFamInstEqn tc_fam_tc) eqns
                ; wf_co_ax_name <- newFamInstAxiomName (L src_span wf_name) []
 
                ; let mb_co_ax
@@ -3166,33 +3166,13 @@ kcTyFamInstEqn tc_fam_tc
     }
 
 --------------------------
-{- Note [Generating WF mirror CoAxBranches for closed TFs]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Generating WF equations for a closed TF, E.g, 
-
-  type family F a where
-    F [a] = F a
-    F (a, a) = Tree a
-
-generates
-
-  type family $wf'F (a :: *) :: Constraint where
-    $wf'F [a] = $wf'F a
-    $wf'F (a, a) = Tree @ a
-
-We have to push this logic deeper than we do for Open Type families
-because referencing `F` in the RHS of equations causes a loop, as F
-is knot-tied. So we have to generate the RHS constraints from
-TcyTyCon's before zonking to TyCon, which happens in tcTyFamInstEqnGuts.
-
--}
-tcWFTyFamInstEqn :: TcTyCon -> TcTyCon -> LTyFamInstEqn GhcRn -> TcM (KnotTied CoAxBranch)
-tcWFTyFamInstEqn fam_tc wf_fam_tc
+tcWFTyFamInstEqn :: TcTyCon -> LTyFamInstEqn GhcRn -> TcM (KnotTied CoAxBranch)
+tcWFTyFamInstEqn fam_tc
     (L loc (FamEqn { feqn_bndrs  = outer_bndrs
                    , feqn_pats   = hs_pats
                    , feqn_rhs    = hs_rhs_ty }))
-  = do {
+  = do { let wf_fam_tc = wfMirrorTyCon fam_tc
        ; (qtvs, pats, rhs_ty) <- tcTyFamInstEqnGuts fam_tc NotAssociated
                                       outer_bndrs hs_pats hs_rhs_ty (Just wf_fam_tc)
        ; return (mkCoAxBranch qtvs [] [] pats rhs_ty

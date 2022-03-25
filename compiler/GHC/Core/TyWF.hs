@@ -140,7 +140,6 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
         then return $ elabDetails ty []
         else do
         {
-        ; traceTc "wfelab TyConApp" empty
         ; elabTys_and_atats <- mapM (genAtAtConstraintsExceptTcM isTyConPhase (tyc:tycons) ts) tycargs
         ; let (elab_tys, atc_args) = unzip $ fmap (\d -> (elabTy d, newPreds d)) elabTys_and_atats
         ; if any (== tyc) tycons
