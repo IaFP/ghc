@@ -51,7 +51,6 @@ module GHC.Core.TyCon(
         mkTcTyCon,
         mkWFTcTyCon,
         noTcTyConScopedTyVars,
-        mkWFMirrorTyCon,
 
         -- ** Predicates on TyCons
         isAlgTyCon, isVanillaAlgTyCon, isConstraintKindCon,
@@ -2163,32 +2162,6 @@ mkWFFamilyTyCon name binders res_kind resVar flav parent
             , isMirror     = True
             }
     in tc
-
-
-
--- This works for both actual type family tycons and also tctycons
--- Makes a tycon with the given WF counter part.
-mkWFMirrorTyCon :: Name -> Kind -> TyCon -> Maybe FamTyConFlav -> TyCon
-mkWFMirrorTyCon n res_kind tc flav
-  | isOpenTypeFamilyTyCon tc
-  = let new_tc = mkWFFamilyTyCon n
-               (tyConBinders tc)
-               res_kind
-               Nothing
-               (famTcFlav tc)
-               (tyConClass_maybe tc)
-  in new_tc 
-  | isTcTyCon tc
-  = let new_tc = mkWFTcTyCon
-                 n
-                 (tyConBinders tc)
-                 res_kind
-                 (tcTyConScopedTyVars tc)
-                 (tcTyConIsPoly tc)
-                 (tcTyConFlavour tc)
-  in new_tc 
-  | otherwise
-  = pprPanic "wfelab does not support wf mirror for tycon" (ppr tc $$ ppr (tcTyConFlavour tc))
 
 updateWfMirrorTyCon :: TyCon -> Maybe TyCon -> TyCon
 updateWfMirrorTyCon tyc@(FamilyTyCon {}) wfm = let tc = tyc { tyConWfRef = wfm } in tc
