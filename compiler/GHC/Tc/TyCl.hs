@@ -2880,7 +2880,8 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
 
          -- If Nothing, this is an abstract family in a hs-boot file;
          -- but eqns might be empty in the Just case as well
-       ; case mb_eqns of
+       ; fam_tc <-
+         case mb_eqns of
            Nothing   ->
                return $ mkFamilyTyCon tc_name binders res_kind
                                       (resultVariableName sig)
@@ -2942,13 +2943,16 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
                        | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
                        | otherwise = Just (mkBranchedCoAxiom co_ax_name fam_tc branches)
 
-                     fam_tc = mkFamilyTyCon tc_name binders res_kind (resultVariableName sig)
+                     mkFamilyTyCon tc_name binders res_kind (resultVariableName sig)
                        (ClosedSynFamilyTyCon mb_co_ax) parent inj' Nothing
 
                -- We check for instance validity later, when doing validity
                -- checking for the tycon. Exception: checking equations
                -- overlap done by dropDominatedAxioms
-               ; return fam_tc } }
+               ; return fam_tc }
+           
+           return fam_tc;
+       }
 
 #if __GLASGOW_HASKELL__ <= 810
   | otherwise = panic "tcFamInst1"  -- Silence pattern-exhaustiveness checker
