@@ -219,7 +219,7 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
        ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
        ; isBootFile <- tcIsHsBootOrSig
        ; (gbl_env, th_bndrs) <-
-           if enblPCtrs && (not isBootFile) -- do not call mk_atat_fam if we are in boot files
+           if enblPCtrs && (not isBootFile) -- do not call mk_atat_fam if we are in boot files as we cannot generate typefamilies for boot files 
            then do { traceTc "---- start wf enrichment ---- { " empty
 
                    ; let locs::[SrcSpan] = map (locA . getLoc) tyclds
@@ -235,12 +235,6 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                                                   locsAndTcs
                                                   
 
-                   -- ANI: This should be pushed in the actual declaration flow, its a fairly simple
-                   -- one-to-many mapping with the tycls
-                   -- I say many because a class could have multiple associated types
-                   -- The only reason why i'm doing this here is because
-                   -- it is easier to debug and peaking (traceTc) into
-                   -- a knot-tied tycon decl will cause the compiler to loop/hang
                    -- TODO: maybe do a single pass and classify all the tycons in one go
                    -- but its rarely the case that the group is more than 3-4 dependent tycons
 
@@ -1046,7 +1040,7 @@ generaliseTcTyCon (mflag, tc, scoped_prs, tc_res_kind)
                      then do let wf_tycon_name = tyConName $ wfMirrorTyCon tc -- this better exist
                              return (Just $ mkWFTcTyCon (wf_tycon_name) final_tcbs tc_res_kind
                                       (mkTyVarNamePairs (sorted_spec_tvs ++ req_tvs))
-                                      True {- it's generalised now -}
+                                      True
                                       (tyConFlavour tc))
                      else return Nothing -- we don't support mirrors of mirror 
 
@@ -2861,8 +2855,7 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
             then
               do {
                  ; let wf_tycon = mkWFFamilyTyCon (fromJust wfname) binders constraintKind
-                                  (resultVariableName sig) OpenSynFamilyTyCon
-                                    parent
+                                  (resultVariableName sig) OpenSynFamilyTyCon parent
                        tycon = mkFamilyTyCon tc_name binders res_kind
                                     (resultVariableName sig) OpenSynFamilyTyCon
                                     parent inj' (Just wf_tycon)

@@ -933,8 +933,7 @@ mkOneRecordSelector all_cons idDetails fl has_sel
        ; let isOkTyCon = case idDetails of
                -- we want to elaborate the type signture of the field selectors
                -- only if they are not GADTs and newtypes AKA vanilla H98 
-                       RecSelData tycon -> isVanillaAlgTyCon tycon && not (isNewTyCon tycon
-                                                                           || isGadtSyntaxTyCon tycon)
+                       RecSelData tycon -> isVanillaAlgTyCon tycon && not (isGadtSyntaxTyCon tycon)
                        _                -> False 
        ; sel_ty <- if partyCtrs && isOkTyCon then elabAtAtConstraintsTcM True sel_ty' else return sel_ty' 
              -- Make the binding: sel (C2 { fld = x }) = x

@@ -11,7 +11,6 @@
 module GHC.Tc.Deriv.WF ( mk_atat_fam, mk_atat_fam_except
                        , mk_atat_fam_units, mk_atat_fam_except_units
                        , saneTyConForElab
-                       , genWFMirrorTyCons, genWFMirrorTyCon
                        , genWFTyFamInst, genWFTyFamInsts
                        ) where
 
@@ -24,7 +23,6 @@ import GHC.Tc.Utils.Monad
 import GHC.Tc.Instance.Family
 import GHC.Tc.Utils.Env
 import GHC.Core.FamInstEnv
-import GHC.Tc.TyCl.Build (mk_wf_name)
 import GHC.Core.TyCo.Rep
 
 import GHC.Core.Type
@@ -35,9 +33,7 @@ import GHC.Core.TyWF
 import GHC.Builtin.Types (wfTyConName, wfTyCon, cTupleTyConName, constraintKind)
 import GHC.Types.SrcLoc
 import GHC.Utils.Outputable as Outputable
-import GHC.Utils.Panic
 
-import Data.Maybe (fromJust)
 
 
 {-
@@ -78,6 +74,7 @@ type family T a @ b = C2 b
 
 
 We don't bubble out the constraints yet.
+
 We also need to bubble out constraints
 from the data constructors consider:
 data Ord a => T a b c = forall d e. MkT1 a b e
@@ -251,25 +248,6 @@ getMatchingPredicates' tv tvs preds =
           any (eqType tv) (predTyArgs p)
           && not (or [eqType tv' t | tv' <- tvs, t <- predTyArgs p])
 
-
-genWFMirrorTyCons :: [TyCon] -> TcM [(TyCon, TyCon)]
-genWFMirrorTyCons = mapM genWFMirrorTyCon
-
-genWFMirrorTyCon :: TyCon -> TcM (TyCon, TyCon)
-genWFMirrorTyCon tc
-  | isOpenFamilyTyCon tc && not (isWFMirrorTyCon tc)
-  = do { wf_tc_name <- mk_wf_name $ tyConName tc
-       ; let mirror_tc = mkWFMirrorTyCon
-                         wf_tc_name
-                         constraintKind
-                         tc
-             n_tc      = updateWfMirrorTyCon tc $ Just mirror_tc
-       ; traceTc "wf tf mirror open occname:" (ppr wf_tc_name)
-       ; return (mirror_tc, n_tc)
-       }
-  | otherwise
-  = do { pprPanic "wf tf mirror unknown case:" (ppr (famTyConFlav_maybe tc) <+> ppr tc) }
-
 -- given a type family instance equation -
 -- D a b ~ T a b
 -- generates a WF_D a equation
@@ -293,7 +271,7 @@ genWFTyFamInst fam_inst
        ; let tvs     = fi_tvs fam_inst
              lhs_tys = ts
              axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wfTc lhs_tys rhs_ty
-       ; traceTc "elabWfFamInst buildingAxiom: " (vcat [ parens (ppr inst_name)
+       ; traceTc "wfelab buildingAxiom: " (vcat [ parens (ppr inst_name)
                                                        , ppr wfTc <+> ppr lhs_tys <+> text "~" <+> ppr rhs_ty
                                                        ])
        ; newFamInst SynFamilyInst axiom

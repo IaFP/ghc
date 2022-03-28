@@ -2131,6 +2131,8 @@ pprStmtInCtxt ctxt stmt
 -}
 
 type instance Anno (HsExpr (GhcPass p)) = SrcSpanAnnA
+type instance Anno (HsExpr GhcPs) = SrcSpanAnnA
+type instance Anno (HsExpr GhcRn) = SrcSpanAnnA
 type instance Anno [LocatedA ((StmtLR (GhcPass pl) (GhcPass pr) (LocatedA (HsExpr (GhcPass pr)))))] = SrcSpanAnnL
 type instance Anno [LocatedA ((StmtLR (GhcPass pl) (GhcPass pr) (LocatedA (HsCmd (GhcPass pr)))))] = SrcSpanAnnL
 

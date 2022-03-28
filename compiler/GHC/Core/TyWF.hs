@@ -15,10 +15,9 @@ module GHC.Core.TyWF (
   , genAtAtConstraintsExceptTcM
   , attachConstraints, mergeAtAtConstraints
   , elabAtAtConstraintsTcM, elabWithAtAtConstraintsTopTcM
-  , elabAtAtConstraints -- unelabAtAtConstraintsM, 
+  , elabAtAtConstraints
   , predTyArgs, predTyVars, flatten_atat_constraint
   , saneTyConForElab
-  -- , replaceResultWithConstraint -- , lookupWfMirrorTyCon
   ) where
 
 import GHC.Tc.Instance.Family (tcGetFamInstEnvs)
@@ -83,7 +82,8 @@ elabAtAtConstraintsTcM isTyConPhase ty
       ; elabd <- genAtAtConstraintsTcM isTyConPhase ty'
       ; c_extra' <- if isTyConPhase
                     then return (newPreds elabd)
-                    else concatMapM flatten_atat_constraint (newPreds elabd)
+                    else do css <- mapM flatten_atat_constraint (newPreds elabd)
+                            return $ foldl mergeAtAtConstraints [] css
       ; let eTy = mkForAllTys covarbndrs $ attachConstraints c_extra' (elabTy elabd)
       ; traceTc "elabWfType(foralled)=" (vcat [ text "tyconphase" <+> ppr isTyConPhase
                                               , text "before:" <+> ppr ty
@@ -108,8 +108,8 @@ elabWithAtAtConstraintsTopTcM :: Bool -> Type -> TcM Type
 elabWithAtAtConstraintsTopTcM isTyConPhase ty =
   do { elabd <- genAtAtConstraintsTcM isTyConPhase ty
      ; wfcs <- if isTyConPhase then return (newPreds elabd)
-                               else concatMapM flatten_atat_constraint (newPreds elabd)
-     -- ; traceTc "wf constraints after elab & flattening" (vcat [ppr (newPreds elabd), ppr wfcs])
+                               else do css <- mapM flatten_atat_constraint (newPreds elabd)
+                                       return $ foldl mergeAtAtConstraints [] css 
      ; return $ attachConstraints wfcs (elabTy elabd) }    
 
 -- Generates f @@ a constraints unless tycon passed in appears in LHS
@@ -138,28 +138,22 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
       -- this is supposed to save us from sometyperep, typerep nonsense.
         then return $ elabDetails ty []
         else do
-        { elabTys_and_atats <- mapM (genAtAtConstraintsExceptTcM isTyConPhase (tyc:tycons) ts) tycargs
-        ; let (elab_tys, atc_args) = unzip $ fmap (\d -> (elabTy d, newPreds d)) elabTys_and_atats
-        ; if any (== tyc) tycons
-          then return $ elabDetails (TyConApp tyc elab_tys) (foldl mergeAtAtConstraints [] atc_args)
-          else do { atc_tycon <- tyConGenAtsTcM isTyConPhase tycons ts tyc elab_tys
-                  ; return $ elabDetails (TyConApp tyc elab_tys) (foldl mergeAtAtConstraints atc_tycon atc_args)
+        { if any (== tyc) tycons
+          then return $ elabDetails (TyConApp tyc tycargs) []
+          else do { atc_tycon <- tyConGenAtsTcM isTyConPhase tycons ts tyc tycargs
+                  ; return $ elabDetails (TyConApp tyc tycargs) atc_tycon
                   }
         }
-  -- for type application we need ty1 @@ ty2 (unless ty2 is * then skip it or ty2 has a constraint kind)
+  -- for type application we need ty1 @ ty2 (unless ty2 is * then skip it, or ty2 has a constraint kind)
   | (AppTy ty1 ty2) <- ty =
-      -- if isHigherKinded ty1 -- Don't break * types apart as we don't have a theory for that yet
-      -- then return (ty, [])
-      -- else
         if any (ty2 `tcEqType`) (star:ts)
         then do { traceTc "wfelab appty1" (ppr ty1 <+> ppr ty2)
                 ; elabd1 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
-                -- ; elabd2 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty2
                 ; return $ elabDetails (AppTy (elabTy elabd1) ty2) (newPreds elabd1)
                 }
         else if (head (reverse (snd (tcSplitAppTys (tcTypeKind ty1))))) `tcEqType` constraintKind then
           -- given that we are elaborating over class constraints, we won't want to obtain a c @ x
-          --  where c :: k -> *
+          --  where c :: k -> Constraint
           do { traceTc "wfelab appty2:" (ppr (tcSplitAppTys (tcTypeKind ty1))
                                          <+> ppr (head (reverse (snd (tcSplitAppTys (tcTypeKind ty1))))))
              ; elabd1 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
@@ -200,7 +194,9 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
                else genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
       c_extra <- if isTyConPhase
                  then return (newPreds elabd)
-                 else concatMapM flatten_atat_constraint (newPreds elabd)
+                 else do css <- mapM flatten_atat_constraint $ newPreds elabd
+                         return $ foldl mergeAtAtConstraints [] css
+                             
       -- let (have'bvar, donthave'bvar) = partition (predHas bvarTy) c_extra
       let r_ty = ForAllTy bndr (attachConstraints c_extra (elabTy elabd))
       -- it is unlikely that we find a type application that is _not_ related to this binder.
@@ -249,8 +245,8 @@ saneTyConForElab tycon =
        || isPrimTyCon tycon
        || isPromotedDataCon tycon
        || isFunTyCon tycon
-       || isDataFamilyTyCon tycon
-       || isClosedTypeFamilyTyCon tycon
+       -- || isDataFamilyTyCon tycon
+       -- || isClosedTypeFamilyTyCon tycon
       )
 
 
@@ -267,7 +263,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
   = do { traceTc "wfelab mirrorTyCon" (ppr tycon); return [] }
   | isTyConInternal tycon || isClassTyCon tycon
   = do { traceTc "wfelab internalTyCon/ClassTyCon" (ppr tycon)
-       ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
+       ; elabds <- mapM (genAtAtConstraintsExceptTcM False eTycons ts) args
        ; let css = fmap newPreds elabds
        ; return $ foldl mergeAtAtConstraints [] css
        }
@@ -279,23 +275,21 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
             }
   | isTypeSynonymTyCon tycon =
       do { traceTc "wfelab typesyn" (ppr tycon)
-    -- if not isTyConPhase
-    -- then -- the interaction of typesynonyms and type family is effed up
          ; if (args `lengthAtLeast` (tyConArity tycon))
            then case coreView (mkTyConApp tycon args) of
                   Just ty   -> do { elabd <- genAtAtConstraintsExceptTcM isTyConPhase eTycons ts ty
-                                  ; -- traceTc "tysyn tyConGenAtsTcM: " (ppr (elabTy elabd))
-                                  ; if isTyConPhase
+                                  ; if isTyConPhase -- this check is probably not needed as we can never have a typ synonym cycle..
                                     then return (newPreds elabd)
-                                    else concatMapM flatten_atat_constraint $ newPreds elabd }
+                                    else do css <- mapM flatten_atat_constraint $ newPreds elabd
+                                            return $ foldl mergeAtAtConstraints [] css 
+                                  }
+                  
                   Nothing   -> pprPanic "tysyn tyConGenAts" (ppr tycon)
            else failWithTc (tyConArityErr tycon args)
          }
 
   | isTyConAssoc tycon
   = do { traceTc "wfelab isTyConAssoc" (ppr tycon <+> ppr args)
-       ; traceTc "wfelab hasWfMirror" (ppr (hasWfMirrorTyCon tycon)
-                                      $$ ppr (tyConArity tycon))
        ; let (args_tc, extra_args_tc) = splitAt (tyConArity tycon) args
        ; let wftycon = wfMirrorTyCon tycon -- this better exist
        ; traceTc "wfelab lookup2" (ppr wftycon)
@@ -307,12 +301,10 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
          -- For example: Rep a :: * -> *
          -- wf (Rep a x) = [$wf'Rep a, Rep a @ x]
          
-       ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
-       ; traceTc "wfelab lookup3" (ppr wftycon)
-       ; let css = fmap newPreds elabds
-             wftct = mkTyConApp wftycon args_tc
+       ; let wftct = mkTyConApp wftycon args_tc
        ; extra_css <- sequenceAts tycon args_tc extra_args_tc [] []
-       ; return $ foldl mergeAtAtConstraints (wftct:extra_css) css
+       ; extra_css' <- mapM flatten_atat_constraint (wftct:extra_css)
+       ; return $ foldl mergeAtAtConstraints [] extra_css'
        }
   | isOpenTypeFamilyTyCon tycon
   = do { traceTc "wfelab open typefam" (ppr tycon <+> ppr args)
@@ -327,55 +319,36 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
          -- For example: Rep a :: * -> *
          -- wf (Rep a x) = [$wf'Rep a, Rep a @ x]
          
-       ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
-       ; traceTc "wfelab lookup3" (ppr wftycon)
-       ; let css = fmap newPreds elabds
-             wftct = mkTyConApp wftycon args_tc
+       ; let wftct = mkTyConApp wftycon args_tc
        ; extra_css <- sequenceAts tycon args_tc extra_args_tc [] []
-       ; extra_css' <- concatMapM flatten_atat_constraint (wftct:extra_css)
-       ; return $ foldl mergeAtAtConstraints extra_css' css
+       ; extra_css' <- mapM flatten_atat_constraint (wftct:extra_css)
+       ; return $ foldl mergeAtAtConstraints [] extra_css'
        }
 
       
   | isTypeFamilyTyCon tycon
     || isDataFamilyTyCon tycon
   = do { traceTc "wfelab datafam/typefam tycon" (ppr tycon)
-       ; elabtys_and_css <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
-       ; let css = fmap newPreds elabtys_and_css
        ; co_ty_mb <- matchFamTcM tycon args
        ; case co_ty_mb of
-           Nothing -> return $ foldl mergeAtAtConstraints [] css
+           Nothing -> return []
            Just r | ty <- reductionReducedType r -> do {
              ; elabd <- genAtAtConstraintsTcM isTyConPhase ty
-             ; return $ foldl mergeAtAtConstraints (newPreds elabd) css
+             ; return $ newPreds elabd
              }
        }
   -- How should newtype deriving work, how does coercing constraints work? i think they should be OK... 
   | isNewTyCon tycon, not isTyConPhase =
-      do {traceTc "wfelab new tycon" (ppr tycon)
-           -- let dc = tyConSingleDataCon tycon
-          -- args = fmap scaledThing $ dataConOrigArgTys dc
+      do { traceTc "wfelab new tycon" (ppr tycon)
          ; wfcs <- recGenAtsTcM tycon args ts
          ; elabds <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
          ; return $ foldl mergeAtAtConstraints wfcs (fmap newPreds elabds)
          } 
   -- Vanilla type constructor, everything is total
   | otherwise = do { traceTc "wfelab fallthrough:" (ppr tycon)
-                   ; recGenAtsTcM tycon args ts}
-
-
--- simpler version of recGenAts'
-sequenceAts :: TyCon -> [Type] -> [Type] -> [Type] -> ThetaType -> TcM ThetaType
-sequenceAts tycon args_tc extra_args_tc ts acc
-  | null extra_args_tc
-  = return acc
-  | let ty:extra_args = extra_args_tc
-  , not (any (ty `tcEqType`) (star:ts))
-  = do let atc = (mkTyConApp tycon args_tc) `at'at` ty
-       sequenceAts tycon (args_tc++[ty]) extra_args ts (mergeAtAtConstraints [atc] acc)
-  | otherwise
-  , let ty:extra_args = extra_args_tc
-  = sequenceAts tycon (args_tc++[ty]) extra_args ts acc
+                   ; elabds <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
+                   ; ats <- recGenAtsTcM tycon args ts
+                   ; return $ foldl mergeAtAtConstraints ats $ fmap newPreds elabds }
 
 
 recGenAtsTcM :: TyCon -> [Type]
@@ -421,30 +394,28 @@ recGenAts' tyc ((hd, bndr) : tl) tycargs' acc ts
        }
 
 
--- takes in type arguments ty1 ty2 and returns the constraint ty1 @@ ty2
+
+-- simpler version of recGenAts'
+-- We don't have to care about named tycon binders or invisible arguments
+-- so simply generate at constraints
+sequenceAts :: TyCon -> [Type] -> [Type] -> [Type] -> ThetaType -> TcM ThetaType
+sequenceAts _ _ [] _ acc  = return acc
+sequenceAts tycon args_tc (ty:extra_args) ts acc
+  | any (ty `tcEqType`) (star:ts)
+  = sequenceAts tycon (args_tc++[ty]) extra_args ts acc
+  | otherwise
+  = do let atc = (mkTyConApp tycon args_tc) `at'at` ty
+       sequenceAts tycon (args_tc++[ty]) extra_args ts (mergeAtAtConstraints [atc] acc)
+
+-- takes in type arguments ty1 ty2 and returns the constraint ty1 @ ty2
 -- we do have to compute the kinds for ty1 and ty2 so
--- that the correctly kinded type is instantiated in @@ class
--- @@ {k'} {k} (f :: k' -> k) (arg:: k')
+-- that the correctly kinded type is instantiated in @ class
+-- @ {k'} {k} (f :: k' -> k) (arg:: k')
 at'at :: Type -> Type -> PredType
 at'at f arg = mkTyConApp wfTyCon [argk, resk, f, arg]
   where argk = tcTypeKind arg
         fk   = tcTypeKind f
         resk = piResultTy fk argk
-
--- sequenceAtAts :: Monad m
---               => TyCon -- base tycon
---               -> [Type] -- done
---               -> [Type] -- to process
---               -> m ThetaType
--- sequenceAtAts btc args extra_args = sequenceAtAts_aux [] btc args extra_args
---   where
---     sequenceAtAts_aux :: Monad m => ThetaType -> TyCon -> [Type] -> [Type] -> m ThetaType
---     sequenceAtAts_aux acc _ _ [] = return acc
---     sequenceAtAts_aux acc btc args (x:xs) = do
---       let new_at = (mkTyConApp btc args) `at'at` x
---       sequenceAtAts_aux (new_at:acc) btc (args ++ [x]) xs
-  
-
 
 -- Merges two thetas to a theta with unique constraints
 mergeAtAtConstraints :: ThetaType -> ThetaType ->  ThetaType
@@ -559,7 +530,7 @@ genAtAtConstraintsExcept tycons ts ty
                 }
         else if (fst $ tcSplitAppTys (tcTypeKind ty1)) `tcEqType` constraintKind then
           -- this function is going to make our implimentation really, really slow.
-          -- given that we split the TyApps into a list we should just foldr over the args to get the constraints..
+          -- given that we split the TyApps into a list we should just fold over the args to get the constraints..
           -- given that we are elaborating over class constraints, we won't want to obtain a c @ x
           --  where c :: k -> *
                do { -- traceTc "wfelab appty:" (ppr $ tcSplitAppTys ty1)
@@ -616,7 +587,8 @@ tyConGenAts :: (
             -> TyCon -> [Type] -> m ThetaType
 tyConGenAts eTycons ts tycon args
   | isTyConInternal tycon || isGadtSyntaxTyCon tycon 
-  = concatMapM (\ x -> genWfConstraints x ts) args
+  = do css <- mapM (\ x -> genWfConstraints x ts) args
+       return $ foldl mergeAtAtConstraints [] css 
   | isTyConAssoc tycon && not (isNewTyCon tycon)
   = do { let (args', extra_args) = splitAt (length (tyConVisibleTyVars tycon))
                                    (zip args (tyConBinders tycon))

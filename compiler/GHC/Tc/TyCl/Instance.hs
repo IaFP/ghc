@@ -1937,12 +1937,6 @@ tcMethodBodyHelp hs_sig_fn sel_id local_meth_id meth_bind
                                 --           checking instance-sig <= class-meth-sig
                                 -- The instance-sig is the focus here; the class-meth-sig
                                 -- is fixed (#18036)
-
-                   -- ANI: read the above comment for commenting out below code :) 
-                   -- ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-                   -- ; local_meth_ty <- if False
-                   --                    then elabAtAtConstraintsTcM False local_meth_ty'
-                   --                    else return local_meth_ty'
                    ; hs_wrap <- addErrCtxtM (methSigCtxt sel_name sig_ty local_meth_ty) $
                                 tcSubTypeSigma ctxt sig_ty local_meth_ty
                    ; return (sig_ty, hs_wrap) }

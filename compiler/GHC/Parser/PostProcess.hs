@@ -1414,26 +1414,6 @@ newtype ECP =
   ECP { unECP :: forall b. (
 #if MIN_VERSION_base(4,16,0)
  -- forall x. (Body b) @ x, -- make it fail on mightEqualLater finds an unbound cbv
- -- WFT (Body (Body b GhcPs)),
- -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
- -- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
- -- WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
- -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
- -- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
- -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
- -- WFT (Body (FunArg (Body b GhcPs))),
- -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
- -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
- -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
-
- -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
- -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
- -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
- -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
- -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
- -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
- -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
- -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
 #endif
                     DisambECP b) => PV (LocatedA b) }
 
