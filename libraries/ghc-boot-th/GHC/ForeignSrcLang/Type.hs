@@ -1,4 +1,9 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, PartialTypeConstructors #-}
+#endif
 {-# LANGUAGE DeriveGeneric #-}
+
 module GHC.ForeignSrcLang.Type
   ( ForeignSrcLang(..)
   ) where

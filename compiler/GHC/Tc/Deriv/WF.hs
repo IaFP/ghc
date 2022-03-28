@@ -24,7 +24,6 @@ import GHC.Tc.Utils.Monad
 import GHC.Tc.Instance.Family
 import GHC.Tc.Utils.Env
 import GHC.Core.FamInstEnv
-import GHC.Tc.TyCl.Build (mk_wf_name)
 import GHC.Core.TyCo.Rep
 
 import GHC.Core.Type
@@ -37,9 +36,7 @@ import GHC.Core.TyWF
 import GHC.Builtin.Types (wfTyConName, wfTyCon, cTupleTyConName, constraintKind)
 import GHC.Types.SrcLoc
 import GHC.Utils.Outputable as Outputable
-import GHC.Utils.Panic
 
-import Data.Maybe (fromJust)
 
 
 {-
@@ -80,6 +77,7 @@ type family T a @ b = C2 b
 
 
 We don't bubble out the constraints yet.
+
 We also need to bubble out constraints
 from the data constructors consider:
 data Ord a => T a b c = forall d e. MkT1 a b e
@@ -288,7 +286,7 @@ genWFTyFamInst fam_inst
        ; let tvs     = fi_tvs fam_inst
              lhs_tys = ts
              axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wfTc lhs_tys rhs_ty
-       ; traceTc "elabWfFamInst buildingAxiom: " (vcat [ parens (ppr inst_name)
+       ; traceTc "wfelab buildingAxiom: " (vcat [ parens (ppr inst_name)
                                                        , ppr wfTc <+> ppr lhs_tys <+> text "~" <+> ppr rhs_ty
                                                        ])
        ; newFamInst SynFamilyInst axiom

@@ -58,6 +58,7 @@ module GHC.Types.Name.Occurrence (
         mkDataConWrapperOcc, mkWorkerOcc,
         mkMatcherOcc, mkBuilderOcc,
         mkDefaultMethodOcc, isDefaultMethodOcc, isTypeableBindOcc,
+        isWFTyConOcc,
         mkNewTyCoOcc, mkClassOpAuxOcc,
         mkCon2TagOcc, mkTag2ConOcc, mkMaxTagOcc,
         mkClassDataConOcc, mkDictOcc, mkIPOcc,
@@ -648,6 +649,7 @@ mkNewTyCoOcc        = mk_simple_deriv tcName   "N:"   -- Coercion for newtypes
 mkInstTyCoOcc       = mk_simple_deriv tcName   "D:"   -- Coercion for type functions
 mkEqPredCoOcc       = mk_simple_deriv tcName   "$co"
 mkWFTyConOcc        = mk_simple_deriv tcName   "$wf'" -- ANI TODO use this 
+
 -- Used in derived instances for the names of auxiliary bindings.
 -- See Note [Auxiliary binders] in GHC.Tc.Deriv.Generate.
 mkCon2TagOcc        = mk_simple_deriv varName  "$con2tag_"

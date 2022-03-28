@@ -466,6 +466,5 @@ mk_wf_name :: Name -> TcRnIf gbl lcl Name
 mk_wf_name n = do { let m = nameModule n
                   ; let wf_occ = mkWFTyConOcc (nameOccName n)
                   ; wf_name <- lookupOrig m wf_occ
-                  -- ; newImplicitBinder n mkWFTyConOcc
                   ; return wf_name
                   }

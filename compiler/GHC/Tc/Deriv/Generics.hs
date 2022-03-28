@@ -59,6 +59,8 @@ import GHC.Utils.Panic.Plain
 import GHC.Data.FastString
 import GHC.Utils.Misc
 
+import qualified GHC.LanguageExtensions as LangExt
+
 import Control.Monad (mplus)
 import Data.List (zip4, partition)
 import Data.Maybe (isJust)
@@ -404,7 +406,8 @@ tc_mkRepFamInsts gk inst_tys dit@(DerivInstTys{dit_rep_tc = tycon}) =
        -- Also consider `R:DInt`, where { data family D x y :: * -> *
        --                               ; data instance D Int a b = D_ a }
   do { -- `rep` = GHC.Generics.Rep or GHC.Generics.Rep1 (type family)
-       fam_tc <- case gk of
+       partyCtrs <- xoptM LangExt.PartialTypeConstructors
+     ; fam_tc <- case gk of
          Gen0 -> tcLookupTyCon repTyConName
          Gen1 -> tcLookupTyCon rep1TyConName
      ; traceTc "tc_mkRepFamInsts" (ppr fam_tc <+> ppr (wfMirrorTyCon_maybe fam_tc))
@@ -457,8 +460,11 @@ tc_mkRepFamInsts gk inst_tys dit@(DerivInstTys{dit_rep_tc = tycon}) =
                                         fam_tc inst_tys repTy'
 
      ; fam_inst <- newFamInst SynFamilyInst axiom
-     ; wf_fam_inst <- genWFTyFamInst fam_inst
-     ; return [fam_inst, wf_fam_inst]
+     ; wf_insts <- if partyCtrs
+                   then do wf_fam_inst <- genWFTyFamInst fam_inst
+                           return [wf_fam_inst]
+                   else return []
+     ; return $ fam_inst:wf_insts
      }
 
 --------------------------------------------------------------------------------

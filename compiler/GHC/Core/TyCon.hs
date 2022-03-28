@@ -123,9 +123,6 @@ module GHC.Core.TyCon(
         expandSynTyCon_maybe,
         newTyConCo, newTyConCo_maybe,
         pprPromotionQuote, mkTyConKind,
-        updateAlgTyCon,
-        updateSynonymTyConRhs,
-        updateWfMirrorTyCon,
 
         -- ** Predicated on TyConFlavours
         tcFlavourIsOpen,
@@ -1902,9 +1899,9 @@ mkAlgTyCon name binders res_kind roles cType stupid rhs parent gadt_syn
           }
     in tc
 
-updateAlgTyCon :: TyCon -> AlgTyConRhs -> TyCon
-updateAlgTyCon tc@(AlgTyCon {}) rhs = tc { algTcRhs = rhs }
-updateAlgTyCon tc _ = tc
+-- updateAlgTyCon :: TyCon -> AlgTyConRhs -> TyCon
+-- updateAlgTyCon tc@(AlgTyCon {}) rhs = tc { algTcRhs = rhs }
+-- updateAlgTyCon tc _ = tc
 
 
 -- | Simpler specialization of 'mkAlgTyCon' for classes
@@ -2110,10 +2107,6 @@ mkSynonymTyCon name binders res_kind roles rhs is_tau is_fam_free is_forgetful
           }
     in tc
 
-
-updateSynonymTyConRhs :: TyCon -> Type -> Bool -> TyCon
-updateSynonymTyConRhs tc nty ffree = tc {synTcRhs = nty, synIsFamFree = ffree }
-
 -- | Create a type family 'TyCon'
 mkFamilyTyCon :: Name -> [TyConBinder] -> Kind  -- ^ /result/ kind
               -> Maybe Name -> FamTyConFlav
@@ -2162,13 +2155,6 @@ mkWFFamilyTyCon name binders res_kind resVar flav parent
             , isMirror     = True
             }
     in tc
-
-updateWfMirrorTyCon :: TyCon -> Maybe TyCon -> TyCon
-updateWfMirrorTyCon tyc@(FamilyTyCon {}) wfm = let tc = tyc { tyConWfRef = wfm } in tc
-updateWfMirrorTyCon tyc@(TcTyCon {}) wfm = let tc = tyc { tyConWfRef = wfm } in tc
-updateWfMirrorTyCon tyc wfm = pprPanic "cannot update mirror for tycon" (ppr tyc
-                                                                         <+> ppr (tcTyConFlavour tyc)
-                                                                         <+> ppr wfm)
 
 -- | Create a promoted data constructor 'TyCon'
 -- Somewhat dodgily, we give it the same Name
