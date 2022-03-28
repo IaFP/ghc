@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 903
-{-# LANGUAGE NoPartialTypeConstructors, ExplicitNamespaces, TypeOperators, UndecidableSuperClasses #-}
+{-# LANGUAGE ExplicitNamespaces, TypeOperators, UndecidableSuperClasses #-}
 #endif
 module GHC.Driver.Hooks where
 

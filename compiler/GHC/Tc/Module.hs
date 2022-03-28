@@ -314,8 +314,7 @@ tcRnModuleTcRnM hsc_env mod_sum
           $ do { -- Rename and type check the declarations
                  traceRn "rn1a" empty
                ; tcg_env <- if isHsBootOrSig hsc_src
-                            then unsetXOptM LangExt.PartialTypeConstructors $
-                                 do {
+                            then do {
                               ; tcg_env <- tcRnHsBootDecls hsc_src local_decls
                               ; traceRn "rn4a: before exports" empty
                               ; tcg_env <- setGblEnv tcg_env $
@@ -899,9 +898,11 @@ checkHiBootIface'
       where
         name          = availName boot_avail
         mb_boot_thing = lookupTypeEnv boot_type_env name
-        missing_names = case lookupNameEnv local_export_env name of
+        missing_names' = case lookupNameEnv local_export_env name of
                           Nothing    -> [name]
                           Just avail -> availNames boot_avail `minusList` availNames avail
+        missing_names = filter (not . isWFName) missing_names'
+        -- see lookup_wf_ie in Tc.Gen.Export.hs as to why we want to filter out wf names in our check
 
     local_export_env :: NameEnv AvailInfo
     local_export_env = availsToNameEnv local_exports
@@ -995,8 +996,8 @@ checkBootDecl :: Bool -> TyThing -> TyThing -> Maybe SDoc
 
 checkBootDecl _ (AnId id1) (AnId id2)
   = assert (id1 == id2) $
-    check -- (idType id1 `eqType` idType id2) -- ANI: TODO Fix this
-          ((wf_free_type $ idType id1) `eqType` (wf_free_type $ idType id2))
+    check (idType id1 `eqType` idType id2) -- ANI: TODO Fix this
+          -- ((wf_free_type $ idType id1) `eqType` (wf_free_type $ idType id2))
           (text "The two types are different")
 
 checkBootDecl is_boot (ATyCon tc1) (ATyCon tc2)

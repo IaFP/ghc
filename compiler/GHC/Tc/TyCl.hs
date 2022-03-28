@@ -3880,11 +3880,7 @@ tcConArg :: ContextKind  -- expected kind for args; always OpenKind for datatype
          -> HsScaled GhcRn (LHsType GhcRn) -> TcM (Scaled TcType, HsSrcBang)
 tcConArg exp_kind (HsScaled w bty)
   = do  { traceTc "tcConArg 1" (ppr bty)
-        ; arg_ty' <- tcCheckLHsType (getBangType bty) exp_kind
-        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-        ; arg_ty <- if False
-                    then elabAtAtConstraintsTcM False arg_ty'
-                    else return arg_ty'
+        ; arg_ty <- tcCheckLHsType (getBangType bty) exp_kind
         ; w' <- tcDataConMult w
         ; traceTc "tcConArg 2" (ppr bty)
         ; return (Scaled w' arg_ty, getBangStrictness bty) }

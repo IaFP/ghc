@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, TypeFamilies #-}
+#endif
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveTraversable #-}
@@ -102,6 +106,9 @@ import Data.Function
 import Data.Bifunctor
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS.Char8
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@))
+#endif
 
 ---------------------------------------------------------------------
 -- MODULES
@@ -182,7 +189,11 @@ instance IsUnitId u => IsUnitId (GenUnit u) where
    unitFS (RealUnit (Definite x)) = unitFS x
    unitFS HoleUnit                = holeFS
 
-pprModule :: Module -> SDoc
+pprModule ::
+#if MIN_VERSION_base(4,16,0)
+  (GenModule @ Unit, GenUnit @ UnitId) => -- to make the type match the boot file
+#endif
+  Module -> SDoc
 pprModule mod@(Module p n)  = getPprStyle doc
  where
   doc sty
