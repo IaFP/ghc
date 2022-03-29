@@ -245,8 +245,6 @@ saneTyConForElab tycon =
        || isPrimTyCon tycon
        || isPromotedDataCon tycon
        || isFunTyCon tycon
-       -- || isDataFamilyTyCon tycon
-       -- || isClosedTypeFamilyTyCon tycon
       )
 
 
@@ -324,8 +322,6 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; extra_css' <- mapM flatten_atat_constraint (wftct:extra_css)
        ; return $ foldl mergeAtAtConstraints [] extra_css'
        }
-
-      
   | isTypeFamilyTyCon tycon
     || isDataFamilyTyCon tycon
   = do { traceTc "wfelab datafam/typefam tycon" (ppr tycon)

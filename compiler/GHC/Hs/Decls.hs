@@ -280,6 +280,7 @@ instance (
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
+  Pat @ GhcPass p, HsExpr @ GhcPass p,
 #endif
   OutputableBndrId p) => Outputable (HsDecl (GhcPass p)) where
     ppr (TyClD _ dcl)             = ppr dcl
