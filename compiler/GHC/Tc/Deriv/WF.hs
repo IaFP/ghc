@@ -259,7 +259,10 @@ genWFFamInstConstraint :: Type -> TcM Type
 genWFFamInstConstraint rhs
   = do {
   ; preds <- newPreds <$> genAtAtConstraintsTcM False rhs
-  ; flattened <- concatMapM flatten_atat_constraint preds
+  ; flattened <- do
+      { css <- concatMapM flatten_atat_constraint preds
+      ; return $ foldl mergeAtAtConstraints [] css
+      }
   ; let
       n = length flattened
   ; if n == 1

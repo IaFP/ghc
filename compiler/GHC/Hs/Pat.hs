@@ -279,7 +279,7 @@ instance (Outputable a, Outputable b) => Outputable (HsPatExpansion a b) where
 
 pprLPat :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (Anno (Pat (GhcPass p))), -- to make boot file happy
+  -- WFT (Anno (Pat (GhcPass p))), -- to make boot file happy
   WFT (Anno (HsExpr GhcRn)),
   WFT (Anno (HsExpr (GhcPass p))),
   WFT (XOverLit (GhcPass p)),

@@ -246,8 +246,6 @@ saneTyConForElab tycon =
        || isPrimTyCon tycon
        || isPromotedDataCon tycon
        || isFunTyCon tycon
-       -- || isDataFamilyTyCon tycon
-       -- || isClosedTypeFamilyTyCon tycon
       )
 
 
@@ -308,6 +306,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; return $ foldl mergeAtAtConstraints [] extra_css'
        }
   | isOpenTypeFamilyTyCon tycon
+    || isClosedTypeFamilyTyCon tycon
   = do { traceTc "wfelab open typefam" (ppr tycon <+> ppr args)
        ; let (args_tc, extra_args_tc) = splitAt (tyConArity tycon) args
        ; let wftycon = wfMirrorTyCon tycon -- this better exist
@@ -325,18 +324,6 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; extra_css' <- mapM flatten_atat_constraint (wftct:extra_css)
        ; return $ foldl mergeAtAtConstraints [] extra_css'
        }
-  | isClosedTypeFamilyTyCon tycon
-  -- For now the closed branch is a duplicate of open branch.
-  = do { traceTc "wfelab closed typefam" (ppr tycon <+> ppr args)
-       ; let (args_tc, extra_args_tc) = splitAt (tyConArity tycon) args
-       ; let wftycon = wfMirrorTyCon tycon -- this better exist
-       ; traceTc "wfelab lookup" (ppr wftycon)
-       ; elabds <- mapM (genAtAtConstraintsExceptTcM False (tycon:eTycons) ts) args
-       ; let css = fmap newPreds elabds
-             wftct = mkTyConApp wftycon args_tc
-       ; extra_css <- sequenceAts tycon args_tc extra_args_tc [] []
-       ; return $ foldl mergeAtAtConstraints (wftct:extra_css) css
-       }      
   | isTypeFamilyTyCon tycon
     || isDataFamilyTyCon tycon
   = do { traceTc "wfelab datafam/typefam tycon" (ppr tycon)
