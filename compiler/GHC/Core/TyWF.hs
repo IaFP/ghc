@@ -137,23 +137,21 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
       let rty =  mkInvisFunTysMany cs' (elabTy elabd)
       return $ elabDetails rty (newPreds elabd)
 
-  -- recursively build @@ constraints for type constructor
+  -- recursively build @ constraints for type constructor
   | (TyConApp tyc tycargs) <- ty =
-      if tyc `hasKey` typeRepTyConKey
+      if tyc `hasKey` typeRepTyConKey  -- this is supposed to save us from sometyperep, typerep nonsense.
       || isWFMirrorTyCon tyc
       || any (== tyc) tycons
-      -- this is supposed to save us from sometyperep, typerep nonsense.
         then return $ elabDetails ty []
-        else do
-        { if tyConResKind tyc `tcEqType` constraintKind
+        else if tyConResKind tyc `tcEqType` constraintKind
           -- this is a class tcTyCon or a constraint kind tycon. we don't want to generate tyc @ arg for such tyc
-          then do { atc_tycon <- tyConGenAtsTcM isTyConPhase (tyc:tycons) ts tyc tycargs
-                  ; return $ elabDetails (TyConApp tyc tycargs) atc_tycon
-                  }
-          else do { atc_tycon <- tyConGenAtsTcM isTyConPhase tycons ts tyc tycargs
-                  ; return $ elabDetails (TyConApp tyc tycargs) atc_tycon
-                  }
-        }
+             then do { atc_tycon <- tyConGenAtsTcM isTyConPhase (tyc:tycons) ts tyc tycargs
+                     ; return $ elabDetails (TyConApp tyc tycargs) atc_tycon
+                     }
+             else do { atc_tycon <- tyConGenAtsTcM isTyConPhase tycons ts tyc tycargs
+                     ; return $ elabDetails (TyConApp tyc tycargs) atc_tycon
+                     }
+        
   -- for type application we need ty1 @ ty2 (unless ty2 is * then skip it, or ty2 has a constraint kind)
   | (AppTy ty1 ty2) <- ty =
         if ty2 `tcEqType` star
@@ -228,12 +226,11 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
 isTyConInternal :: TyCon -> Bool
 isTyConInternal tycon =
   tycon `hasKey` tYPETyConKey || tycon `hasKey` runtimeRepTyConKey
-  -- || tycon `hasKey` dataClassKey
+  || tycon `hasKey` someTypeRepTyConKey
   -- || tycon `hasKey` repTyConKey || tycon `hasKey` rep1TyConKey
   -- || tycon `hasKey` typeRepTyConKey
   -- || tycon `hasKey` typeableClassKey
   || tycon `hasKey` eqTyConKey || tycon `hasKey` heqTyConKey
-  || tycon `hasKey` someTypeRepTyConKey
   || tycon `hasKey` proxyPrimTyConKey
   -- || tycon `hasKey` ioTyConKey -- || (tyConName tycon == ioTyConName)
   || tycon `hasKey` listTyConKey
@@ -245,10 +242,8 @@ isTyConInternal tycon =
   || tycon `hasKey` staticPtrInfoTyConKey || (tyConName tycon == staticPtrInfoTyConName)
   || tycon `hasKey` ptrTyConKey || tycon `hasKey` funPtrTyConKey
   || tycon `hasKey` qTyConKey || tyConName tycon == qTyConName
-  -- || tycon `hasKey` tExpTyConKey
   || tycon == funTyCon
-  || isWfTyCon tycon
-  || isWFMirrorTyCon tycon
+  || isWFMirrorTyCon tycon -- @ is also a mirror
 
 saneTyConForElab :: TyCon -> Bool
 saneTyConForElab tycon =
@@ -259,7 +254,7 @@ saneTyConForElab tycon =
       )
 
 
--- recursively generates @@ constraints for a type constructor
+-- recursively generates @ constraints for a type constructor
 -- Also rewrite Type family constructors
 tyConGenAtsTcM :: Bool
                -> [TyCon]

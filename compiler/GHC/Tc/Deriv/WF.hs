@@ -30,7 +30,7 @@ import GHC.Core.DataCon
 import GHC.Types.Name
 import GHC.Core.TyCon
 import GHC.Core.TyWF
-import GHC.Builtin.Types (wfTyConName, wfTyCon, cTupleTyConName)
+import GHC.Builtin.Types (wfTyConName, wfTyCon, cTupleTyCon)
 import GHC.Types.SrcLoc
 import GHC.Utils.Outputable as Outputable
 
@@ -220,17 +220,13 @@ getMatchingPredicates :: Type     -- Has to exists
                       -> [Type]   -- Should not exist
                       -> [PredType]
                       -> TcM Type
-getMatchingPredicates t tvs preds =
-    do { preds <- return mpreds
-         -- concatMapM flatten_atat_constraint mpreds
-       ; let n = length preds
-       ; if n == 1 then return (head preds)
-         else do { ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
-                 ; return $ mkTyConApp ctupleTyCon preds
-                 }
-       }
-  where
-    mpreds = getMatchingPredicates' t tvs preds
+getMatchingPredicates t tvs preds
+  = do let mpreds' = getMatchingPredicates' t tvs preds
+       mpreds <- mapM flatten_atat_constraint mpreds'
+       let fmpreds = foldl mergeAtAtConstraints [] mpreds
+           n = length fmpreds
+       if n == 1 then return $ head fmpreds
+         else return $ mkTyConApp (cTupleTyCon n) fmpreds
 
 -- filters the appropriate predicates from the given type variables
 -- eg:
@@ -249,7 +245,7 @@ getMatchingPredicates' tv tvs preds =
           any (eqType tv) (predTyArgs p)
           && not (or [eqType tv' t | tv' <- tvs, t <- predTyArgs p])
 
--- given a type family instance equation -
+-- given a type family instance equation
 -- D a b ~ T a b
 -- generates a WF_D a equation
 -- WF_D a b ~ wf(T a b)
@@ -262,13 +258,12 @@ genWFTyFamInst fam_inst
              loc = noAnnSrcSpan . getSrcSpan $ fam_inst
        ; inst_name <- newFamInstTyConName (L loc (getName wfTc)) ts
        ; elabDetails <- genAtAtConstraintsTcM True rhs
-       ; let preds' = newPreds elabDetails
-       ; preds <- concatMapM flatten_atat_constraint preds'
-       ; let n = length preds
-       ; rhs_ty <- if n == 1 then return . head $ preds
-                   else do { ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
-                           ; return $ mkTyConApp ctupleTyCon preds
-                           }
+       ; preds' <- mapM flatten_atat_constraint $ newPreds elabDetails
+       ; let preds = foldl mergeAtAtConstraints [] preds'
+             n = length preds
+             rhs_ty = if n == 1
+                      then head preds
+                      else mkTyConApp (cTupleTyCon n) preds
        ; let tvs     = fi_tvs fam_inst
              lhs_tys = ts
              axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wfTc lhs_tys rhs_ty
