@@ -62,7 +62,6 @@ import GHC.Core.Multiplicity
 import GHC.Core.FamInstEnv
 import GHC.Core.Coercion
 import GHC.Core.Type
-import GHC.Core.TyWF
 import GHC.Core.TyCo.Rep   -- for checkValidRoles
 import GHC.Core.TyCo.Ppr( pprTyVars )
 import GHC.Core.Class

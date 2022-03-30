@@ -63,6 +63,9 @@ import GHC.Types(type (@), Total)
 --
 newtype Stream m a b =
           Stream { runStreamInternal :: forall r' r .
+#if MIN_VERSION_base(4,16,0)
+                                        m @ r' =>
+#endif
                                         (a -> m r') -- For fusing calls to `map` and `mapM`
                                      -> (b -> StreamS m r' r)  -- For fusing `>>=`
                                      -> StreamS m r' r }

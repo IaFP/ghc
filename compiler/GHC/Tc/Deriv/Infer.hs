@@ -457,15 +457,7 @@ inferConstraintsCoerceBased cls_tys rep_ty = do
         coercible_constraints ty
           = do let ps = [ (meth, mkCoerceClassMethEqn cls tvs inst_tys ty meth)
                         | meth <- meths
-                        ]
-               -- ANI: TODO this causes failures matching representation types of functions for newtypes
-               -- I suspect this is becuase ~#R may not be able to decompose =>s
-               -- ps' <- if partyCtrs
-               --        then mapM (\(m, Pair t1 t2) -> do { t1' <- elabAtAtConstraints t1
-               --                                          ; t2' <- elabAtAtConstraints t2
-               --                                          ; return $ (m, Pair t1' t2')}) ps
-               --        else return ps
-                                                                  
+                        ]                                                                  
                return $ fmap (\(meth, Pair t1 t2) -> mkPredOrigin (DerivOriginCoerce meth t1 t2 sa_wildcard)
                                                    TypeLevel (mkReprPrimEqPred t1 t2)) ps
 

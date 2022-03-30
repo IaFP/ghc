@@ -30,7 +30,7 @@ import GHC.Core.DataCon
 import GHC.Types.Name
 import GHC.Core.TyCon
 import GHC.Core.TyWF
-import GHC.Builtin.Types (wfTyConName, wfTyCon, cTupleTyConName, constraintKind)
+import GHC.Builtin.Types (wfTyConName, wfTyCon, cTupleTyConName)
 import GHC.Types.SrcLoc
 import GHC.Utils.Outputable as Outputable
 
@@ -166,7 +166,7 @@ mk_atat_fam_except loc tc skip_tcs
   = return []
   | (isAlgTyCon tc && saneTyConForElab tc) -- is this a vanilla tycon
     || isNewTyCon tc 
-  = do { elabds <- mapM (genAtAtConstraintsExceptTcM False (tc:skip_tcs) []) dt_ctx
+  = do { elabds <- mapM (genAtAtConstraintsExceptTcM True (tc:skip_tcs) []) dt_ctx
        ; let css = fmap newPreds elabds
              elab_dt_ctx = foldl mergeAtAtConstraints [] css
              css' =  mergeAtAtConstraints elab_dt_ctx dt_ctx
@@ -221,7 +221,8 @@ getMatchingPredicates :: Type     -- Has to exists
                       -> [PredType]
                       -> TcM Type
 getMatchingPredicates t tvs preds =
-    do { preds <- concatMapM flatten_atat_constraint mpreds
+    do { preds <- return mpreds
+         -- concatMapM flatten_atat_constraint mpreds
        ; let n = length preds
        ; if n == 1 then return (head preds)
          else do { ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
@@ -260,7 +261,7 @@ genWFTyFamInst fam_inst
        ; let wfTc = wfMirrorTyCon tfTc
              loc = noAnnSrcSpan . getSrcSpan $ fam_inst
        ; inst_name <- newFamInstTyConName (L loc (getName wfTc)) ts
-       ; elabDetails <- genAtAtConstraintsTcM False rhs
+       ; elabDetails <- genAtAtConstraintsTcM True rhs
        ; let preds' = newPreds elabDetails
        ; preds <- concatMapM flatten_atat_constraint preds'
        ; let n = length preds

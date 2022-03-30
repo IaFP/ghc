@@ -7,6 +7,9 @@ Wired-in knowledge about primitive types
 
 {-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE NoMonomorphismRestriction #-}
+#endif
 
 -- | This module defines TyCons that can't be expressed in Haskell.
 --   They are all, therefore, wired-in TyCons.  C.f module "GHC.Builtin.Types"

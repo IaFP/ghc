@@ -13,6 +13,7 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ImpredicativeTypes #-}
 
 {-| This module is an internal GHC module.  It declares the constants used
 in the implementation of type-level natural numbers.  The programmer interface
@@ -248,4 +249,4 @@ newtype SNat    (n :: Nat)    = SNat    Natural
 withSNat :: forall a b.
             (KnownNat a => Proxy a -> b)
          -> SNat a      -> Proxy a -> b
-withSNat f x y = withDict @(SNat a) @(KnownNat a) x f y
+withSNat f x y = withDict @(SNat @ a => SNat a) @(KnownNat a) x f y

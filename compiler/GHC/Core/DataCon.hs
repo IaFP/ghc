@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 903
 {-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, TypeFamilies #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 #endif
 {-
 (c) The University of Glasgow 2006
@@ -1374,11 +1375,7 @@ dataConInstSig con@(MkData { dcUnivTyVars = univ_tvs, dcExTyCoVars = ex_tvs
 --    annotations
 --
 -- 6) The original result type of the 'DataCon'
-dataConFullSig ::
-#if MIN_VERSION_base(4,16,0)
-                  (Scaled @ Type) =>
-#endif
-                  DataCon
+dataConFullSig :: DataCon
                -> ([TyVar], [TyCoVar], [EqSpec], ThetaType, [Scaled Type], Type)
 dataConFullSig (MkData {dcUnivTyVars = univ_tvs, dcExTyCoVars = ex_tvs,
                         dcEqSpec = eq_spec, dcOtherTheta = theta,  -- dcStupidTheta = s_theta,
@@ -1490,9 +1487,6 @@ dataConInstArgTys dc@(MkData {dcUnivTyVars = univ_tvs,
 -- | Returns just the instantiated /value/ argument types of a 'DataCon',
 -- (excluding dictionary args)
 dataConInstOrigArgTys ::
-#if MIN_VERSION_base(4,16,0)
-          (Scaled @ Type) =>
-#endif
            DataCon      -- Works for any DataCon
         -> [Type]       -- Includes existential tyvar args, but NOT
                         -- equality constraints or dicts

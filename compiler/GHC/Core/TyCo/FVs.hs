@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE NoMonomorphismRestriction #-}
+#endif
 
 
 module GHC.Core.TyCo.FVs

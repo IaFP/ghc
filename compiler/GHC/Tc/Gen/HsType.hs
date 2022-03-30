@@ -105,7 +105,7 @@ import GHC.Types.Name.Reader( lookupLocalRdrOcc )
 import GHC.Types.Var
 import GHC.Types.Var.Set
 import GHC.Core.TyCon
-import GHC.Core.TyWF (elabAtAtConstraintsTcM)
+import GHC.Core.TyWF
 import GHC.Core.ConLike
 import GHC.Core.DataCon
 import GHC.Core.Class
@@ -398,12 +398,7 @@ tcClassSigType names sig_ty
   = addSigCtxt sig_ctxt sig_ty $
     do { (implic, ty) <- tc_lhs_sig_type skol_info sig_ty (TheKind liftedTypeKind)
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; ty <- if partyCtrs
-               then do { traceTc "tcClassSigType before elaborating: " (ppr ty)
-                       ; eTy <- elabAtAtConstraintsTcM False ty
-                       ; traceTc "tcClassSigType elaborated signature: " (ppr $ eTy)
-                       ; return $ eTy }
-               else return ty
+       ; ty <- if partyCtrs then elabAtAtConstraintsTcM True ty else return ty
        ; emitImplication implic
        ; return ty }
        -- Do not zonk-to-Type, nor perform a validity check
@@ -432,7 +427,7 @@ tcHsSigType :: UserTypeCtxt -> LHsSigType GhcRn -> TcM Type
 tcHsSigType ctxt sig_ty
   | (ForSigCtxt _) <- ctxt -- we don't know what to do with the extra () constraints after rewriting f @ b while interfacing with foreign functions
   = addSigCtxt ctxt sig_ty $
-    do { traceTc "tcHsSigType {" (ppr sig_ty)
+    do { traceTc "tcHsSigType { ForSigCxt" (ppr sig_ty)
           -- Generalise here: see Note [Kind generalisation]
        ; (implic, ty) <- tc_lhs_sig_type skol_info sig_ty  (expectedKindInCtxt ctxt)
 
@@ -462,7 +457,7 @@ tcHsSigType ctxt sig_ty
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
        ; ty <- if partyCtrs
                then do { traceTc "tc_hs_sig_type before elaborating: " (ppr ty)
-                       ; elabTy <- elabAtAtConstraintsTcM False ty
+                       ; elabTy <- elabAtAtConstraintsTcM True ty
                        ; traceTc "tc_hs_sig_type elaborated signature: " (ppr elabTy)
                        ; return elabTy }
                else return ty
@@ -623,6 +618,35 @@ tc_top_lhs_type :: TypeOrKind -> UserTypeCtxt -> LHsSigType GhcRn -> TcM Type
 --   for things (like deriving and instances) that aren't
 --   ordinary types
 -- Used for both types and kinds
+tc_top_lhs_type tyki ctxt@DerivClauseCtxt (L loc sig_ty@(HsSig { sig_bndrs = hs_outer_bndrs
+                                               , sig_body = body }))
+  -- Elaborate and also reduce the elaborated type as much as possible if it is in a deriving clause ctxt
+  = setSrcSpanA loc $
+    do { traceTc "tc_top_lhs_type {" (ppr tyki <+> ppr sig_ty)
+       ; (tclvl, wanted, (outer_bndrs, ty))
+              <- pushLevelAndSolveEqualitiesX "tc_top_lhs_type"    $
+                 tcOuterTKBndrs skol_info hs_outer_bndrs $
+                 do { kind <- newExpectedKind (expectedKindInCtxt ctxt)
+                    ; tc_lhs_type (mkMode tyki) body kind }
+
+       ; outer_tv_bndrs <- scopedSortOuter outer_bndrs
+       ; let ty1 = mkInvisForAllTys outer_tv_bndrs ty
+
+       ; kvs <- kindGeneralizeAll ty1  -- "All" because it's a top-level type
+       ; reportUnsolvedEqualities skol_info kvs tclvl wanted
+
+       ; ze       <- mkEmptyZonkEnv NoFlexi
+       ; final_ty' <- zonkTcTypeToTypeX ze (mkInfForAllTys kvs ty1)
+       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors 
+       ; final_ty <- if partyCtrs && isTypeLevel tyki
+                     then elabAtAtConstraintsTcM False final_ty'
+                     else return final_ty'
+       
+       ; traceTc "tc_top_lhs_type }" (vcat [ppr sig_ty, ppr final_ty])
+       ; return final_ty }
+  where
+    skol_info = SigTypeSkol ctxt
+
 tc_top_lhs_type tyki ctxt (L loc sig_ty@(HsSig { sig_bndrs = hs_outer_bndrs
                                                , sig_body = body }))
   = setSrcSpanA loc $
@@ -643,7 +667,7 @@ tc_top_lhs_type tyki ctxt (L loc sig_ty@(HsSig { sig_bndrs = hs_outer_bndrs
        ; final_ty' <- zonkTcTypeToTypeX ze (mkInfForAllTys kvs ty1)
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors 
        ; final_ty <- if partyCtrs && isTypeLevel tyki
-                     then elabAtAtConstraintsTcM False final_ty'
+                     then elabAtAtConstraintsTcM True final_ty'
                      else return final_ty'
 
        ; traceTc "tc_top_lhs_type }" (vcat [ppr sig_ty, ppr final_ty])
