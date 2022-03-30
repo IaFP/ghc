@@ -260,7 +260,7 @@ genWFFamInstConstraint rhs
   = do {
   ; preds <- newPreds <$> genAtAtConstraintsTcM False rhs
   ; flattened <- do
-      { css <- concatMapM flatten_atat_constraint preds
+      { css <- mapM flatten_atat_constraint preds
       ; return $ foldl mergeAtAtConstraints [] css
       }
   ; let

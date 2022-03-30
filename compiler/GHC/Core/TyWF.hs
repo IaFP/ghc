@@ -30,7 +30,6 @@ import GHC.Tc.Validity (tyConArityErr)
 import GHC.Core.TyCo.Rep
 import GHC.Core.TyCon
 import GHC.Core.Type
-import GHC.Types.TyThing
 import GHC.Core.Reduction (reductionReducedType)
 import GHC.Builtin.Names
 import GHC.Builtin.Names.TH
