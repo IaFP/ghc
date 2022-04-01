@@ -11,6 +11,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ImpredicativeTypes #-}
 
 {-|
 GHC's @DataKinds@ language extension lifts data constructors, natural
@@ -59,7 +60,7 @@ module GHC.TypeLits
   ) where
 
 import GHC.Base(Eq(..), Ord(..), Ordering(..), String, otherwise, withDict)
-import GHC.Types(Symbol, Char)
+import GHC.Types(Symbol, Char, type(@))
 import GHC.TypeError(ErrorMessage(..), TypeError)
 import GHC.Num(Integer, fromInteger)
 import GHC.Show(Show(..))

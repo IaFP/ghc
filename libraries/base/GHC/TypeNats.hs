@@ -13,6 +13,7 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ImpredicativeTypes #-}
 
 {-| This module is an internal GHC module.  It declares the constants used
 in the implementation of type-level natural numbers.  The programmer interface

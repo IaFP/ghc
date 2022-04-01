@@ -48,7 +48,7 @@ import GHC.Tc.Validity (validDerivPred)
 import GHC.Tc.Utils.Unify (buildImplicationFor, checkConstraints)
 import GHC.Builtin.Types (typeToTypeKind)
 import GHC.Core.Unify (tcUnifyTy)
-import GHC.Core.TyWF (genWfConstraints, predTyArgs)
+import GHC.Core.TyWF (genWfConstraintsTcM, genWfConstraints, predTyArgs, mergeAtAtConstraints)
 import GHC.Utils.Misc
 import GHC.Types.Var
 import GHC.Types.Var.Set
@@ -199,7 +199,7 @@ inferConstraintsStock dit@(DerivInstTys { dit_cls_tys     = cls_tys
                = mk_functor_like_constraints orig t_or_k main_cls mk_cls_pred $
                  deepSubtypesContaining last_tv ty
                | otherwise
-               = do { wfcts <- if partyCtrs then do {genWfConstraints ty [mkTyVarTy last_tv]} else return []
+               = do { wfcts <- if partyCtrs then genWfConstraints True ty [mkTyVarTy last_tv] else return []
                     ; return [ ((fmap (mkPredOrigin orig TypeLevel) wfcts)
                                   `stableMergePredOrigin` [mk_cls_pred orig t_or_k main_cls ty]
                               , Nothing )]
@@ -289,7 +289,7 @@ mk_functor_like_constraints orig t_or_k cls mk_cls_pred tys
       do { dflags <- getDynFlags
          ; let partyCtrs = xopt LangExt.PartialTypeConstructors dflags
          ; wfcts <- if partyCtrs
-                    then genWfConstraints ty []
+                    then genWfConstraints True ty []
                     else return []
          ; let ki = tcTypeKind ty
          ; return $ ( (fmap (mkPredOrigin orig TypeLevel) wfcts)
@@ -332,16 +332,19 @@ con_arg_constraints dit rep_tc inst_tys tvs rep_tc_args t_or_ks get_arg_constrai
                , stupid_pred <- dataConStupidTheta data_con
                ]
        -- ANI: TODO I think we also need to elaborate inst_tys to get more contraints.               
-       ; more_wf_constraints <- if partyCtrs then concatMapM (\f -> genWfConstraints f []) inst_tys else return []
+       ; more_wf_constraints <- if partyCtrs
+                                then do wfs <- mapM (\f -> genWfConstraints True f []) inst_tys
+                                        return $ foldl mergeAtAtConstraints [] wfs
+                                else return []
              -- get only those preds that are relavant.
              -- we may end up with an unquantified type variable while deriving a functor instance of a type
 
        ; let inst_tys_tyargs = concatMap predTyArgs inst_tys
-             stupid_theta_relv = filter (\p -> and [or [a `eqType` t
+             stupid_theta = filter (\p -> and [or [a `eqType` t
                                                        | t <- inst_tys_tyargs ]
                                                    | a <- predTyArgs p]) (stupid_theta' ++ more_wf_constraints)
 
-             stupid_theta = stableMergeTypes stupid_theta_relv [] -- making sure no duplicate @ appear 
+             -- stupid_theta = stableMergeTypes stupid_theta_relv [] -- making sure no duplicate @ appear 
              preds = concat predss
              -- If the constraints require a subtype to be of kind
              -- (* -> *) (which is the case for functor-like
@@ -391,7 +394,7 @@ inferConstraintsAnyclass = do
                      meth_ty'   = substTyWith sel_tvs inst_tys meth_ty
                      (meth_tvs, meth_theta', meth_tau)
                                 = tcSplitNestedSigmaTys meth_ty'
-               ; wfcts <- if partyCtrs then do { genWfConstraints meth_tau [] } else return []
+               ; wfcts <- if partyCtrs then genWfConstraintsTcM True meth_tau [] else return []
                ; let gen_dm_ty' = substTyWith cls_tvs inst_tys gen_dm_ty
                      meth_theta = stableMergeTypes wfcts meth_theta'
                      (dm_tvs, dm_theta, dm_tau)
@@ -438,7 +441,7 @@ inferConstraintsCoerceBased cls_tys rep_ty = do
               -- we are going to get all the methods for the final
               -- dictionary
         deriv_origin = mkDerivOrigin sa_wildcard
-  ; wfct <- if partyCtrs then genWfConstraints rep_ty [] else return []
+  ; wfct <- if partyCtrs then genWfConstraints True rep_ty [] else return []
   ; let wfpreds = fmap (mkPredOrigin deriv_origin TypeLevel) wfct
       -- Next we collect constraints for the class methods
       -- If there are no methods, we don't need any constraints
@@ -457,15 +460,7 @@ inferConstraintsCoerceBased cls_tys rep_ty = do
         coercible_constraints ty
           = do let ps = [ (meth, mkCoerceClassMethEqn cls tvs inst_tys ty meth)
                         | meth <- meths
-                        ]
-               -- ANI: TODO this causes failures matching representation types of functions for newtypes
-               -- I suspect this is becuase ~#R may not be able to decompose =>s
-               -- ps' <- if partyCtrs
-               --        then mapM (\(m, Pair t1 t2) -> do { t1' <- elabAtAtConstraints t1
-               --                                          ; t2' <- elabAtAtConstraints t2
-               --                                          ; return $ (m, Pair t1' t2')}) ps
-               --        else return ps
-                                                                  
+                        ]                                                                  
                return $ fmap (\(meth, Pair t1 t2) -> mkPredOrigin (DerivOriginCoerce meth t1 t2 sa_wildcard)
                                                    TypeLevel (mkReprPrimEqPred t1 t2)) ps
 
