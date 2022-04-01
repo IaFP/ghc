@@ -224,10 +224,7 @@ genWFFamInstConstraint rhs
       n = length flattened
   ; if n == 1
     then return . head $ flattened
-    else do {
-              ctupleTyCon <- tcLookupTyCon (cTupleTyConName n)
-            ; return $ mkTyConApp ctupleTyCon flattened
-            }
+    else return $ mkTyConApp (cTupleTyCon n) flattened
   }
 
 -- given a type family instance equation
