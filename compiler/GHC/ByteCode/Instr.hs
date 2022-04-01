@@ -1,4 +1,5 @@
 
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 --
@@ -28,6 +29,9 @@ import Data.Word
 import GHC.Stack.CCS (CostCentre)
 
 import GHC.Stg.Syntax
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 -- ----------------------------------------------------------------------------
 -- Bytecode instructions
@@ -206,7 +210,11 @@ instance Outputable a => Outputable (ProtoBCO a) where
 -- the expression in the -ddump-stg output.  That is, we need to
 -- include at least a binder.
 
-pprStgExprShort :: OutputablePass pass => StgPprOpts -> GenStgExpr pass -> SDoc
+pprStgExprShort :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (BinderP pass),
+#endif
+  OutputablePass pass) => StgPprOpts -> GenStgExpr pass -> SDoc
 pprStgExprShort _ (StgCase _expr var _ty _alts) =
   text "case of" <+> ppr var
 pprStgExprShort _ (StgLet _ bnd _) =

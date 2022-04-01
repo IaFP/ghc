@@ -133,7 +133,7 @@ import Data.Data (Data)
 #if MIN_VERSION_base(4,16,0)
 import GHC.Types (WFT, type (@))
 import {-# SOURCE #-} Language.Haskell.Syntax.Pat (Pat)
-import {-# SOURCE #-} Language.Haskell.Syntax.Expr (HsExpr)
+import {-# SOURCE #-} Language.Haskell.Syntax.Expr (HsExpr, MatchGroup, GRHSs, HsSplice)
 #endif
 
 {-
@@ -175,7 +175,13 @@ partitionBindsAndSigs
    Pat @ GhcPs, WFT (Anno (HsExpr GhcPs)),
    HsExpr @ GhcPs,
    WFT (XOverLit GhcPs),
-  WFT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn
+   WFT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
+   MatchGroup @ GhcPs,
+   MatchGroup GhcPs
+    @ GenLocated (Anno (HsExpr GhcPs)) (HsExpr GhcPs),
+   GRHSs @ GhcPs,
+   GRHSs GhcPs @ GenLocated (Anno (HsExpr GhcPs)) (HsExpr GhcPs),
+   HsSplice @ GhcPs
   ) => 
 #endif
     [LHsDecl GhcPs]
@@ -281,6 +287,14 @@ instance (
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
   Pat @ GhcPass p, HsExpr @ GhcPass p,
+  MatchGroup @ GhcPass p,
+  MatchGroup (GhcPass p)
+                         @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
+  GRHSs @ GhcPass p,
+  GRHSs (GhcPass p)
+                         @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
+  HsSplice @ GhcPass p,
+  WFT (Anno (IdGhcP p)),
 #endif
   OutputableBndrId p) => Outputable (HsDecl (GhcPass p)) where
     ppr (TyClD _ dcl)             = ppr dcl
@@ -309,6 +323,13 @@ instance (
  WFT (XOverLit (GhcPass p)),
  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
  WFT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
+ MatchGroup @ GhcPass p,
+ MatchGroup (GhcPass p)
+   @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
+ GRHSs @ GhcPass p,
+ GRHSs (GhcPass p)
+  @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
+ WFT (Anno (IdGhcP p)),
 #endif
   OutputableBndrId p) => Outputable (HsGroup (GhcPass p)) where
     ppr (HsGroup { hs_valds  = val_decls,
@@ -352,6 +373,7 @@ instance (
   WFT (XOverLit GhcPs),
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  HsSplice @ GhcPass p,
 #endif
   OutputableBndrId p)
        => Outputable (SpliceDecl (GhcPass p)) where
@@ -438,6 +460,13 @@ instance (
   WFT (Anno (HsExpr (GhcPass p))),
   HsExpr @ GhcPass p,
   WFT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
+  MatchGroup @ GhcPass p,
+  MatchGroup (GhcPass p)
+                         @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
+  GRHSs @ GhcPass p,
+  GRHSs (GhcPass p)
+                         @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
+  WFT (Anno (IdGhcP p)),
 #endif
   OutputableBndrId p) => Outputable (TyClDecl (GhcPass p)) where
 
@@ -480,6 +509,13 @@ instance (
   WFT (Anno (HsExpr (GhcPass p))),
   HsExpr @ GhcPass p,
   WFT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
+  MatchGroup @ GhcPass p,
+  MatchGroup (GhcPass p)
+    @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
+  GRHSs @ GhcPass p,
+  GRHSs (GhcPass p)
+    @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
+  WFT (Anno (IdGhcP p)),
 #endif
   OutputableBndrId p)
        => Outputable (TyClGroup (GhcPass p)) where
@@ -605,6 +641,7 @@ instance (
   WFT (XOverLit GhcPs),
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)), -- THIS SHOULD GO AWAY
 #endif
   OutputableBndrId p)
        => Outputable (FamilyDecl (GhcPass p)) where
@@ -991,6 +1028,13 @@ instance (
   WFT (Anno (Pat (GhcPass p))), Pat @ GhcPass p,
   WFT (Anno (HsExpr (GhcPass p))), HsExpr @ GhcPass p,
   WFT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
+  HsExpr @ GhcPass p,
+  MatchGroup @ GhcPass p,
+                         MatchGroup (GhcPass p)
+                         @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
+                         GRHSs @ GhcPass p,
+                         GRHSs (GhcPass p)
+                         @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
 #endif
   OutputableBndrId p)
        => Outputable (ClsInstDecl (GhcPass p)) where
@@ -1048,6 +1092,12 @@ instance (
   HsExpr @ GhcPass p,
   WFT (XOverLit GhcPs),
   WFT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
+  MatchGroup @ GhcPass p,
+  MatchGroup (GhcPass p)
+                         @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
+                         GRHSs @ GhcPass p,
+                         GRHSs (GhcPass p)
+                         @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
 #endif
   OutputableBndrId p) => Outputable (InstDecl (GhcPass p)) where
     ppr (ClsInstD     { cid_inst  = decl }) = ppr decl
@@ -1261,6 +1311,7 @@ instance (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+   HsExpr @ GhcPass p,
 #endif
   OutputableBndrId p) => Outputable (RuleDecls (GhcPass p)) where
   ppr (HsRules { rds_src = st
@@ -1272,6 +1323,7 @@ instance (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  HsExpr @ GhcPass p,  
 #endif
   OutputableBndrId p) => Outputable (RuleDecl (GhcPass p)) where
   ppr (HsRule { rd_name = name
@@ -1343,6 +1395,7 @@ type instance XXAnnDecl     (GhcPass _) = NoExtCon
 instance (
 #if MIN_VERSION_base(4,16,0)
  WFT (XOverLit (GhcPass p)),
+ HsExpr @ GhcPass p,
 #endif
   OutputableBndrId p) => Outputable (AnnDecl (GhcPass p)) where
     ppr (HsAnnotation _ _ provenance expr)
