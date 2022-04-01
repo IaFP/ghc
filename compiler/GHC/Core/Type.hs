@@ -3098,6 +3098,7 @@ isPredTy ty = tcIsConstraintKind (tcTypeKind ty)
 isWfPredTy :: HasDebugCallStack => Type -> Bool
 isWfPredTy ty@(TyConApp tc _) = isPredTy ty && (tc `hasKey` wfTyConKey || isWFMirrorTyCon tc)
 isWfPredTy _ = False
+
 -- tcIsConstraintKind stuff only makes sense in the typechecker
 -- After that Constraint = Type
 -- See Note [coreView vs tcView]

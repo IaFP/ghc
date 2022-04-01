@@ -249,4 +249,4 @@ newtype SNat    (n :: Nat)    = SNat    Natural
 withSNat :: forall a b.
             (KnownNat a => Proxy a -> b)
          -> SNat a      -> Proxy a -> b
-withSNat f x y = withDict @(SNat @ a => SNat a) @(KnownNat a) x f y
+withSNat f x y = withDict @(SNat a) @(KnownNat a) x f y

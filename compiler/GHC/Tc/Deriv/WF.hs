@@ -119,39 +119,6 @@ mk_atat_fam' loc acc tc uTys (tyd, ty:tyl) (tyvarsd, (tyvar, shouldInc):tyvarsl)
     tyvarsd' = tyvarsd ++ [tyvar]
 mk_atat_fam' _ acc _ _ _ _ _ = return acc
 
-{-                               
--- mk_atat_datacon :: SrcSpan -> TyCon -> DataCon -> TcM ThetaType
--- mk_atat_datacon loc tycon dc = mk_atat_datacon_except loc tycon [] dc
--- Consider
---        n  n   r                     r           n
--- data T k1 k2 (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) where
---      MkT1 :: f -> p -> T f g p
---      MkT2 :: g -> p -> T f g p
--- We don't want (f @ g p) to creap in hence this bad_bndr dance, as k1 and k2 are specified binders
-mk_atat_datacon_except :: TyCon -> [TyCon] -> DataCon -> TcM ThetaType
-mk_atat_datacon_except tycon skip_tcs dc =
-  do { let arg_tys' = fmap scaledThing $ dataConOrigArgTys dc
-           -- univ_roles = zip (dataConUnivTyVars dc) (tyConRoles tycon)
-           -- bad_tys = map (TyVarTy . fst) (filter (\(_, r) -> r == Nominal) univ_roles)
-           arg_tys = filter (isGoodTyArg tycon) arg_tys'
-     -- ; traceTc "mk_atat_datacon"
-     --   (vcat [ text "dc=" <> ppr dc
-     --         , text "tycon=" <> ppr tycon <+> ppr (tyConArity tycon) <> ppr loc
-     --         , text "tycon bndrs=" <> ppr (tyConBinders tycon)
-     --         , text "arg_tys=" <> (ppr arg_tys)
-     --         -- , text "bad_tys" <> ppr bad_tys
-     --         , text "univTys=" <> ppr univ_roles] )
-     ; elabty_arg_atats <- mapM (genAtAtConstraintsExceptTcM True (tycon:skip_tcs) []) arg_tys
-     ; let arg_atats = fmap newPreds elabty_arg_atats
-     ; let atats = foldl mergeAtAtConstraints [] arg_atats
-     -- ; traceTc "elab atats=" (ppr atats)
-     ; return atats
-     }
-  where
-    isGoodTyArg :: TyCon -> Type -> Bool
-    isGoodTyArg tc (TyConApp tyc _) = not (tc == tyc)
-    isGoodTyArg _ _ = True
--}
 
 mk_atat_fam :: SrcSpan -> TyCon -> TcM [FamInst]
 mk_atat_fam loc tc = mk_atat_fam_except loc tc []
@@ -181,7 +148,6 @@ mk_atat_fam_except loc tc skip_tcs
     univTys = mkTyVarTys $ concatMap dataConExTyCoVars dcs
     dt_ctx = tyConStupidTheta tc
     tyvars = tyConTyVars tc
-    -- roles = tyConRoles tc
     binders = tyConBinders tc
     tyvar_binder = zip tyvars binders
     tyvars_binder_type = map (\(t, b) ->
@@ -196,21 +162,15 @@ mk_atat_fam_except_units :: SrcSpan -> TyCon -> [TyCon] -> TcM [FamInst]
 mk_atat_fam_except_units loc tc _
   | isAlgTyCon tc && saneTyConForElab tc
   -- we don't want class tycons to creep in
-  -- maybe simplify to isDataTyCon?
   = do mk_atat_fam' loc [] tc univTys ([], tyargs) ([], tyvars_binder_type) []
   | otherwise = return []
   where
     dcs = visibleDataCons $ algTyConRhs tc
     univTys = mkTyVarTys $ concatMap dataConExTyCoVars dcs
-    -- dt_ctx = []
     tyvars = tyConTyVars tc
-    -- roles = tyConRoles tc
     binders = tyConBinders tc
     tyvar_binder = zip tyvars binders
-    tyvars_binder_type = map (\(t, b) ->
-                                 (t, (isVisibleTyConBinder b
-                                       && not (isNamedTyConBinder b)))
-                                       -- && not (r == Nominal)))
+    tyvars_binder_type = map (\(t, b) -> (t, (isVisibleTyConBinder b && not (isNamedTyConBinder b)))
                              ) tyvar_binder
     tyargs = mkTyVarTys tyvars
 

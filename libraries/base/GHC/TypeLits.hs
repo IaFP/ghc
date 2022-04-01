@@ -266,7 +266,7 @@ newtype SSymbol (s :: Symbol) = SSymbol String
 withSSymbol :: forall a b.
                (KnownSymbol a => Proxy a -> b)
             -> SSymbol a      -> Proxy a -> b
-withSSymbol f x y = withDict @(SSymbol @ a => SSymbol a) @(KnownSymbol a) x f y
+withSSymbol f x y = withDict @(SSymbol a) @(KnownSymbol a) x f y
 
 newtype SChar (s :: Char) = SChar Char
 
@@ -274,4 +274,4 @@ newtype SChar (s :: Char) = SChar Char
 withSChar :: forall a b.
              (KnownChar a => Proxy a -> b)
             -> SChar a      -> Proxy a -> b
-withSChar f x y = withDict @(SChar @ a => SChar a) @(KnownChar a) x f y
+withSChar f x y = withDict @(SChar a) @(KnownChar a) x f y

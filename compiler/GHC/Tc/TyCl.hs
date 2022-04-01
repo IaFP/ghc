@@ -3526,10 +3526,6 @@ tcConDecl new_or_data dd_info rep_tycon tc_bndrs res_kind tag_map
                  ; btys <- tcConH98Args exp_kind hs_args
                  ; field_lbls <- lookupConstructorFields name
                  ; let (arg_tys, stricts) = unzip btys
-                 -- ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-                 -- ; css <- if partyCtrs then concatMapM (\t -> genWfConstraints (scaledThing t) []) arg_tys
-                 --          else return []
-                 -- ; let ctxt = mergeAtAtConstraints css ctxt'
                  ; return (ctxt, arg_tys, field_lbls, stricts)
                  }
 

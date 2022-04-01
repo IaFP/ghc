@@ -398,7 +398,7 @@ tcClassSigType names sig_ty
   = addSigCtxt sig_ctxt sig_ty $
     do { (implic, ty) <- tc_lhs_sig_type skol_info sig_ty (TheKind liftedTypeKind)
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; ty <- if partyCtrs then elabAtAtConstraintsTcM True ty else return ty
+       ; ty <- if partyCtrs then elabWfTypeTcM False ty else return ty
        ; emitImplication implic
        ; return ty }
        -- Do not zonk-to-Type, nor perform a validity check
@@ -457,7 +457,7 @@ tcHsSigType ctxt sig_ty
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
        ; ty <- if partyCtrs
                then do { traceTc "tc_hs_sig_type before elaborating: " (ppr ty)
-                       ; elabTy <- elabAtAtConstraintsTcM True ty
+                       ; elabTy <- elabWfTypeTcM True ty
                        ; traceTc "tc_hs_sig_type elaborated signature: " (ppr elabTy)
                        ; return elabTy }
                else return ty
@@ -639,7 +639,7 @@ tc_top_lhs_type tyki ctxt@DerivClauseCtxt (L loc sig_ty@(HsSig { sig_bndrs = hs_
        ; final_ty' <- zonkTcTypeToTypeX ze (mkInfForAllTys kvs ty1)
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors 
        ; final_ty <- if partyCtrs && isTypeLevel tyki
-                     then elabAtAtConstraintsTcM False final_ty'
+                     then elabWfTypeTcM False final_ty'
                      else return final_ty'
        
        ; traceTc "tc_top_lhs_type }" (vcat [ppr sig_ty, ppr final_ty])
@@ -667,7 +667,7 @@ tc_top_lhs_type tyki ctxt (L loc sig_ty@(HsSig { sig_bndrs = hs_outer_bndrs
        ; final_ty' <- zonkTcTypeToTypeX ze (mkInfForAllTys kvs ty1)
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors 
        ; final_ty <- if partyCtrs && isTypeLevel tyki
-                     then elabAtAtConstraintsTcM True final_ty'
+                     then elabWfTypeTcM True final_ty'
                      else return final_ty'
 
        ; traceTc "tc_top_lhs_type }" (vcat [ppr sig_ty, ppr final_ty])
