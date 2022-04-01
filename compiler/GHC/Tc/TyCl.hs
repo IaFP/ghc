@@ -2916,7 +2916,7 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
                                 (resultVariableName sig) (ClosedSynFamilyTyCon mb_wf_co_ax)
                                 parent
 
-                     mb_wf_co_ax = Just (mkBranchedCoAxiom co_ax_name wf_tycon wf_branches)
+                     mb_wf_co_ax = Just (mkBranchedCoAxiom wf_co_ax_name wf_tycon wf_branches)
 
                
                ; return fam_tc }
