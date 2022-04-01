@@ -306,7 +306,8 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        }
   | isOpenTypeFamilyTyCon tycon
     || isClosedTypeFamilyTyCon tycon
-  = do { traceTc "wfelab open typefam" (ppr tycon <+> ppr args)
+  = do { let openClosed = if isOpenTypeFamilyTyCon tycon then "open" else "closed"
+       ; traceTc ("wfelab " ++ openClosed ++ " typefam") (ppr tycon <+> ppr args)
        ; let (args_tc, extra_args_tc) = splitAt (tyConArity tycon) args
        ; let wftycon = wfMirrorTyCon tycon -- this better exist
        ; traceTc "wfelab lookup2" (ppr wftycon)

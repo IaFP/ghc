@@ -1,3 +1,5 @@
+{-# LANGUAGE PartialTypeConstructors #-}
+
 module ClosedTFImporter where
 
 import ClosedTF1 as CF1
