@@ -199,7 +199,7 @@ inferConstraintsStock dit@(DerivInstTys { dit_cls_tys     = cls_tys
                = mk_functor_like_constraints orig t_or_k main_cls mk_cls_pred $
                  deepSubtypesContaining last_tv ty
                | otherwise
-               = do { wfcts <- if partyCtrs then genWfConstraints True ty [mkTyVarTy last_tv] else return []
+               = do { wfcts <- if partyCtrs then genWfConstraints False ty [mkTyVarTy last_tv] else return []
                     ; return [ ((fmap (mkPredOrigin orig TypeLevel) wfcts)
                                   `stableMergePredOrigin` [mk_cls_pred orig t_or_k main_cls ty]
                               , Nothing )]
@@ -394,7 +394,7 @@ inferConstraintsAnyclass = do
                      meth_ty'   = substTyWith sel_tvs inst_tys meth_ty
                      (meth_tvs, meth_theta', meth_tau)
                                 = tcSplitNestedSigmaTys meth_ty'
-               ; wfcts <- if partyCtrs then genWfConstraintsTcM True meth_tau [] else return []
+               ; wfcts <- if partyCtrs then genWfConstraintsTcM False meth_tau [] else return []
                ; let gen_dm_ty' = substTyWith cls_tvs inst_tys gen_dm_ty
                      meth_theta = stableMergeTypes wfcts meth_theta'
                      (dm_tvs, dm_theta, dm_tau)
@@ -441,7 +441,7 @@ inferConstraintsCoerceBased cls_tys rep_ty = do
               -- we are going to get all the methods for the final
               -- dictionary
         deriv_origin = mkDerivOrigin sa_wildcard
-  ; wfct <- if partyCtrs then genWfConstraints True rep_ty [] else return []
+  ; wfct <- if partyCtrs then genWfConstraints False rep_ty [] else return []
   ; let wfpreds = fmap (mkPredOrigin deriv_origin TypeLevel) wfct
       -- Next we collect constraints for the class methods
       -- If there are no methods, we don't need any constraints

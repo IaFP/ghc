@@ -92,6 +92,9 @@ import GHC.Core.TyCon    ( PrimRep(..), TyCon )
 import GHC.Core.Type     ( Type )
 import GHC.Types.RepType ( typePrimRep1 )
 import GHC.Utils.Panic.Plain
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 {-
 ************************************************************************
@@ -674,9 +677,6 @@ type OutputablePass pass =
   , Outputable (XLetNoEscape pass)
   , Outputable (XRhsClosure pass)
   , OutputableBndr (BinderP pass)
--- #if MIN_VERSION_base(4,16,0)
---   , WF_BinderP pass
--- #endif
   )
 
 -- | STG pretty-printing options
@@ -703,13 +703,20 @@ shortStgPprOpts = StgPprOpts
    }
 
 
-pprGenStgTopBinding
-  :: OutputablePass pass => StgPprOpts -> GenStgTopBinding pass -> SDoc
+pprGenStgTopBinding :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (BinderP pass),
+#endif
+  OutputablePass pass) => StgPprOpts -> GenStgTopBinding pass -> SDoc
 pprGenStgTopBinding opts b = case b of
    StgTopStringLit bndr str -> hang (hsep [pprBndr LetBind bndr, equals]) 4 (pprHsBytes str <> semi)
    StgTopLifted bind        -> pprGenStgBinding opts bind
 
-pprGenStgBinding :: OutputablePass pass => StgPprOpts -> GenStgBinding pass -> SDoc
+pprGenStgBinding :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (BinderP pass),
+#endif
+  OutputablePass pass) => StgPprOpts -> GenStgBinding pass -> SDoc
 pprGenStgBinding opts b = case b of
    StgNonRec bndr rhs -> hang (hsep [pprBndr LetBind bndr, equals]) 4 (pprStgRhs opts rhs <> semi)
    StgRec pairs       -> vcat [ text "Rec {"
@@ -720,7 +727,11 @@ pprGenStgBinding opts b = case b of
                              = hang (hsep [pprBndr LetBind bndr, equals])
                                     4 (pprStgRhs opts expr <> semi)
 
-pprGenStgTopBindings :: (OutputablePass pass) => StgPprOpts -> [GenStgTopBinding pass] -> SDoc
+pprGenStgTopBindings :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (BinderP pass),
+#endif
+  OutputablePass pass) => StgPprOpts -> [GenStgTopBinding pass] -> SDoc
 pprGenStgTopBindings opts binds
   = vcat $ intersperse blankLine (map (pprGenStgTopBinding opts) binds)
 
@@ -740,7 +751,11 @@ pprStgArg :: StgArg -> SDoc
 pprStgArg (StgVarArg var) = ppr var
 pprStgArg (StgLitArg con) = ppr con
 
-pprStgExpr :: OutputablePass pass => StgPprOpts -> GenStgExpr pass -> SDoc
+pprStgExpr :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (BinderP pass),
+#endif
+  OutputablePass pass) => StgPprOpts -> GenStgExpr pass -> SDoc
 pprStgExpr opts e = case e of
                            -- special case
    StgLit lit           -> ppr lit
@@ -844,7 +859,11 @@ instance Outputable AltType where
   ppr (AlgAlt tc)     = text "Alg"    <+> ppr tc
   ppr (PrimAlt tc)    = text "Prim"   <+> ppr tc
 
-pprStgRhs :: OutputablePass pass => StgPprOpts -> GenStgRhs pass -> SDoc
+pprStgRhs :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (BinderP pass),
+#endif
+  OutputablePass pass) => StgPprOpts -> GenStgRhs pass -> SDoc
 pprStgRhs opts rhs = case rhs of
    StgRhsClosure ext cc upd_flag args body
       -> hang (hsep [ if stgSccEnabled opts then ppr cc else empty

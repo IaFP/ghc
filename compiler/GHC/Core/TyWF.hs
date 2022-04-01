@@ -11,14 +11,17 @@ module GHC.Core.TyWF (
   ------------------------------
   -- wellformed constraint generation
   WfElabTypeDetails (..)
-  , genWfConstraints
+  , genWfConstraints -- lifted version of genWfConstraintsTcM needed for DerivM 
   , predTyArgs, predTyVars
   , attachConstraints, mergeAtAtConstraints
   , saneTyConForElab
-  
+
+  -- ** TcM functions
+  , elabWfTypeTcM -- main work horse
+  , simplifyWfTypeTcM 
   , genWfConstraintsTcM, genAtAtConstraintsTcM
   , genAtAtConstraintsExceptTcM
-  , elabWfTypeTcM, elabWithAtAtConstraintsTopTcM
+  , elabWithAtAtConstraintsTopTcM
   , flatten_atat_constraint
   ) where
 
@@ -479,8 +482,16 @@ flatten_atat_constraint ty = return [ty]
 -- Given a function say forall tvs. wft(T a) => tau
 -- we reduce this to forall tvs. wft'(T a) => tau
 -- where wft' (T a) = flatten_atat_constraints wft (T a)
-simplify_wf_constraints :: Type -> TcM Type
-simplify_wf_constraints = undefined 
+simplifyWfTypeTcM  :: Type -> TcM Type
+simplifyWfTypeTcM ty = do
+  theta' <- foldl mergeAtAtConstraints [] <$> mapM flatten_atat_constraint theta
+  traceTc "wfelabtype simplify" (vcat [ text "before:" <+> ppr ty
+                                      , text "after:" <+> ppr (mkSpecSigmaTy tvs theta' tau)
+                                      ])
+  return $ mkSpecSigmaTy tvs theta' tau
+    where
+      (tvs, theta, tau) = tcSplitSigmaTy ty
+  
 
 tuplesToList :: Type -> TcM [Type]
 tuplesToList ty

@@ -37,9 +37,8 @@ instance (
 
 pprLPat :: (
 #if MIN_VERSION_base(4,16,0)
-  -- WFT (Anno (HsExpr GhcRn)),
+  WFT (Anno (HsExpr GhcRn)),
   WFT (Anno (HsExpr (GhcPass p))),  
-  -- WFT (Anno (Pat (GhcPass p))),
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
 #endif

@@ -370,7 +370,7 @@ tcHsSigWcType :: UserTypeCtxt -> LHsSigWcType GhcRn -> TcM Type
 -- This one is used when we have a LHsSigWcType, but in
 -- a place where wildcards aren't allowed. The renamer has
 -- already checked this, so we can simply ignore it.
-tcHsSigWcType ctxt sig_ty = tcHsSigType ctxt (dropWildCards sig_ty)
+tcHsSigWcType ctxt sig_ty = tcHsSigType False ctxt (dropWildCards sig_ty)
 
 kcClassSigType :: [LocatedN Name] -> LHsSigType GhcRn -> TcM ()
 -- This is a special form of tcClassSigType that is used during the
@@ -421,10 +421,10 @@ tcClassSigType names sig_ty
     sig_ctxt = funsSigCtxt names
     skol_info = SigTypeSkol sig_ctxt
 
-tcHsSigType :: UserTypeCtxt -> LHsSigType GhcRn -> TcM Type
+tcHsSigType :: Bool -> UserTypeCtxt -> LHsSigType GhcRn -> TcM Type
 -- Does validity checking
 -- See Note [Recipe for checking a signature]
-tcHsSigType ctxt sig_ty
+tcHsSigType shouldSquash ctxt sig_ty
   | (ForSigCtxt _) <- ctxt -- we don't know what to do with the extra () constraints after rewriting f @ b while interfacing with foreign functions
   = addSigCtxt ctxt sig_ty $
     do { traceTc "tcHsSigType { ForSigCxt" (ppr sig_ty)
@@ -455,13 +455,7 @@ tcHsSigType ctxt sig_ty
 
        ; ty <- zonkTcType ty
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; ty <- if partyCtrs
-               then do { traceTc "tc_hs_sig_type before elaborating: " (ppr ty)
-                       ; elabTy <- elabWfTypeTcM True ty
-                       ; traceTc "tc_hs_sig_type elaborated signature: " (ppr elabTy)
-                       ; return elabTy }
-               else return ty
-       
+       ; ty <- if partyCtrs then elabWfTypeTcM (True && not shouldSquash) ty else return ty
        ; checkValidType ctxt ty
 
        ; traceTc "end tcHsSigType }" (ppr ty)
