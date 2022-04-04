@@ -930,8 +930,10 @@ instance OutputableBndrFlag Specificity p where
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p)))
+  , WFT (XOverLit (GhcPass p))
+  , WFT (NoGhcTcPass (NoGhcTcPass p))
+  ,
 #endif
   OutputableBndrId p) => Outputable (HsSigType (GhcPass p)) where
     ppr (HsSig { sig_bndrs = outer_bndrs, sig_body = body }) =
@@ -956,7 +958,9 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+    WFT (XOverLit (GhcPass (NoGhcTcPass p)))
+  , WFT (NoGhcTcPass (NoGhcTcPass p))
+  ,
 #endif
   OutputableBndrFlag flag p,
           OutputableBndrFlag flag (NoGhcTcPass p),
@@ -1011,7 +1015,9 @@ pprAnonWildCard = char '_'
 -- If there is no explicit @forall@, nothing is printed.
 pprHsOuterFamEqnTyVarBndrs :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+    WFT (XOverLit (GhcPass (NoGhcTcPass p)))
+  , WFT (NoGhcTcPass (NoGhcTcPass p))
+  ,
 #endif
   OutputableBndrId p)
                            => HsOuterFamEqnTyVarBndrs (GhcPass p) -> SDoc
@@ -1023,7 +1029,9 @@ pprHsOuterFamEqnTyVarBndrs (HsOuterExplicit{hso_bndrs = qtvs}) =
 -- If there is no outermost @forall@, nothing is printed.
 pprHsOuterSigTyVarBndrs :: (
 #if MIN_VERSION_base(4,16,0)
-          WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+    WFT (XOverLit (GhcPass (NoGhcTcPass p)))
+    , WFT (NoGhcTcPass (NoGhcTcPass p))
+    ,
 #endif
                            OutputableBndrId p)
                         => HsOuterSigTyVarBndrs (GhcPass p) -> SDoc
