@@ -7,6 +7,9 @@
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE ViewPatterns        #-}
 {-# LANGUAGE DisambiguateRecordFields #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, TypeFamilies #-}
+#endif
 
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns   #-}
 {-# OPTIONS_GHC -Wno-incomplete-record-updates #-}
@@ -84,7 +87,7 @@ import Data.Maybe
 import Data.Ratio
 import GHC.Types.FieldLabel (DuplicateRecordFields(..))
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WFT, type (@))
 #endif
 
 {-
@@ -116,7 +119,13 @@ has a *left-to-right* scoping: it makes the binders in
 p1 scope over p2,p3.
 -}
 
-newtype CpsRn b = CpsRn { unCpsRn :: forall r. (b -> RnM (r, FreeVars))
+newtype CpsRn b = CpsRn { unCpsRn :: forall r.
+#if MIN_VERSION_base(4,16,0)
+                          (IOEnv @ Env TcGblEnv TcLclEnv,
+                             IOEnv (Env TcGblEnv TcLclEnv) @ (r, FreeVars), Env @ TcGblEnv,
+                             Env TcGblEnv @ TcLclEnv) => 
+#endif
+                          (b -> RnM (r, FreeVars))
                                             -> RnM (r, FreeVars) }
         deriving (Functor)
         -- See Note [CpsRn monad]

@@ -79,7 +79,7 @@ import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Class  ( lift )
 import Control.Applicative        ( (<|>) )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
+import GHC.Types (Total, WFT)
 #endif
 
 {- Note [Updating HieAst for changes in the GHC AST]
@@ -876,7 +876,12 @@ instance HiePass p => ToHie (BindContext (LocatedA (HsBind (GhcPass p)))) where
         [ toHie $ L (locA span) psb -- PatSynBinds only occur at the top level
         ]
 
-instance ( HiePass p
+instance (
+#if MIN_VERSION_base(4,16,0)
+           WFT (Anno (GRHS (GhcPass p) (LocatedA (body (GhcPass p)))))
+          ,
+#endif
+           HiePass p
          , AnnoBody p body
          , ToHie (LocatedA (body (GhcPass p)))
          ) => ToHie (MatchGroup (GhcPass p) (LocatedA (body (GhcPass p)))) where
@@ -921,7 +926,12 @@ instance HiePass p => ToHie (HsPatSynDir (GhcPass p)) where
     ExplicitBidirectional mg -> toHie mg
     _ -> pure []
 
-instance ( HiePass p
+instance (
+#if MIN_VERSION_base(4,16,0)
+           WFT (Anno (GRHS (GhcPass p) (LocatedA (body (GhcPass p)))))
+          ,
+#endif
+           HiePass p
          , Data (body (GhcPass p))
          , AnnoBody p body
          , ToHie (LocatedA (body (GhcPass p)))
@@ -1059,7 +1069,12 @@ instance ToHie (TScoped (HsPatSigType GhcRn)) where
       ]
   -- See Note [Scoping Rules for SigPat]
 
-instance ( ToHie (LocatedA (body (GhcPass p)))
+instance (
+#if MIN_VERSION_base(4,16,0)
+           WFT (Anno (GRHS (GhcPass p) (LocatedA (body (GhcPass p)))))
+         ,
+#endif
+           ToHie (LocatedA (body (GhcPass p)))
          , HiePass p
          , AnnoBody p body
          ) => ToHie (GRHSs (GhcPass p) (LocatedA (body (GhcPass p)))) where

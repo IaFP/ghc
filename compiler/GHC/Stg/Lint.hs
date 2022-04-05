@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {- |
 (c) The GRASP/AQUA Project, Glasgow University, 1993-1998
 
@@ -69,6 +70,9 @@ import GHC.Data.Bag         ( Bag, emptyBag, isEmptyBag, snocBag, bagToList )
 
 import Control.Applicative ((<|>))
 import Control.Monad
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 lintStgTopBindings :: forall a . (OutputablePass a, BinderP a ~ Id)
                    => Logger
@@ -395,7 +399,11 @@ checkInScope id = LintM $ \mod _lf diag_opts _opts loc scope errs
     else
         ((), errs)
 
-mkUnliftedTyMsg :: OutputablePass a => StgPprOpts -> Id -> GenStgRhs a -> SDoc
+mkUnliftedTyMsg :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (BinderP a),
+#endif
+  OutputablePass a) => StgPprOpts -> Id -> GenStgRhs a -> SDoc
 mkUnliftedTyMsg opts binder rhs
   = (text "Let(rec) binder" <+> quotes (ppr binder) <+>
      text "has unlifted type" <+> quotes (ppr (idType binder)))

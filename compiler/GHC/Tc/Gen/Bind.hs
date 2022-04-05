@@ -1783,6 +1783,9 @@ isClosedBndrGroup type_env binds
 patMonoBindsCtxt :: (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
 #endif
   OutputableBndrId p)
                  => LPat (GhcPass p) -> GRHSs GhcRn (LHsExpr GhcRn) -> SDoc

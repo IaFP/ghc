@@ -363,6 +363,9 @@ countHsWrapperInvisArgs = go
 instance (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass (XPass p))),
+  WFT (XOverLit (GhcPass (NoGhcTcPass (XPass p)))),
+  WFT (Anno (IdGhcP (XPass p))),
+  WFT (Anno (IdGhcP (NoGhcTcPass (XPass p)))),
 #endif
   OutputableBndrId (XPass p)) => Outputable (HsExprArg p) where
   ppr (EValArg { eva_arg = arg })      = text "EValArg" <+> ppr arg
@@ -378,6 +381,9 @@ instance Outputable EWrap where
 instance (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass (XPass p))),
+  WFT (XOverLit (GhcPass (NoGhcTcPass (XPass p)))),
+  WFT (Anno (IdGhcP (XPass p))),
+  WFT (Anno (IdGhcP (NoGhcTcPass (XPass p)))),
 #endif
   OutputableBndrId (XPass p)) => Outputable (EValArg p) where
   ppr (ValArg e) = ppr e

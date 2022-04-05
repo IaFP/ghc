@@ -1,4 +1,4 @@
-
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE MonadComprehensions #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE PatternSynonyms #-}
@@ -71,6 +71,9 @@ import Control.Monad ( zipWithM, unless, when )
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NEL
 import qualified Data.Map as Map
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 {-
 ************************************************************************
@@ -791,11 +794,19 @@ matchWrapper ctxt mb_scr (MG { mg_alts = L _ matches
                      then discardWarningsDs
                      else id
 
-    initNablasMatches :: [LMatch GhcTc b] -> [(Nablas, NonEmpty Nablas)]
+    initNablasMatches ::
+#if MIN_VERSION_base(4,16,0)
+                         WFT (Anno (GRHS GhcTc b)) => 
+#endif
+                        [LMatch GhcTc b] -> [(Nablas, NonEmpty Nablas)]
     initNablasMatches ms
       = map (\(L _ m) -> (initNablas, initNablasGRHSs (m_grhss m))) ms
 
-    initNablasGRHSs :: GRHSs GhcTc b -> NonEmpty Nablas
+    initNablasGRHSs ::
+#if MIN_VERSION_base(4,16,0)
+      WFT (Anno (GRHS GhcTc b)) => 
+#endif
+      GRHSs GhcTc b -> NonEmpty Nablas
     initNablasGRHSs m = expectJust "GRHSs non-empty"
                       $ NEL.nonEmpty
                       $ replicate (length (grhssGRHSs m)) initNablas

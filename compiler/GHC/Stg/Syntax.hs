@@ -677,6 +677,9 @@ type OutputablePass pass =
   , Outputable (XLetNoEscape pass)
   , Outputable (XRhsClosure pass)
   , OutputableBndr (BinderP pass)
+#if MIN_VERSION_base(4,16,0)
+  , WFT (BinderP pass)
+#endif
   )
 
 -- | STG pretty-printing options

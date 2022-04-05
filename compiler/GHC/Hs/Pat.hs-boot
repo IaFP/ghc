@@ -32,6 +32,8 @@ instance (
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),  
   WFT (Anno (HsExpr GhcRn)),
   WFT (Anno (HsExpr (GhcPass p))),  
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
   OutputableBndrId p) => Outputable (Pat (GhcPass p))
 
@@ -41,6 +43,8 @@ pprLPat :: (
   WFT (Anno (HsExpr (GhcPass p))),  
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
   OutputableBndrId p) => LPat (GhcPass p) -> SDoc
 

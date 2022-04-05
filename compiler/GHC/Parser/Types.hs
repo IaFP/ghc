@@ -2,6 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE CPP #-}
 
 module GHC.Parser.Types
    ( SumOrTuple(..)
@@ -25,6 +26,9 @@ import GHC.Data.OrdList
 import Data.Foldable
 import GHC.Parser.Annotation
 import Language.Haskell.Syntax
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 data SumOrTuple b
   = Sum ConTag Arity (LocatedA b) [EpaLocation] [EpaLocation]
@@ -61,7 +65,12 @@ data PatBuilder p
   | PatBuilderVar (LocatedN RdrName)
   | PatBuilderOverLit (HsOverLit GhcPs)
 
-instance Outputable (PatBuilder GhcPs) where
+instance
+#if MIN_VERSION_base(4,16,0)
+  (WFT (Anno (HsExpr GhcRn)),
+   WFT (Anno (HsExpr GhcPs))) => 
+#endif
+  Outputable (PatBuilder GhcPs) where
   ppr (PatBuilderPat p) = ppr p
   ppr (PatBuilderPar _ (L _ p) _) = parens (ppr p)
   ppr (PatBuilderApp (L _ p1) (L _ p2)) = ppr p1 <+> ppr p2

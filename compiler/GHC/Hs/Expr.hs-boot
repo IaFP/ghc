@@ -25,41 +25,60 @@ import Language.Haskell.Syntax.Expr
 import GHC.Hs.Extension ( OutputableBndrId, GhcPass )
 #if MIN_VERSION_base(4,16,0)
 import GHC.Types (WFT)
-import Language.Haskell.Syntax.Extension (XOverLit)
+import Language.Haskell.Syntax.Extension
+import GHC.Hs.Extension (NoGhcTcPass, IdGhcP)
 #endif
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-    WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
     OutputableBndrId p) => Outputable (HsExpr (GhcPass p))
 instance (
 #if MIN_VERSION_base(4,16,0)
-    WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
   OutputableBndrId p) => Outputable (HsCmd (GhcPass p))
 
 pprLExpr :: (
 #if MIN_VERSION_base(4,16,0)
-    WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
   OutputableBndrId p) => LHsExpr (GhcPass p) -> SDoc
 
 pprExpr :: (
 #if MIN_VERSION_base(4,16,0)
-    WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
     OutputableBndrId p) => HsExpr (GhcPass p) -> SDoc
 
 pprSplice :: (
 #if MIN_VERSION_base(4,16,0)
-    WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
   OutputableBndrId p) => HsSplice (GhcPass p) -> SDoc
 
 pprSpliceDecl ::  (
 #if MIN_VERSION_base(4,16,0)
-    WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
   OutputableBndrId p)
           => HsSplice (GhcPass p) -> SpliceExplicitFlag -> SDoc
@@ -67,7 +86,13 @@ pprSpliceDecl ::  (
 pprPatBind :: forall bndr p . (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
   WFT (XOverLit (GhcPass bndr)),  
+  WFT (XOverLit (GhcPass (NoGhcTcPass bndr))),
+  WFT (Anno (IdGhcP bndr)),
+  WFT (Anno (IdGhcP (NoGhcTcPass bndr))),                      
 #endif
   OutputableBndrId bndr,
   OutputableBndrId p)
@@ -75,7 +100,10 @@ pprPatBind :: forall bndr p . (
 
 pprFunBind :: (
 #if MIN_VERSION_base(4,16,0)
-    WFT (XOverLit (GhcPass idR)),
+  WFT (XOverLit (GhcPass idR)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass idR))),
+  WFT (Anno (IdGhcP idR)),
+  WFT (Anno (IdGhcP (NoGhcTcPass idR))),                      
 #endif
      OutputableBndrId idR)
            => MatchGroup (GhcPass idR) (LHsExpr (GhcPass idR)) -> SDoc

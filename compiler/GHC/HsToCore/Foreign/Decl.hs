@@ -38,6 +38,7 @@ import GHC.Types.RepType
 import GHC.Core.TyCon
 import GHC.Core.Coercion
 import GHC.Core.Multiplicity
+import GHC.Core.Make (unitExpr)
 import GHC.Tc.Utils.Env
 import GHC.Tc.Utils.TcType
 
@@ -481,7 +482,7 @@ dsFExportDynamic id co0 cconv = do
                  mkApps (Var bindIOId)
                         [ Type stable_ptr_ty
                         , Type res_ty
-                        , mkApps (Var newStablePtrId) [ Type arg_ty, Var cback ]
+                        , mkApps (Var newStablePtrId) [unitExpr, Type arg_ty, Var cback ]
                         , Lam stbl_value ccall_adj
                         ]
 

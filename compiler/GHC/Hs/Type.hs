@@ -360,6 +360,9 @@ instance
 #if MIN_VERSION_base(4,16,0)
         WFT (XOverLit (GhcPass pass)),
         WFT (XOverLit (GhcPass (NoGhcTcPass pass))),
+  WFT (Anno (IdGhcP pass)),
+  WFT (Anno (IdGhcP (NoGhcTcPass pass))),
+        
 #endif
         OutputableBndrId pass) =>
       Outputable (HsArrow (GhcPass pass)) where
@@ -370,6 +373,8 @@ pprHsArrow :: (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass pass)),
   WFT (XOverLit (GhcPass (NoGhcTcPass pass))),
+  WFT (Anno (IdGhcP pass)),
+  WFT (Anno (IdGhcP (NoGhcTcPass pass))),
 #endif
   OutputableBndrId pass) => HsArrow (GhcPass pass) -> SDoc
 pprHsArrow (HsUnrestrictedArrow _) = arrow
@@ -383,6 +388,8 @@ instance (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),  
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
 #endif
           OutputableBndrId p)
        => Outputable (ConDeclField (GhcPass p)) where
@@ -886,6 +893,8 @@ class OutputableBndrFlag flag p where
 #if MIN_VERSION_base(4,16,0)
                       WFT (XOverLit (GhcPass p)),
                       WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+                      WFT (Anno (IdGhcP p)),
+                      WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
                      OutputableBndrId p)
                  => HsTyVarBndr flag (GhcPass p) -> SDoc
@@ -932,6 +941,8 @@ instance (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (XOverLit (GhcPass p)),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
 #endif
   OutputableBndrId p) => Outputable (HsSigType (GhcPass p)) where
     ppr (HsSig { sig_bndrs = outer_bndrs, sig_body = body }) =
@@ -940,7 +951,9 @@ instance (
 instance (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),  
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+ WFT (Anno (IdGhcP (NoGhcTcPass p))),  
 #endif
   OutputableBndrId p) => Outputable (HsType (GhcPass p)) where
     ppr ty = pprHsType ty
@@ -949,6 +962,8 @@ instance (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+ WFT (Anno (IdGhcP (NoGhcTcPass p))),  
 #endif
   OutputableBndrId p)
        => Outputable (LHsQTyVars (GhcPass p)) where
@@ -956,7 +971,10 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),  
 #endif
   OutputableBndrFlag flag p,
           OutputableBndrFlag flag (NoGhcTcPass p),
@@ -974,6 +992,8 @@ instance (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+ WFT (Anno (IdGhcP (NoGhcTcPass p))),  
 #endif
           OutputableBndrId p)
        => Outputable (HsForAllTelescope (GhcPass p)) where
@@ -986,6 +1006,8 @@ instance (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+ WFT (Anno (IdGhcP (NoGhcTcPass p))),  
 #endif
   OutputableBndrId p, OutputableBndrFlag flag p)
        => Outputable (HsTyVarBndr flag (GhcPass p)) where
@@ -999,6 +1021,8 @@ instance (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+ WFT (Anno (IdGhcP (NoGhcTcPass p))),
 #endif
   OutputableBndrId p)
        => Outputable (HsPatSigType (GhcPass p)) where
@@ -1012,6 +1036,7 @@ pprAnonWildCard = char '_'
 pprHsOuterFamEqnTyVarBndrs :: (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
 #endif
   OutputableBndrId p)
                            => HsOuterFamEqnTyVarBndrs (GhcPass p) -> SDoc
@@ -1023,7 +1048,8 @@ pprHsOuterFamEqnTyVarBndrs (HsOuterExplicit{hso_bndrs = qtvs}) =
 -- If there is no outermost @forall@, nothing is printed.
 pprHsOuterSigTyVarBndrs :: (
 #if MIN_VERSION_base(4,16,0)
-          WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
 #endif
                            OutputableBndrId p)
                         => HsOuterSigTyVarBndrs (GhcPass p) -> SDoc
@@ -1037,6 +1063,8 @@ pprHsForAll :: forall p. (
 #if MIN_VERSION_base(4,16,0)
                WFT (XOverLit (GhcPass (NoGhcTcPass p))),
                WFT (XOverLit (GhcPass p)),
+               WFT (Anno (IdGhcP p)),
+               WFT (Anno (IdGhcP (NoGhcTcPass p))),
 #endif
                OutputableBndrId p)
             => HsForAllTelescope (GhcPass p)
@@ -1055,8 +1083,10 @@ pprHsForAll tele cxt
 
     pp_forall :: forall flag p. (
 #if MIN_VERSION_base(4,16,0)
-               WFT (XOverLit (GhcPass p)),
-               WFT (XOverLit (GhcPass (NoGhcTcPass p))),  
+              WFT (XOverLit (GhcPass p)),
+              WFT (Anno (IdGhcP p)),
+              WFT (Anno (IdGhcP (NoGhcTcPass p))),
+              WFT (XOverLit (GhcPass (NoGhcTcPass p))),  
 #endif
       OutputableBndrId p, OutputableBndrFlag flag p)
               => SDoc -> [LHsTyVarBndr flag (GhcPass p)] -> SDoc
@@ -1071,6 +1101,8 @@ pprLHsContext :: (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+ WFT (Anno (IdGhcP (NoGhcTcPass p))),  
 #endif
   OutputableBndrId p)
               => Maybe (LHsContext (GhcPass p)) -> SDoc
@@ -1082,6 +1114,8 @@ pprLHsContextAlways :: (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+ WFT (Anno (IdGhcP (NoGhcTcPass p))),
 #endif
   OutputableBndrId p)
                     => LHsContext (GhcPass p) -> SDoc
@@ -1095,6 +1129,8 @@ pprConDeclFields :: (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+ WFT (Anno (IdGhcP (NoGhcTcPass p))),  
 #endif
           OutputableBndrId p)
                  => [LConDeclField (GhcPass p)] -> SDoc
@@ -1125,8 +1161,10 @@ seems like the Right Thing anyway.)
 
 pprHsType :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+ WFT (XOverLit (GhcPass p)),
+ WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+ WFT (Anno (IdGhcP (NoGhcTcPass p))),
+ WFT (Anno (IdGhcP p)),  
 #endif
   OutputableBndrId p) => HsType (GhcPass p) -> SDoc
 pprHsType ty = ppr_mono_ty ty
@@ -1139,6 +1177,8 @@ ppr_mono_lty :: (
   , WFT (Anno [GenLocated SrcSpanAnnA (HsType (GhcPass p))])
   , WFT (XOverLit (GhcPass p))
   , WFT (XOverLit (GhcPass (NoGhcTcPass p)))
+  , WFT (Anno (IdGhcP p))
+  , WFT (Anno (IdGhcP (NoGhcTcPass p)))  
   ,
 #endif
   OutputableBndrId p)
@@ -1155,6 +1195,8 @@ ppr_mono_ty :: (
  , WFT (Anno [GenLocated SrcSpanAnnA (HsType (GhcPass p))])
  , WFT (XOverLit (GhcPass p))
  , WFT (XOverLit (GhcPass (NoGhcTcPass p)))
+ , WFT (Anno (IdGhcP p))
+ , WFT (Anno (IdGhcP (NoGhcTcPass p)))
  ,
 #endif
   OutputableBndrId p) => HsType (GhcPass p) -> SDoc
@@ -1229,7 +1271,9 @@ ppr_mono_ty (XHsType t) = ppr t
 ppr_fun_ty :: (
 #if MIN_VERSION_base(4,16,0)
              WFT (XOverLit (GhcPass p)),
-               WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+             WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+             WFT (Anno (IdGhcP p)),
+             WFT (Anno (IdGhcP (NoGhcTcPass p))),
 #endif
               OutputableBndrId p)
            => HsArrow (GhcPass p) -> LHsType (GhcPass p) -> LHsType (GhcPass p) -> SDoc
