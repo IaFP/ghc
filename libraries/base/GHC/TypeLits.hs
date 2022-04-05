@@ -60,7 +60,7 @@ module GHC.TypeLits
   ) where
 
 import GHC.Base(Eq(..), Ord(..), Ordering(..), String, otherwise, withDict)
-import GHC.Types(Symbol, Char, type(@))
+import GHC.Types(Symbol, Char)
 import GHC.TypeError(ErrorMessage(..), TypeError)
 import GHC.Num(Integer, fromInteger)
 import GHC.Show(Show(..))

@@ -39,7 +39,7 @@ import GHC.Utils.Outputable
 import Data.Data hiding (Fixity)
 import qualified Data.ByteString as B
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@), Total, Total2)
+import GHC.Types (Total, Total2)
 #endif
 
 data BlankSrcSpan = BlankSrcSpan | BlankSrcSpanFile | NoBlankSrcSpan

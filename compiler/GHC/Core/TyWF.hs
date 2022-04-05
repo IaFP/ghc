@@ -22,7 +22,7 @@ module GHC.Core.TyWF (
   , genWfConstraintsTcM, genAtAtConstraintsTcM
   , genAtAtConstraintsExceptTcM
   , elabWithAtAtConstraintsTopTcM
-  , flatten_atat_constraint
+  , flatten_atat_constraint, at'at
   ) where
 
 import GHC.Tc.Instance.Family (tcGetFamInstEnvs)
@@ -45,9 +45,6 @@ import GHC.Utils.Outputable
 import GHC.Utils.Misc(lengthAtLeast)
 
 import Control.Monad.Trans.Class
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
-#endif
 
 -------------------------------------------------------------------------
 {-
@@ -166,7 +163,7 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
                      }
         
   -- for type application we need ty1 @ ty2 (unless ty2 is * then skip it, or ty2 has a constraint kind)
-  | (AppTy ty1 ty2) <- ty =
+  | (AppTy ty1 ty2) <- ty = -- ANI TODO: simplify this nonsense. 
         if ty2 `tcEqType` star
         then do { traceTc "wfelab appty1" (ppr ty1 <+> ppr ty2)
                 ; elabd1 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
@@ -228,7 +225,7 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
        elabd <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
        return $ elabDetails (CastTy (elabTy elabd) kco) (newPreds elabd)
        
-   | otherwise = do
+   | otherwise = do -- Type Lits CoersionTy
       traceTc "wfelab unknown case or nothing to do: " (ppr ty)
       return $ elabDetails ty []
 
@@ -251,7 +248,7 @@ isTyConInternal tycon =
   || isBoxedTupleTyCon tycon || isUnboxedTupleTyCon tycon
   || isUnboxedSumTyCon tycon
   || tycon `hasKey` stablePtrPrimTyConKey || tycon `hasKey` stablePtrTyConKey
-  || tycon `hasKey` staticPtrTyConKey || (tyConName tycon == staticPtrTyConName)
+  -- || tycon `hasKey` staticPtrTyConKey || (tyConName tycon == staticPtrTyConName)
   || tycon `hasKey` staticPtrInfoTyConKey || (tyConName tycon == staticPtrInfoTyConName)
   || tycon `hasKey` ptrTyConKey || tycon `hasKey` funPtrTyConKey
   || tycon `hasKey` qTyConKey || tyConName tycon == qTyConName
