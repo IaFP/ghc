@@ -18,11 +18,7 @@ class
   m @ Hooks =>
 #endif
   HasHooks m where
-    getHooks ::
-#if __GLASGOW_HASKELL__ >= 903
-                m @ Hooks =>
-#endif
-                m Hooks
+    getHooks :: m Hooks
 
 class ContainsHooks a where
     extractHooks :: a -> Hooks

@@ -1,6 +1,10 @@
-
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE NoMonomorphismRestriction #-}
+#endif
 {-# LANGUAGE MultiWayIf      #-}
 {-# LANGUAGE TupleSections   #-}
+
 
 {-# OPTIONS_GHC -Wno-incomplete-record-updates #-}
 {-

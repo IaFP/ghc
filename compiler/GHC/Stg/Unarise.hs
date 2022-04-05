@@ -1,4 +1,5 @@
-
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TupleSections    #-}
 
@@ -268,6 +269,9 @@ import GHC.Types.Var.Env
 import Data.Bifunctor (second)
 import Data.Maybe (mapMaybe)
 import qualified Data.IntMap as IM
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 --------------------------------------------------------------------------------
 
@@ -843,8 +847,16 @@ mkDefaultLitAlt alts@((DEFAULT, _, _) : _) = alts
 mkDefaultLitAlt ((LitAlt{}, [], rhs) : alts) = (DEFAULT, [], rhs) : alts
 mkDefaultLitAlt alts = pprPanic "mkDefaultLitAlt" (text "Not a lit alt:" <+> pprPanicAlts alts)
 
-pprPanicAlts :: (Outputable a, Outputable b, OutputablePass pass) => [(a,b,GenStgExpr pass)] -> SDoc
+pprPanicAlts :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (BinderP pass),
+#endif
+  Outputable a, Outputable b, OutputablePass pass) => [(a,b,GenStgExpr pass)] -> SDoc
 pprPanicAlts alts = ppr (map pprPanicAlt alts)
 
-pprPanicAlt :: (Outputable a, Outputable b, OutputablePass pass) => (a,b,GenStgExpr pass) -> SDoc
+pprPanicAlt :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (BinderP pass),
+#endif
+  Outputable a, Outputable b, OutputablePass pass) => (a,b,GenStgExpr pass) -> SDoc
 pprPanicAlt (c,b,e) = ppr (c,b,pprStgExpr panicStgPprOpts e)

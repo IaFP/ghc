@@ -79,6 +79,9 @@ import Control.Arrow (first)
 import Data.Ord
 import Data.Array
 import qualified Data.List.NonEmpty as NE
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 {- Note [Handling overloaded and rebindable constructs]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -973,7 +976,12 @@ type AnnoBody body
     )
 
 -- | Rename some Stmts
-rnStmts :: AnnoBody body
+rnStmts :: (
+#if MIN_VERSION_base(4,16,0)
+             WFT (Anno (StmtLR GhcRn GhcPs (LocatedA (body GhcPs))))
+           ,
+#endif
+           AnnoBody body)
         => HsStmtContext GhcRn
         -> (body GhcPs -> RnM (body GhcRn, FreeVars))
            -- ^ How to rename the body of each statement (e.g. rnLExpr)
@@ -1016,7 +1024,12 @@ noPostProcessStmts
 noPostProcessStmts _ stmts = return (map fst stmts, emptyNameSet)
 
 
-rnStmtsWithFreeVars :: AnnoBody body
+rnStmtsWithFreeVars :: (
+#if MIN_VERSION_base(4,16,0)
+                         WFT (Anno (StmtLR GhcRn GhcPs (LocatedA (body GhcPs))))
+                       ,
+#endif
+           AnnoBody body)
         => HsStmtContext GhcRn
         -> ((body GhcPs) -> RnM ((body GhcRn), FreeVars))
         -> [LStmt GhcPs (LocatedA (body GhcPs))]
@@ -1081,7 +1094,12 @@ exhaustive list). How we deal with pattern match failure is context-dependent.
 At one point we failed to make this distinction, leading to #11216.
 -}
 
-rnStmt :: AnnoBody body
+rnStmt :: (
+#if MIN_VERSION_base(4,16,0)
+            WFT (Anno (StmtLR GhcRn GhcPs (LocatedA (body GhcPs))))
+          ,
+#endif
+          AnnoBody body)
        => HsStmtContext GhcRn
        -> (body GhcPs -> RnM (body GhcRn, FreeVars))
           -- ^ How to rename the body of the statement
@@ -1348,7 +1366,12 @@ type Segment stmts = (Defs,
 
 
 -- wrapper that does both the left- and right-hand sides
-rnRecStmtsAndThen :: AnnoBody body =>
+rnRecStmtsAndThen :: (
+#if MIN_VERSION_base(4,16,0)
+                       WFT (Anno (StmtLR GhcRn GhcPs (LocatedA (body GhcPs))))
+                     ,
+#endif
+                     AnnoBody body) =>
                      HsStmtContext GhcRn
                   -> (body GhcPs -> RnM (body GhcRn, FreeVars))
                   -> [LStmt GhcPs (LocatedA (body GhcPs))]

@@ -268,7 +268,9 @@ instance (
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),  
   WFT (Anno (HsExpr GhcRn)),
-  WFT (Anno (HsExpr (GhcPass p))),  
+  WFT (Anno (HsExpr (GhcPass p))),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
   OutputableBndrId p) => Outputable (Pat (GhcPass p)) where
     ppr = pprPat
@@ -284,6 +286,8 @@ pprLPat :: (
   WFT (Anno (HsExpr (GhcPass p))),
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
   OutputableBndrId p) => LPat (GhcPass p) -> SDoc
 pprLPat (L _ e) = pprPat e
@@ -302,6 +306,8 @@ pprParendLPat :: (
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (HsExpr GhcRn)),
   WFT (Anno (HsExpr (GhcPass p))),  
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
   OutputableBndrId p)
               => PprPrec -> LPat (GhcPass p) -> SDoc
@@ -312,7 +318,9 @@ pprParendPat :: forall p. (
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (HsExpr GhcRn)),
-  WFT (Anno (HsExpr (GhcPass p))),  
+  WFT (Anno (HsExpr (GhcPass p))),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
   OutputableBndrId p)
              => PprPrec
@@ -341,6 +349,8 @@ pprPat :: forall p. (
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),  
   WFT (Anno (HsExpr (GhcPass p))),
   WFT (Anno (HsExpr GhcRn)),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
   OutputableBndrId p) => Pat (GhcPass p) -> SDoc
 pprPat (VarPat _ lvar)          = pprPatBndr (unLoc lvar)
@@ -412,7 +422,9 @@ pprUserCon :: (
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (HsExpr GhcRn)),
-  WFT (Anno (HsExpr (GhcPass p))),  
+  WFT (Anno (HsExpr (GhcPass p))),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
   OutputableBndr con, OutputableBndrId p,
                      Outputable (Anno (IdGhcP p)))
@@ -425,7 +437,9 @@ pprConArgs :: (
                      WFT (XOverLit (GhcPass p)),
                      WFT (XOverLit (GhcPass (NoGhcTcPass p))),
                      WFT (Anno (HsExpr GhcRn)),
-                     WFT (Anno (HsExpr (GhcPass p))),  
+                     WFT (Anno (HsExpr (GhcPass p))),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
                      OutputableBndrId p,
                      Outputable (Anno (IdGhcP p)))

@@ -54,7 +54,7 @@ module GHC.Tc.Utils.TcType (
   --------------------------------
   -- Builders
   mkPhiTy, mkInfSigmaTy, mkSpecSigmaTy, mkSigmaTy,
-  mkTcAppTy, mkTcAppTys, mkTcCastTy, wf_free_type,
+  mkTcAppTy, mkTcAppTys, mkTcCastTy,
   
   --------------------------------
   -- Splitters
@@ -1521,15 +1521,6 @@ tcSplitMethodTy ty
   = (sel_tyvars, first_pred, local_meth_ty)
   | otherwise
   = pprPanic "tcSplitMethodTy" (ppr ty)
-
-
--- sometimes we need to compare the wf predicate free types.
--- especially in boot files where cannot elaborate types in the right way.
--- See [Note] Checking Mirror Type Family Free Type Equality
-wf_free_type :: TcType -> TcType 
-wf_free_type ty = let (tvs', th', ty') = tcSplitSigmaTy ty in 
-                  mkSpecSigmaTy tvs' (filter (not . isWfPredTy) th') ty'
-
 
 
 {- *********************************************************************

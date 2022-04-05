@@ -375,7 +375,11 @@ instance (
                          @ GenLocated (Anno (HsExpr (GhcPass pr))) (HsExpr (GhcPass pr)),
            GRHSs @ GhcPass pr,
            GRHSs (GhcPass pr)
-                         @ GenLocated (Anno (HsExpr (GhcPass pr))) (HsExpr (GhcPass pr)),           
+                         @ GenLocated (Anno (HsExpr (GhcPass pr))) (HsExpr (GhcPass pr)),
+                      WFT (Anno (IdGhcP pr)),
+                      WFT (Anno (IdGhcP (NoGhcTcPass pr))),
+                      WFT (Anno (IdGhcP pl)),
+                      WFT (Anno (IdGhcP (NoGhcTcPass pl))),
 #endif
            OutputableBndrId pl, OutputableBndrId pr)
         => Outputable (HsLocalBindsLR (GhcPass pl) (GhcPass pr)) where
@@ -412,6 +416,10 @@ instance (
   GRHSs @ GhcPass pr,
   GRHSs (GhcPass pr)
     @ GenLocated (Anno (HsExpr (GhcPass pr))) (HsExpr (GhcPass pr)),
+  WFT (Anno (IdGhcP pr)),
+  WFT (Anno (IdGhcP (NoGhcTcPass pr))),
+  WFT (Anno (IdGhcP pl)),
+  WFT (Anno (IdGhcP (NoGhcTcPass pl))),
 #endif
   OutputableBndrId pl, OutputableBndrId pr)
         => Outputable (HsValBindsLR (GhcPass pl) (GhcPass pr)) where
@@ -455,6 +463,10 @@ pprLHsBinds :: (
                          GRHSs @ GhcPass idL,
                          GRHSs (GhcPass idL)
                          @ GenLocated (Anno (HsExpr (GhcPass idL))) (HsExpr (GhcPass idL)),
+                      WFT (Anno (IdGhcP idR)),
+                      WFT (Anno (IdGhcP (NoGhcTcPass idR))),
+                      WFT (Anno (IdGhcP idL)),
+                      WFT (Anno (IdGhcP (NoGhcTcPass idL))),
 #endif
              OutputableBndrId idL, OutputableBndrId idR)
           => LHsBindsLR (GhcPass idL) (GhcPass idR) -> SDoc
@@ -490,7 +502,12 @@ pprLHsBindsForUser :: (
                          GRHSs @ GhcPass idL,
                          GRHSs (GhcPass idL)
                          @ GenLocated (Anno (HsExpr (GhcPass idL))) (HsExpr (GhcPass idL)),
-
+                      WFT (Anno (IdGhcP idR)),
+                      WFT (Anno (IdGhcP (NoGhcTcPass idR))),
+                      WFT (Anno (IdGhcP idL)),
+                      WFT (Anno (IdGhcP (NoGhcTcPass idL))),
+                      WFT (Anno (IdGhcP id2)),
+                      WFT (Anno (IdGhcP (NoGhcTcPass id2))),
 #endif
            OutputableBndrId idL,
            OutputableBndrId idR,
@@ -583,6 +600,10 @@ instance (
                          GRHSs @ GhcPass pl,
                          GRHSs (GhcPass pl)
                          @ GenLocated (Anno (HsExpr (GhcPass pl))) (HsExpr (GhcPass pl)),
+                      WFT (Anno (IdGhcP pr)),
+                      WFT (Anno (IdGhcP (NoGhcTcPass pr))),
+                      WFT (Anno (IdGhcP pl)),
+                      WFT (Anno (IdGhcP (NoGhcTcPass pl))),                         
 #endif
             OutputableBndrId pl, OutputableBndrId pr)
          => Outputable (HsBindLR (GhcPass pl) (GhcPass pr)) where
@@ -616,6 +637,10 @@ ppr_monobind :: forall idL idR.
                  GRHSs @ GhcPass idL,
                  GRHSs (GhcPass idL)
                          @ GenLocated (Anno (HsExpr (GhcPass idL))) (HsExpr (GhcPass idL)),
+                      WFT (Anno (IdGhcP idR)),
+                      WFT (Anno (IdGhcP (NoGhcTcPass idR))),                      
+                      WFT (Anno (IdGhcP idL)),
+                      WFT (Anno (IdGhcP (NoGhcTcPass idL))),                      
 #endif
                   OutputableBndrId idL, OutputableBndrId idR)
              => HsBindLR (GhcPass idL) (GhcPass idR) -> SDoc
@@ -669,6 +694,8 @@ instance (
           HsExpr @ GhcRn,
           MatchGroup @ GhcPass r,
           MatchGroup (GhcPass r) @ GenLocated (Anno (HsExpr (GhcPass r))) (HsExpr (GhcPass r)),
+          WFT (Anno (IdGhcP r)),
+          WFT (Anno (IdGhcP (NoGhcTcPass r))),                      
 #endif
          OutputableBndrId l, OutputableBndrId r)
           => Outputable (PatSynBind (GhcPass l) (GhcPass r)) where
@@ -748,6 +775,8 @@ instance (
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (XOverLit (GhcPass p)),
   HsExpr @ GhcPass p,
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
 #endif
   OutputableBndrId p)
        => Outputable (HsIPBinds (GhcPass p)) where
@@ -759,6 +788,8 @@ instance (
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (XOverLit (GhcPass p)),
   HsExpr @ GhcPass p,
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
 #endif
   OutputableBndrId p) => Outputable (IPBind (GhcPass p)) where
   ppr (IPBind _ lr rhs) = name <+> equals <+> pprExpr (unLoc rhs)
@@ -802,6 +833,8 @@ instance (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (XOverLit (GhcPass p)),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
   OutputableBndrId p) => Outputable (Sig (GhcPass p)) where
     ppr sig = ppr_sig sig
@@ -810,6 +843,8 @@ ppr_sig :: forall p. (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (XOverLit (GhcPass p)),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
 #endif
   OutputableBndrId p)
         => Sig (GhcPass p) -> SDoc

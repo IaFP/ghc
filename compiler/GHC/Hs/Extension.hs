@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                     #-}
 {-# LANGUAGE AllowAmbiguousTypes     #-}      -- for pprIfTc, etc.
 {-# LANGUAGE ConstraintKinds         #-}
 {-# LANGUAGE DataKinds               #-}
@@ -33,6 +34,9 @@ import GHC.Utils.Panic
 import GHC.Parser.Annotation
 
 import Data.Void
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 {-
 Note [IsPass]
@@ -218,6 +222,13 @@ type OutputableBndrId pass =
   , Outputable (GenLocated (Anno (IdGhcP pass)) (IdGhcP pass))
   , Outputable (GenLocated (Anno (IdGhcP (NoGhcTcPass pass))) (IdGhcP (NoGhcTcPass pass)))
   , IsPass pass
+#if MIN_VERSION_base(4,16,0)
+  , WFT (XOverLit (GhcPass pass))
+  , WFT (XOverLit (GhcPass (NoGhcTcPass pass)))
+  , WFT (Anno (IdGhcP pass))
+  , WFT (Anno (IdGhcP (NoGhcTcPass pass)))
+#endif
+  
   )
 
 -- | See Note [Constructor cannot occur]

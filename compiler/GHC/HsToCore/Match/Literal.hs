@@ -67,6 +67,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NEL
 import Data.Word
 import GHC.Real ( Ratio(..), numerator, denominator )
+import qualified GHC.LanguageExtensions as LangExt
 
 {-
 ************************************************************************
@@ -213,15 +214,18 @@ dsFractionalLitToRational fl@FL{ fl_signi = signi, fl_exp = exp, fl_exp_base = b
     return $! (mkCoreConApps ratio_data_con [Type integer_ty, num, denom])
   -- Large rationals will be computed at runtime.
   | otherwise
-  = do
-      let mkRationalName = case base of
-                             Base2 -> mkRationalBase2Name
-                             Base10 -> mkRationalBase10Name
-      mkRational <- dsLookupGlobalId mkRationalName
-      litR <- dsRational signi
-      platform <- targetPlatform <$> getDynFlags
-      let litE = mkIntegerExpr platform exp
-      return (mkCoreApps (Var mkRational) [litR, litE])
+  = do dflags <- getDynFlags
+       let mkRationalName = case base of
+                              Base2 -> mkRationalBase2Name
+                              Base10 -> mkRationalBase10Name
+       mkRational <- dsLookupGlobalId mkRationalName
+       litR <- dsRational signi
+       platform <- targetPlatform <$> getDynFlags
+       let litE = mkIntegerExpr platform exp
+           partyCtrs = xopt LangExt.PartialTypeConstructors dflags
+       if partyCtrs
+         then return (mkCoreApps (Var mkRational) [unitExpr, litR, litE])
+         else return (mkCoreApps (Var mkRational) [litR, litE])
 
 dsRational :: Rational -> DsM CoreExpr
 dsRational (n :% d) = do

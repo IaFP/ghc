@@ -1,4 +1,4 @@
-
+{-# LANGUAGE CPP  #-}
 {-# LANGUAGE ConstraintKinds  #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes       #-}
@@ -78,6 +78,9 @@ import GHC.Types.SrcLoc
 
 import Control.Monad
 import Control.Arrow ( second )
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 {-
 ************************************************************************
@@ -144,7 +147,12 @@ tcMatchesFun fun_id matches exp_ty
 parser guarantees that each equation has exactly one argument.
 -}
 
-tcMatchesCase :: (AnnoBody body) =>
+tcMatchesCase :: (
+#if MIN_VERSION_base(4,16,0)
+   WFT (Anno (Match GhcRn (LocatedA (body GhcRn)))),
+   WFT (Anno (Match GhcTc (LocatedA (body GhcTc)))),
+#endif
+  AnnoBody body) =>
                 TcMatchCtxt body                         -- Case context
              -> Scaled TcSigmaType                       -- Type of scrutinee
              -> MatchGroup GhcRn (LocatedA (body GhcRn)) -- The case alternatives
@@ -212,7 +220,12 @@ type AnnoBody body
     )
 
 -- | Type-check a MatchGroup.
-tcMatches :: (AnnoBody body ) => TcMatchCtxt body
+tcMatches :: (
+#if MIN_VERSION_base(4,16,0)
+   WFT (Anno (Match GhcRn (LocatedA (body GhcRn)))),
+   WFT (Anno (Match GhcTc (LocatedA (body GhcTc)))),
+#endif
+  AnnoBody body) => TcMatchCtxt body
           -> [Scaled ExpSigmaType]      -- Expected pattern types
           -> ExpRhoType          -- Expected result-type of the Match.
           -> MatchGroup GhcRn (LocatedA (body GhcRn))

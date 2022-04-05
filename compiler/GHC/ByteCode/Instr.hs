@@ -1,5 +1,5 @@
 
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 --
@@ -224,17 +224,29 @@ pprStgExprShort _ (StgLetNoEscape _ bnd _) =
 pprStgExprShort opts (StgTick t e) = ppr t <+> pprStgExprShort opts e
 pprStgExprShort opts e = pprStgExpr opts e
 
-pprStgBindShort :: OutputablePass pass => GenStgBinding pass -> SDoc
+pprStgBindShort :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (BinderP pass),
+#endif
+  OutputablePass pass) => GenStgBinding pass -> SDoc
 pprStgBindShort (StgNonRec x _) =
   ppr x <+> text "= ..."
 pprStgBindShort (StgRec bs) =
   char '{' <+> ppr (fst (head bs)) <+> text "= ...; ... }"
 
-pprStgAltShort :: OutputablePass pass => StgPprOpts -> GenStgAlt pass -> SDoc
+pprStgAltShort :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (BinderP pass),
+#endif
+  OutputablePass pass) => StgPprOpts -> GenStgAlt pass -> SDoc
 pprStgAltShort opts (con, args, expr) =
   ppr con <+> sep (map ppr args) <+> text "->" <+> pprStgExprShort opts expr
 
-pprStgRhsShort :: OutputablePass pass => StgPprOpts -> GenStgRhs pass -> SDoc
+pprStgRhsShort :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (BinderP pass),
+#endif
+  OutputablePass pass) => StgPprOpts -> GenStgRhs pass -> SDoc
 pprStgRhsShort opts (StgRhsClosure _ext _cc upd_flag args body) =
   hang (hsep [ char '\\' <> ppr upd_flag, brackets (interppSP args) ])
        4 (pprStgExprShort opts body)

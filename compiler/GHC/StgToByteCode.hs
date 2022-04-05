@@ -1816,7 +1816,7 @@ mkMultiBranch maybe_ncons raw_ways = do
      instrs <- mkTree notd_ways init_lo init_hi
      return (instrs `appOL` the_default)
   where
-         (defaults, not_defaults) = partition (isNoDiscr.fst) raw_ways
+         (defaults, not_defaults) = partition (isNoDiscr . fst) raw_ways
          notd_ways = sortBy (comparing fst) not_defaults
 
          testLT (DiscrI i) fail_label = TESTLT_I i fail_label
@@ -1852,9 +1852,11 @@ mkMultiBranch maybe_ncons raw_ways = do
                  Just n  -> (0, fromIntegral n - 1)
                  Nothing -> (minBound, maxBound)
 
+         isNoDiscr :: Discr -> Bool
          isNoDiscr NoDiscr = True
          isNoDiscr _       = False
 
+         dec :: Discr -> Discr 
          dec (DiscrI i) = DiscrI (i-1)
          dec (DiscrW w) = DiscrW (w-1)
          dec (DiscrP i) = DiscrP (i-1)

@@ -141,7 +141,7 @@ import Data.List (intercalate)
 import Control.Monad
 import GHC.Driver.Env.KnotVars
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
+import GHC.Types (Total, WFT)
 #endif
 
 
@@ -1051,11 +1051,25 @@ data InstBindings a
            --          Used only to improve error messages
       }
 
-instance (OutputableBndrId a)
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass a)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass a))),  
+  WFT (Anno (IdGhcP a)),
+  WFT (Anno (IdGhcP (NoGhcTcPass a))),                      
+#endif
+  OutputableBndrId a)
        => Outputable (InstInfo (GhcPass a)) where
     ppr = pprInstInfoDetails
 
-pprInstInfoDetails :: (OutputableBndrId a)
+pprInstInfoDetails :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass a)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass a))),  
+  WFT (Anno (IdGhcP a)),
+  WFT (Anno (IdGhcP (NoGhcTcPass a))),                      
+#endif
+  OutputableBndrId a)
                    => InstInfo (GhcPass a) -> SDoc
 pprInstInfoDetails info
    = hang (pprInstanceHdr (iSpec info) <+> text "where")

@@ -947,7 +947,8 @@ checkHiBootIface'
     find_real_dfun boot_dfun
        = [dfun | inst <- local_insts
                , let dfun = instanceDFunId inst
-               , (wf_free_type $ idType dfun) `eqType` (wf_free_type $ boot_dfun_ty) ]
+               , (idType dfun) `eqType` boot_dfun_ty
+         ]
        where
           boot_dfun_ty   = idType boot_dfun
 
@@ -996,8 +997,7 @@ checkBootDecl :: Bool -> TyThing -> TyThing -> Maybe SDoc
 
 checkBootDecl _ (AnId id1) (AnId id2)
   = assert (id1 == id2) $
-    check (idType id1 `eqType` idType id2) -- ANI: TODO Fix this
-          -- ((wf_free_type $ idType id1) `eqType` (wf_free_type $ idType id2))
+    check (idType id1 `eqType` idType id2)
           (text "The two types are different")
 
 checkBootDecl is_boot (ATyCon tc1) (ATyCon tc2)

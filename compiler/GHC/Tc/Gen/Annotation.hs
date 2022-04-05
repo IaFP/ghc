@@ -3,7 +3,7 @@
 (c) The AQUA Project, Glasgow University, 1993-1998
 
 -}
-
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -28,6 +28,9 @@ import GHC.Utils.Outputable
 import GHC.Types.Name
 import GHC.Types.Annotations
 import GHC.Types.SrcLoc
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 import Control.Monad ( when )
 
@@ -66,6 +69,14 @@ annProvenanceToTarget _   (ValueAnnProvenance (L _ name)) = NamedTarget name
 annProvenanceToTarget _   (TypeAnnProvenance (L _ name))  = NamedTarget name
 annProvenanceToTarget mod ModuleAnnProvenance             = ModuleTarget mod
 
-annCtxt :: (OutputableBndrId p) => AnnDecl (GhcPass p) -> SDoc
+annCtxt :: (
+#if MIN_VERSION_base(4,16,0)
+    WFT (XOverLit (GhcPass p))
+  , WFT (XOverLit (GhcPass (NoGhcTcPass p)))
+  , WFT (Anno (IdGhcP p))
+  , WFT (Anno (IdGhcP (NoGhcTcPass p)))
+  ,
+#endif
+  OutputableBndrId p) => AnnDecl (GhcPass p) -> SDoc
 annCtxt ann
   = hang (text "In the annotation:") 2 (ppr ann)

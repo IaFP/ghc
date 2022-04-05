@@ -10,7 +10,8 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 903
-{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, UndecidableSuperClasses #-}
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, UndecidableSuperClasses
+  , NoMonomorphismRestriction #-}
 #endif
 {-# OPTIONS_GHC -Wno-incomplete-record-updates #-}
 
