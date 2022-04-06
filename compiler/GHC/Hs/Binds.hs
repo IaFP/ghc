@@ -420,16 +420,6 @@ instance (
   WFT (Anno (IdGhcP (NoGhcTcPass pr))),
   WFT (Anno (IdGhcP pl)),
   WFT (Anno (IdGhcP (NoGhcTcPass pl))),
-  OutputableBndr (IdGhcP pr),
-          OutputableBndr (IdGhcP (NoGhcTcPass pr)),
-          Outputable
-            (GenLocated (Anno (IdGhcP pr)) (IdGhcP pr)),
-            Outputable
-            (GenLocated
-              (Anno (IdGhcP (NoGhcTcPass pr))) (IdGhcP (NoGhcTcPass pr))),
-            IsPass pr,
-            WFT (XOverLit (GhcPass (NoGhcTcPass pr))),
-            WFT (XOverLit (GhcPass pr)),
 #endif
   OutputableBndrId pl, OutputableBndrId pr)
         => Outputable (HsValBindsLR (GhcPass pl) (GhcPass pr)) where
@@ -437,20 +427,15 @@ instance (
    = pprDeclList (pprLHsBindsForUser binds sigs)
 
   ppr (XValBindsLR (NValBinds sccs sigs))
-    = undefined -- getPprDebug $ \case
-      --   -- Print with sccs showing
-      --   True  -> vcat (map ppr sigs) $$ vcat (map ppr_scc sccs)
-      --   False -> pprDeclList (pprLHsBindsForUser (unionManyBags (map snd sccs)) sigs)
+    = getPprDebug $ \case
+        -- Print with sccs showing
+        True  -> vcat (map ppr sigs) $$ vcat (map ppr_scc sccs)
+        False -> pprDeclList (pprLHsBindsForUser (unionManyBags (map snd sccs)) sigs)
    where
      ppr_scc (rec_flag, binds) = pp_rec rec_flag <+> pprLHsBinds binds
      pp_rec Recursive    = text "rec"
      pp_rec NonRecursive = text "nonrec"
 
-foobar :: HsValBindsLR (GhcPass pl) (GhcPass pr) -> SDoc
-foobar (XValBindsLR (NValBinds sccs sigs)) = _ where
-  pp = ppr sigs
-  -- vcat (map ppr sigs)
-    
 pprLHsBinds :: (
 #if MIN_VERSION_base(4,16,0)
            WFT (XOverLit (GhcPass idR)),
