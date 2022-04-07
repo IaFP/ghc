@@ -1,3 +1,10 @@
+### Cannot do a * for stage as we don't want -XPartialTypeConstructors enabled on stage0
+
+
+#####
+##### Stage 1 hs options
+#####
+
 stage1.array.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage1.base.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage1.binary.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
@@ -34,6 +41,13 @@ stage1.haddock.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethod
 stage1.ghc-bin.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage1.terminfo.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage1.check-exact.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage1.iserv.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage1.libiserv.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+
+
+#####
+##### Stage 2 hs options
+#####
 
 
 stage2.array.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
@@ -70,6 +84,15 @@ stage2.template-haskell.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedCl
 stage2.haddock.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage2.transformers.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XTypeOperators
 stage2.terminfo.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage1.check-exact.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage2.iserv.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage2.libiserv.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+
+
+#####
+##### Stage 3 hs options
+##### -- incomplete list should just copy stage2.
+
 
 stage3.array.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.base.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
