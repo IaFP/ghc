@@ -441,7 +441,7 @@ inferConstraintsCoerceBased cls_tys rep_ty = do
               -- we are going to get all the methods for the final
               -- dictionary
         deriv_origin = mkDerivOrigin sa_wildcard
-  ; wfct <- if partyCtrs then genWfConstraints False rep_ty [] else return []
+  ; wfct <- if partyCtrs then genWfConstraints True rep_ty [] else return []
   ; let wfpreds = fmap (mkPredOrigin deriv_origin TypeLevel) wfct
       -- Next we collect constraints for the class methods
       -- If there are no methods, we don't need any constraints
@@ -461,13 +461,15 @@ inferConstraintsCoerceBased cls_tys rep_ty = do
           = do let ps = [ (meth, mkCoerceClassMethEqn cls tvs inst_tys ty meth)
                         | meth <- meths
                         ]                                                                  
-               return $ fmap (\(meth, Pair t1 t2) -> mkPredOrigin (DerivOriginCoerce meth t1 t2 sa_wildcard)
-                                                   TypeLevel (mkReprPrimEqPred t1 t2)) ps
+               return $ fmap mkPredOriginMeth ps
 
+        mkPredOriginMeth :: (Id, Pair Type) -> PredOrigin 
+        mkPredOriginMeth (meth, Pair t1 t2) = mkPredOrigin (DerivOriginCoerce meth t1 t2 sa_wildcard)
+                                                           TypeLevel
+                                                           (mkReprPrimEqPred t1 t2)
         all_thetas :: Type -> DerivM [ThetaOrigin]
         all_thetas ty = do ps <- meth_preds ty
                            return $ [mkThetaOriginFromPreds ps]
-
   ; all_thetas rep_ty }
 
 {- Note [Inferring the instance context]

@@ -2223,7 +2223,7 @@ isVanillaAlgTyCon _                                              = False
 isWFMirrorTyCon :: TyCon -> Bool
 isWFMirrorTyCon (TcTyCon {isMirror = m}) = m
 isWFMirrorTyCon (FamilyTyCon {isMirror = m}) = m
-isWFMirrorTyCon _ = False
+isWFMirrorTyCon tc = tc `hasKey` wfTyConKey
 
 -- | Returns @True@ for the 'TyCon' of the 'Constraint' kind.
 {-# INLINE isConstraintKindCon #-} -- See Note [Inlining coreView] in GHC.Core.Type

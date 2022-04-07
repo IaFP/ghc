@@ -10,7 +10,6 @@
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 module GHC.Tc.Deriv.WF ( mk_atat_fam, mk_atat_fam_except
                        , mk_atat_fam_units, mk_atat_fam_except_units
-                       , saneTyConForElab
                        , genWFTyFamInst, genWFTyFamInsts
                        ) where
 
@@ -131,6 +130,8 @@ mk_atat_fam_except :: SrcSpan -> TyCon -> [TyCon] -> TcM [FamInst]
 mk_atat_fam_except loc tc skip_tcs
   | isClassTyCon tc || isWFMirrorTyCon tc
   = return []
+  | isDataFamilyTyCon tc
+  = mk_atat_fam_units loc tc
   | (isAlgTyCon tc && saneTyConForElab tc) -- is this a vanilla tycon
     || isNewTyCon tc 
   = do { elabds <- mapM (genAtAtConstraintsExceptTcM True (tc:skip_tcs) []) dt_ctx
@@ -139,8 +140,6 @@ mk_atat_fam_except loc tc skip_tcs
              css' =  mergeAtAtConstraints elab_dt_ctx dt_ctx
        ; mk_atat_fam' loc [] tc univTys ([], tyargs) ([], tyvars_binder_type) css'
        }
-  | isDataFamilyTyCon tc
-  = mk_atat_fam_units loc tc
   | otherwise
   = return []
   where
@@ -181,12 +180,11 @@ getMatchingPredicates :: Type     -- Has to exists
                       -> [PredType]
                       -> TcM Type
 getMatchingPredicates t tvs preds
-  = do let mpreds' = getMatchingPredicates' t tvs preds
-       mpreds <- mapM flatten_atat_constraint mpreds'
-       let fmpreds = foldl mergeAtAtConstraints [] mpreds
-           n = length fmpreds
-       if n == 1 then return $ head fmpreds
-         else return $ mkTyConApp (cTupleTyCon n) fmpreds
+  = do mpreds <- redConstraints $ getMatchingPredicates' t tvs preds
+       let n = length mpreds
+       if n == 1
+         then return $ head mpreds
+         else return $ mkTyConApp (cTupleTyCon n) mpreds
 
 -- filters the appropriate predicates from the given type variables
 -- eg:
@@ -208,31 +206,29 @@ getMatchingPredicates' tv tvs preds =
 -- given a type family instance equation
 -- D a b ~ T a b
 -- generates a WF_D a equation
--- WF_D a b ~ wf(T a b)
--- WF_D a b ~ (T @ a, T a @ b)
+-- $wf'D a b ~ wf(T a b)
+-- or $wf'D a b ~ (T @ a, T a @ b)
+-- and even simplify it to $wf'D a b ~ () if T is total
 genWFTyFamInst :: FamInst -> TcM FamInst
 genWFTyFamInst fam_inst
   = do { let (tfTc, ts) = famInstSplitLHS fam_inst
-             rhs = famInstRHS fam_inst
+             rhs_ty = famInstRHS fam_inst
        ; let wfTc = wfMirrorTyCon tfTc
              loc = noAnnSrcSpan . getSrcSpan $ fam_inst
        ; inst_name <- newFamInstTyConName (L loc (getName wfTc)) ts
-       ; elabDetails <- genAtAtConstraintsTcM True rhs
-       ; preds' <- mapM flatten_atat_constraint $ newPreds elabDetails
-       ; let preds = foldl mergeAtAtConstraints [] preds'
-             n = length preds
-             rhs_ty = if n == 1
+       ; preds <- genWfConstraintsTcM False rhs_ty []
+       ; let n = length preds
+             wf_rhs_ty = if n == 1
                       then head preds
                       else mkTyConApp (cTupleTyCon n) preds
        ; let tvs     = fi_tvs fam_inst
              lhs_tys = ts
-             axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wfTc lhs_tys rhs_ty
+             axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wfTc lhs_tys wf_rhs_ty
        ; traceTc "wfelab buildingAxiom: " (vcat [ parens (ppr inst_name)
-                                                       , ppr wfTc <+> ppr lhs_tys <+> text "~" <+> ppr rhs_ty
+                                                       , ppr wfTc <+> ppr lhs_tys <+> text "~" <+> ppr wf_rhs_ty
                                                        ])
        ; newFamInst SynFamilyInst axiom
        }
-
 
 genWFTyFamInsts :: [FamInst] -> TcM [FamInst]
 genWFTyFamInsts = mapM genWFTyFamInst

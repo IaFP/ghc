@@ -45,7 +45,6 @@ import GHC.Core.Multiplicity
 import GHC.Core.InstEnv
 import GHC.Tc.Instance.Family
 import GHC.Core.FamInstEnv
-import GHC.Core.TyWF (simplifyWfTypeTcM)
 import GHC.Tc.Deriv
 import GHC.Tc.Utils.Env
 import GHC.Tc.Gen.HsType
@@ -1932,8 +1931,7 @@ tcMethodBodyHelp hs_sig_fn sel_id local_meth_id meth_bind
                 do { inst_sigs <- xoptM LangExt.InstanceSigs
                    ; checkTc inst_sigs (misplacedInstSig sel_name hs_sig_ty)
                    ; let ctxt = FunSigCtxt sel_name NoRRC
-                   ; sig_ty'  <- tcHsSigType True ctxt hs_sig_ty
-                   ; sig_ty <- simplifyWfTypeTcM sig_ty'
+                   ; sig_ty  <- tcHsSigType True ctxt hs_sig_ty
                    ; let local_meth_ty = idType local_meth_id
                                 -- False <=> do not report redundant constraints when
                                 --           checking instance-sig <= class-meth-sig
