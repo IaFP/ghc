@@ -44,6 +44,7 @@ import GHC.Core.Make
 import GHC.Core.TyCon
 import GHC.Core.Reduction ( Reduction(..) )
 import GHC.Core.DataCon
+import GHC.Core.TyWF (at'at)
 import GHC.Tc.Utils.Zonk ( shortCutLit )
 import GHC.Tc.Utils.TcType
 import GHC.Types.Name
@@ -215,16 +216,23 @@ dsFractionalLitToRational fl@FL{ fl_signi = signi, fl_exp = exp, fl_exp_base = b
   -- Large rationals will be computed at runtime.
   | otherwise
   = do dflags <- getDynFlags
-       let mkRationalName = case base of
+       platform <- targetPlatform <$> getDynFlags
+
+       let partyCtrs = xopt LangExt.PartialTypeConstructors dflags
+           mkRationalName = case base of
                               Base2 -> mkRationalBase2Name
                               Base10 -> mkRationalBase10Name
+           
        mkRational <- dsLookupGlobalId mkRationalName
+       ratioTyCon <- dsLookupTyCon ratioTyConName
+       let at_dict_ty = (mkTyConTy ratioTyCon) `at'at` integerTy
+       at_dict_id <- newPredVarDs at_dict_ty
        litR <- dsRational signi
-       platform <- targetPlatform <$> getDynFlags
+
        let litE = mkIntegerExpr platform exp
-           partyCtrs = xopt LangExt.PartialTypeConstructors dflags
        if partyCtrs
-         then return (mkCoreApps (Var mkRational) [unitExpr, litR, litE])
+         then return $ mkLetRec [(at_dict_id, Var at_dict_id)]
+                       (mkCoreApps (Var mkRational) [Var at_dict_id, litR, litE])
          else return (mkCoreApps (Var mkRational) [litR, litE])
 
 dsRational :: Rational -> DsM CoreExpr

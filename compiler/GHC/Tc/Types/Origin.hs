@@ -127,6 +127,7 @@ isCtxtGoodForWfTyRed :: UserTypeCtxt -> Bool
 isCtxtGoodForWfTyRed DerivClauseCtxt   = True
 isCtxtGoodForWfTyRed (ForSigCtxt _)    = True
 isCtxtGoodForWfTyRed SpecInstCtxt      = True
+isCtxtGoodForWfTyRed (InstDeclCtxt _)  = True
 isCtxtGoodForWfTyRed (RuleSigCtxt _)   = True
 isCtxtGoodForWfTyRed DefaultDeclCtxt   = True
 isCtxtGoodForWfTyRed _                 = False
