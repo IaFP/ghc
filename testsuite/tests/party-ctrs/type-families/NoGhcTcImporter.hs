@@ -18,5 +18,9 @@ module NoGhcTcImporter where
 
 import NoGhcTc
 
-g' :: GhcPass (NoGhcTcPass 'Renamed)
-g' = GhcRn
+g'' :: GhcPass (NoGhcTcPass 'Renamed)
+g'' = GhcRn
+
+
+bug :: GhcPass (NoGhcTcPass 'Renamed)
+bug = g''

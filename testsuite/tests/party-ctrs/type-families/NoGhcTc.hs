@@ -37,10 +37,5 @@ type family NoGhcTcPass (p :: Pass) :: Pass where
   NoGhcTcPass 'Typechecked = 'Renamed
   NoGhcTcPass other = other
 
-type family XOverli
-    
-foobar :: WFT (GhcPass (NoGhcTcPass p)) => GhcPass p
-foobar = undefined
-
 g' :: GhcPass (NoGhcTcPass 'Renamed)
 g' = GhcRn
