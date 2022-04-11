@@ -43,6 +43,8 @@ import GHC.Tc.Errors.Types
 import GHC.Tc.TyCl.Build
 import GHC.Tc.Utils.Monad
 import GHC.Tc.Utils.TcType
+import GHC.Tc.Deriv.WF
+import GHC.Tc.Utils.Env
 
 import GHC.Core.Type
 import GHC.Core.Coercion
@@ -748,17 +750,17 @@ tc_iface_decl parent _ (IfaceFamily {ifName = tc_name,
      -- TODO:
      -- Only conditionally build $wf'F from F when
      -- partyCtrs is on.
-     ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+     -- ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
      ; tycon <- if m then
                   return $ mkWFFamilyTyCon tc_name binders' constraintKind res_name rhs parent
                 else do forkM (mk_doc_wf tc_name) $
                           do { wf_name <- mk_wf_name tc_name
                              ; flav      <- tc_fam_flav wf_name fam_flav
-                             ; flav      <- 
+                             
                              ; let wf'tc = mkWFFamilyTyCon wf_name binders'
-                                              constraintKind res_name flav parent
-                              -- ANI TODO: this is not quite right.
-                              -- We need to find the exact same $wf'tc that we should have previously generated.
+                                              constraintKind res_name wf_flav parent
+                                   wf_flav = wf_tc_fam_flav wf_name wf'tc flav
+
                              ; return $ mkFamilyTyCon tc_name binders'
                                            res_kind' res_name flav parent inj (Just wf'tc) }
      ; return (ATyCon tycon) }
@@ -766,6 +768,20 @@ tc_iface_decl parent _ (IfaceFamily {ifName = tc_name,
      mk_doc n = text "Type family synonym" <+> ppr n
      mk_doc_wf tc = text "WF Type family synonym"
                           <+> ppr tc
+     wf_tc_fam_flav :: Name -> TyCon -> FamTyConFlav -> IfL FamTyConFlav
+     wf_tc_fam_flav wf_name wf_tycon (ClosedSynFamilyTyCon (Just axioms))
+       = do {
+            ; let branches = fromBranches axioms
+            ; branches' <- mapM (\ branch -> do {
+                                                ; new_rhs <- genWFFamInstConstraint (coAxBranchRHS branch)
+                                                ; return $ branch { cab_rhs = new_rhs}
+                                                }
+                                ) branches
+            ; wf_co_ax_name <- newFamInstAxiomName (L (noAnnSrcSpan . nameSrcSpan $ wf_name) wf_name) []
+            ; let mb_wf_co_ax = Just (mkBranchedCoAxiom wf_co_ax_name wf_tycon branches')
+            ; return $ ClosedSynFamilyTyCon mb_wf_co_ax
+            }
+     wf_tc_fam_flav _ _ flav = return flav
 
      tc_fam_flav :: Name -> IfaceFamTyConFlav -> IfL FamTyConFlav
      tc_fam_flav tc_name IfaceDataFamilyTyCon
@@ -780,7 +796,7 @@ tc_iface_decl parent _ (IfaceFamily {ifName = tc_name,
      tc_fam_flav _ IfaceBuiltInSynFamTyCon
          = pprPanic "tc_iface_decl"
                     (text "IfaceBuiltInSynFamTyCon in interface file")
-
+                    
 tc_iface_decl _parent _ignore_prags
             (IfaceClass {ifName = tc_name,
                          ifRoles = roles,
