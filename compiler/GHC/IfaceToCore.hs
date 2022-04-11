@@ -745,18 +745,22 @@ tc_iface_decl parent _ (IfaceFamily {ifName = tc_name,
      ; rhs      <- forkM (mk_doc tc_name) $
                    tc_fam_flav tc_name fam_flav
      ; res_name <- traverse (newIfaceName . mkTyVarOccFS) res
+     -- TODO:
+     -- Only conditionally build $wf'F from F when
+     -- partyCtrs is on.
+     ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
      ; tycon <- if m then
                   return $ mkWFFamilyTyCon tc_name binders' constraintKind res_name rhs parent
                 else do forkM (mk_doc_wf tc_name) $
                           do { wf_name <- mk_wf_name tc_name
-                             ; rhs      <- forkM (mk_doc wf_name) $
-                                           tc_fam_flav wf_name fam_flav
+                             ; flav      <- tc_fam_flav wf_name fam_flav
+                             ; flav      <- 
                              ; let wf'tc = mkWFFamilyTyCon wf_name binders'
-                                              constraintKind res_name rhs parent
+                                              constraintKind res_name flav parent
                               -- ANI TODO: this is not quite right.
                               -- We need to find the exact same $wf'tc that we should have previously generated.
                              ; return $ mkFamilyTyCon tc_name binders'
-                                           res_kind' res_name rhs parent inj (Just wf'tc) }
+                                           res_kind' res_name flav parent inj (Just wf'tc) }
      ; return (ATyCon tycon) }
    where
      mk_doc n = text "Type family synonym" <+> ppr n

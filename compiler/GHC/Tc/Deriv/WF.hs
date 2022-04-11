@@ -227,6 +227,23 @@ genWFFamInstConstraint rhs
     else return $ mkTyConApp (cTupleTyCon n) flattened
   }
 
+genWFClosedFamFlav :: Name -> TyCon -> FamTyConFlav -> TcM FamTyConFlav
+genWFClosedFamFlav wf_name wf_tycon (ClosedSynFamilyTyCon (Just axioms))
+  = do {
+  ; let branches = fromBranches axioms
+  ; branches' <- mapM (\ branch -> do {
+                          ; new_rhs <- genWFFamInstConstrant (coAxBranchRHS branch)
+                          ; return $ branch { cab_rhs = new_rhs}
+                          }
+                      ) branches
+  ; let wf_co_ax_name = newFamInstAxiomName (L src_span wf_name) []
+        mb_wf_co_ax = Just (mkBranchedCoAxiom wf_co_ax_name wf_tycon branches')
+  ; return $ ClosedSynFamilyTyCon (Just mb_wf_co_ax) 
+  
+  }
+genWFClosedFamFlav flav = return flav
+
+
 -- given a type family instance equation
 -- D a b ~ T a b
 -- generates a WF_D a equation
