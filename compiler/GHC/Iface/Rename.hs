@@ -474,12 +474,12 @@ rnIfaceDecl d@IfaceFamily{} = do
             binders <- mapM rnIfaceTyConBinder (ifBinders d)
             fam_kind <- rnIfaceType (ifResKind d)
             fam_flav <- rnIfaceFamTyConFlav (ifFamFlav d)
-            -- wf_mirror <- rnIfaceWFMirror $ ifWFMirror d
+            wf_mirror <- mapM rnIfaceDecl (ifWFMirror d)
             return d { ifName = name
                      , ifBinders = binders
                      , ifResKind = fam_kind
                      , ifFamFlav = fam_flav
-                     -- , ifWFMirror = wf_mirror
+                     , ifWFMirror = wf_mirror
                      }
 rnIfaceDecl d@IfaceClass{} = do
             name <- rnIfaceGlobal (ifName d)

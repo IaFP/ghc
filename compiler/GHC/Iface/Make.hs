@@ -669,9 +669,15 @@ tyFamToIfaceDecl env fam_flav tycon =
                   ifBinders = if_binders,
                   ifResKind = if_res_kind,
                   ifFamInj  = tyConInjectivityInfo tycon,
+                  ifWFMirror = mb_if_wf_mirror,
                   ifMirror  = isWFMirrorTyCon tycon
                 })
   where
+    mb_if_wf_mirror = do
+      wf_mirror <- wfMirrorTyCon_maybe tycon
+      flav <- famTyConFlav_maybe wf_mirror
+      return . snd $ tyFamToIfaceDecl env flav wf_mirror
+    
     (tc_env1, tc_binders) = tidyTyConBinders env (tyConBinders tycon)
 
     if_binders     = toIfaceTyCoVarBinders tc_binders

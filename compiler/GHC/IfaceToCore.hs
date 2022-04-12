@@ -734,13 +734,14 @@ tc_iface_decl _ _ (IfaceSynonym {ifName = tc_name,
    where
      mk_doc n = text "Type synonym" <+> ppr n
 
-tc_iface_decl parent _ (IfaceFamily {ifName = tc_name,
+tc_iface_decl parent b (IfaceFamily {ifName = tc_name,
                                      ifFamFlav = fam_flav,
                                      ifBinders = binders,
                                      ifResKind = res_kind,
                                      ifResVar = res,
                                      ifFamInj = inj,
-                                     ifMirror = m
+                                     ifWFMirror = mirror,
+                                     ifMirror = isMirror
                                     })
    = bindIfaceTyConBinders_AT binders $ \ binders' -> do
      { res_kind' <- tcIfaceType res_kind    -- Note [Synonym kind loop]
@@ -751,37 +752,17 @@ tc_iface_decl parent _ (IfaceFamily {ifName = tc_name,
      -- Only conditionally build $wf'F from F when
      -- partyCtrs is on.
      -- ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-     ; tycon <- if m then
+     ; tycon <- if isMirror then
                   return $ mkWFFamilyTyCon tc_name binders' constraintKind res_name rhs parent
                 else do forkM (mk_doc_wf tc_name) $
-                          do { wf_name <- mk_wf_name tc_name
-                             ; flav      <- tc_fam_flav wf_name fam_flav
-                             
-                             ; let wf'tc = mkWFFamilyTyCon wf_name binders'
-                                              constraintKind res_name wf_flav parent
-                                   wf_flav = wf_tc_fam_flav wf_name wf'tc flav
-
+                          do { wf'tc <- mapM (tc_iface_decl parent b) mirror
                              ; return $ mkFamilyTyCon tc_name binders'
-                                           res_kind' res_name flav parent inj (Just wf'tc) }
+                                           res_kind' res_name rhs parent inj (fmap tyThingTyCon wf'tc) }
      ; return (ATyCon tycon) }
    where
      mk_doc n = text "Type family synonym" <+> ppr n
      mk_doc_wf tc = text "WF Type family synonym"
                           <+> ppr tc
-     wf_tc_fam_flav :: Name -> TyCon -> FamTyConFlav -> IfL FamTyConFlav
-     wf_tc_fam_flav wf_name wf_tycon (ClosedSynFamilyTyCon (Just axioms))
-       = do {
-            ; let branches = fromBranches axioms
-            ; branches' <- mapM (\ branch -> do {
-                                                ; new_rhs <- genWFFamInstConstraint (coAxBranchRHS branch)
-                                                ; return $ branch { cab_rhs = new_rhs}
-                                                }
-                                ) branches
-            ; wf_co_ax_name <- newFamInstAxiomName (L (noAnnSrcSpan . nameSrcSpan $ wf_name) wf_name) []
-            ; let mb_wf_co_ax = Just (mkBranchedCoAxiom wf_co_ax_name wf_tycon branches')
-            ; return $ ClosedSynFamilyTyCon mb_wf_co_ax
-            }
-     wf_tc_fam_flav _ _ flav = return flav
 
      tc_fam_flav :: Name -> IfaceFamTyConFlav -> IfL FamTyConFlav
      tc_fam_flav tc_name IfaceDataFamilyTyCon
