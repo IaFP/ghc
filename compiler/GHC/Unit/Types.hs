@@ -186,7 +186,7 @@ instance IsUnitId u => IsUnitId (GenUnit u) where
    unitFS (RealUnit (Definite x)) = unitFS x
    unitFS HoleUnit                = holeFS
 
-pprModule :: Module -> SDoc
+pprModule :: GenModule (GenUnit UnitId) -> SDoc
 pprModule mod@(Module p n)  = getPprStyle doc
  where
   doc sty

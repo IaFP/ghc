@@ -1829,6 +1829,7 @@ stableMergeScaledTypes ty1s ty2s = matc [] ty1s ty2s
 --         theta' = mergeAtAtConstraints theta constraints
 
 attachConstraints :: ThetaType -> Type -> Type
+attachConstraints [] ty = ty
 attachConstraints constraints ty = 
       mkSpecForAllTys vs $ mkInvisFunTysMany constraints tau 
       where (vs, tau) = splitForAllTyVars ty

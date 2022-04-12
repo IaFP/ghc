@@ -222,7 +222,7 @@ tcRnModule hsc_env mod_sum save_rn_syntax
     err_msg = mkPlainErrorMsgEnvelope loc $
               TcRnModMissingRealSrcSpan this_mod
 
-    pair :: (Module, SrcSpan)
+    -- pair :: (Module, SrcSpan)
     pair@(this_mod,_)
       | Just (L mod_loc mod) <- hsmodName this_module
       = (mkHomeModule home_unit mod, locA mod_loc)

@@ -21,7 +21,7 @@ import GHC.Hs.Extension (
 
 import Language.Haskell.Syntax.Pat
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT, type (@))
+import GHC.Types (WFT)
 import Language.Haskell.Syntax.Extension
 import {-# Source #-} Language.Haskell.Syntax.Expr (HsExpr)
 #endif

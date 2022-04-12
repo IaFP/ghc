@@ -88,6 +88,7 @@ import Data.Ratio
 import GHC.Types.FieldLabel (DuplicateRecordFields(..))
 #if MIN_VERSION_base(4,16,0)
 import GHC.Types (WFT, type (@))
+import GHC.Types.Unique.Set (UniqSet)
 #endif
 
 {-
@@ -121,9 +122,9 @@ p1 scope over p2,p3.
 
 newtype CpsRn b = CpsRn { unCpsRn :: forall r.
 #if MIN_VERSION_base(4,16,0)
-                          (IOEnv @ Env TcGblEnv TcLclEnv,
-                             IOEnv (Env TcGblEnv TcLclEnv) @ (r, FreeVars), Env @ TcGblEnv,
-                             Env TcGblEnv @ TcLclEnv) => 
+                          (IOEnv (Env TcGblEnv TcLclEnv) @ (r, FreeVars),
+                           IOEnv @ Env TcGblEnv TcLclEnv, Env TcGblEnv @ TcLclEnv,
+                           Env @ TcGblEnv, UniqSet @ Name) => 
 #endif
                           (b -> RnM (r, FreeVars))
                                             -> RnM (r, FreeVars) }

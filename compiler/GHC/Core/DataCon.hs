@@ -108,9 +108,6 @@ import qualified Data.ByteString.Lazy    as LBS
 import qualified Data.Data as Data
 import Data.Char
 import Data.List( find )
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@))
-#endif
 
 {-
 Data constructor representation
@@ -1181,11 +1178,7 @@ dataConUserTyVars (MkData { dcUserTyVarBinders = tvbs }) = binderVars tvbs
 -- See Note [DataCon user type variable binders]
 -- | 'InvisTVBinder's for the type variables of the constructor, in the order the
 -- user wrote them
-dataConUserTyVarBinders ::
-#if MIN_VERSION_base(4,16,0)
-  (VarBndr @ TyVar, VarBndr TyVar @ Specificity) =>
-#endif
- DataCon -> [InvisTVBinder]
+dataConUserTyVarBinders :: DataCon -> [InvisTVBinder]
 dataConUserTyVarBinders = dcUserTyVarBinders
 
 -- | Equalities derived from the result type of the data constructor, as written

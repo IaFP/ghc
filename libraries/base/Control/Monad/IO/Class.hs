@@ -22,9 +22,6 @@
 module Control.Monad.IO.Class (
     MonadIO(..)
   ) where
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
-#endif
 
 -- | Monads in which 'IO' computations may be embedded.
 -- Any monad built by applying a sequence of monad transformers to the
@@ -37,11 +34,7 @@ import GHC.Types (Total)
 --
 -- * @'liftIO' (m >>= f) = 'liftIO' m >>= ('liftIO' . f)@
 
-class (
--- #if MIN_VERSION_base(4,16,0)
---   Total m,
--- #endif
-  Monad m) => MonadIO m where
+class (Monad m) => MonadIO m where
     -- | Lift a computation from the 'IO' monad.
     -- This allows us to run IO computations in any monadic stack, so long as it supports these kinds of operations
     -- (i.e. 'IO' is the base monad for the stack).
