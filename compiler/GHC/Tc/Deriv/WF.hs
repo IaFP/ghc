@@ -213,8 +213,7 @@ getMatchingPredicates' tv tvs preds =
 genWFFamInstConstraint :: Type -> TcM Type
 genWFFamInstConstraint rhs
   = do {
-  ; preds <- newPreds <$> genAtAtConstraintsTcM False rhs
-  ; preds <- genWfConstraintsTcM False rhs_ty []
+  ; preds <- genWfConstraintsTcM False rhs []
   ; let n = length preds
         wf_rhs_ty = if n == 1
                     then head preds
@@ -235,7 +234,7 @@ genWFTyFamInst fam_inst
        ; let wfTc = wfMirrorTyCon tfTc
              loc = noAnnSrcSpan . getSrcSpan $ fam_inst
        ; inst_name <- newFamInstTyConName (L loc (getName wfTc)) ts
-       ; rhs_ty <- genWFFamInstConstraint rhs
+       ; wf_rhs_ty <- genWFFamInstConstraint rhs_ty
        ; let tvs     = fi_tvs fam_inst
              lhs_tys = ts
              axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wfTc lhs_tys wf_rhs_ty
