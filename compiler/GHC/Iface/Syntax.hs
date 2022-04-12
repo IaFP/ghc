@@ -1897,7 +1897,7 @@ instance Binary IfaceDecl where
         put_ bh a4
         put_ bh a5
         put_ bh a6
-        -- put_ bh a7       
+        put_ bh a7       
         put_ bh a8       
 
     -- NB: Written in a funny way to avoid an interface change
@@ -1986,9 +1986,9 @@ instance Binary IfaceDecl where
                     a4 <- get bh
                     a5 <- get bh
                     a6 <- get bh
-                    -- a7 <- get bh
+                    a7 <- get bh
                     a8 <- get bh
-                    return (IfaceFamily a1 a2 a3 a4 a5 a6 Nothing a8)
+                    return (IfaceFamily a1 a2 a3 a4 a5 a6 a7 a8)
             5 -> do a1 <- get bh
                     a2 <- getIfaceTopBndr bh
                     a3 <- get bh
