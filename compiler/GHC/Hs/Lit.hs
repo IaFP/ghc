@@ -7,6 +7,7 @@
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE UndecidableInstances #-} -- Wrinkle in Note [Trees That Grow]
                                       -- in module Language.Haskell.Syntax.Extension
 {-# LANGUAGE DuplicateRecordFields #-}
@@ -28,7 +29,7 @@ module GHC.Hs.Lit
 
 import GHC.Prelude
 
-import {-# SOURCE #-} GHC.Hs.Expr( pprExpr )
+import {-# SOURCE #-} GHC.Hs.Expr( pprExpr, SyntaxExprGhc )
 
 import Language.Haskell.Syntax.Lit
 
@@ -102,7 +103,7 @@ type instance XOverLit GhcTc = OverLitTc
 
 pprXOverLit ::
 #if MIN_VERSION_base(4,16,0)
-  SyntaxExprGhc 'Typechecked =>
+  WFT (SyntaxExprGhc 'Typechecked) =>
 #endif
   GhcPass p -> XOverLit (GhcPass p) -> SDoc
 pprXOverLit GhcPs noExt = ppr noExt
