@@ -4,6 +4,10 @@
 #endif
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE KindSignatures         #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE TypeFamilyDependencies    #-}
 {-# LANGUAGE UndecidableInstances #-} -- Wrinkle in Note [Trees That Grow]
                                       -- in module Language.Haskell.Syntax.Extension
 
@@ -22,12 +26,13 @@ import Language.Haskell.Syntax.Expr
   , GRHSs
   , HsSplice
   )
-import GHC.Hs.Extension ( OutputableBndrId, GhcPass )
+import GHC.Hs.Extension ( OutputableBndrId, GhcPass, Pass )
 #if MIN_VERSION_base(4,16,0)
 import GHC.Types (WFT)
 import Language.Haskell.Syntax.Extension
 import GHC.Hs.Extension (NoGhcTcPass, IdGhcP)
 #endif
+import qualified Data.Kind
 
 instance (
 #if MIN_VERSION_base(4,16,0)
@@ -115,3 +120,7 @@ pprFunBind :: (
 #endif
      OutputableBndrId idR)
            => MatchGroup (GhcPass idR) (LHsExpr (GhcPass idR)) -> SDoc
+
+type family SyntaxExprGhc (p :: Pass) = (r :: Data.Kind.Type) | r -> p
+
+

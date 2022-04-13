@@ -1,3 +1,4 @@
+
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 903
 {-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
@@ -99,7 +100,11 @@ type instance XOverLit GhcPs = NoExtField
 type instance XOverLit GhcRn = OverLitRn
 type instance XOverLit GhcTc = OverLitTc
 
-pprXOverLit :: GhcPass p -> XOverLit (GhcPass p) -> SDoc
+pprXOverLit ::
+#if MIN_VERSION_base(4,16,0)
+  SyntaxExprGhc 'Typechecked =>
+#endif
+  GhcPass p -> XOverLit (GhcPass p) -> SDoc
 pprXOverLit GhcPs noExt = ppr noExt
 pprXOverLit GhcRn OverLitRn{ ol_from_fun = from_fun } = ppr from_fun
 pprXOverLit GhcTc OverLitTc{ ol_witness = witness } = pprExpr witness
