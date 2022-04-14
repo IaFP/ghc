@@ -232,7 +232,7 @@ genWFTyFamInst fam_inst
                                               ])
        ; (:[]) <$> newFamInst SynFamilyInst axiom
        }
-  | otherwise -- data families are eta reducible so it makes them exotic
+  | otherwise -- data families instance equations are eta reducible as they are representational 
   = return []
   
 genWFTyFamInsts :: [FamInst] -> TcM [FamInst]

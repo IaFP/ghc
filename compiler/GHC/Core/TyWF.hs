@@ -229,12 +229,8 @@ isTyConInternal :: TyCon -> Bool
 isTyConInternal tycon =
   tycon `hasKey` tYPETyConKey || tycon `hasKey` runtimeRepTyConKey
   || tycon `hasKey` someTypeRepTyConKey
-  -- || tycon `hasKey` repTyConKey || tycon `hasKey` rep1TyConKey
-  -- || tycon `hasKey` typeRepTyConKey
-  -- || tycon `hasKey` typeableClassKey
   || tycon `hasKey` eqTyConKey || tycon `hasKey` heqTyConKey
   || tycon `hasKey` proxyPrimTyConKey
-  -- || tycon `hasKey` ioTyConKey -- || (tyConName tycon == ioTyConName)
   || tycon `hasKey` listTyConKey -- TODO ANI: this can go away 
   || tycon `hasKey` maybeTyConKey -- TODO ANI: this can go away
   || isBoxedTupleTyCon tycon || isUnboxedTupleTyCon tycon
@@ -475,4 +471,8 @@ redWfTypeTcM ty = do
 -- Lifted version of genAtAtConstraintsExceptTcM.
 -- Generates all the f @ a constraints in a DeriveM 
 genWfConstraints :: MonadTrans t => Bool -> Type -> [Type] ->  t TcM ThetaType
-genWfConstraints isTyConPhase ty stys = lift $ genWfConstraintsTcM isTyConPhase ty stys
+genWfConstraints isTyConPhase ty stys = lift $ do eTy <- genWfConstraintsTcM isTyConPhase ty stys
+                                                  traceTc "wfelab genCts" (vcat [ text "Type:" <+> ppr ty
+                                                                                , text "wfcts:" <+> ppr eTy
+                                                                                ])
+                                                  return eTy
