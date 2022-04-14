@@ -503,7 +503,7 @@ genericTyConNames = [
     compTyConName, rTyConName, dTyConName,
     cTyConName, sTyConName, rec0TyConName,
     d1TyConName, c1TyConName, s1TyConName,
-    repTyConName, rep1TyConName, wfRepTyConName, wfRep1TyConName,
+    repTyConName, rep1TyConName, 
     uRecTyConName,
     uAddrTyConName, uCharTyConName, uDoubleTyConName,
     uFloatTyConName, uIntTyConName, uWordTyConName,
@@ -957,7 +957,7 @@ v1TyConName, u1TyConName, par1TyConName, rec1TyConName,
   compTyConName, rTyConName, dTyConName,
   cTyConName, sTyConName, rec0TyConName,
   d1TyConName, c1TyConName, s1TyConName,
-  repTyConName, rep1TyConName, wfRepTyConName, wfRep1TyConName,
+  repTyConName, rep1TyConName, 
   uRecTyConName,
   uAddrTyConName, uCharTyConName, uDoubleTyConName,
   uFloatTyConName, uIntTyConName, uWordTyConName,
@@ -992,10 +992,6 @@ s1TyConName  = tcQual gHC_GENERICS (fsLit "S1") s1TyConKey
 
 repTyConName  = tcQual gHC_GENERICS (fsLit "Rep")  repTyConKey
 rep1TyConName = tcQual gHC_GENERICS (fsLit "Rep1") rep1TyConKey
-
-wfRepTyConName  = tcQual gHC_GENERICS (fsLit "WF_Rep")  wfRepTyConKey
-wfRep1TyConName = tcQual gHC_GENERICS (fsLit "WF_Rep1") wfRep1TyConKey
-
 
 uRecTyConName      = tcQual gHC_GENERICS (fsLit "URec") uRecTyConKey
 uAddrTyConName     = tcQual gHC_GENERICS (fsLit "UAddr") uAddrTyConKey
@@ -1918,7 +1914,7 @@ v1TyConKey, u1TyConKey, par1TyConKey, rec1TyConKey,
   compTyConKey, rTyConKey, dTyConKey,
   cTyConKey, sTyConKey, rec0TyConKey,
   d1TyConKey, c1TyConKey, s1TyConKey,
-  repTyConKey, rep1TyConKey, wfRepTyConKey, wfRep1TyConKey,
+  repTyConKey, rep1TyConKey, 
   uRecTyConKey,
   uAddrTyConKey, uCharTyConKey, uDoubleTyConKey,
   uFloatTyConKey, uIntTyConKey, uWordTyConKey :: Unique
@@ -1946,8 +1942,6 @@ s1TyConKey    = mkPreludeTyConUnique 153
 
 repTyConKey  = mkPreludeTyConUnique 155
 rep1TyConKey = mkPreludeTyConUnique 156
-wfRepTyConKey  = mkPreludeTyConUnique 902
-wfRep1TyConKey = mkPreludeTyConUnique 903
 
 uRecTyConKey    = mkPreludeTyConUnique 157
 uAddrTyConKey   = mkPreludeTyConUnique 158

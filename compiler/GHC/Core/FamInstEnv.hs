@@ -11,7 +11,7 @@
 module GHC.Core.FamInstEnv (
         FamInst(..), FamFlavor(..), famInstAxiom, famInstTyCon, famInstRHS,
         famInstsRepTyCons, famInstRepTyCon_maybe, dataFamInstRepTyCon,
-        pprFamInst, pprFamInsts,
+        pprFamInst, pprFamInsts, famInstFlavor,
         mkImportedFamInst,
         famInstSplitLHS,
 
@@ -204,6 +204,10 @@ dataFamInstRepTyCon fi
        DataFamilyInst tycon -> tycon
        SynFamilyInst        -> pprPanic "dataFamInstRepTyCon" (ppr fi)
 
+
+-- Get the flavor of the type family instance
+famInstFlavor :: FamInst -> FamFlavor
+famInstFlavor (FamInst {fi_flavor = flav}) = flav
 {-
 ************************************************************************
 *                                                                      *

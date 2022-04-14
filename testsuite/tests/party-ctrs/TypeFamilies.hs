@@ -6,10 +6,10 @@
 module TypeFamilies where
 
 import GHC.Types
--- data Ord a => BST a = Tip | Branch a (BST a) (BST a)
 
 data Blah a 
 data Either a b = L a | R b
+type TSyn a = forall b. Either a b -> Blah a
   
 type family NTF a :: Type
 type instance NTF (Blah a) = a
@@ -17,8 +17,5 @@ type instance NTF (Blah a) = a
 type family HTF a :: Type -> Type
 type instance HTF (Blah a) = Either a
 
--- foobar :: Elem [a] -> a
--- foobar = undefined
-
--- barfoo :: HTF (Blah a) b -> Either a b
--- barfoo = \x -> x
+-- type family TTF a :: Type
+-- type instance TTF (TSyn a) = a -- Error: illegal polymorphic type forall b. Either a b -> Blah a

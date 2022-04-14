@@ -229,10 +229,8 @@ newtype
   m @ a => 
 #endif
   GhcT m a = GhcT { unGhcT :: Session -> m a }
+  deriving (Functor)  
 #if MIN_VERSION_base(4,16,0)
-instance (Total m, Functor m) => Functor (GhcT m) where
-  fmap f m = GhcT $ (fmap f) . unGhcT m
-    
 instance MonadTrans GhcT where
   lift x = GhcT $ const x
   
@@ -257,7 +255,6 @@ instance (Total m, MonadMask m) => MonadMask (GhcT m) where
       (\resource exitCase -> unGhcT (release resource exitCase) r)
       (\resource -> unGhcT (use resource) r)
 #else
-  deriving (Functor)
   deriving (MonadThrow, MonadCatch, MonadMask) via (ReaderT Session m)
 #endif
                                                     

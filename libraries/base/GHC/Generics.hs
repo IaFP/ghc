@@ -1487,9 +1487,9 @@ instance (Semigroup a, Generic a, Monoid (Rep a ())) => Monoid (Generically a) w
 type    Generically1 :: forall k. (k -> Type) -> (k -> Type)
 newtype Generically1 f a where
   Generically1 :: forall {k} f a. f a -> Generically1 @k f a
-{-
+
 -- | @since 4.17.0.0
-instance (-- Total (Rep1 f),
+instance (Total f, forall a. Rep1 f @ a,
           Generic1 f, Functor (Rep1 f)) => Functor (Generically1 f) where
   fmap :: (a -> a') -> (Generically1 f a -> Generically1 f a')
   fmap f (Generically1 as) = Generically1
@@ -1500,7 +1500,7 @@ instance (-- Total (Rep1 f),
     (to1 (a <$ from1 as))
 
 -- | @since 4.17.0.0
-instance (-- Total (Rep1 f),
+instance (Total f, forall a. Rep1 f @ a,
           Generic1 f, Applicative (Rep1 f)) => Applicative (Generically1 f) where
   pure :: a -> Generically1 f a
   pure a = Generically1
@@ -1516,7 +1516,7 @@ instance (-- Total (Rep1 f),
     (to1 (liftA2 (·) (from1 as) (from1 bs)))
 
 -- | @since 4.17.0.0
-instance (-- Total (Rep1 f),
+instance (Total f, forall a. Rep1 f @ a,
           Generic1 f, Alternative (Rep1 f)) => Alternative (Generically1 f) where
   empty :: Generically1 f a
   empty = Generically1
@@ -1525,7 +1525,7 @@ instance (-- Total (Rep1 f),
   (<|>) :: Generically1 f a -> Generically1 f a -> Generically1 f a
   Generically1 as1 <|> Generically1 as2 = Generically1
     (to1 (from1 as1 <|> from1 as2))
--}
+
 --------------------------------------------------------------------------------
 -- Meta-data
 --------------------------------------------------------------------------------
@@ -1705,6 +1705,10 @@ deriving instance Generic1 Down
 
 -- | The singleton kind-indexed data family.
 data family Sing (a :: k)
+
+type instance Sing @ a = ()
+-- we never export Sing data family out of this module.
+-- effectively making it closed. hence we know that Sing @ a ~ () by case analysis i.e. 
 
 -- | A 'SingI' constraint is essentially an implicitly-passed singleton.
 class SingI (a :: k) where

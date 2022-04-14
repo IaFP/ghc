@@ -421,6 +421,7 @@ tcClassSigType names sig_ty
     skol_info = SigTypeSkol sig_ctxt
 
 tcHsSigType :: Bool -> UserTypeCtxt -> LHsSigType GhcRn -> TcM Type
+-- False <=> doesn't reduce the elaborated type
 -- Does validity checking
 -- See Note [Recipe for checking a signature]
 tcHsSigType shouldSquash ctxt sig_ty
@@ -437,7 +438,7 @@ tcHsSigType shouldSquash ctxt sig_ty
 
        ; ty <- zonkTcType ty
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; ty <- if partyCtrs then elabWfTypeTcM (True && not shouldSquash) ty else return ty
+       ; ty <- if partyCtrs then elabWfTypeTcM (not shouldSquash) ty else return ty
        ; checkValidType ctxt ty
 
        ; traceTc "end tcHsSigType }" (ppr ty)
