@@ -171,6 +171,7 @@ pp_st_suffix (SourceText st) suffix _   = text st <> suffix
 instance (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass p)),
+  WFT (SyntaxExprGhc 'Typechecked),
 #endif
   OutputableBndrId p)
        => Outputable (HsOverLit (GhcPass p)) where
