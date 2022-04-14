@@ -232,7 +232,6 @@ isTyConInternal tycon =
   || tycon `hasKey` eqTyConKey || tycon `hasKey` heqTyConKey
   || tycon `hasKey` proxyPrimTyConKey
   || tycon `hasKey` listTyConKey -- TODO ANI: this can go away 
-  || tycon `hasKey` maybeTyConKey -- TODO ANI: this can go away
   || isBoxedTupleTyCon tycon || isUnboxedTupleTyCon tycon
   || isUnboxedSumTyCon tycon
   || tycon `hasKey` stablePtrPrimTyConKey || tycon `hasKey` stablePtrTyConKey

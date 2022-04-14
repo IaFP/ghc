@@ -137,7 +137,7 @@ import GHC.Read
 import GHC.Show
 import GHC.Tuple (Solo (..))
 import Text.Read( reads )
---import GHC.Types (Total)
+
 -- Imports for the instances
 import Control.Applicative (WrappedArrow(..), WrappedMonad(..), ZipList(..))
        -- So we can give them Data instances
@@ -159,7 +159,7 @@ import qualified GHC.Generics as Generics (Fixity(..))
 import GHC.Generics hiding (Fixity(..))
                              -- So we can give Data instance for U1, V1, ...
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total, type (@), Total2)
+import GHC.Types (Total, Total2)
 #endif
 
 ------------------------------------------------------------------------------
