@@ -219,7 +219,7 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
        ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
        ; isBootFile <- tcIsHsBootOrSig
        ; (gbl_env, th_bndrs) <-
-           if enblPCtrs && (not isBootFile) -- do not call mk_atat_fam if we are in boot files as we cannot generate typefamilies for boot files 
+           if enblPCtrs -- do not call mk_atat_fam if we are in boot files as we cannot generate typefamilies for boot files 
            then do { traceTc "---- start wf enrichment ---- { " empty
 
                    ; let locs::[SrcSpan] = map (locA . getLoc) tyclds
