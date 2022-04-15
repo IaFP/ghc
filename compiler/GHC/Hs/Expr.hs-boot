@@ -139,14 +139,3 @@ data SyntaxExprTc = SyntaxExprTc { syn_expr      :: HsExpr GhcTc
                                  , syn_arg_wraps :: [HsWrapper]
                                  , syn_res_wrap  :: HsWrapper }
                   | NoSyntaxExprTc  -- See Note [NoSyntaxExpr]
-
-
-#if MIN_VERSION_base(4,16,0)
-  -- type WFSyntaxExprGhc p = (
-  -- WFT (SyntaxExprGhc p),
-  -- WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  -- WFT (SyntaxExprGhc 'Typechecked),
-  -- WFT (SyntaxExprGhc 'Renamed),
-  -- WFT (SyntaxExprGhc 'Parsed)
-  -- )
-#endif

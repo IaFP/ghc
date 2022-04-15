@@ -104,16 +104,6 @@ type family SyntaxExprGhc (p :: Pass) = (r :: Data.Kind.Type) | r -> p where
   SyntaxExprGhc 'Parsed      = NoExtField
   SyntaxExprGhc 'Renamed     = SyntaxExprRn
   SyntaxExprGhc 'Typechecked = SyntaxExprTc
-
-#if MIN_VERSION_base(4,16,0)
--- type WFSyntaxExprGhc p = (
---   WFT (SyntaxExprGhc p),
---   WFT (SyntaxExprGhc (NoGhcTcPass p)),
---   WFT (SyntaxExprGhc 'Typechecked),
---   WFT (SyntaxExprGhc 'Renamed),
---   WFT (SyntaxExprGhc 'Parsed)
---   )
-#endif  
   
 -- | The function to use in rebindable syntax. See Note [NoSyntaxExpr].
 data SyntaxExprRn = SyntaxExprRn (HsExpr GhcRn)

@@ -34,9 +34,6 @@ import GHC.Prelude
 import Language.Haskell.Syntax.Binds
 
 import {-# SOURCE #-} GHC.Hs.Expr (
-#if MIN_VERSION_base(4,16,0)
-  -- WFSyntaxExprGhc,
-#endif
   pprExpr,
   pprFunBind,
   pprPatBind
@@ -669,8 +666,6 @@ ppr_monobind :: forall idL idR.
                       WFT (Anno (IdGhcP (NoGhcTcPass idR))),                      
                       WFT (Anno (IdGhcP idL)),
                       WFT (Anno (IdGhcP (NoGhcTcPass idL))),
-                      -- WFSyntaxExprGhc idR,
-                      -- WFSyntaxExprGhc idL,
                       WFT (SyntaxExprGhc idL),
 #endif
                   OutputableBndrId idL, OutputableBndrId idR)
