@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 903
-{-# LANGUAGE TypeOperators, TypeFamilies #-}
+{-# LANGUAGE TypeOperators, TypeFamilies, ConstraintKinds #-}
 #endif
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -17,8 +17,10 @@ module GHC.Hs.Expr where
 
 import GHC.Utils.Outputable ( SDoc, Outputable )
 import Language.Haskell.Syntax.Pat ( LPat )
-import {-# SOURCE #-} GHC.Hs.Pat () -- for Outputable
+-- import {-# SOURCE #-} GHC.Hs.Pat () -- for Outputable
 import GHC.Types.Basic ( SpliceExplicitFlag(..))
+import GHC.Tc.Types.Evidence ( HsWrapper )
+
 import Language.Haskell.Syntax.Expr
   ( HsExpr, LHsExpr
   , HsCmd
@@ -26,7 +28,8 @@ import Language.Haskell.Syntax.Expr
   , GRHSs
   , HsSplice
   )
-import GHC.Hs.Extension ( OutputableBndrId, GhcPass, Pass )
+import GHC.Hs.Extension ( OutputableBndrId, GhcPass, Pass (..), GhcRn, GhcTc )
+import Language.Haskell.Syntax.Extension (NoExtField)
 #if MIN_VERSION_base(4,16,0)
 import GHC.Types (WFT)
 import Language.Haskell.Syntax.Extension
@@ -40,7 +43,7 @@ instance (
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),		
+  WFT (SyntaxExprGhc p),
 #endif
     OutputableBndrId p) => Outputable (HsExpr (GhcPass p))
 instance (
@@ -121,6 +124,29 @@ pprFunBind :: (
      OutputableBndrId idR)
            => MatchGroup (GhcPass idR) (LHsExpr (GhcPass idR)) -> SDoc
 
-type family SyntaxExprGhc (p :: Pass) = (r :: Data.Kind.Type) | r -> p
+-- type family SyntaxExprGhc (p :: Pass) = (r :: Data.Kind.Type) | r -> p
+data SyntaxExprRn = SyntaxExprRn (HsExpr GhcRn)
+    -- Why is the payload not just a Name?
+    -- See Note [Monad fail : Rebindable syntax, overloaded strings] in "GHC.Rename.Expr"
+                  | NoSyntaxExprRn
+
+type family SyntaxExprGhc (p :: Pass) = (r :: Data.Kind.Type) | r -> p where
+  SyntaxExprGhc 'Parsed      = NoExtField
+  SyntaxExprGhc 'Renamed     = SyntaxExprRn
+  SyntaxExprGhc 'Typechecked = SyntaxExprTc
+
+data SyntaxExprTc = SyntaxExprTc { syn_expr      :: HsExpr GhcTc
+                                 , syn_arg_wraps :: [HsWrapper]
+                                 , syn_res_wrap  :: HsWrapper }
+                  | NoSyntaxExprTc  -- See Note [NoSyntaxExpr]
 
 
+#if MIN_VERSION_base(4,16,0)
+  -- type WFSyntaxExprGhc p = (
+  -- WFT (SyntaxExprGhc p),
+  -- WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  -- WFT (SyntaxExprGhc 'Typechecked),
+  -- WFT (SyntaxExprGhc 'Renamed),
+  -- WFT (SyntaxExprGhc 'Parsed)
+  -- )
+#endif

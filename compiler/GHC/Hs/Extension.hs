@@ -227,8 +227,6 @@ type OutputableBndrId pass =
   , WFT (XOverLit (GhcPass (NoGhcTcPass pass)))
   , WFT (Anno (IdGhcP pass))
   , WFT (Anno (IdGhcP (NoGhcTcPass pass)))
-  , WFT (SyntaxExprGhc pass)
-  , WFT (SyntaxExprGhc (NoGhcTcPass pass))
 #endif
   
   )

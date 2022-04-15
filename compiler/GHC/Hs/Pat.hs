@@ -12,6 +12,10 @@
 
 {-# OPTIONS_GHC -Wno-orphans #-} -- Outputable
 
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE DataKinds #-}
+#endif
+
 {-
 (c) The University of Glasgow 2006
 (c) The GRASP/AQUA Project, Glasgow University, 1992-1998
@@ -53,7 +57,7 @@ import GHC.Prelude
 import Language.Haskell.Syntax.Pat
 import Language.Haskell.Syntax.Expr ( HsExpr )
 
-import {-# SOURCE #-} GHC.Hs.Expr (pprLExpr, pprSplice)
+import {-# SOURCE #-} GHC.Hs.Expr (pprLExpr, pprSplice, SyntaxExprGhc)
 
 -- friends:
 import GHC.Hs.Binds
@@ -270,7 +274,10 @@ instance (
   WFT (Anno (HsExpr GhcRn)),
   WFT (Anno (HsExpr (GhcPass p))),
   WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WFT (SyntaxExprGhc 'Typechecked),
 #endif
   OutputableBndrId p) => Outputable (Pat (GhcPass p)) where
     ppr = pprPat
@@ -287,7 +294,10 @@ pprLPat :: (
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WFT (SyntaxExprGhc 'Typechecked),  
 #endif
   OutputableBndrId p) => LPat (GhcPass p) -> SDoc
 pprLPat (L _ e) = pprPat e
@@ -307,7 +317,10 @@ pprParendLPat :: (
   WFT (Anno (HsExpr GhcRn)),
   WFT (Anno (HsExpr (GhcPass p))),  
   WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WFT (SyntaxExprGhc 'Typechecked),  
 #endif
   OutputableBndrId p)
               => PprPrec -> LPat (GhcPass p) -> SDoc
@@ -320,7 +333,10 @@ pprParendPat :: forall p. (
   WFT (Anno (HsExpr GhcRn)),
   WFT (Anno (HsExpr (GhcPass p))),
   WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WFT (SyntaxExprGhc 'Typechecked),
 #endif
   OutputableBndrId p)
              => PprPrec
@@ -350,7 +366,10 @@ pprPat :: forall p. (
   WFT (Anno (HsExpr (GhcPass p))),
   WFT (Anno (HsExpr GhcRn)),
   WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WFT (SyntaxExprGhc 'Typechecked),
 #endif
   OutputableBndrId p) => Pat (GhcPass p) -> SDoc
 pprPat (VarPat _ lvar)          = pprPatBndr (unLoc lvar)
@@ -424,7 +443,10 @@ pprUserCon :: (
   WFT (Anno (HsExpr GhcRn)),
   WFT (Anno (HsExpr (GhcPass p))),
   WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WFT (SyntaxExprGhc 'Typechecked),  
 #endif
   OutputableBndr con, OutputableBndrId p,
                      Outputable (Anno (IdGhcP p)))
@@ -438,8 +460,11 @@ pprConArgs :: (
                      WFT (XOverLit (GhcPass (NoGhcTcPass p))),
                      WFT (Anno (HsExpr GhcRn)),
                      WFT (Anno (HsExpr (GhcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
+                     WFT (Anno (IdGhcP p)),
+                     WFT (Anno (IdGhcP (NoGhcTcPass p))),
+                     WFT (SyntaxExprGhc p),
+                     WFT (SyntaxExprGhc (NoGhcTcPass p)),
+                     WFT (SyntaxExprGhc 'Typechecked),                     
 #endif
                      OutputableBndrId p,
                      Outputable (Anno (IdGhcP p)))

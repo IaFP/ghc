@@ -33,8 +33,15 @@ import GHC.Prelude
 
 import Language.Haskell.Syntax.Binds
 
-import {-# SOURCE #-} GHC.Hs.Expr ( pprExpr, pprFunBind, pprPatBind, SyntaxExprGhc )
-import {-# SOURCE #-} GHC.Hs.Pat  ( pprLPat )
+import {-# SOURCE #-} GHC.Hs.Expr (
+#if MIN_VERSION_base(4,16,0)
+  -- WFSyntaxExprGhc,
+#endif
+  pprExpr,
+  pprFunBind,
+  pprPatBind
+  )
+import {-# SOURCE #-} GHC.Hs.Pat  ( pprLPat )  
 
 import Language.Haskell.Syntax.Extension
 import GHC.Hs.Extension
@@ -63,6 +70,9 @@ import GHC.Types (WFT, type(@))
 import {-# SOURCE #-} Language.Haskell.Syntax.Pat (Pat)
 import {-# SOURCE #-} Language.Haskell.Syntax.Expr (HsExpr, MatchGroup, GRHSs)
 #endif
+
+------------------------------------------------------------------------
+
 
 {-
 ************************************************************************
@@ -659,7 +669,8 @@ ppr_monobind :: forall idL idR.
                       WFT (Anno (IdGhcP (NoGhcTcPass idR))),                      
                       WFT (Anno (IdGhcP idL)),
                       WFT (Anno (IdGhcP (NoGhcTcPass idL))),
-                      WFT (SyntaxExprGhc idR),
+                      -- WFSyntaxExprGhc idR,
+                      -- WFSyntaxExprGhc idL,
                       WFT (SyntaxExprGhc idL),
 #endif
                   OutputableBndrId idL, OutputableBndrId idR)
@@ -717,6 +728,8 @@ instance (
           WFT (Anno (IdGhcP r)),
           WFT (Anno (IdGhcP (NoGhcTcPass r))),
           WFT (SyntaxExprGhc r),
+          WFT (SyntaxExprGhc (NoGhcTcPass r)),
+          WFT (SyntaxExprGhc 'Typechecked),
 #endif
          OutputableBndrId l, OutputableBndrId r)
           => Outputable (PatSynBind (GhcPass l) (GhcPass r)) where
