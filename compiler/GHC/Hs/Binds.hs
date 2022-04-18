@@ -36,7 +36,8 @@ import Language.Haskell.Syntax.Binds
 import {-# SOURCE #-} GHC.Hs.Expr (
   pprExpr,
   pprFunBind,
-  pprPatBind
+  pprPatBind,
+  SyntaxExprGhc
   )
 import {-# SOURCE #-} GHC.Hs.Pat  ( pprLPat )  
 
@@ -391,7 +392,6 @@ instance (
                       WFT (SyntaxExprGhc (NoGhcTcPass pr)),
                       WFT (SyntaxExprGhc pl),
                       WFT (SyntaxExprGhc (NoGhcTcPass pl)),
-                      WFT (SyntaxExprGhc 'Renamed),
 #endif
            OutputableBndrId pl, OutputableBndrId pr)
         => Outputable (HsLocalBindsLR (GhcPass pl) (GhcPass pr)) where
@@ -434,7 +434,6 @@ instance (
   WFT (Anno (IdGhcP (NoGhcTcPass pl))),
   WFT (SyntaxExprGhc pr),
   WFT (SyntaxExprGhc pl),
-  WFT (SyntaxExprGhc 'Renamed),
   WFT (SyntaxExprGhc (NoGhcTcPass pr)),
   WFT (SyntaxExprGhc (NoGhcTcPass pl)),
 #endif
@@ -724,7 +723,6 @@ instance (
           WFT (Anno (IdGhcP (NoGhcTcPass r))),
           WFT (SyntaxExprGhc r),
           WFT (SyntaxExprGhc (NoGhcTcPass r)),
-          WFT (SyntaxExprGhc 'Typechecked),
 #endif
          OutputableBndrId l, OutputableBndrId r)
           => Outputable (PatSynBind (GhcPass l) (GhcPass r)) where

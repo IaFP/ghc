@@ -277,7 +277,6 @@ instance (
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
   WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Typechecked),
 #endif
   OutputableBndrId p) => Outputable (Pat (GhcPass p)) where
     ppr = pprPat
@@ -297,7 +296,6 @@ pprLPat :: (
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
   WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Typechecked),  
 #endif
   OutputableBndrId p) => LPat (GhcPass p) -> SDoc
 pprLPat (L _ e) = pprPat e
@@ -320,7 +318,6 @@ pprParendLPat :: (
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
   WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Typechecked),  
 #endif
   OutputableBndrId p)
               => PprPrec -> LPat (GhcPass p) -> SDoc
@@ -336,7 +333,6 @@ pprParendPat :: forall p. (
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
   WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Typechecked),
 #endif
   OutputableBndrId p)
              => PprPrec
@@ -369,7 +365,6 @@ pprPat :: forall p. (
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
   WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Typechecked),
 #endif
   OutputableBndrId p) => Pat (GhcPass p) -> SDoc
 pprPat (VarPat _ lvar)          = pprPatBndr (unLoc lvar)
@@ -446,7 +441,6 @@ pprUserCon :: (
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
   WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Typechecked),  
 #endif
   OutputableBndr con, OutputableBndrId p,
                      Outputable (Anno (IdGhcP p)))
@@ -464,7 +458,6 @@ pprConArgs :: (
                      WFT (Anno (IdGhcP (NoGhcTcPass p))),
                      WFT (SyntaxExprGhc p),
                      WFT (SyntaxExprGhc (NoGhcTcPass p)),
-                     WFT (SyntaxExprGhc 'Typechecked),                     
 #endif
                      OutputableBndrId p,
                      Outputable (Anno (IdGhcP p)))

@@ -185,9 +185,7 @@ partitionBindsAndSigs
     @ GenLocated (Anno (HsExpr GhcPs)) (HsExpr GhcPs),
    GRHSs @ GhcPs,
    GRHSs GhcPs @ GenLocated (Anno (HsExpr GhcPs)) (HsExpr GhcPs),
-   HsSplice @ GhcPs,
-   WFT (SyntaxExprGhc 'Parsed),
-   WFT (SyntaxExprGhc 'Renamed)
+   HsSplice @ GhcPs
   ) => 
 #endif
     [LHsDecl GhcPs]
@@ -304,8 +302,6 @@ instance (
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
   WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Renamed),
-  WFT (SyntaxExprGhc 'Parsed),
 #endif
   OutputableBndrId p) => Outputable (HsDecl (GhcPass p)) where
     ppr (TyClD _ dcl)             = ppr dcl
@@ -343,9 +339,7 @@ instance (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc 'Renamed),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Parsed),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),  
 #endif
   OutputableBndrId p) => Outputable (HsGroup (GhcPass p)) where
     ppr (HsGroup { hs_valds  = val_decls,
@@ -489,9 +483,7 @@ instance (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Parsed),
-  WFT (SyntaxExprGhc 'Renamed),  
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),    
 #endif
   OutputableBndrId p) => Outputable (TyClDecl (GhcPass p)) where
 
@@ -543,9 +535,7 @@ instance (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Parsed),
-  WFT (SyntaxExprGhc 'Renamed),  
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),    
 #endif
   OutputableBndrId p)
        => Outputable (TyClGroup (GhcPass p)) where
@@ -736,8 +726,6 @@ instance (
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
   WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Renamed),
-  WFT (SyntaxExprGhc 'Parsed),
 #endif
   OutputableBndrId p)
        => Outputable (HsDerivingClause (GhcPass p)) where
@@ -814,9 +802,7 @@ pp_data_defn :: (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Parsed),
-  WFT (SyntaxExprGhc 'Renamed),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),  
 #endif
   OutputableBndrId p)
                   => (Maybe (LHsContext (GhcPass p)) -> SDoc)   -- Printing the header
@@ -850,9 +836,7 @@ instance (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Parsed),
-  WFT (SyntaxExprGhc 'Renamed),  
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),    
 #endif
   OutputableBndrId p)
        => Outputable (HsDataDefn (GhcPass p)) where
@@ -1066,9 +1050,7 @@ instance (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Parsed),
-  WFT (SyntaxExprGhc 'Renamed),  
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),    
 #endif
   OutputableBndrId p)
        => Outputable (DataFamInstDecl (GhcPass p)) where
@@ -1082,9 +1064,7 @@ pprDataFamInstDecl :: (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Parsed),
-  WFT (SyntaxExprGhc 'Renamed),    
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),      
 #endif
   OutputableBndrId p)
                    => TopLevelFlag -> DataFamInstDecl (GhcPass p) -> SDoc
@@ -1145,9 +1125,7 @@ instance (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Parsed),
-  WFT (SyntaxExprGhc 'Renamed),    
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),      
 #endif
   OutputableBndrId p)
        => Outputable (ClsInstDecl (GhcPass p)) where
@@ -1173,8 +1151,6 @@ ppDerivStrategy :: (
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (XOverLit GhcPs),
-  WFT (SyntaxExprGhc 'Renamed),
-  WFT (SyntaxExprGhc 'Parsed),
 #endif
   OutputableBndrId p)
                 => Maybe (LDerivStrategy (GhcPass p)) -> SDoc
@@ -1216,9 +1192,7 @@ instance (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Parsed),
-  WFT (SyntaxExprGhc 'Renamed),    
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),      
 #endif
   OutputableBndrId p) => Outputable (InstDecl (GhcPass p)) where
     ppr (ClsInstD     { cid_inst  = decl }) = ppr decl
@@ -1259,8 +1233,6 @@ instance (
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
   WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Renamed),
-  WFT (SyntaxExprGhc 'Parsed),
 #endif
   OutputableBndrId p)
        => Outputable (DerivDecl (GhcPass p)) where
@@ -1304,8 +1276,6 @@ instance (
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (XOverLit GhcPs), -- WHY?
-  WFT (SyntaxExprGhc 'Renamed),
-  WFT (SyntaxExprGhc 'Parsed),
 #endif
            OutputableBndrId p)
         => Outputable (DerivStrategy (GhcPass p)) where
@@ -1319,8 +1289,7 @@ instance (
 
 instance
 #if MIN_VERSION_base(4,16,0)
-  (WFT (XOverLit GhcPs),
-  WFT (SyntaxExprGhc 'Parsed)) =>  -- WHY?
+  WFT (XOverLit GhcPs) =>
 #endif
   Outputable XViaStrategyPs where
     ppr (XViaStrategyPs _ t) = ppr t

@@ -101,11 +101,7 @@ type instance XOverLit GhcPs = NoExtField
 type instance XOverLit GhcRn = OverLitRn
 type instance XOverLit GhcTc = OverLitTc
 
-pprXOverLit ::
-#if MIN_VERSION_base(4,16,0)
-  WFT (SyntaxExprGhc 'Typechecked) =>
-#endif
-  GhcPass p -> XOverLit (GhcPass p) -> SDoc
+pprXOverLit :: GhcPass p -> XOverLit (GhcPass p) -> SDoc
 pprXOverLit GhcPs noExt = ppr noExt
 pprXOverLit GhcRn OverLitRn{ ol_from_fun = from_fun } = ppr from_fun
 pprXOverLit GhcTc OverLitTc{ ol_witness = witness } = pprExpr witness
@@ -171,7 +167,6 @@ pp_st_suffix (SourceText st) suffix _   = text st <> suffix
 instance (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass p)),
-  WFT (SyntaxExprGhc 'Typechecked),
 #endif
   OutputableBndrId p)
        => Outputable (HsOverLit (GhcPass p)) where

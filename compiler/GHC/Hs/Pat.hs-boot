@@ -37,7 +37,6 @@ instance (
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
   WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Typechecked),  
 #endif
   OutputableBndrId p) => Outputable (Pat (GhcPass p))
 
@@ -51,7 +50,6 @@ pprLPat :: (
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),	 
   WFT (SyntaxExprGhc (NoGhcTcPass p)),
-  WFT (SyntaxExprGhc 'Typechecked),
 #endif
   OutputableBndrId p) => LPat (GhcPass p) -> SDoc
 

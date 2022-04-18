@@ -219,20 +219,25 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
        ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
        ; isBootFile <- tcIsHsBootOrSig
        ; (gbl_env, th_bndrs) <-
-           if enblPCtrs -- do not call mk_atat_fam if we are in boot files as we cannot generate typefamilies for boot files 
+           if enblPCtrs 
            then do { traceTc "---- start wf enrichment ---- { " empty
 
-                   ; let locs::[SrcSpan] = map (locA . getLoc) tyclds
+                   ; let locs :: [SrcSpan] = map (locA . getLoc) tyclds
                              -- ; let tAndR = thisAndRest tyclss
                          locsAndTcs = zip locs tyclss
-                   ; fam_insts <-  if (length tyclds == 1)
-                                                -- for now we can only reason about non-circular datatypes
-                                   then concatMapM (\(l, tc) -> mk_atat_fam l tc) locsAndTcs
-                                                  -- We generate T @ a ~ () axioms here
-                                                  -- for all the mutually recursive datatypes
-                                                  -- thats the best we can do atm
-                                   else concatMapM (\(l, tc) -> mk_atat_fam_except_units l tc tyclss)
-                                                  locsAndTcs
+                     -- remark: below is a bit ugly
+                   ; fam_insts <-
+                       if isBootFile then
+                         return []
+                       else
+                       if (length tyclds == 1)
+                          -- for now we can only reason about non-circular datatypes
+                       then concatMapM (\(l, tc) -> mk_atat_fam l tc) locsAndTcs
+                            -- We generate T @ a ~ () axioms here
+                            -- for all the mutually recursive datatypes
+                            -- thats the best we can do atm
+                       else concatMapM (\(l, tc) -> mk_atat_fam_except_units l tc tyclss)
+                            locsAndTcs
                    ; let
                          (open, rest1)   = partition (isOpenTypeFamilyTyCon . snd) locsAndTcs
                          (closed, rest2) = partition (isClosedTypeFamilyTyCon . snd) rest1
@@ -245,6 +250,7 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                              ])
 
                    ; traceTc "---- end wf enrichment ---- }" empty
+
                    ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $
                                                        (fmap snd locsAndTcs) ++ wf_mirrors)
 
