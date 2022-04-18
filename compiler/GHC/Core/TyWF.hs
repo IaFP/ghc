@@ -43,7 +43,6 @@ import GHC.Tc.Utils.Monad
 import GHC.Utils.Panic (pprPanic)
 import GHC.Utils.Outputable
 import GHC.Utils.Misc(lengthAtLeast)
-
 import Control.Monad.Trans.Class
 
 -------------------------------------------------------------------------
@@ -87,9 +86,7 @@ elabWfTypeTcM isTyConPhase ty
   | isForAllTy ty = do
       { let (covarbndrs, ty') = splitForAllTyCoVarBinders ty
       ; elabd <- genAtAtConstraintsTcM isTyConPhase ty'
-      ; c_extra' <- if isTyConPhase
-                    then return (newPreds elabd)
-                    else redConstraints (newPreds elabd)
+      ; c_extra' <- if isTyConPhase then return (newPreds elabd) else redConstraints (newPreds elabd)
       ; let eTy = mkForAllTys covarbndrs $ attachConstraints c_extra' (elabTy elabd)
       ; traceTc "wfelabtype(foralled)=" (vcat [ text "tyconphase" <+> ppr isTyConPhase
                                               , text "before:" <+> ppr ty
@@ -98,9 +95,7 @@ elabWfTypeTcM isTyConPhase ty
       }
   | otherwise = do
       { elabd <- genAtAtConstraintsTcM isTyConPhase ty
-      ; c_extra' <- if isTyConPhase
-                    then return (newPreds elabd)
-                    else redConstraints (newPreds elabd)
+      ; c_extra' <- if isTyConPhase then return (newPreds elabd) else redConstraints (newPreds elabd)
       ; let eTy = attachConstraints c_extra' (elabTy elabd)
       ; traceTc "wfelabtype(vanilla)=" (vcat [ text "tyconphase" <+> ppr isTyConPhase
                                              , text "before:" <+> ppr ty
@@ -234,14 +229,9 @@ isTyConInternal :: TyCon -> Bool
 isTyConInternal tycon =
   tycon `hasKey` tYPETyConKey || tycon `hasKey` runtimeRepTyConKey
   || tycon `hasKey` someTypeRepTyConKey
-  -- || tycon `hasKey` repTyConKey || tycon `hasKey` rep1TyConKey
-  -- || tycon `hasKey` typeRepTyConKey
-  -- || tycon `hasKey` typeableClassKey
   || tycon `hasKey` eqTyConKey || tycon `hasKey` heqTyConKey
   || tycon `hasKey` proxyPrimTyConKey
-  -- || tycon `hasKey` ioTyConKey -- || (tyConName tycon == ioTyConName)
   || tycon `hasKey` listTyConKey -- TODO ANI: this can go away 
-  || tycon `hasKey` maybeTyConKey -- TODO ANI: this can go away
   || isBoxedTupleTyCon tycon || isUnboxedTupleTyCon tycon
   || isUnboxedSumTyCon tycon
   || tycon `hasKey` stablePtrPrimTyConKey || tycon `hasKey` stablePtrTyConKey
@@ -251,7 +241,7 @@ isTyConInternal tycon =
   || tycon `hasKey` qTyConKey || tyConName tycon == qTyConName
   || tycon == funTyCon
   || isWFMirrorTyCon tycon -- @ is also a mirror
-
+  
 -- ANI ToDo, this function is no longer meant to do what it's supposed to do. Need to rethink this one.
 saneTyConForElab :: TyCon -> Bool
 saneTyConForElab tycon =
@@ -283,9 +273,8 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
     else do { elabds <- mapM (genAtAtConstraintsExceptTcM isTyConPhase (tycon:eTycons) ts) args
             ; return $ foldl mergeAtAtConstraints [] $ fmap newPreds elabds
             }
-  | isTyConAssoc tycon
-  || isOpenTypeFamilyTyCon tycon
-  || isClosedTypeFamilyTyCon tycon
+  | isTyConAssoc tycon || isOpenTypeFamilyTyCon tycon || isClosedTypeFamilyTyCon tycon
+  , hasWfMirrorTyCon tycon
   = do { traceTc "wfelab isTyConAssoc/open/closed typefam" (ppr tycon <+> ppr args)
        ; let (args_tc, extra_args_tc) = splitAt (tyConArity tycon) args
        ; let wftycon = wfMirrorTyCon tycon -- this better exist
@@ -328,10 +317,9 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
 
          ; return $ mergeAtAtConstraints cs_args cs
          }
-
-  | isTypeFamilyTyCon tycon
-    || isDataFamilyTyCon tycon
-  = do { traceTc "wfelab datafam/typefam tycon" (ppr tycon)
+  | isTypeFamilyTyCon tycon && (not $ isDataFamilyTyCon tycon)
+  -- it is possible that we may not have a wf'tc for a family tycon tc
+  = do { traceTc "wfelab other typefam tycon" (ppr tycon)
        ; co_ty_mb <- matchFamTcM tycon args
        ; args_wfts <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args       
        ; case co_ty_mb of
@@ -341,9 +329,9 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
              ; return $ foldl mergeAtAtConstraints [] ((fmap newPreds args_wfts) ++ [newPreds elabd])
              }
        }
-  -- Vanilla type constructor/newtypes, everything is total
+  -- Vanilla data types/newtypes/data family 
   | otherwise
-  = do { traceTc "wfelab fallthrough:" (ppr tycon <+> ppr args)
+  = do { traceTc "wfelab fallthrough" (ppr tycon <+> ppr args)
        ; arg_css <- (fmap newPreds) <$> mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; ats <- recGenAtsTcM tycon args ts {-etycons-}
        ; ats' <- if isTyConPhase then return ats else redConstraints ats
@@ -482,4 +470,8 @@ redWfTypeTcM ty = do
 -- Lifted version of genAtAtConstraintsExceptTcM.
 -- Generates all the f @ a constraints in a DeriveM 
 genWfConstraints :: MonadTrans t => Bool -> Type -> [Type] ->  t TcM ThetaType
-genWfConstraints isTyConPhase ty stys = lift $ genWfConstraintsTcM isTyConPhase ty stys
+genWfConstraints isTyConPhase ty stys = lift $ do eTy <- genWfConstraintsTcM isTyConPhase ty stys
+                                                  traceTc "wfelab genCts" (vcat [ text "Type:" <+> ppr ty
+                                                                                , text "wfcts:" <+> ppr eTy
+                                                                                ])
+                                                  return eTy

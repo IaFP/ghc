@@ -935,7 +935,14 @@ mkOneRecordSelector all_cons idDetails fl has_sel
                -- only if they are not GADTs and newtypes AKA vanilla H98 
                        RecSelData tycon -> isVanillaAlgTyCon tycon && not (isGadtSyntaxTyCon tycon)
                        _                -> False 
-       ; sel_ty <- if partyCtrs && isOkTyCon then elabWfTypeTcM True sel_ty' else return sel_ty' 
+       ; let isNTTyCon = case idDetails of
+                       RecSelData tycon -> isNewTyCon tycon
+                       _                -> False 
+       ; sel_ty <- if partyCtrs
+                   then if isNTTyCon
+                        then elabWfTypeTcM False sel_ty' -- reduce if its a newtype
+                        else if isOkTyCon then elabWfTypeTcM True sel_ty' else return sel_ty'
+                   else return sel_ty' 
              -- Make the binding: sel (C2 { fld = x }) = x
              --                   sel (C7 { fld = x }) = x
              --    where cons_w_field = [C2,C7]

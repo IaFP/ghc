@@ -333,7 +333,7 @@ con_arg_constraints dit rep_tc inst_tys tvs rep_tc_args t_or_ks get_arg_constrai
                ]
        -- ANI: TODO I think we also need to elaborate inst_tys to get more contraints.               
        ; more_wf_constraints <- if partyCtrs
-                                then do wfs <- mapM (\f -> genWfConstraints True f []) inst_tys
+                                then do wfs <- mapM (\f -> genWfConstraints False f []) inst_tys
                                         return $ foldl mergeAtAtConstraints [] wfs
                                 else return []
              -- get only those preds that are relavant.
@@ -441,7 +441,7 @@ inferConstraintsCoerceBased cls_tys rep_ty = do
               -- we are going to get all the methods for the final
               -- dictionary
         deriv_origin = mkDerivOrigin sa_wildcard
-  ; wfct <- if partyCtrs then genWfConstraints True rep_ty [] else return []
+  ; wfct <- if partyCtrs then genWfConstraints False rep_ty [] else return []
   ; let wfpreds = fmap (mkPredOrigin deriv_origin TypeLevel) wfct
       -- Next we collect constraints for the class methods
       -- If there are no methods, we don't need any constraints

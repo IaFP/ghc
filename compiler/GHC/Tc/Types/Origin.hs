@@ -11,6 +11,7 @@ module GHC.Tc.Types.Origin (
   UserTypeCtxt(..), pprUserTypeCtxt, isSigMaybe,
   ReportRedundantConstraints(..), reportRedundantConstraints,
   redundantConstraintsSpan,
+  isCtxtGoodForWfTyRed,
 
   -- SkolemInfo
   SkolemInfo(..), pprSigSkolInfo, pprSkolInfo,
@@ -120,6 +121,16 @@ data UserTypeCtxt
   | DataKindCtxt Name   -- The kind of a data/newtype (instance)
   | TySynKindCtxt Name  -- The kind of the RHS of a type synonym
   | TyFamResKindCtxt Name   -- The result kind of a type family
+
+-- | Should the type be reduced after elaboration?
+isCtxtGoodForWfTyRed :: UserTypeCtxt -> Bool
+isCtxtGoodForWfTyRed DerivClauseCtxt   = True
+isCtxtGoodForWfTyRed (ForSigCtxt _)    = True
+isCtxtGoodForWfTyRed SpecInstCtxt      = True
+isCtxtGoodForWfTyRed (InstDeclCtxt _)  = True
+isCtxtGoodForWfTyRed (RuleSigCtxt _)   = True
+isCtxtGoodForWfTyRed DefaultDeclCtxt   = True
+isCtxtGoodForWfTyRed _                 = False
 
 -- | Report Redundant Constraints.
 data ReportRedundantConstraints

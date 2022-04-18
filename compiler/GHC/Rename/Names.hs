@@ -945,8 +945,8 @@ getLocalNonValBinders fixity_env
              ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
              ; if partyCtrs
                then  case unLoc tc_decl of
-                       FamDecl {}
-                         -> if isWiredInName main_name
+                       fdecl@(FamDecl {})
+                         -> if isWiredInName main_name || isDataFamilyDecl fdecl
                             then return [(availTC main_name names flds', fld_env)]
                             else do { m <- getModule
                                     ; wf_name <- newWFGlobalBinder m main_name
@@ -955,7 +955,7 @@ getLocalNonValBinders fixity_env
                                     }
                        ClassDecl {}                 -- pick out each of the sub_names
                                                     -- that look like a tycon and
-                                                    -- generate a WF_* name for them
+                                                    -- generate a wf'* name for them
                          -> do { m <- getModule
                                ; let ats_names = filter isTyConName sub_names 
                                ; wf_names <- mapM (newWFGlobalBinder m) ats_names

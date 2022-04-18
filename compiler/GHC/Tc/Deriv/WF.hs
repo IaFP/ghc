@@ -100,16 +100,18 @@ mk_atat_fam' :: SrcSpan
 mk_atat_fam' loc acc tc uTys (tyd, ty:tyl) (tyvarsd, (tyvar, shouldInc):tyvarsl) ctxt
   | shouldInc
   = do { mpred <- getMatchingPredicates ty (tyl ++ uTys) ctxt
-       ; inst_name <- newFamInstTyConName (L (noAnnSrcSpan loc) wfTyConName) tyd'
+       ; inst_name <- newFamInstTyConName (L (noAnnSrcSpan loc) wfTyConName) ((mkTyConTy tc):tyd')
        ; let argK = tcTypeKind ty
              f = mkTyConApp tc tyd
              fk = tcTypeKind f
              resK = piResultTy fk argK
-             axiom = mkSingleCoAxiom Nominal inst_name tyvarsd' [] [] wfTyCon
-                               [argK, resK, f, ty] mpred
-       ; traceTc "building axiom " (vcat [ parens (ppr f <> dcolon <> ppr fk)
+             axiom = mkSingleCoAxiom Nominal inst_name tyvarsd' [] [] wfTyCon [argK, resK, f, ty] mpred
+       ; traceTc "building axiom " (vcat [ ppr inst_name
+                                         , parens (ppr f <> dcolon <> ppr fk)
                                            <+> ppr wfTyCon
                                            <+> parens (ppr ty <> dcolon <> ppr argK)
+                                           <+> text "~"
+                                           <+> ppr mpred
                                          , text "isForallTy: " <> ppr (isForAllTy argK)])
 
        ; fam <- newFamInst SynFamilyInst axiom
@@ -227,22 +229,25 @@ genWFFamInstConstraint rhs
 -- $wf'D a b ~ wf(T a b)
 -- or $wf'D a b ~ (T @ a, T a @ b)
 -- and even simplify it to $wf'D a b ~ () if T is total
-genWFTyFamInst :: FamInst -> TcM FamInst
+genWFTyFamInst :: FamInst -> TcM [FamInst] -- can be [] if there's a Sing
 genWFTyFamInst fam_inst
-  = do { let (tfTc, ts) = famInstSplitLHS fam_inst
+  | SynFamilyInst <- famInstFlavor fam_inst
+  = do { let (fam_tc, ts) = famInstSplitLHS fam_inst
              rhs_ty = famInstRHS fam_inst
-       ; let wfTc = wfMirrorTyCon tfTc
+       ; let wf_tc = wfMirrorTyCon fam_tc
              loc = noAnnSrcSpan . getSrcSpan $ fam_inst
-       ; inst_name <- newFamInstTyConName (L loc (getName wfTc)) ts
+       ; inst_name <- newFamInstTyConName (L loc (getName wf_tc)) ts
        ; wf_rhs_ty <- genWFFamInstConstraint rhs_ty
        ; let tvs     = fi_tvs fam_inst
              lhs_tys = ts
-             axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wfTc lhs_tys wf_rhs_ty
-       ; traceTc "wfelab buildingAxiom: " (vcat [ parens (ppr inst_name)
-                                                       , ppr wfTc <+> ppr lhs_tys <+> text "~" <+> ppr wf_rhs_ty
-                                                       ])
-       ; newFamInst SynFamilyInst axiom
+             axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wf_tc lhs_tys wf_rhs_ty
+       ; traceTc "wfelab axiom synfam" (vcat [ parens (ppr inst_name)
+                                              , ppr wf_tc <+> ppr lhs_tys <+> text "~" <+> ppr wf_rhs_ty
+                                              ])
+       ; (:[]) <$> newFamInst SynFamilyInst axiom
        }
-
+  | otherwise -- data families instance equations are eta reducible as they are representational 
+  = return []
+  
 genWFTyFamInsts :: [FamInst] -> TcM [FamInst]
-genWFTyFamInsts = mapM genWFTyFamInst
+genWFTyFamInsts = concatMapM genWFTyFamInst

@@ -14,8 +14,8 @@ data Ord a => T a = L | B a (T a) (T a)
            , Generic1
            , Foldable
            , Traversable
-           -- , Generic
+           , Generic
            )
 
--- TODO this should go away
-deriving instance Generic (T a) 
+
+

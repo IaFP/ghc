@@ -398,13 +398,9 @@ tcInstDecls1 inst_decls
        ; let (local_infos_s, fam_insts_s, datafam_deriv_infos) = unzip3 stuff
              fam_insts   = concat fam_insts_s
              local_infos = concat local_infos_s
-       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; wfFamInsts <- if partyCtrs
-                       then genWFTyFamInsts $ filter (hasWfMirrorTyCon . famInstTyCon) fam_insts
-                       else return []
        ; (gbl_env, th_bndrs) <-
            addClsInsts local_infos $
-           addFamInsts (fam_insts ++ wfFamInsts)
+           addFamInsts fam_insts
        ; return ( gbl_env
                 , local_infos
                 , concat datafam_deriv_infos
@@ -471,12 +467,12 @@ tcLocalInstDecl :: LInstDecl GhcRn
         --
         -- We check for respectable instance type, and context
 tcLocalInstDecl (L loc (TyFamInstD { tfid_inst = decl }))
-  = do { fam_inst <- tcTyFamInstDecl NotAssociated (L loc decl)
-       ; return ([], [fam_inst], []) }
+  = do { fam_insts <- tcTyFamInstDecl NotAssociated (L loc decl)
+       ; return ([], fam_insts, []) }
 
 tcLocalInstDecl (L loc (DataFamInstD { dfid_inst = decl }))
-  = do { (fam_inst, m_deriv_info) <- tcDataFamInstDecl NotAssociated emptyVarEnv (L loc decl)
-       ; return ([], [fam_inst], maybeToList m_deriv_info) }
+  = do { (fam_insts, m_deriv_info) <- tcDataFamInstDecl NotAssociated emptyVarEnv (L loc decl)
+       ; return ([], fam_insts, maybeToList m_deriv_info) }
 
 tcLocalInstDecl (L loc (ClsInstD { cid_inst = decl }))
   = do { (insts, fam_insts, deriv_infos) <- tcClsInstDecl (L loc decl)
@@ -532,7 +528,7 @@ tcClsInstDecl (L loc (ClsInstDecl { cid_poly_ty = hs_ty, cid_binds = binds
                       -- anyway.
                       -- See https://github.com/ghc-proposals/ghc-proposals/pull/320 for
                       -- additional discussion.
-                    ; return (df_stuff, tf_insts1 ++ concat tf_insts2) }
+                    ; return (df_stuff, concat $ tf_insts1 ++ tf_insts2) }
 
 
         -- Finally, construct the Core representation of the instance.
@@ -553,7 +549,7 @@ tcClsInstDecl (L loc (ClsInstDecl { cid_poly_ty = hs_ty, cid_binds = binds
 
               (datafam_insts, m_deriv_infos) = unzip datafam_stuff
               deriv_infos                    = catMaybes m_deriv_infos
-              all_insts                      = tyfam_insts ++ datafam_insts
+              all_insts                      = tyfam_insts ++ concat datafam_insts
 
          -- In hs-boot files there should be no bindings
         ; let no_binds = isEmptyLHsBinds binds && null uprags
@@ -582,7 +578,7 @@ GADTs).
 -}
 
 tcTyFamInstDecl :: AssocInstInfo
-                -> LTyFamInstDecl GhcRn -> TcM FamInst
+                -> LTyFamInstDecl GhcRn -> TcM [FamInst]
   -- "type instance"
   -- See Note [Associated type instances]
 tcTyFamInstDecl mb_clsinfo (L loc decl@(TyFamInstDecl { tfid_eqn = eqn }))
@@ -609,7 +605,13 @@ tcTyFamInstDecl mb_clsinfo (L loc decl@(TyFamInstDecl { tfid_eqn = eqn }))
          -- (3) construct coercion axiom
        ; rep_tc_name <- newFamInstAxiomName fam_lname [coAxBranchLHS co_ax_branch]
        ; let axiom = mkUnbranchedCoAxiom rep_tc_name fam_tc co_ax_branch
-       ; newFamInst SynFamilyInst axiom }
+       ; fam_inst <- newFamInst SynFamilyInst axiom
+       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+       ; wf_fam_insts <- if (partyCtrs && not (isWFMirrorTyCon fam_tc))
+         -- we can have @ fam instances in src we do not want to build a wf'@ instance for it. 
+                         then genWFTyFamInst fam_inst else return []
+       ; return $ fam_inst:wf_fam_insts
+       }
 
 
 ---------------------
@@ -668,7 +670,7 @@ tcDataFamInstDecl ::
                    -- original Names. If this is a non-associated instance,
                    -- this will be empty.
                    -- See Note [Associated data family instances and di_scoped_tvs].
-  -> LDataFamInstDecl GhcRn -> TcM (FamInst, Maybe DerivInfo)
+  -> LDataFamInstDecl GhcRn -> TcM ([FamInst], Maybe DerivInfo)
   -- "newtype instance" and "data instance"
 tcDataFamInstDecl mb_clsinfo tv_skol_env
     (L loc decl@(DataFamInstDecl { dfid_eqn =
@@ -778,7 +780,6 @@ tcDataFamInstDecl mb_clsinfo tv_skol_env
                  -- dependency.  (2) They are always valid loop breakers as
                  -- they involve a coercion.
               ; return (rep_tc, axiom) }
-
        -- Remember to check validity; no recursion to worry about here
        -- Check that left-hand sides are ok (mono-types, no type families,
        -- consistent instantiations, etc)
@@ -797,7 +798,9 @@ tcDataFamInstDecl mb_clsinfo tv_skol_env
                                   , di_ctxt    = tcMkDataFamInstCtxt decl }
 
        ; fam_inst <- newFamInst (DataFamilyInst rep_tc) axiom
-       ; return (fam_inst, m_deriv_info) }
+       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+       ; wf_fam_inst <- if partyCtrs then mk_atat_fam (locA loc) rep_tc else return []
+       ; return (fam_inst:wf_fam_inst, m_deriv_info) }
   where
     eta_reduce :: TyCon -> [Type] -> ([Type], [TyConBinder])
     -- See Note [Eta reduction for data families] in GHC.Core.Coercion.Axiom
@@ -2343,11 +2346,11 @@ tcSpecInst :: Id -> Sig GhcRn -> TcM TcSpecPrag
 tcSpecInst dfun_id prag@(SpecInstSig _ _ hs_ty)
   = addErrCtxt (spec_ctxt prag) $
     do  { spec_dfun_ty <- tcHsClsInstType SpecInstCtxt hs_ty
-        ; co_fn <- tcSpecWrapper SpecInstCtxt (idType dfun_id) spec_dfun_ty
+        ; co_fn <- tcSpecWrapper SpecInstCtxt dfun_ty spec_dfun_ty
         ; return (SpecPrag dfun_id co_fn defaultInlinePragma) }
   where
     spec_ctxt prag = hang (text "In the pragma:") 2 (ppr prag)
-
+    dfun_ty = idType dfun_id
 tcSpecInst _  _ = panic "tcSpecInst"
 
 {-

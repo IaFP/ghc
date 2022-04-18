@@ -558,7 +558,7 @@ tcATDefault loc inst_subst defined_ats (ATI fam_tc defs)
                                               , pprCoAxiom axiom ])
        ; fam_inst <- newFamInst SynFamilyInst axiom
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; wf_fam_inst <- if partyCtrs then mapM genWFTyFamInst [fam_inst] else return []
+       ; wf_fam_inst <- if partyCtrs then genWFTyFamInst fam_inst else return []
        ; return $ fam_inst:wf_fam_inst }
   | isWFMirrorTyCon fam_tc -- we would have generated wf'Tc things in Tc flow
   = return []

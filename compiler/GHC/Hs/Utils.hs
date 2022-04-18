@@ -1496,7 +1496,7 @@ hsLTyClDeclBinders :: IsPass p
 
 hsLTyClDeclBinders (L loc (FamDecl { tcdFam = FamilyDecl
                                             { fdLName = (L _ name) } }))
-  = ([L loc name], []) -- ANI: Cannot add a new name here.
+  = ([L loc name], [])
 hsLTyClDeclBinders (L loc (SynDecl
                                { tcdLName = (L _ name) }))
   = ([L loc name], [])

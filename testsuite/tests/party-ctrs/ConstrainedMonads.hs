@@ -1,6 +1,6 @@
 
 {-# LANGUAGE DatatypeContexts #-}
-{-# LANGUAGE PartialTypeConstructors #-}
+{-# LANGUAGE PartialTypeConstructors, UndecidableInstances #-}
 {-# LANGUAGE RankNTypes, GADTs #-}
 {-# LANGUAGE TypeFamilies, TypeOperators, FlexibleInstances, FlexibleContexts, ExistentialQuantification #-}
 {-# LANGUAGE DeriveFunctor, StandaloneDeriving #-}

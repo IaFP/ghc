@@ -254,12 +254,7 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    ; traceTc "---- end wf enrichment ---- }" empty
 
                    ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $
-                                                       (fmap snd locsAndTcs) ++ wf_mirrors)
-
-                   -- ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $
-                   --                                     (fmap snd (open ++ rest2)) ++
-                   --                                     wf_mirrors_closed ++ wf_mirrors_open ++ updated_closed_tfs)
-                   }
+                                                       (fmap snd locsAndTcs) ++ wf_mirrors)                   }
            else do { addTyConsToGblEnv tyclss }
 
            -- Step 4: check instance declarations
@@ -1036,7 +1031,7 @@ generaliseTcTyCon (mflag, tc, scoped_prs, tc_res_kind)
                                  , required_tcbs ]
 
        -- Step 5.5: (optional)
-       -- check if we have a (WF_tc) pair for this, and add that to this. We should have
+       -- check if we have a (wf'tc) pair for this, and add that to this. We should have
        -- already added it to the context.
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
        ; mb_wf_tc <- if partyCtrs && (genWFMirror mflag)
@@ -1504,7 +1499,8 @@ getInitialKind (InitialKindCheck msig) (FamDecl { tcdFam =
                    case msig of
                      CUSK -> return (TheKind liftedTypeKind)
                      SAKS _ -> return AnyKind
-       ; return [tc, wfMirrorTyCon tc] }
+       ; let wf_tc_mb = maybeToList $ wfMirrorTyCon_maybe tc
+       ; return $ tc:wf_tc_mb }
 
 getInitialKind strategy
     (SynDecl { tcdLName = L _ name
@@ -2492,11 +2488,14 @@ wiredInDerivInfo _ _ = []
 
   -- "type family" declarations
 tcTyClDecl1 :: Maybe Class -> RolesInfo -> TyClDecl GhcRn -> TcM (TyCon, [DerivInfo])
-tcTyClDecl1 parent _roles_info (FamDecl { tcdFam = fd })
+tcTyClDecl1 parent _roles_info decl@(FamDecl { tcdFam = fd })
   = fmap noDerivInfos $
     do let fd_name = (unLoc . fdLName) fd
-       wf_name <- mk_wf_name fd_name
-       tcFamDecl1 parent (Just wf_name) fd
+       partyCtrs <- xoptM LangExt.PartialTypeConstructors
+       wf_name_mb <- if partyCtrs && not (isDataFamilyDecl decl)
+                     then Just <$> mk_wf_name fd_name
+                     else return Nothing
+       tcFamDecl1 parent wf_name_mb fd
        
   -- "type" synonym declaration
 tcTyClDecl1 _parent roles_info
@@ -2642,14 +2641,17 @@ tcClassATs class_name cls ats at_defs
                                           (at_def_tycon at_def) [at_def])
                         emptyNameEnv at_defs
     tc_at :: LFamilyDecl GhcRn -> TcM [ClassATItem]
-    tc_at at = do { wf_at_name <- mk_wf_name $ at_fam_name at
-                  ; fam_tc <- addLocMA (tcFamDecl1 (Just cls) (Just wf_at_name)) at -- each at gives us a WF_ats for free
+    tc_at at = do { partyCtrs <- xoptM LangExt.PartialTypeConstructors
+                  ; wf_at_name_mb <- if partyCtrs then Just <$> mk_wf_name (at_fam_name at) else return Nothing
+                  ; fam_tc <- addLocMA (tcFamDecl1 (Just cls) wf_at_name_mb) at -- each at gives us a WF_ats for free
                   ; let at_defs = lookupNameEnv at_defs_map (at_fam_name at)
                                   `orElse` []
                   ; atd <- tcDefaultAssocDecl fam_tc at_defs
                   -- ANI TODO: if there's a default definition, we might as well generate a WF for it?
+                  
                   ; traceTc "wfelab tc_at" (ppr fam_tc <+> ppr (wfMirrorTyCon_maybe fam_tc))
-                  ; let wf_mirror_at = if isWFMirrorTyCon fam_tc then [] else [ATI (wfMirrorTyCon fam_tc) Nothing]
+                  ; let wf_mirror_at = if (isWFMirrorTyCon fam_tc || not partyCtrs)
+                                       then [] else [ATI (wfMirrorTyCon fam_tc) Nothing]
                   ; return $ (ATI fam_tc atd):wf_mirror_at }
 
 -------------------------
@@ -2840,11 +2842,16 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
   ; checkDataKindSig DataFamilySort res_kind
   ; tc_rep_name <- newTyConRepName tc_name
   ; let inj   = Injective $ replicate (length binders) True
+  ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+  ; let wf_tycon_mb = if partyCtrs && isJust wfname
+                      then Just $ mkWFFamilyTyCon (fromJust wfname) binders constraintKind
+                                        Nothing OpenSynFamilyTyCon parent
+                      else Nothing
         tycon = mkFamilyTyCon tc_name binders
                               res_kind
                               (resultVariableName sig)
                               (DataFamilyTyCon tc_rep_name)
-                              parent inj Nothing
+                              parent inj wf_tycon_mb
   ; return tycon }
 
   | OpenTypeFamily <- fam_info
@@ -2854,20 +2861,14 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
           ; checkFamFlag tc_name
           ; inj' <- tcInjectivity binders inj
           ; checkResultSigFlag tc_name sig  -- check after injectivity for better errors
-          ; if partyCtrs && isJust wfname -- do this only for associated types for now.
-            then
-              do {
-                 ; let wf_tycon = mkWFFamilyTyCon (fromJust wfname) binders constraintKind
-                                  (resultVariableName sig) OpenSynFamilyTyCon parent
-                       tycon = mkFamilyTyCon tc_name binders res_kind
+          ; let wf_tycon_mb = if partyCtrs && isJust wfname -- do this only for associated types for now.
+                              then Just $ mkWFFamilyTyCon (fromJust wfname) binders constraintKind
+                                             Nothing OpenSynFamilyTyCon parent
+                              else Nothing
+          ; let tycon = mkFamilyTyCon tc_name binders res_kind
                                     (resultVariableName sig) OpenSynFamilyTyCon
-                                    parent inj' (Just wf_tycon)
-                 ; return tycon }
-            else do { let tycon = mkFamilyTyCon tc_name binders res_kind
-                                    (resultVariableName sig) OpenSynFamilyTyCon
-                                    parent inj' Nothing
-                    ; return tycon }
-          } 
+                                    parent inj' wf_tycon_mb
+          ; return tycon }
 
   | ClosedTypeFamily mb_eqns <- fam_info
   = -- Closed type families are a little tricky, because they contain the definition

@@ -82,7 +82,7 @@ import qualified Data.IntMap.Strict as IntMap
 import qualified GHC.Data.EnumSet as EnumSet
 import qualified GHC.LanguageExtensions as LangExt
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@), Total)
+import GHC.Types (Total)
 #endif
 
 -----------------------------------------------------------------------------
@@ -274,9 +274,6 @@ recordBreak brkLoc = do
 newtype GHCi a = GHCi { unGHCi :: IORef GHCiState -> Ghc a }
     deriving (Functor)
     deriving (MonadThrow, MonadCatch, MonadMask) via (ReaderT (IORef GHCiState) Ghc)
-#if MIN_VERSION_base(4,16,0)
-type instance GHCi @ a = () -- mm why?
-#endif
 
 reflectGHCi :: (Session, IORef GHCiState) -> GHCi a -> IO a
 reflectGHCi (s, gs) m = unGhc (unGHCi m gs) s

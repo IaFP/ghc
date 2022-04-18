@@ -460,10 +460,7 @@ tc_mkRepFamInsts gk inst_tys dit@(DerivInstTys{dit_rep_tc = tycon}) =
                                         fam_tc inst_tys repTy'
 
      ; fam_inst <- newFamInst SynFamilyInst axiom
-     ; wf_insts <- if partyCtrs
-                   then do wf_fam_inst <- genWFTyFamInst fam_inst
-                           return [wf_fam_inst]
-                   else return []
+     ; wf_insts <- if partyCtrs then genWFTyFamInst fam_inst else return []
      ; return $ fam_inst:wf_insts
      }
 

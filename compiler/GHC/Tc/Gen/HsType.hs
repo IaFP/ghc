@@ -110,7 +110,6 @@ import GHC.Core.ConLike
 import GHC.Core.DataCon
 import GHC.Core.Class
 import GHC.Types.Name
--- import GHC.Types.Name.Set
 import GHC.Types.Var.Env
 import GHC.Builtin.Types
 import GHC.Types.Basic
@@ -422,26 +421,10 @@ tcClassSigType names sig_ty
     skol_info = SigTypeSkol sig_ctxt
 
 tcHsSigType :: Bool -> UserTypeCtxt -> LHsSigType GhcRn -> TcM Type
+-- False <=> doesn't reduce the elaborated type
 -- Does validity checking
 -- See Note [Recipe for checking a signature]
 tcHsSigType shouldSquash ctxt sig_ty
-  | (ForSigCtxt _) <- ctxt -- we don't know what to do with the extra () constraints after rewriting f @ b while interfacing with foreign functions
-  = addSigCtxt ctxt sig_ty $
-    do { traceTc "tcHsSigType { ForSigCxt" (ppr sig_ty)
-          -- Generalise here: see Note [Kind generalisation]
-       ; (implic, ty) <- tc_lhs_sig_type skol_info sig_ty  (expectedKindInCtxt ctxt)
-
-       -- Float out constraints, failing fast if not possible
-       -- See Note [Failure in local type signatures] in GHC.Tc.Solver
-       ; traceTc "tcHsSigType 2" (ppr implic)
-       ; simplifyAndEmitFlatConstraints (mkImplicWC (unitBag implic))
-
-       ; ty <- zonkTcType ty
-       ; checkValidType ctxt ty
-     
-       ; traceTc "end tcHsSigType }" (ppr ty)
-       ; return ty }
-  | otherwise
   = addSigCtxt ctxt sig_ty $
     do { traceTc "tcHsSigType {" (ppr sig_ty)
 
@@ -455,7 +438,7 @@ tcHsSigType shouldSquash ctxt sig_ty
 
        ; ty <- zonkTcType ty
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; ty <- if partyCtrs then elabWfTypeTcM (True && not shouldSquash) ty else return ty
+       ; ty <- if partyCtrs then elabWfTypeTcM (not shouldSquash) ty else return ty
        ; checkValidType ctxt ty
 
        ; traceTc "end tcHsSigType }" (ppr ty)
@@ -612,35 +595,6 @@ tc_top_lhs_type :: TypeOrKind -> UserTypeCtxt -> LHsSigType GhcRn -> TcM Type
 --   for things (like deriving and instances) that aren't
 --   ordinary types
 -- Used for both types and kinds
-tc_top_lhs_type tyki ctxt@DerivClauseCtxt (L loc sig_ty@(HsSig { sig_bndrs = hs_outer_bndrs
-                                               , sig_body = body }))
-  -- Elaborate and also reduce the elaborated type as much as possible if it is in a deriving clause ctxt
-  = setSrcSpanA loc $
-    do { traceTc "tc_top_lhs_type {" (ppr tyki <+> ppr sig_ty)
-       ; (tclvl, wanted, (outer_bndrs, ty))
-              <- pushLevelAndSolveEqualitiesX "tc_top_lhs_type"    $
-                 tcOuterTKBndrs skol_info hs_outer_bndrs $
-                 do { kind <- newExpectedKind (expectedKindInCtxt ctxt)
-                    ; tc_lhs_type (mkMode tyki) body kind }
-
-       ; outer_tv_bndrs <- scopedSortOuter outer_bndrs
-       ; let ty1 = mkInvisForAllTys outer_tv_bndrs ty
-
-       ; kvs <- kindGeneralizeAll ty1  -- "All" because it's a top-level type
-       ; reportUnsolvedEqualities skol_info kvs tclvl wanted
-
-       ; ze       <- mkEmptyZonkEnv NoFlexi
-       ; final_ty' <- zonkTcTypeToTypeX ze (mkInfForAllTys kvs ty1)
-       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors 
-       ; final_ty <- if partyCtrs && isTypeLevel tyki
-                     then elabWfTypeTcM False final_ty'
-                     else return final_ty'
-       
-       ; traceTc "tc_top_lhs_type }" (vcat [ppr sig_ty, ppr final_ty])
-       ; return final_ty }
-  where
-    skol_info = SigTypeSkol ctxt
-
 tc_top_lhs_type tyki ctxt (L loc sig_ty@(HsSig { sig_bndrs = hs_outer_bndrs
                                                , sig_body = body }))
   = setSrcSpanA loc $
@@ -659,16 +613,16 @@ tc_top_lhs_type tyki ctxt (L loc sig_ty@(HsSig { sig_bndrs = hs_outer_bndrs
 
        ; ze       <- mkEmptyZonkEnv NoFlexi
        ; final_ty' <- zonkTcTypeToTypeX ze (mkInfForAllTys kvs ty1)
-       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors 
+       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
        ; final_ty <- if partyCtrs && isTypeLevel tyki
-                     then elabWfTypeTcM True final_ty'
+                     then elabWfTypeTcM (not keepElabType) final_ty' -- TODO: Just pass in the ctxt maybe?
                      else return final_ty'
-
+       
        ; traceTc "tc_top_lhs_type }" (vcat [ppr sig_ty, ppr final_ty])
        ; return final_ty }
   where
     skol_info = SigTypeSkol ctxt
-
+    keepElabType = isCtxtGoodForWfTyRed ctxt
 -----------------
 tcHsDeriv :: LHsSigType GhcRn -> TcM ([TyVar], Class, [Type], [Kind])
 -- Like tcHsSigType, but for the ...deriving( C t1 ty2 ) clause
