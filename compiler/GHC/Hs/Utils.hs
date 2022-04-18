@@ -319,8 +319,12 @@ mkNPlusKPat :: LocatedN RdrName -> LocatedAn NoEpAnns (HsOverLit GhcPs) -> EpAnn
 
 -- NB: The following functions all use noSyntaxExpr: the generated expressions
 --     will not work with rebindable syntax if used after the renamer
-mkLastStmt :: IsPass idR => LocatedA (bodyR (GhcPass idR))
-           -> StmtLR (GhcPass idL) (GhcPass idR) (LocatedA (bodyR (GhcPass idR)))
+mkLastStmt :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (SyntaxExprGhc idR),
+#endif
+  IsPass idR)
+  => LocatedA (bodyR (GhcPass idR)) -> StmtLR (GhcPass idL) (GhcPass idR) (LocatedA (bodyR (GhcPass idR)))
 mkBodyStmt :: LocatedA (bodyR GhcPs)
            -> StmtLR (GhcPass idL) GhcPs (LocatedA (bodyR GhcPs))
 mkPsBindStmt :: EpAnn [AddEpAnn] -> LPat GhcPs -> LocatedA (bodyR GhcPs)
@@ -407,10 +411,14 @@ mkGroupUsingStmt   a ss u   = (emptyTransStmt a) { trS_form = GroupForm, trS_stm
 mkGroupByUsingStmt a ss b u = (emptyTransStmt a) { trS_form = GroupForm, trS_stmts = ss, trS_using = u, trS_by = Just b }
 
 mkLastStmt body = LastStmt noExtField body Nothing noSyntaxExpr
+
 mkBodyStmt body
   = BodyStmt noExtField body noSyntaxExpr noSyntaxExpr
+  
 mkPsBindStmt ann pat body = BindStmt ann pat body
+
 mkRnBindStmt pat body = BindStmt (XBindStmtRn { xbsrn_bindOp = noSyntaxExpr, xbsrn_failOp = Nothing }) pat body
+
 mkTcBindStmt pat body = BindStmt (XBindStmtTc { xbstc_bindOp = noSyntaxExpr,
                                                 xbstc_boundResultType = unitTy,
                                                    -- unitTy is a dummy value
@@ -422,6 +430,7 @@ emptyRecStmt' :: forall idL idR body . (
 #if MIN_VERSION_base(4,16,0)
     WFT (Anno [GenLocated (Anno (StmtLR (GhcPass idL) (GhcPass idR) body))
                              (StmtLR (GhcPass idL) (GhcPass idR) body)]),
+    WFT (SyntaxExprGhc idR),
 #endif
   WrapXRec (GhcPass idR) [LStmtLR (GhcPass idL) (GhcPass idR) body], IsPass idR)
               => XRecStmt (GhcPass idL) (GhcPass idR) body

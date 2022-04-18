@@ -44,6 +44,7 @@ instance (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
     OutputableBndrId p) => Outputable (HsExpr (GhcPass p))
 instance (
@@ -53,6 +54,7 @@ instance (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => Outputable (HsCmd (GhcPass p))
 
@@ -63,6 +65,7 @@ pprLExpr :: (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => LHsExpr (GhcPass p) -> SDoc
 
@@ -73,6 +76,7 @@ pprExpr :: (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
     OutputableBndrId p) => HsExpr (GhcPass p) -> SDoc
 
@@ -83,6 +87,7 @@ pprSplice :: (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => HsSplice (GhcPass p) -> SDoc
 
@@ -93,6 +98,7 @@ pprSpliceDecl ::  (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
           => HsSplice (GhcPass p) -> SpliceExplicitFlag -> SDoc
@@ -108,6 +114,9 @@ pprPatBind :: forall bndr p . (
   WFT (Anno (IdGhcP bndr)),
   WFT (Anno (IdGhcP (NoGhcTcPass bndr))),
   WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc bndr),
+  WFT (SyntaxExprGhc (NoGhcTcPass bndr)),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId bndr,
   OutputableBndrId p)
@@ -120,6 +129,7 @@ pprFunBind :: (
   WFT (Anno (IdGhcP idR)),
   WFT (Anno (IdGhcP (NoGhcTcPass idR))),
   WFT (SyntaxExprGhc idR),
+  WFT (SyntaxExprGhc (NoGhcTcPass idR)),
 #endif
      OutputableBndrId idR)
            => MatchGroup (GhcPass idR) (LHsExpr (GhcPass idR)) -> SDoc

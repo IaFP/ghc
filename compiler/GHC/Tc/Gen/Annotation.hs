@@ -75,6 +75,8 @@ annCtxt :: (
   , WFT (XOverLit (GhcPass (NoGhcTcPass p)))
   , WFT (Anno (IdGhcP p))
   , WFT (Anno (IdGhcP (NoGhcTcPass p)))
+  , WFT (SyntaxExprGhc p)
+  , WFT (SyntaxExprGhc (NoGhcTcPass p))
   ,
 #endif
   OutputableBndrId p) => AnnDecl (GhcPass p) -> SDoc

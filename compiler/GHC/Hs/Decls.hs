@@ -1331,6 +1331,7 @@ instance (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
        => Outputable (DefaultDecl (GhcPass p)) where
@@ -1518,6 +1519,7 @@ instance (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => Outputable (AnnDecl (GhcPass p)) where
     ppr (HsAnnotation _ _ provenance expr)

@@ -228,6 +228,8 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                      -- remark: below is a bit ugly
                    ; fam_insts <-
                        if isBootFile then
+                         -- do not call mk_atat_fam if we are in boot files
+                         -- as we cannot generate open type family instances in boot files
                          return []
                        else
                        if (length tyclds == 1)

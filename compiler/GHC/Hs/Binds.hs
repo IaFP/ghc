@@ -485,6 +485,9 @@ pprLHsBinds :: (
                       WFT (Anno (IdGhcP (NoGhcTcPass idL))),
                       WFT (SyntaxExprGhc idR),
                       WFT (SyntaxExprGhc idL),
+                      WFT (SyntaxExprGhc (NoGhcTcPass idR)),
+                      WFT (SyntaxExprGhc (NoGhcTcPass idL)),                      
+                      
 #endif
              OutputableBndrId idL, OutputableBndrId idR)
           => LHsBindsLR (GhcPass idL) (GhcPass idR) -> SDoc
@@ -530,6 +533,8 @@ pprLHsBindsForUser :: (
                       WFT (SyntaxExprGhc id2),
                       WFT (SyntaxExprGhc (NoGhcTcPass id2)),
                       WFT (SyntaxExprGhc idL),
+                      WFT (SyntaxExprGhc (NoGhcTcPass idR)),
+                      WFT (SyntaxExprGhc (NoGhcTcPass idL)),
 #endif
            OutputableBndrId idL,
            OutputableBndrId idR,
@@ -628,6 +633,9 @@ instance (
                       WFT (Anno (IdGhcP (NoGhcTcPass pl))),
                       WFT (SyntaxExprGhc pr),
                       WFT (SyntaxExprGhc pl),
+                      WFT (SyntaxExprGhc (NoGhcTcPass pr)),
+                      WFT (SyntaxExprGhc (NoGhcTcPass pl)),
+                      
 #endif
             OutputableBndrId pl, OutputableBndrId pr)
          => Outputable (HsBindLR (GhcPass pl) (GhcPass pr)) where
@@ -666,6 +674,9 @@ ppr_monobind :: forall idL idR.
                       WFT (Anno (IdGhcP idL)),
                       WFT (Anno (IdGhcP (NoGhcTcPass idL))),
                       WFT (SyntaxExprGhc idL),
+                      WFT (SyntaxExprGhc idR),
+                      WFT (SyntaxExprGhc (NoGhcTcPass idR)),
+                      WFT (SyntaxExprGhc (NoGhcTcPass idL)),
 #endif
                   OutputableBndrId idL, OutputableBndrId idR)
              => HsBindLR (GhcPass idL) (GhcPass idR) -> SDoc
@@ -820,6 +831,7 @@ instance (
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => Outputable (IPBind (GhcPass p)) where
   ppr (IPBind _ lr rhs) = name <+> equals <+> pprExpr (unLoc rhs)

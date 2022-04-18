@@ -1067,7 +1067,9 @@ pprInstInfoDetails :: (
   WFT (XOverLit (GhcPass a)),
   WFT (XOverLit (GhcPass (NoGhcTcPass a))),  
   WFT (Anno (IdGhcP a)),
-  WFT (Anno (IdGhcP (NoGhcTcPass a))),                      
+  WFT (Anno (IdGhcP (NoGhcTcPass a))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId a)
                    => InstInfo (GhcPass a) -> SDoc
