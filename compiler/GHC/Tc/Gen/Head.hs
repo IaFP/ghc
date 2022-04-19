@@ -366,6 +366,8 @@ instance (
   WFT (XOverLit (GhcPass (NoGhcTcPass (XPass p)))),
   WFT (Anno (IdGhcP (XPass p))),
   WFT (Anno (IdGhcP (NoGhcTcPass (XPass p)))),
+  WFT (SyntaxExprGhc (XPass p)),
+  WFT (SyntaxExprGhc (NoGhcTcPass (XPass p))),
 #endif
   OutputableBndrId (XPass p)) => Outputable (HsExprArg p) where
   ppr (EValArg { eva_arg = arg })      = text "EValArg" <+> ppr arg
@@ -384,6 +386,8 @@ instance (
   WFT (XOverLit (GhcPass (NoGhcTcPass (XPass p)))),
   WFT (Anno (IdGhcP (XPass p))),
   WFT (Anno (IdGhcP (NoGhcTcPass (XPass p)))),
+  WFT (SyntaxExprGhc (XPass p)),
+  WFT (SyntaxExprGhc (NoGhcTcPass (XPass p))),
 #endif
   OutputableBndrId (XPass p)) => Outputable (EValArg p) where
   ppr (ValArg e) = ppr e

@@ -840,7 +840,12 @@ type AnnoBody p body
     , Data (Stmt  (GhcPass p) (LocatedA (body (GhcPass p))))
     )
 
-instance HiePass p => ToHie (BindContext (LocatedA (HsBind (GhcPass p)))) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+    WFT (IdGhcP p),
+#endif
+  HiePass p) 
+  => ToHie (BindContext (LocatedA (HsBind (GhcPass p)))) where
   toHie (BC context scope b@(L span bind)) =
     concatM $ getTypeNode b : case bind of
       FunBind{fun_id = name, fun_matches = matches, fun_ext = wrap} ->
@@ -879,6 +884,7 @@ instance HiePass p => ToHie (BindContext (LocatedA (HsBind (GhcPass p)))) where
 instance (
 #if MIN_VERSION_base(4,16,0)
            WFT (Anno (GRHS (GhcPass p) (LocatedA (body (GhcPass p)))))
+          , WFT (IdGhcP p)
           ,
 #endif
            HiePass p
@@ -896,7 +902,11 @@ setOrigin :: Origin -> NodeOrigin -> NodeOrigin
 setOrigin FromSource _ = SourceInfo
 setOrigin Generated _ = GeneratedInfo
 
-instance HiePass p => ToHie (Located (PatSynBind (GhcPass p) (GhcPass p))) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (IdGhcP p),
+#endif
+  HiePass p) => ToHie (Located (PatSynBind (GhcPass p) (GhcPass p))) where
     toHie (L sp psb) = concatM $ case psb of
       PSB{psb_id=var, psb_args=dets, psb_def=pat, psb_dir=dir} ->
         [ toHie $ C (Decl PatSynDec $ getRealSpan sp) var
@@ -921,7 +931,11 @@ instance HiePass p => ToHie (Located (PatSynBind (GhcPass p) (GhcPass p))) where
           toBind (InfixCon a b) = InfixCon (C Use a) (C Use b)
           toBind (RecCon r) = RecCon $ map (PSC detSpan) r
 
-instance HiePass p => ToHie (HsPatSynDir (GhcPass p)) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (IdGhcP p),
+#endif
+  HiePass p) => ToHie (HsPatSynDir (GhcPass p)) where
   toHie dir = case dir of
     ExplicitBidirectional mg -> toHie mg
     _ -> pure []
@@ -929,6 +943,7 @@ instance HiePass p => ToHie (HsPatSynDir (GhcPass p)) where
 instance (
 #if MIN_VERSION_base(4,16,0)
            WFT (Anno (GRHS (GhcPass p) (LocatedA (body (GhcPass p)))))
+          , WFT (IdGhcP p)
           ,
 #endif
            HiePass p
@@ -961,7 +976,11 @@ instance HiePass p => ToHie (HsStmtContext (GhcPass p)) where
   toHie (TransStmtCtxt a) = toHie a
   toHie _ = pure []
 
-instance HiePass p => ToHie (PScoped (LocatedA (Pat (GhcPass p)))) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (IdGhcP p),
+#endif
+  HiePass p) => ToHie (PScoped (LocatedA (Pat (GhcPass p)))) where
   toHie (PS rsp scope pscope lpat@(L ospan opat)) =
     concatM $ getTypeNode lpat : case opat of
       WildPat _ ->
@@ -1072,6 +1091,7 @@ instance ToHie (TScoped (HsPatSigType GhcRn)) where
 instance (
 #if MIN_VERSION_base(4,16,0)
            WFT (Anno (GRHS (GhcPass p) (LocatedA (body (GhcPass p)))))
+         , WFT (IdGhcP p)
          ,
 #endif
            ToHie (LocatedA (body (GhcPass p)))
@@ -1086,15 +1106,22 @@ instance (
 
 instance ( ToHie (LocatedA (body (GhcPass p)))
          , HiePass p
-         , AnnoBody p body
-         ) => ToHie (LocatedAn NoEpAnns (GRHS (GhcPass p) (LocatedA (body (GhcPass p))))) where
+         , AnnoBody p body,
+#if MIN_VERSION_base(4,16,0)
+         WFT (IdGhcP p),
+#endif
+  HiePass p) => ToHie (LocatedAn NoEpAnns (GRHS (GhcPass p) (LocatedA (body (GhcPass p))))) where
   toHie (L span g) = concatM $ makeNodeA g span : case g of
     GRHS _ guards body ->
       [ toHie $ listScopes (mkLScopeA body) guards
       , toHie body
       ]
 
-instance HiePass p => ToHie (LocatedA (HsExpr (GhcPass p))) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (IdGhcP p),
+#endif
+  HiePass p) => ToHie (LocatedA (HsExpr (GhcPass p))) where
   toHie e@(L mspan oexpr) = concatM $ getTypeNode e : case oexpr of
       HsVar _ (L _ var) ->
         [ toHie $ C Use (L mspan var)
@@ -1238,7 +1265,11 @@ instance HiePass p => ToHie (LocatedA (HsExpr (GhcPass p))) where
         | otherwise -> []
 
 -- NOTE: no longer have the location
-instance HiePass p => ToHie (HsTupArg (GhcPass p)) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (IdGhcP p),
+#endif
+  HiePass p) => ToHie (HsTupArg (GhcPass p)) where
   toHie arg = concatM $ case arg of
     Present _ expr ->
       [ toHie expr
@@ -1248,7 +1279,12 @@ instance HiePass p => ToHie (HsTupArg (GhcPass p)) where
 instance ( ToHie (LocatedA (body (GhcPass p)))
          , AnnoBody p body
          , HiePass p
-         ) => ToHie (RScoped (LocatedA (Stmt (GhcPass p) (LocatedA (body (GhcPass p)))))) where
+         ,
+#if MIN_VERSION_base(4,16,0)
+         WFT (IdGhcP p)
+         ,
+#endif
+  HiePass p) => ToHie (RScoped (LocatedA (Stmt (GhcPass p) (LocatedA (body (GhcPass p)))))) where
   toHie (RS scope (L span stmt)) = concatM $ node : case stmt of
       LastStmt _ body _ _ ->
         [ toHie body
@@ -1284,7 +1320,11 @@ instance ( ToHie (LocatedA (body (GhcPass p)))
         HieTc -> makeNodeA stmt span
         HieRn -> makeNodeA stmt span
 
-instance HiePass p => ToHie (RScoped (HsLocalBinds (GhcPass p))) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (IdGhcP p),
+#endif
+  HiePass p) => ToHie (RScoped (HsLocalBinds (GhcPass p))) where
   toHie (RS scope binds) = concatM $ makeNode binds (spanHsLocaLBinds binds) : case binds of
       EmptyLocalBinds _ -> []
       HsIPBinds _ ipbinds -> case ipbinds of
@@ -1325,7 +1365,11 @@ scopeHsLocaLBinds (HsIPBinds _ (IPBinds _ bs))
 scopeHsLocaLBinds (EmptyLocalBinds _) = NoScope
 
 
-instance HiePass p => ToHie (RScoped (LocatedA (IPBind (GhcPass p)))) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (IdGhcP p),
+#endif
+  HiePass p) => ToHie (RScoped (LocatedA (IPBind (GhcPass p)))) where
   toHie (RS scope (L sp bind)) = concatM $ makeNodeA bind sp : case bind of
     IPBind _ (Left _) expr -> [toHie expr]
     IPBind _ (Right v) expr ->
@@ -1334,7 +1378,11 @@ instance HiePass p => ToHie (RScoped (LocatedA (IPBind (GhcPass p)))) where
       , toHie expr
       ]
 
-instance HiePass p => ToHie (RScoped (HsValBindsLR (GhcPass p) (GhcPass p))) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (IdGhcP p),
+#endif
+  HiePass p) => ToHie (RScoped (HsValBindsLR (GhcPass p) (GhcPass p))) where
   toHie (RS sc v) = concatM $ case v of
     ValBinds _ binds sigs ->
       [ toHie $ fmap (BC RegularBind sc) binds
@@ -1342,7 +1390,11 @@ instance HiePass p => ToHie (RScoped (HsValBindsLR (GhcPass p) (GhcPass p))) whe
       ]
     XValBindsLR x -> [ toHie $ RS sc x ]
 
-instance HiePass p => ToHie (RScoped (NHsValBindsLR (GhcPass p))) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (IdGhcP p),
+#endif
+  HiePass p) => ToHie (RScoped (NHsValBindsLR (GhcPass p))) where
   toHie (RS sc (NValBinds binds sigs)) = concatM $
     [ toHie (concatMap (map (BC RegularBind sc) . bagToList . snd) binds)
     , toHie $ fmap (SC (SI BindSig Nothing)) sigs
@@ -1380,7 +1432,11 @@ instance HiePass p => ToHie (RFContext (LocatedAn NoEpAnns (AmbiguousFieldOcc (G
         HieRn -> []
         HieTc -> [ toHie $ C (RecField c rhs) (L (locA nspan) fld) ]
 
-instance HiePass p => ToHie (RScoped (ApplicativeArg (GhcPass p))) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (IdGhcP p),
+#endif
+  HiePass p) => ToHie (RScoped (ApplicativeArg (GhcPass p))) where
   toHie (RS sc (ApplicativeArgOne _ pat expr _)) = concatM
     [ toHie $ PS Nothing sc NoScope pat
     , toHie expr
@@ -1399,13 +1455,21 @@ instance ToHie (HsConDeclGADTDetails GhcRn) where
   toHie (PrefixConGADT args) = toHie args
   toHie (RecConGADT rec _) = toHie rec
 
-instance HiePass p => ToHie (LocatedAn NoEpAnns (HsCmdTop (GhcPass p))) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (IdGhcP p),
+#endif
+  HiePass p) => ToHie (LocatedAn NoEpAnns (HsCmdTop (GhcPass p))) where
   toHie (L span top) = concatM $ makeNodeA top span : case top of
     HsCmdTop _ cmd ->
       [ toHie cmd
       ]
 
-instance HiePass p => ToHie (LocatedA (HsCmd (GhcPass p))) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (IdGhcP p),
+#endif
+  HiePass p) => ToHie (LocatedA (HsCmd (GhcPass p))) where
   toHie (L span cmd) = concatM $ makeNodeA cmd span : case cmd of
       HsCmdArrApp _ a b _ _ ->
         [ toHie a
@@ -1903,7 +1967,11 @@ instance ToHie (LBooleanFormula (LocatedN Name)) where
 instance ToHie (LocatedAn NoEpAnns HsIPName) where
   toHie (L span e) = makeNodeA e span
 
-instance HiePass p => ToHie (LocatedA (HsSplice (GhcPass p))) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (IdGhcP p),
+#endif
+  HiePass p) => ToHie (LocatedA (HsSplice (GhcPass p))) where
   toHie (L span sp) = concatM $ makeNodeA sp span : case sp of
       HsTypedSplice _ _ _ expr ->
         [ toHie expr
