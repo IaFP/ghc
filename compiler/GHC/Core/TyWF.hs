@@ -239,6 +239,7 @@ isTyConInternal tycon =
   || tycon `hasKey` staticPtrInfoTyConKey || (tyConName tycon == staticPtrInfoTyConName)
   || tycon `hasKey` ptrTyConKey || tycon `hasKey` funPtrTyConKey
   || tycon `hasKey` qTyConKey || tyConName tycon == qTyConName
+  || tycon `hasKey` anyTyConKey
   || tycon == funTyCon
   || isWFMirrorTyCon tycon -- @ is also a mirror
   

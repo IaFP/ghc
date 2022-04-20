@@ -242,7 +242,7 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    ; let
                          (open, rest1)   = partition (isOpenTypeFamilyTyCon . snd) locsAndTcs
                          (closed, rest2) = partition (isClosedTypeFamilyTyCon . snd) rest1
-                         wf_mirrors = fmap (wfMirrorTyCon . snd) (open ++ closed)
+                         wf_mirrors = concatMap (maybeToList . wfMirrorTyCon_maybe . snd) (open ++ closed)
                      
                    ; traceTc "wfelab partition"
                        (vcat [ text "Open TFs:" <+> (vcat $ fmap (pprtc . snd) open)
