@@ -1036,7 +1036,7 @@ deriving instance (Monoid (f (g p))) => Monoid ((f :.: g) p)
 --
 -- @since 4.9.0.0
 data family URec (a :: Type) (p :: k)
-type instance URec a @ p = ()
+-- type instance URec a @ p = ()
 
 -- | Used for marking occurrences of 'Addr#'
 --
