@@ -218,7 +218,7 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
        ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
        ; isBootFile <- tcIsHsBootOrSig
        ; (gbl_env, th_bndrs) <-
-           if enblPCtrs 
+           if enblPCtrs
            then do { traceTc "---- start wf enrichment ---- { " empty
 
                    ; let locs :: [SrcSpan] = map (locA . getLoc) tyclds
@@ -253,7 +253,8 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    ; traceTc "---- end wf enrichment ---- }" empty
 
                    ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $
-                                                       (fmap snd locsAndTcs) ++ wf_mirrors)                   }
+                                                       (fmap snd locsAndTcs) ++ wf_mirrors)
+                   }
            else do { addTyConsToGblEnv tyclss }
 
            -- Step 4: check instance declarations

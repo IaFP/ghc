@@ -292,7 +292,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; args_wfts <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        
        ; let should_reduce_constraints = not isTyConPhase || isClosedTypeFamilyTyCon tycon
-       ; if (should_reduce_constraints)
+       ; if should_reduce_constraints
          then do { r_args_wfts <- mapM redConstraints $ fmap newPreds args_wfts
                  ; let r_args_wft = foldl mergeAtAtConstraints [] r_args_wfts
                  ; mergeAtAtConstraints r_args_wft <$> redConstraints (wftct:extra_css)
