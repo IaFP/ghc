@@ -290,11 +290,14 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; let wftct = mkTyConApp wftycon args_tc
        ; extra_css <- sequenceAts tycon args_tc extra_args_tc [] []
        ; args_wfts <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
-       ; if (isTyConPhase || isClosedTypeFamilyTyCon tycon)
-         then return $ foldl mergeAtAtConstraints [] $ (fmap newPreds args_wfts) ++ [wftct:extra_css]
-         else do r_args_wfts <- mapM redConstraints $ fmap newPreds args_wfts
-                 let r_args_wft = foldl mergeAtAtConstraints [] r_args_wfts
-                 mergeAtAtConstraints r_args_wft <$> redConstraints (wftct:extra_css)
+       
+       ; let should_reduce_constraints = not isTyConPhase || isClosedTypeFamilyTyCon tycon
+       ; if (should_reduce_constraints)
+         then do { r_args_wfts <- mapM redConstraints $ fmap newPreds args_wfts
+                 ; let r_args_wft = foldl mergeAtAtConstraints [] r_args_wfts
+                 ; mergeAtAtConstraints r_args_wft <$> redConstraints (wftct:extra_css)
+                 }
+         else return $ foldl mergeAtAtConstraints [] $ (fmap newPreds args_wfts) ++ [wftct:extra_css]
        }
 
   | isTypeSynonymTyCon tycon =
