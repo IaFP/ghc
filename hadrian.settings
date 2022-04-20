@@ -84,7 +84,7 @@ stage2.template-haskell.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedCl
 stage2.haddock.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage2.transformers.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XTypeOperators
 stage2.terminfo.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
-stage1.check-exact.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage2.check-exact.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage2.iserv.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage2.libiserv.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 
@@ -121,7 +121,7 @@ stage3.unix.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -
 stage3.template-haskell.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.terminfo.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 
-stage1.*.ghc.hs.opts += -fforce-recomp
+stage1.*.ghc.hs.opts += -fforce-recomp 
 stage2.*.ghc.hs.opts += -g3 -debug -fforce-recomp
 
 stage2.rts.ghc.c.opts += -optc-ggdb
