@@ -229,6 +229,7 @@ commonGhcArgs = do
               -- input hash to avoid superfluous recompilation, avoiding
               -- #18672.
               arg "-fdiagnostics-color=always"
+            , notStage0 ? arg "-XPartialTypeConstructors"
             ]
 
 -- TODO: Do '-ticky' in all debug ways?

@@ -1,6 +1,5 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE NoPartialTypeConstructors #-}
 
 {-
 This SOURCE-imported hs-boot module cuts a big dependency loop:

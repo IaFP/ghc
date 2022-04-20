@@ -1,5 +1,4 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE NoPartialTypeConstructors #-}
 
 module GHC.Base (Maybe, Semigroup, Monoid) where
 

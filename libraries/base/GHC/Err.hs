@@ -2,9 +2,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NoImplicitPrelude, MagicHash, ImplicitParams #-}
 {-# LANGUAGE RankNTypes, PolyKinds, DataKinds #-}
--- #if __GLASGOW_HASKELL__ >= 920
---  {-# LANGUAGE NoPartialTypeConstructors #-}
--- #endif
+
 {-# OPTIONS_HADDOCK not-home #-}
 
 -----------------------------------------------------------------------------

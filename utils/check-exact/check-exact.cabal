@@ -18,8 +18,6 @@ cabal-version: >=1.10
 
 Executable check-exact
     Default-Language: Haskell2010
-    if impl(ghc>=9.0.3)
-       Other-Extensions: PartialTypeConstructors
     Main-Is: Main.hs
     Ghc-Options: -Wall
     other-modules: ExactPrint
