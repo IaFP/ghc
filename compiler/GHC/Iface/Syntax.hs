@@ -148,8 +148,8 @@ data IfaceDecl
                    ifResKind  :: IfaceKind,         -- Kind of the *tycon*
                    ifFamFlav  :: IfaceFamTyConFlav,
                    ifFamInj   :: Injectivity,       -- injectivity information
-                   ifWFMirror :: Maybe IfaceDecl,
-                   ifMirror   :: Bool }             -- Is this a mirror tycon
+                   ifWFMirror :: Maybe IfaceDecl    -- mirror tycon
+                 }             
 
   | IfaceClass { ifName    :: IfaceTopBndr,             -- Name of the class TyCon
                  ifRoles   :: [Role],                   -- Roles
@@ -1889,7 +1889,7 @@ instance Binary IfaceDecl where
         put_ bh a4
         put_ bh a5
 
-    put_ bh (IfaceFamily a1 a2 a3 a4 a5 a6 a7 a8) = do
+    put_ bh (IfaceFamily a1 a2 a3 a4 a5 a6 a7) = do
         putByte bh 4
         putIfaceTopBndr bh a1
         put_ bh a2
@@ -1898,7 +1898,6 @@ instance Binary IfaceDecl where
         put_ bh a5
         put_ bh a6
         put_ bh a7       
-        put_ bh a8       
 
     -- NB: Written in a funny way to avoid an interface change
     put_ bh (IfaceClass {
@@ -1987,8 +1986,7 @@ instance Binary IfaceDecl where
                     a5 <- get bh
                     a6 <- get bh
                     a7 <- get bh
-                    a8 <- get bh
-                    return (IfaceFamily a1 a2 a3 a4 a5 a6 a7 a8)
+                    return (IfaceFamily a1 a2 a3 a4 a5 a6 a7)
             5 -> do a1 <- get bh
                     a2 <- getIfaceTopBndr bh
                     a3 <- get bh
@@ -2554,8 +2552,8 @@ instance NFData IfaceDecl where
     IfaceSynonym f1 f2 f3 f4 f5 ->
       rnf f1 `seq` f2 `seq` seqList f3 `seq` rnf f4 `seq` rnf f5
 
-    IfaceFamily f1 f2 f3 f4 f5 f6 f7 f8 ->
-      rnf f1 `seq` rnf f2 `seq` seqList f3 `seq` rnf f4 `seq` rnf f5 `seq` f6 `seq` rnf f7 `seq` f8 `seq` ()
+    IfaceFamily f1 f2 f3 f4 f5 f6 f7 ->
+      rnf f1 `seq` rnf f2 `seq` seqList f3 `seq` rnf f4 `seq` rnf f5 `seq` f6 `seq` rnf f7 `seq` ()
 
     IfaceClass f1 f2 f3 f4 f5 ->
       rnf f1 `seq` f2 `seq` seqList f3 `seq` rnf f4 `seq` rnf f5

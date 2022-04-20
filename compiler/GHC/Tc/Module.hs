@@ -2480,7 +2480,6 @@ tcGhciStmts stmts
             tc_io_stmts = tcStmtsAndThen (HsDoStmt GhciStmtCtxt) tcDoStmt stmts
                                          (mkCheckExpType io_ret_ty)
             names = collectLStmtsBinders CollNoDictBinders stmts
-      ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
       -- ; let at_dict_ty = (mkTyConTy ioTyCon) `at'at` ret_ty
         -- OK, we're ready to typecheck the stmts
       ; traceTc "GHC.Tc.Module.tcGhciStmts: tc stmts" empty

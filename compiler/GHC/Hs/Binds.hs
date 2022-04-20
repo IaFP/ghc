@@ -69,9 +69,6 @@ import {-# SOURCE #-} Language.Haskell.Syntax.Pat (Pat)
 import {-# SOURCE #-} Language.Haskell.Syntax.Expr (HsExpr, MatchGroup, GRHSs)
 #endif
 
-------------------------------------------------------------------------
-
-
 {-
 ************************************************************************
 *                                                                      *

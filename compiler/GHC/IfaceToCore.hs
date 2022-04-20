@@ -43,7 +43,6 @@ import GHC.Tc.Errors.Types
 import GHC.Tc.TyCl.Build
 import GHC.Tc.Utils.Monad
 import GHC.Tc.Utils.TcType
-import GHC.Tc.Deriv.WF
 import GHC.Tc.Utils.Env
 
 import GHC.Core.Type
@@ -740,24 +739,20 @@ tc_iface_decl parent b (IfaceFamily {ifName = tc_name,
                                      ifResKind = res_kind,
                                      ifResVar = res,
                                      ifFamInj = inj,
-                                     ifWFMirror = mirror,
-                                     ifMirror = isMirror
+                                     ifWFMirror = mirror
                                     })
    = bindIfaceTyConBinders_AT binders $ \ binders' -> do
      { res_kind' <- tcIfaceType res_kind    -- Note [Synonym kind loop]
      ; rhs      <- forkM (mk_doc tc_name) $
                    tc_fam_flav tc_name fam_flav
      ; res_name <- traverse (newIfaceName . mkTyVarOccFS) res
-     -- TODO:
-     -- Only conditionally build $wf'F from F when
-     -- partyCtrs is on.
-     -- ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-     ; tycon <- if isMirror then
-                  return $ mkWFFamilyTyCon tc_name binders' constraintKind res_name rhs parent
-                else do forkM (mk_doc_wf tc_name) $
-                          do { wf'tc <- mapM (tc_iface_decl parent b) mirror
-                             ; return $ mkFamilyTyCon tc_name binders'
-                                           res_kind' res_name rhs parent inj (fmap tyThingTyCon wf'tc) }
+     ; tycon <- case mirror of
+         Just _  -> return $ mkWFFamilyTyCon tc_name binders' constraintKind res_name rhs parent
+         Nothing -> do forkM (mk_doc_wf tc_name) $
+                         do { wf'tc <- mapM (tc_iface_decl parent b) mirror
+                            ; return $ mkFamilyTyCon tc_name binders'
+                                       res_kind' res_name rhs parent inj (fmap tyThingTyCon wf'tc)
+                            }
      ; return (ATyCon tycon) }
    where
      mk_doc n = text "Type family synonym" <+> ppr n
