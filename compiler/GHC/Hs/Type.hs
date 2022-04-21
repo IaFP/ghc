@@ -94,7 +94,7 @@ import GHC.Prelude
 
 import Language.Haskell.Syntax.Type
 
-import {-# SOURCE #-} GHC.Hs.Expr ( pprSplice )
+import {-# SOURCE #-} GHC.Hs.Expr ( pprSplice, SyntaxExprGhc )
 
 import Language.Haskell.Syntax.Extension
 import GHC.Hs.Extension
@@ -362,7 +362,8 @@ instance
         WFT (XOverLit (GhcPass (NoGhcTcPass pass))),
   WFT (Anno (IdGhcP pass)),
   WFT (Anno (IdGhcP (NoGhcTcPass pass))),
-        
+  WFT (SyntaxExprGhc pass),
+  WFT (SyntaxExprGhc (NoGhcTcPass pass)),
 #endif
         OutputableBndrId pass) =>
       Outputable (HsArrow (GhcPass pass)) where
@@ -375,6 +376,8 @@ pprHsArrow :: (
   WFT (XOverLit (GhcPass (NoGhcTcPass pass))),
   WFT (Anno (IdGhcP pass)),
   WFT (Anno (IdGhcP (NoGhcTcPass pass))),
+  WFT (SyntaxExprGhc pass),
+  WFT (SyntaxExprGhc (NoGhcTcPass pass)),
 #endif
   OutputableBndrId pass) => HsArrow (GhcPass pass) -> SDoc
 pprHsArrow (HsUnrestrictedArrow _) = arrow
@@ -390,6 +393,8 @@ instance (
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),  
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
           OutputableBndrId p)
        => Outputable (ConDeclField (GhcPass p)) where
@@ -899,7 +904,12 @@ class OutputableBndrFlag flag p where
                      OutputableBndrId p)
                  => HsTyVarBndr flag (GhcPass p) -> SDoc
 
-instance OutputableBndrFlag () p where
+instance
+#if MIN_VERSION_base(4,16,0)  
+  (WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p))) =>
+#endif
+  OutputableBndrFlag () p where
     pprTyVarBndr (UserTyVar _ _ n) --     = pprIdP n
       = case ghcPass @p of
           GhcPs -> ppr n
@@ -912,7 +922,12 @@ instance OutputableBndrFlag () p where
           GhcRn -> ppr n
           GhcTc -> ppr n
 
-instance OutputableBndrFlag Specificity p where
+instance
+#if MIN_VERSION_base(4,16,0)
+  (WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p))) =>
+#endif
+  OutputableBndrFlag Specificity p where
     pprTyVarBndr (UserTyVar _ SpecifiedSpec n) --     = pprIdP n
       = case ghcPass @p of
           GhcPs -> ppr n
@@ -943,6 +958,9 @@ instance (
   WFT (XOverLit (GhcPass p)),
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (NoGhcTcPass (NoGhcTcPass p)),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => Outputable (HsSigType (GhcPass p)) where
     ppr (HsSig { sig_bndrs = outer_bndrs, sig_body = body }) =
@@ -953,7 +971,9 @@ instance (
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (IdGhcP p)),
- WFT (Anno (IdGhcP (NoGhcTcPass p))),  
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => Outputable (HsType (GhcPass p)) where
     ppr ty = pprHsType ty
@@ -963,7 +983,9 @@ instance (
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (IdGhcP p)),
- WFT (Anno (IdGhcP (NoGhcTcPass p))),  
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
        => Outputable (LHsQTyVars (GhcPass p)) where
@@ -974,7 +996,8 @@ instance (
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),  
+  WFT (Anno (IdGhcP p)),
+  WFT (NoGhcTcPass (NoGhcTcPass p)),
 #endif
   OutputableBndrFlag flag p,
           OutputableBndrFlag flag (NoGhcTcPass p),
@@ -993,7 +1016,9 @@ instance (
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (IdGhcP p)),
- WFT (Anno (IdGhcP (NoGhcTcPass p))),  
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
           OutputableBndrId p)
        => Outputable (HsForAllTelescope (GhcPass p)) where
@@ -1022,7 +1047,9 @@ instance (
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (IdGhcP p)),
- WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
        => Outputable (HsPatSigType (GhcPass p)) where
@@ -1037,6 +1064,8 @@ pprHsOuterFamEqnTyVarBndrs :: (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
+   WFT (NoGhcTcPass (NoGhcTcPass p)),
+   WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
                            => HsOuterFamEqnTyVarBndrs (GhcPass p) -> SDoc
@@ -1050,6 +1079,8 @@ pprHsOuterSigTyVarBndrs :: (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (NoGhcTcPass (NoGhcTcPass p)),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
                            OutputableBndrId p)
                         => HsOuterSigTyVarBndrs (GhcPass p) -> SDoc
@@ -1065,6 +1096,8 @@ pprHsForAll :: forall p. (
                WFT (XOverLit (GhcPass p)),
                WFT (Anno (IdGhcP p)),
                WFT (Anno (IdGhcP (NoGhcTcPass p))),
+               WFT (SyntaxExprGhc p),
+               WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
                OutputableBndrId p)
             => HsForAllTelescope (GhcPass p)
@@ -1074,7 +1107,8 @@ pprHsForAll tele cxt
   where
     pp_tele ::
 #if MIN_VERSION_base(4,16,0)
-               WFT (XOverLit (GhcPass p)) => 
+      (WFT (SyntaxExprGhc p),
+      WFT (XOverLit (GhcPass p))) =>
 #endif
       HsForAllTelescope (GhcPass p) -> SDoc
     pp_tele tele = case tele of
@@ -1102,7 +1136,9 @@ pprLHsContext :: (
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (IdGhcP p)),
- WFT (Anno (IdGhcP (NoGhcTcPass p))),  
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
               => Maybe (LHsContext (GhcPass p)) -> SDoc
@@ -1115,7 +1151,9 @@ pprLHsContextAlways :: (
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (IdGhcP p)),
- WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
                     => LHsContext (GhcPass p) -> SDoc
@@ -1130,7 +1168,9 @@ pprConDeclFields :: (
   WFT (XOverLit (GhcPass p)),
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (IdGhcP p)),
- WFT (Anno (IdGhcP (NoGhcTcPass p))),  
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
           OutputableBndrId p)
                  => [LConDeclField (GhcPass p)] -> SDoc
@@ -1164,7 +1204,9 @@ pprHsType :: (
  WFT (XOverLit (GhcPass p)),
  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
  WFT (Anno (IdGhcP (NoGhcTcPass p))),
- WFT (Anno (IdGhcP p)),  
+ WFT (Anno (IdGhcP p)),
+ WFT (SyntaxExprGhc p),
+ WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => HsType (GhcPass p) -> SDoc
 pprHsType ty = ppr_mono_ty ty
@@ -1179,6 +1221,8 @@ ppr_mono_lty :: (
   , WFT (XOverLit (GhcPass (NoGhcTcPass p)))
   , WFT (Anno (IdGhcP p))
   , WFT (Anno (IdGhcP (NoGhcTcPass p)))  
+  , WFT (SyntaxExprGhc p)
+  , WFT (SyntaxExprGhc (NoGhcTcPass p))
   ,
 #endif
   OutputableBndrId p)
@@ -1197,6 +1241,8 @@ ppr_mono_ty :: (
  , WFT (XOverLit (GhcPass (NoGhcTcPass p)))
  , WFT (Anno (IdGhcP p))
  , WFT (Anno (IdGhcP (NoGhcTcPass p)))
+ , WFT (SyntaxExprGhc p)
+ , WFT (SyntaxExprGhc (NoGhcTcPass p))
  ,
 #endif
   OutputableBndrId p) => HsType (GhcPass p) -> SDoc
@@ -1274,6 +1320,8 @@ ppr_fun_ty :: (
              WFT (XOverLit (GhcPass (NoGhcTcPass p))),
              WFT (Anno (IdGhcP p)),
              WFT (Anno (IdGhcP (NoGhcTcPass p))),
+             WFT (SyntaxExprGhc p),
+             WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
               OutputableBndrId p)
            => HsArrow (GhcPass p) -> LHsType (GhcPass p) -> LHsType (GhcPass p) -> SDoc

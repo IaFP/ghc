@@ -37,3 +37,5 @@ type instance (Elem (T a)) = a
 type family G
 
 
+c :: G
+c = undefined

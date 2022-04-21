@@ -1056,7 +1056,9 @@ instance (
   WFT (XOverLit (GhcPass a)),
   WFT (XOverLit (GhcPass (NoGhcTcPass a))),  
   WFT (Anno (IdGhcP a)),
-  WFT (Anno (IdGhcP (NoGhcTcPass a))),                      
+  WFT (Anno (IdGhcP (NoGhcTcPass a))),
+  WFT (SyntaxExprGhc a),
+  WFT (SyntaxExprGhc (NoGhcTcPass a)),  
 #endif
   OutputableBndrId a)
        => Outputable (InstInfo (GhcPass a)) where
@@ -1067,7 +1069,9 @@ pprInstInfoDetails :: (
   WFT (XOverLit (GhcPass a)),
   WFT (XOverLit (GhcPass (NoGhcTcPass a))),  
   WFT (Anno (IdGhcP a)),
-  WFT (Anno (IdGhcP (NoGhcTcPass a))),                      
+  WFT (Anno (IdGhcP (NoGhcTcPass a))),
+  WFT (SyntaxExprGhc a),
+  WFT (SyntaxExprGhc (NoGhcTcPass a)),
 #endif
   OutputableBndrId a)
                    => InstInfo (GhcPass a) -> SDoc

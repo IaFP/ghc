@@ -1,3 +1,4 @@
+
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 903
 {-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
@@ -6,6 +7,7 @@
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE UndecidableInstances #-} -- Wrinkle in Note [Trees That Grow]
                                       -- in module Language.Haskell.Syntax.Extension
 {-# LANGUAGE DuplicateRecordFields #-}
@@ -27,7 +29,7 @@ module GHC.Hs.Lit
 
 import GHC.Prelude
 
-import {-# SOURCE #-} GHC.Hs.Expr( pprExpr )
+import {-# SOURCE #-} GHC.Hs.Expr( pprExpr, SyntaxExprGhc )
 
 import Language.Haskell.Syntax.Lit
 

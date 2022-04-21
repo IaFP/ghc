@@ -11,6 +11,7 @@
 module GHC.Tc.Deriv.WF ( mk_atat_fam, mk_atat_fam_except
                        , mk_atat_fam_units, mk_atat_fam_except_units
                        , genWFTyFamInst, genWFTyFamInsts
+                       , genWFFamInstConstraint
                        , mk_datafam_wfs
                        ) where
 
@@ -26,6 +27,8 @@ import GHC.Core.FamInstEnv
 import GHC.Core.TyCo.Rep
 
 import GHC.Core.Type
+import GHC.Core.FamInstEnv
+import GHC.Core.Coercion.Axiom
 import GHC.Core.DataCon
 import GHC.Types.Name
 import GHC.Core.TyCon
@@ -171,6 +174,20 @@ getMatchingPredicates' tv tvs preds =
           any (eqType tv) (predTyArgs p)
           && not (or [eqType tv' t | tv' <- tvs, t <- predTyArgs p])
 
+-- Given the RHS of a fam instance, e.g, "Tree a" in
+--   F [a] = Tree a
+-- return the corresponding constraint(s), e.g,
+--   Tree @ a
+genWFFamInstConstraint :: Type -> TcM Type
+genWFFamInstConstraint rhs
+  = do {
+  ; preds <- genWfConstraintsTcM False rhs []
+  ; let n = length preds
+        wf_rhs_ty = if n == 1
+                    then head preds
+                    else mkTyConApp (cTupleTyCon n) preds
+  ; return wf_rhs_ty
+  }
 
 -- This is called when we are type checking a data family instance
 mk_datafam_wfs :: SrcSpan -> TyCon -> [Type] -> TyCon -> TcM [FamInst]
@@ -258,8 +275,6 @@ data instance DF (a::Bool) where
 
 -}
 
-
-
 -- given a type family instance equation
 -- D a b ~ T a b
 -- generates a WF_D a equation
@@ -274,11 +289,7 @@ genWFTyFamInst fam_inst
        ; let wf_tc = wfMirrorTyCon "genWFTyFamInst" fam_tc
              loc = noAnnSrcSpan . getSrcSpan $ fam_inst
        ; inst_name <- newFamInstTyConName (L loc (getName wf_tc)) ts
-       ; preds <- genWfConstraintsTcM False rhs_ty []
-       ; let n = length preds
-             wf_rhs_ty = if n == 1
-                      then head preds
-                      else mkTyConApp (cTupleTyCon n) preds
+       ; wf_rhs_ty <- genWFFamInstConstraint rhs_ty
        ; let tvs     = fi_tvs fam_inst
              lhs_tys = ts
              axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wf_tc lhs_tys wf_rhs_ty

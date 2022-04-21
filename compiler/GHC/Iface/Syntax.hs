@@ -144,11 +144,12 @@ data IfaceDecl
                    ifResVar  :: Maybe IfLclName,   -- Result variable name, used
                                                    -- only for pretty-printing
                                                    -- with --show-iface
-                   ifBinders :: [IfaceTyConBinder],
-                   ifResKind :: IfaceKind,         -- Kind of the *tycon*
-                   ifFamFlav :: IfaceFamTyConFlav,
-                   ifFamInj  :: Injectivity,       -- injectivity information
-                   ifMirror  :: Bool }             -- Is this a mirror tycon
+                   ifBinders  :: [IfaceTyConBinder],
+                   ifResKind  :: IfaceKind,         -- Kind of the *tycon*
+                   ifFamFlav  :: IfaceFamTyConFlav,
+                   ifFamInj   :: Injectivity,       -- injectivity information
+                   ifWFMirror :: Maybe IfaceDecl    -- mirror tycon
+                 }             
 
   | IfaceClass { ifName    :: IfaceTopBndr,             -- Name of the class TyCon
                  ifRoles   :: [Role],                   -- Roles
@@ -1538,11 +1539,14 @@ freeNamesIfDecl (IfaceSynonym { ifBinders = bndrs, ifResKind = res_k
     freeNamesIfType rhs
 
 freeNamesIfDecl (IfaceFamily { ifBinders = bndrs, ifResKind = res_k
-                             , ifFamFlav = flav {-, ifWFMirror = wfm-} })
+                             , ifFamFlav = flav, ifWFMirror = wfm })
   = freeNamesIfVarBndrs bndrs &&&
     freeNamesIfKind res_k &&&
-    freeNamesIfFamFlav flav
-    -- &&& freeNamesIfWFMirror wfm
+    freeNamesIfFamFlav flav &&&
+    freeNamesWfMirror wfm
+    where
+      freeNamesWfMirror Nothing = emptyNameSet
+      freeNamesWfMirror (Just wfm') = freeNamesIfDecl wfm'
 
 freeNamesIfDecl (IfaceClass{ ifBinders = bndrs, ifBody = cls_body })
   = freeNamesIfVarBndrs bndrs &&&
@@ -1857,7 +1861,7 @@ we go to fingerprint an IfaceDecl. See Note [Fingerprinting IfaceDecls] for
 details.
 
 -}
-
+  
 instance Binary IfaceDecl where
     put_ bh (IfaceId name ty details idinfo) = do
         putByte bh 0
@@ -1974,7 +1978,8 @@ instance Binary IfaceDecl where
                     a4 <- get bh
                     a5 <- get bh
                     return (IfaceSynonym a1 a2 a3 a4 a5)
-            4 -> do a1 <- getIfaceTopBndr bh
+            4 -> do
+                    a1 <- getIfaceTopBndr bh
                     a2 <- get bh
                     a3 <- get bh
                     a4 <- get bh
@@ -2548,7 +2553,7 @@ instance NFData IfaceDecl where
       rnf f1 `seq` f2 `seq` seqList f3 `seq` rnf f4 `seq` rnf f5
 
     IfaceFamily f1 f2 f3 f4 f5 f6 f7 ->
-      rnf f1 `seq` rnf f2 `seq` seqList f3 `seq` rnf f4 `seq` rnf f5 `seq` f6 `seq` f7 `seq` ()
+      rnf f1 `seq` rnf f2 `seq` seqList f3 `seq` rnf f4 `seq` rnf f5 `seq` f6 `seq` rnf f7 `seq` ()
 
     IfaceClass f1 f2 f3 f4 f5 ->
       rnf f1 `seq` f2 `seq` seqList f3 `seq` rnf f4 `seq` rnf f5

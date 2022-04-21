@@ -218,43 +218,42 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
        ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
        ; isBootFile <- tcIsHsBootOrSig
        ; (gbl_env, th_bndrs) <-
-           if enblPCtrs && (not isBootFile) -- do not call mk_atat_fam if we are in boot files as we cannot generate typefamilies for boot files 
+           if enblPCtrs
            then do { traceTc "---- start wf enrichment ---- { " empty
 
-                   ; let locs::[SrcSpan] = map (locA . getLoc) tyclds
+                   ; let locs :: [SrcSpan] = map (locA . getLoc) tyclds
                              -- ; let tAndR = thisAndRest tyclss
                          locsAndTcs = zip locs tyclss
-                   ; fam_insts <-  if (length tyclds == 1)
-                                                -- for now we can only reason about non-circular datatypes
-                                   then concatMapM (\(l, tc) -> mk_atat_fam l tc) locsAndTcs
-                                                  -- We generate T @ a ~ () axioms here
-                                                  -- for all the mutually recursive datatypes
-                                                  -- thats the best we can do atm
-                                   else concatMapM (\(l, tc) -> mk_atat_fam_except_units l tc tyclss)
-                                                  locsAndTcs
-                                                  
-
-                   -- TODO: maybe do a single pass and classify all the tycons in one go
-                   -- but its rarely the case that the group is more than 3-4 dependent tycons
-
-                   -- Step 1. Get the typefamilies out of the way
-                   ; let (locsAndTFs, locsAndTyClss') = partition (isOpenTypeFamilyTyCon . snd) locsAndTcs
-                   -- ; mirrors_and_tyfams <- genWFMirrorTyCons (fmap snd locsAndTFs)
-                         wf_mirrors_mb = fmap (wfMirrorTyCon_maybe . snd) locsAndTFs
-                   -- ; let (wf_mirrors, tyfams') = unzip mirrors_and_tyfams
-                   
-                   
-                   ; traceTc "wfelab partition"
-                       (vcat [ text "TFs:" <+> (vcat $ fmap (ppr . snd) locsAndTFs)
-                             , text "Others:" <+> (vcat $ fmap (ppr . snd) locsAndTyClss')
-                             ])
+                     -- remark: below is a bit ugly
+                   ; fam_insts <-
+                       if isBootFile then
+                         -- do not call mk_atat_fam if we are in boot files
+                         -- as we cannot generate open type family instances in boot files
+                         return []
+                       else
+                       if (length tyclds == 1)
+                          -- for now we can only reason about non-circular datatypes
+                       then concatMapM (\(l, tc) -> mk_atat_fam l tc) locsAndTcs
+                            -- We generate T @ a ~ () axioms here
+                            -- for all the mutually recursive datatypes
+                            -- thats the best we can do atm
+                       else concatMapM (\(l, tc) -> mk_atat_fam_except_units l tc tyclss)
+                            locsAndTcs
+                   ; let
+                         (open, rest1)   = partition (isOpenTypeFamilyTyCon . snd) locsAndTcs
+                         (closed, rest2) = partition (isClosedTypeFamilyTyCon . snd) rest1
+                         wf_mirrors = concatMap (maybeToList . wfMirrorTyCon_maybe . snd) (open ++ closed)
                      
-                   -- ; traceTc "Starting validity check post WF enrichment" (vcat $ fmap pprtc wf_mirrors)
-                   -- ; wf_mirrors' <- concatMapM checkValidTyCl (wf_mirrors) --  ++ tyfams')
-                   -- ; traceTc "Done validity check post WF enrichment" (vcat $ fmap pprtc wf_mirrors')
+                   ; traceTc "wfelab partition"
+                       (vcat [ text "Open TFs:" <+> (vcat $ fmap (pprtc . snd) open)
+                             , text "Closed TFs:" <+> (vcat $ fmap (pprtc . snd) closed)
+                             , text "Others:" <+> (vcat $ fmap (ppr . snd) rest2)
+                             ])
+
                    ; traceTc "---- end wf enrichment ---- }" empty
+
                    ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $
-                                                        (fmap snd locsAndTcs) ++ concatMap maybeToList wf_mirrors_mb)
+                                                       (fmap snd locsAndTcs) ++ wf_mirrors)
                    }
            else do { addTyConsToGblEnv tyclss }
 
@@ -295,8 +294,8 @@ pprtc tc
     <+> ppr (zip (tyConBinders tc) (tyConRoles tc))
     <+> text "TypeSyn RHS" <+> ppr (synTyConRhs_maybe tc)
     <+> text "isFamFree" <+> ppr (isFamFreeTyCon tc)
-  | isOpenFamilyTyCon tc
-  = text "open tyfam tycon=" <> ppr tc
+  | isTypeFamilyTyCon tc
+  = text "tyfam tycon=" <> ppr tc
     <+> text "mirror tycon=" <> ppr (wfMirrorTyCon_maybe tc)
   | otherwise =
     text "tycon=" <> ppr tc
@@ -2712,7 +2711,7 @@ tcDefaultAssocDecl fam_tc
        -- type default LHS can mention *different* type variables than the
        -- enclosing class. So it's treated more as a freestanding beast.
        ; (qtvs, pats, rhs_ty) <- tcTyFamInstEqnGuts fam_tc NotAssociated
-                                      outer_bndrs hs_pats hs_rhs_ty
+                                      outer_bndrs hs_pats hs_rhs_ty Nothing
 
        ; let fam_tvs = tyConTyVars fam_tc
        ; traceTc "tcDefaultAssocDecl 2" (vcat
@@ -2836,7 +2835,7 @@ any damage is done.
 
 tcFamDecl1 :: Maybe Class -> Maybe Name -> FamilyDecl GhcRn -> TcM TyCon
 tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
-                              , fdLName = tc_lname@(L _ tc_name)
+                              , fdLName = tc_lname@(L src_span tc_name)
                               , fdResultSig = L _ sig
                               , fdInjectivityAnn = inj })
   | DataFamily <- fam_info
@@ -2896,48 +2895,86 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
             <- bindTyClTyVars tc_name $ \ _ binders res_kind ->
                do { inj' <- tcInjectivity binders inj
                   ; return (inj', binders, res_kind) }
-
+       
        ; checkFamFlag tc_name -- make sure we have -XTypeFamilies
        ; checkResultSigFlag tc_name sig
+       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
 
          -- If Nothing, this is an abstract family in a hs-boot file;
          -- but eqns might be empty in the Just case as well
-       ; case mb_eqns of
+       ; fam_tc <-
+         case mb_eqns of
            Nothing   ->
                return $ mkFamilyTyCon tc_name binders res_kind
                                       (resultVariableName sig)
                                       AbstractClosedSynFamilyTyCon parent
                                       inj' Nothing
-           Just eqns -> do {
+           Just eqns -> if partyCtrs && isJust wfname
+             then do {
+               ; let wf_name = fromJust wfname
+                     tc_fam_tc = mkTcTyCon tc_name binders res_kind
+                                 noTcTyConScopedTyVars
+                                 False 
+                                 ClosedTypeFamilyFlavour
+                                 (Just tc_wf_fam_tc)
+                     tc_wf_fam_tc = mkWFTcTyCon wf_name binders constraintKind
+                                 noTcTyConScopedTyVars
+                                 False 
+                                 ClosedTypeFamilyFlavour
 
-         -- Process the equations, creating CoAxBranches
-       ; let tc_fam_tc = mkTcTyCon tc_name binders res_kind
-                                   noTcTyConScopedTyVars
-                                   False {- this doesn't matter here -}
-                                   ClosedTypeFamilyFlavour
-                                   Nothing
+               ; branches <- mapAndReportM (tcTyFamInstEqn tc_fam_tc NotAssociated) eqns
+               ; co_ax_name <- newFamInstAxiomName tc_lname []
 
-       ; branches <- mapAndReportM (tcTyFamInstEqn tc_fam_tc NotAssociated) eqns
-         -- Do not attempt to drop equations dominated by earlier
-         -- ones here; in the case of mutual recursion with a data
-         -- type, we get a knot-tying failure.  Instead we check
-         -- for this afterwards, in GHC.Tc.Validity.checkValidCoAxiom
-         -- Example: tc265
+               ; wf_branches <- mapM (tcWFTyFamInstEqn tc_fam_tc) eqns
+               ; wf_co_ax_name <- newFamInstAxiomName (L src_span wf_name) []
 
-         -- Create a CoAxiom, with the correct src location.
-       ; co_ax_name <- newFamInstAxiomName tc_lname []
+               ; let mb_co_ax
+                       | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
+                       | otherwise = Just (mkBranchedCoAxiom co_ax_name fam_tc branches)
 
-       ; let mb_co_ax
-              | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
-              | otherwise = Just (mkBranchedCoAxiom co_ax_name fam_tc branches)
+                     fam_tc = mkFamilyTyCon tc_name binders res_kind (resultVariableName sig)
+                       (ClosedSynFamilyTyCon mb_co_ax) parent inj' (Just wf_tycon)
 
-             fam_tc = mkFamilyTyCon tc_name binders res_kind (resultVariableName sig)
-                      (ClosedSynFamilyTyCon mb_co_ax) parent inj' Nothing
+                     wf_tycon = mkWFFamilyTyCon wf_name binders constraintKind
+                                (resultVariableName sig) (ClosedSynFamilyTyCon mb_wf_co_ax)
+                                parent
 
-         -- We check for instance validity later, when doing validity
-         -- checking for the tycon. Exception: checking equations
-         -- overlap done by dropDominatedAxioms
-       ; return fam_tc } }
+                     mb_wf_co_ax = Just (mkBranchedCoAxiom wf_co_ax_name wf_tycon wf_branches)
+
+               
+               ; return fam_tc }
+             else do {
+               -- Process the equations, creating CoAxBranches
+               ; let tc_fam_tc = mkTcTyCon tc_name binders res_kind
+                                 noTcTyConScopedTyVars
+                                 False {- this doesn't matter here -}
+                                 ClosedTypeFamilyFlavour
+                                 Nothing                           
+
+               ; branches <- mapAndReportM (tcTyFamInstEqn tc_fam_tc NotAssociated) eqns
+               -- Do not attempt to drop equations dominated by earlier
+               -- ones here; in the case of mutual recursion with a data
+               -- type, we get a knot-tying failure.  Instead we check
+               -- for this afterwards, in GHC.Tc.Validity.checkValidCoAxiom
+               -- Example: tc265
+
+               -- Create a CoAxiom, with the correct src location.
+               ; co_ax_name <- newFamInstAxiomName tc_lname []
+
+               ; let mb_co_ax
+                       | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
+                       | otherwise = Just (mkBranchedCoAxiom co_ax_name fam_tc branches)
+
+                     fam_tc = mkFamilyTyCon tc_name binders res_kind (resultVariableName sig)
+                       (ClosedSynFamilyTyCon mb_co_ax) parent inj' Nothing
+
+               -- We check for instance validity later, when doing validity
+               -- checking for the tycon. Exception: checking equations
+               -- overlap done by dropDominatedAxioms
+               ; return fam_tc }
+           
+       ; return fam_tc
+       }
 
 #if __GLASGOW_HASKELL__ <= 810
   | otherwise = panic "tcFamInst1"  -- Silence pattern-exhaustiveness checker
@@ -3151,6 +3188,20 @@ kcTyFamInstEqn tc_fam_tc
     }
 
 --------------------------
+
+tcWFTyFamInstEqn :: TcTyCon -> LTyFamInstEqn GhcRn -> TcM (KnotTied CoAxBranch)
+tcWFTyFamInstEqn fam_tc
+    (L loc (FamEqn { feqn_bndrs  = outer_bndrs
+                   , feqn_pats   = hs_pats
+                   , feqn_rhs    = hs_rhs_ty }))
+  = do { let wf_fam_tc = wfMirrorTyCon "tcWFTyFamInstEqn" fam_tc
+       ; (qtvs, pats, rhs_ty) <- tcTyFamInstEqnGuts fam_tc NotAssociated
+                                      outer_bndrs hs_pats hs_rhs_ty (Just wf_fam_tc)
+       ; return (mkCoAxBranch qtvs [] [] pats rhs_ty
+                              (map (const Nominal) qtvs)
+                              (locA loc))
+       }
+
 tcTyFamInstEqn :: TcTyCon -> AssocInstInfo -> LTyFamInstEqn GhcRn
                -> TcM (KnotTied CoAxBranch)
 -- Needs to be here, not in GHC.Tc.TyCl.Instance, because closed families
@@ -3172,7 +3223,7 @@ tcTyFamInstEqn fam_tc mb_clsinfo
        ; checkTyFamInstEqn fam_tc eqn_tc_name hs_pats
 
        ; (qtvs, pats, rhs_ty) <- tcTyFamInstEqnGuts fam_tc mb_clsinfo
-                                      outer_bndrs hs_pats hs_rhs_ty
+                                      outer_bndrs hs_pats hs_rhs_ty Nothing
        -- Don't print results they may be knot-tied
        -- (tcFamInstEqnGuts zonks to Type)
        ; return (mkCoAxBranch qtvs [] [] pats rhs_ty
@@ -3263,9 +3314,10 @@ tcTyFamInstEqnGuts :: TyCon -> AssocInstInfo
                    -> HsOuterFamEqnTyVarBndrs GhcRn     -- Implicit and explicit binders
                    -> HsTyPats GhcRn                    -- Patterns
                    -> LHsType GhcRn                     -- RHS
+                   -> Maybe TyCon                       -- WF Mirror
                    -> TcM ([TyVar], [TcType], TcType)   -- (tyvars, pats, rhs)
 -- Used only for type families, not data families
-tcTyFamInstEqnGuts fam_tc mb_clsinfo outer_hs_bndrs hs_pats hs_rhs_ty
+tcTyFamInstEqnGuts fam_tc mb_clsinfo outer_hs_bndrs hs_pats hs_rhs_ty wf_fam_tc
   = do { traceTc "tcTyFamInstEqnGuts {" (ppr fam_tc)
 
        -- By now, for type families (but not data families) we should
@@ -3310,6 +3362,9 @@ tcTyFamInstEqnGuts fam_tc mb_clsinfo outer_hs_bndrs hs_pats hs_rhs_ty
                                    , ppr rhs_ty ] ) }
        ; doNotQuantifyTyVars dvs_rhs mk_doc
 
+       ; rhs_ty <- case wf_fam_tc of
+                     Just _  -> genWFFamInstConstraint rhs_ty
+                     Nothing -> return rhs_ty
        ; ze         <- mkEmptyZonkEnv NoFlexi
        ; (ze, qtvs) <- zonkTyBndrsX      ze qtvs
        ; lhs_ty     <- zonkTcTypeToTypeX ze lhs_ty

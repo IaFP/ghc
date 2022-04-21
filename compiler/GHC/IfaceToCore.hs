@@ -43,6 +43,7 @@ import GHC.Tc.Errors.Types
 import GHC.Tc.TyCl.Build
 import GHC.Tc.Utils.Monad
 import GHC.Tc.Utils.TcType
+import GHC.Tc.Utils.Env
 
 import GHC.Core.Type
 import GHC.Core.Coercion
@@ -732,33 +733,27 @@ tc_iface_decl _ _ (IfaceSynonym {ifName = tc_name,
    where
      mk_doc n = text "Type synonym" <+> ppr n
 
-tc_iface_decl parent _ (IfaceFamily {ifName = tc_name,
+tc_iface_decl parent b (IfaceFamily {ifName = tc_name,
                                      ifFamFlav = fam_flav,
                                      ifBinders = binders,
                                      ifResKind = res_kind,
                                      ifResVar = res,
                                      ifFamInj = inj,
-                                     ifMirror = m
+                                     ifWFMirror = mirror
                                     })
    = bindIfaceTyConBinders_AT binders $ \ binders' -> do
      { res_kind' <- tcIfaceType res_kind    -- Note [Synonym kind loop]
      ; rhs      <- forkM (mk_doc tc_name) $
                    tc_fam_flav tc_name fam_flav
      ; res_name <- traverse (newIfaceName . mkTyVarOccFS) res
-     ; tycon <- if m
-                then return $ mkWFFamilyTyCon tc_name binders' constraintKind res_name rhs parent
-                else case fam_flav of
-                       IfaceDataFamilyTyCon -> return $ mkFamilyTyCon tc_name binders'
-                                                           res_kind' res_name rhs parent inj Nothing
-  
-                       _ -> do forkM (mk_doc_wf tc_name) $
-                                 do { wf_name <- mk_wf_name tc_name
-                                    ; let wf'tc = mkWFFamilyTyCon wf_name binders'
-                                                  constraintKind res_name rhs parent
-                              -- ANI TODO: this is not quite right.
-                              -- We need to find the exact same $wf'tc that we should have previously generated.
-                                    ; return $ mkFamilyTyCon tc_name binders'
-                                         res_kind' res_name rhs parent inj (Just wf'tc) }
+     -- N.B. we map over (mirror :: Maybe IFaceDecl) here,
+     -- so if this TF does not have a WF mirror (i.e, mirror is Nothing),
+     -- the code will work anyway.
+     ; tycon <- do
+         { wf'tc <- mapM (tc_iface_decl parent b) mirror
+         ; return $ mkFamilyTyCon tc_name binders'
+                    res_kind' res_name rhs parent inj (fmap tyThingTyCon wf'tc)
+         }
      ; return (ATyCon tycon) }
    where
      mk_doc n = text "Type family synonym" <+> ppr n
@@ -778,7 +773,7 @@ tc_iface_decl parent _ (IfaceFamily {ifName = tc_name,
      tc_fam_flav _ IfaceBuiltInSynFamTyCon
          = pprPanic "tc_iface_decl"
                     (text "IfaceBuiltInSynFamTyCon in interface file")
-
+                    
 tc_iface_decl _parent _ignore_prags
             (IfaceClass {ifName = tc_name,
                          ifRoles = roles,

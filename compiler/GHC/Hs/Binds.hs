@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 903
-{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, TypeFamilies #-}
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, TypeFamilies, DataKinds #-}
 #endif
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -33,8 +33,13 @@ import GHC.Prelude
 
 import Language.Haskell.Syntax.Binds
 
-import {-# SOURCE #-} GHC.Hs.Expr ( pprExpr, pprFunBind, pprPatBind )
-import {-# SOURCE #-} GHC.Hs.Pat  ( pprLPat )
+import {-# SOURCE #-} GHC.Hs.Expr (
+  pprExpr,
+  pprFunBind,
+  pprPatBind,
+  SyntaxExprGhc
+  )
+import {-# SOURCE #-} GHC.Hs.Pat  ( pprLPat )  
 
 import Language.Haskell.Syntax.Extension
 import GHC.Hs.Extension
@@ -357,6 +362,7 @@ instance (
            WFT (XOverLit (GhcPass pr)),
            WFT (XOverLit (GhcPass (NoGhcTcPass pr))),
            WFT (XOverLit GhcRn),-- ANI YUCK!
+           WFT (IdGhcP pl),
            WFT (Anno (Pat (GhcPass pl))), Pat @ GhcPass pl,
            WFT (Anno (HsExpr (GhcPass pr))), HsExpr @ GhcPass pr,
            WFT (XOverLit (GhcPass pl)), WFT (XOverLit (GhcPass (NoGhcTcPass pl))),
@@ -379,6 +385,10 @@ instance (
                       WFT (Anno (IdGhcP (NoGhcTcPass pr))),
                       WFT (Anno (IdGhcP pl)),
                       WFT (Anno (IdGhcP (NoGhcTcPass pl))),
+                      WFT (SyntaxExprGhc pr),
+                      WFT (SyntaxExprGhc (NoGhcTcPass pr)),
+                      WFT (SyntaxExprGhc pl),
+                      WFT (SyntaxExprGhc (NoGhcTcPass pl)),
 #endif
            OutputableBndrId pl, OutputableBndrId pr)
         => Outputable (HsLocalBindsLR (GhcPass pl) (GhcPass pr)) where
@@ -391,6 +401,7 @@ instance (
   WFT (XOverLit (GhcPass pr)),
   WFT (XOverLit (GhcPass (NoGhcTcPass pr))),
   WFT (XOverLit (GhcRn)), -- ANI HUH?
+  WFT (IdGhcP pl),
   WFT (Anno (Pat (GhcPass pl))),
   Pat @ GhcPass pl,
   WFT (Anno (HsExpr (GhcPass pr))),
@@ -418,6 +429,10 @@ instance (
   WFT (Anno (IdGhcP (NoGhcTcPass pr))),
   WFT (Anno (IdGhcP pl)),
   WFT (Anno (IdGhcP (NoGhcTcPass pl))),
+  WFT (SyntaxExprGhc pr),
+  WFT (SyntaxExprGhc pl),
+  WFT (SyntaxExprGhc (NoGhcTcPass pr)),
+  WFT (SyntaxExprGhc (NoGhcTcPass pl)),
 #endif
   OutputableBndrId pl, OutputableBndrId pr)
         => Outputable (HsValBindsLR (GhcPass pl) (GhcPass pr)) where
@@ -439,6 +454,7 @@ pprLHsBinds :: (
            WFT (XOverLit (GhcPass idR)),
            WFT (XOverLit (GhcPass (NoGhcTcPass idR))),
            WFT (Anno (Pat (GhcPass idL))),
+           WFT (IdGhcP idL),
            Pat @ GhcPass idL,
            WFT (Anno (HsExpr (GhcPass idR))),
            HsExpr @ GhcPass idR, WFT (XOverLit (GhcPass idL)),
@@ -464,6 +480,11 @@ pprLHsBinds :: (
                       WFT (Anno (IdGhcP (NoGhcTcPass idR))),
                       WFT (Anno (IdGhcP idL)),
                       WFT (Anno (IdGhcP (NoGhcTcPass idL))),
+                      WFT (SyntaxExprGhc idR),
+                      WFT (SyntaxExprGhc idL),
+                      WFT (SyntaxExprGhc (NoGhcTcPass idR)),
+                      WFT (SyntaxExprGhc (NoGhcTcPass idL)),                      
+                      
 #endif
              OutputableBndrId idL, OutputableBndrId idR)
           => LHsBindsLR (GhcPass idL) (GhcPass idR) -> SDoc
@@ -476,6 +497,7 @@ pprLHsBindsForUser :: (
            WFT (XOverLit (GhcPass id2)),
            WFT (XOverLit (GhcPass (NoGhcTcPass id2))),
            WFT (Anno (Pat (GhcPass idL))),
+           WFT (IdGhcP idL),
            Pat @ GhcPass idL, WFT (Anno (HsExpr (GhcPass idR))),
            HsExpr @ GhcPass idR, WFT (XOverLit (GhcPass idR)),
            WFT (XOverLit (GhcPass idL)),
@@ -504,6 +526,12 @@ pprLHsBindsForUser :: (
                       WFT (Anno (IdGhcP (NoGhcTcPass idL))),
                       WFT (Anno (IdGhcP id2)),
                       WFT (Anno (IdGhcP (NoGhcTcPass id2))),
+                      WFT (SyntaxExprGhc idR),
+                      WFT (SyntaxExprGhc id2),
+                      WFT (SyntaxExprGhc (NoGhcTcPass id2)),
+                      WFT (SyntaxExprGhc idL),
+                      WFT (SyntaxExprGhc (NoGhcTcPass idR)),
+                      WFT (SyntaxExprGhc (NoGhcTcPass idL)),
 #endif
            OutputableBndrId idL,
            OutputableBndrId idR,
@@ -578,6 +606,7 @@ instance (
                   WFT (XOverLit (GhcPass (NoGhcTcPass pr))),
                   WFT (XOverLit (GhcPass (NoGhcTcPass pl))),
                   WFT (Anno (Pat (GhcPass pr))),
+                  WFT (IdGhcP pl),
                   Pat @ GhcPass pr,
                   Pat @ GhcPass pl,
                   WFT (Anno (HsExpr (GhcPass pl))),
@@ -598,7 +627,12 @@ instance (
                       WFT (Anno (IdGhcP pr)),
                       WFT (Anno (IdGhcP (NoGhcTcPass pr))),
                       WFT (Anno (IdGhcP pl)),
-                      WFT (Anno (IdGhcP (NoGhcTcPass pl))),                         
+                      WFT (Anno (IdGhcP (NoGhcTcPass pl))),
+                      WFT (SyntaxExprGhc pr),
+                      WFT (SyntaxExprGhc pl),
+                      WFT (SyntaxExprGhc (NoGhcTcPass pr)),
+                      WFT (SyntaxExprGhc (NoGhcTcPass pl)),
+                      
 #endif
             OutputableBndrId pl, OutputableBndrId pr)
          => Outputable (HsBindLR (GhcPass pl) (GhcPass pr)) where
@@ -614,6 +648,7 @@ ppr_monobind :: forall idL idR.
                   WFT (XOverLit (GhcPass (NoGhcTcPass idR))),
                   WFT (XOverLit (GhcPass (NoGhcTcPass idL))),
                   WFT (Anno (Pat (GhcPass idR))),
+                  WFT (IdGhcP idL),
                   Pat @ GhcPass idR,
                   Pat @ GhcPass idL,                  
                   WFT (Anno (HsExpr (GhcPass idL))),
@@ -634,7 +669,11 @@ ppr_monobind :: forall idL idR.
                       WFT (Anno (IdGhcP idR)),
                       WFT (Anno (IdGhcP (NoGhcTcPass idR))),                      
                       WFT (Anno (IdGhcP idL)),
-                      WFT (Anno (IdGhcP (NoGhcTcPass idL))),                      
+                      WFT (Anno (IdGhcP (NoGhcTcPass idL))),
+                      WFT (SyntaxExprGhc idL),
+                      WFT (SyntaxExprGhc idR),
+                      WFT (SyntaxExprGhc (NoGhcTcPass idR)),
+                      WFT (SyntaxExprGhc (NoGhcTcPass idL)),
 #endif
                   OutputableBndrId idL, OutputableBndrId idR)
              => HsBindLR (GhcPass idL) (GhcPass idR) -> SDoc
@@ -689,7 +728,9 @@ instance (
           MatchGroup @ GhcPass r,
           MatchGroup (GhcPass r) @ GenLocated (Anno (HsExpr (GhcPass r))) (HsExpr (GhcPass r)),
           WFT (Anno (IdGhcP r)),
-          WFT (Anno (IdGhcP (NoGhcTcPass r))),                      
+          WFT (Anno (IdGhcP (NoGhcTcPass r))),
+          WFT (SyntaxExprGhc r),
+          WFT (SyntaxExprGhc (NoGhcTcPass r)),
 #endif
          OutputableBndrId l, OutputableBndrId r)
           => Outputable (PatSynBind (GhcPass l) (GhcPass r)) where
@@ -771,6 +812,8 @@ instance (
   HsExpr @ GhcPass p,
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
        => Outputable (HsIPBinds (GhcPass p)) where
@@ -784,6 +827,8 @@ instance (
   HsExpr @ GhcPass p,
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => Outputable (IPBind (GhcPass p)) where
   ppr (IPBind _ lr rhs) = name <+> equals <+> pprExpr (unLoc rhs)
@@ -828,7 +873,11 @@ instance (
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (XOverLit (GhcPass p)),
   WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (NoGhcTcPass p),
+  WFT (NoGhcTcPass (NoGhcTcPass p)),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => Outputable (Sig (GhcPass p)) where
     ppr sig = ppr_sig sig
@@ -838,7 +887,9 @@ ppr_sig :: forall p. (
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (XOverLit (GhcPass p)),
   WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),                      
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+  WFT (SyntaxExprGhc p),
+  WFT (SyntaxExprGhc (NoGhcTcPass p)),  
 #endif
   OutputableBndrId p)
         => Sig (GhcPass p) -> SDoc

@@ -239,6 +239,7 @@ isTyConInternal tycon =
   || tycon `hasKey` staticPtrInfoTyConKey || (tyConName tycon == staticPtrInfoTyConName)
   || tycon `hasKey` ptrTyConKey || tycon `hasKey` funPtrTyConKey
   || tycon `hasKey` qTyConKey || tyConName tycon == qTyConName
+  || tycon `hasKey` anyTyConKey
   || tycon == funTyCon
   || isWFMirrorTyCon tycon -- @ is also a mirror
   
@@ -273,9 +274,9 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
     else do { elabds <- mapM (genAtAtConstraintsExceptTcM isTyConPhase (tycon:eTycons) ts) args
             ; return $ foldl mergeAtAtConstraints [] $ fmap newPreds elabds
             }
-  | isTyConAssoc tycon || isOpenTypeFamilyTyCon tycon
+  | isTyConAssoc tycon || isOpenTypeFamilyTyCon tycon || isClosedTypeFamilyTyCon tycon
   , hasWfMirrorTyCon tycon -- It can be an associated data type family it is handled as a normal tycon
-  = do { traceTc "wfelab isTyConAssoc/open typefam" (ppr tycon <+> ppr args)
+  = do { traceTc "wfelab isTyConAssoc/open/closed typefam" (ppr tycon <+> ppr args)
        ; let (args_tc, extra_args_tc) = splitAt (tyConArity tycon) args
        ; let wftycon = wfMirrorTyCon "tyConGenAtsTcM" tycon -- this better exist
        ; traceTc "wfelab lookup2" (ppr wftycon)
@@ -290,11 +291,14 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; let wftct = mkTyConApp wftycon args_tc
        ; extra_css <- sequenceAts tycon args_tc extra_args_tc [] []
        ; args_wfts <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
-       ; if isTyConPhase
-         then return $ foldl mergeAtAtConstraints [] $ (fmap newPreds args_wfts) ++ [wftct:extra_css]
-         else do r_args_wfts <- mapM redConstraints $ fmap newPreds args_wfts
-                 let r_args_wft = foldl mergeAtAtConstraints [] r_args_wfts
-                 mergeAtAtConstraints r_args_wft <$> redConstraints (wftct:extra_css)
+       
+       ; let should_reduce_constraints = not isTyConPhase || isClosedTypeFamilyTyCon tycon
+       ; if should_reduce_constraints
+         then do { r_args_wfts <- mapM redConstraints $ fmap newPreds args_wfts
+                 ; let r_args_wft = foldl mergeAtAtConstraints [] r_args_wfts
+                 ; mergeAtAtConstraints r_args_wft <$> redConstraints (wftct:extra_css)
+                 }
+         else return $ foldl mergeAtAtConstraints [] $ (fmap newPreds args_wfts) ++ [wftct:extra_css]
        }
 
   | isClosedTypeFamilyTyCon tycon

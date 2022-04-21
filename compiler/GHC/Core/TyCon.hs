@@ -2412,6 +2412,7 @@ isOpenTypeFamilyTyCon _                                               = False
 -- | Is this a closed type family TyCon?
 isClosedTypeFamilyTyCon :: TyCon -> Bool
 isClosedTypeFamilyTyCon (FamilyTyCon {famTcFlav = ClosedSynFamilyTyCon _ }) = True
+isClosedTypeFamilyTyCon (TcTyCon {tcTyConFlavour = ClosedTypeFamilyFlavour }) = True
 isClosedTypeFamilyTyCon _                                                 = False
 
 -- | Is this a non-empty closed type family? Returns 'Nothing' for
