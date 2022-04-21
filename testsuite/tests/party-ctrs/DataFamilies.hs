@@ -59,7 +59,7 @@ instance MonadTrans XMLGenT where
 type Name = (Maybe String, String)
 
 -- | Generate XML values in some XMLGenerator monad.
-class Monad m => XMLGen m where
+class (Total m, Monad m) => XMLGen m where
  type XML m
  data Child m
  genElement  :: Name -> [XMLGenT m [Int]] -> [XMLGenT m [Child m]] -> XMLGenT m (XML m)
