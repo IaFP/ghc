@@ -1,10 +1,10 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 903
 {-# LANGUAGE TypeOperators, TypeFamilies, ConstraintKinds #-}
+{-# LANGUAGE DataKinds         #-}  
 #endif
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE KindSignatures         #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeFamilyDependencies    #-}
@@ -29,11 +29,12 @@ import Language.Haskell.Syntax.Expr
   , HsSplice
   )
 import GHC.Hs.Extension ( OutputableBndrId, GhcPass, Pass (..), GhcRn, GhcTc )
-import Language.Haskell.Syntax.Extension (NoExtField)
+
 #if MIN_VERSION_base(4,16,0)
 import GHC.Types (WFT)
 import Language.Haskell.Syntax.Extension
 import GHC.Hs.Extension (NoGhcTcPass, IdGhcP)
+import Language.Haskell.Syntax.Extension (NoExtField)
 #endif
 import qualified Data.Kind
 
@@ -134,18 +135,16 @@ pprFunBind :: (
      OutputableBndrId idR)
            => MatchGroup (GhcPass idR) (LHsExpr (GhcPass idR)) -> SDoc
 
--- type family SyntaxExprGhc (p :: Pass) = (r :: Data.Kind.Type) | r -> p
 data SyntaxExprRn = SyntaxExprRn (HsExpr GhcRn)
-    -- Why is the payload not just a Name?
-    -- See Note [Monad fail : Rebindable syntax, overloaded strings] in "GHC.Rename.Expr"
                   | NoSyntaxExprRn
-
+#if MIN_VERSION_base(4,16,0)
 type family SyntaxExprGhc (p :: Pass) = (r :: Data.Kind.Type) | r -> p where
   SyntaxExprGhc 'Parsed      = NoExtField
   SyntaxExprGhc 'Renamed     = SyntaxExprRn
   SyntaxExprGhc 'Typechecked = SyntaxExprTc
-
+#endif
 data SyntaxExprTc = SyntaxExprTc { syn_expr      :: HsExpr GhcTc
                                  , syn_arg_wraps :: [HsWrapper]
                                  , syn_res_wrap  :: HsWrapper }
                   | NoSyntaxExprTc  -- See Note [NoSyntaxExpr]
+

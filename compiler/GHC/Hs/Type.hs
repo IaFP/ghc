@@ -94,7 +94,11 @@ import GHC.Prelude
 
 import Language.Haskell.Syntax.Type
 
-import {-# SOURCE #-} GHC.Hs.Expr ( pprSplice, SyntaxExprGhc )
+import {-# SOURCE #-} GHC.Hs.Expr (
+#if MIN_VERSION_base(4,16,0)
+ SyntaxExprGhc, 
+#endif
+  pprSplice )
 
 import Language.Haskell.Syntax.Extension
 import GHC.Hs.Extension

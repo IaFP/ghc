@@ -29,7 +29,7 @@ module GHC.Hs.Lit
 
 import GHC.Prelude
 
-import {-# SOURCE #-} GHC.Hs.Expr( pprExpr, SyntaxExprGhc )
+import {-# SOURCE #-} GHC.Hs.Expr( pprExpr )
 
 import Language.Haskell.Syntax.Lit
 

@@ -36,8 +36,10 @@ import Language.Haskell.Syntax.Binds
 import {-# SOURCE #-} GHC.Hs.Expr (
   pprExpr,
   pprFunBind,
-  pprPatBind,
-  SyntaxExprGhc
+  pprPatBind
+#if MIN_VERSION_base(4,16,0)
+  , SyntaxExprGhc
+#endif
   )
 import {-# SOURCE #-} GHC.Hs.Pat  ( pprLPat )  
 

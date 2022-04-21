@@ -57,7 +57,11 @@ import GHC.Prelude
 import Language.Haskell.Syntax.Pat
 import Language.Haskell.Syntax.Expr ( HsExpr )
 
-import {-# SOURCE #-} GHC.Hs.Expr (pprLExpr, pprSplice, SyntaxExprGhc)
+import {-# SOURCE #-} GHC.Hs.Expr (pprLExpr, pprSplice
+#if MIN_VERSION_base(4,16,0)
+                                  , SyntaxExprGhc
+#endif
+                                  )
 
 -- friends:
 import GHC.Hs.Binds

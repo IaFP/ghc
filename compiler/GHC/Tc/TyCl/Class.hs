@@ -560,8 +560,6 @@ tcATDefault loc inst_subst defined_ats (ATI fam_tc defs)
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
        ; wf_fam_inst <- if partyCtrs then genWFTyFamInst fam_inst else return []
        ; return $ fam_inst:wf_fam_inst }
-  | isWFMirrorTyCon fam_tc -- we would have generated wf'Tc things in Tc flow
-  = return []
    -- No defaults ==> generate a warning
   | otherwise  -- defs = Nothing
   = do { warnMissingAT (tyConName fam_tc)
@@ -588,5 +586,5 @@ warnMissingAT name
                  (text "No explicit" <+> text "associated type"
                                      <+> text "or default declaration for"
                                      <+> quotes (ppr name))
-       ; diagnosticTc  (warn && hsc_src == HsSrcFile) dia
-                       }
+       ; diagnosticTc  (warn && hsc_src == HsSrcFile && not (isWFName name)) dia
+       }

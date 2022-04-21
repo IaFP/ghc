@@ -108,7 +108,11 @@ import GHC.Prelude
 
 import Language.Haskell.Syntax.Decls
 
-import {-# SOURCE #-} GHC.Hs.Expr ( pprExpr, pprSpliceDecl, SyntaxExprGhc )
+import {-# SOURCE #-} GHC.Hs.Expr ( pprExpr, pprSpliceDecl
+#if MIN_VERSION_base(4,16,0)
+                                  , SyntaxExprGhc
+#endif
+                                  ) 
         -- Because Expr imports Decls via HsBracket
 
 import GHC.Hs.Binds
