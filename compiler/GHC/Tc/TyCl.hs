@@ -844,11 +844,11 @@ generaliseTyClDecl inferred_tc_env (L _ decl)
     tycld_names :: TyClDecl GhcRn -> TcM [(GenerateWFMirrorFlag, Name)]
     tycld_names decl = do let declName = tcdName decl
                           more_names <- at_names decl
-                          return $ (decl_m_flag, declName):more_names
+                          return $ (decl_m_flag decl, declName):more_names
 
     at_names :: TyClDecl GhcRn -> TcM [(GenerateWFMirrorFlag, Name)]
-    at_names (ClassDecl { tcdATs = ats }) = return $ zip (repeat GenerateMirror)
-                                                         (map (familyDeclName . unLoc) ats)
+    at_names (ClassDecl { tcdATs = ats }) = return $ (map (\ d -> (fam_decl_m_flag $ unLoc d
+                                                                  , familyDeclName . unLoc $ d) ) ats)
     at_names _                            = return []  -- Only class decls have associated types
 
     skolemise_tc_tycon :: (GenerateWFMirrorFlag, Name) -> TcM (GenerateWFMirrorFlag, TcTyCon, ScopedPairs)
@@ -867,10 +867,16 @@ generaliseTyClDecl inferred_tc_env (L _ decl)
                            -- we have just done zonkAndSkolemise
            ; res_kind   <- zonkTcType (tyConResKind tc)
            ; return (mflag, tc, scoped_prs, res_kind) }
-    decl_m_flag | (FamDecl {} ) <- decl
-                = GenerateMirror
-                | otherwise
-                = NoMirror
+    decl_m_flag decl | (FamDecl { tcdFam = fam_decl } ) <- decl
+                     = fam_decl_m_flag fam_decl
+                     | otherwise
+                     = NoMirror
+
+    fam_decl_m_flag decl | (FamilyDecl { fdInfo = info } ) <- decl
+                         , DataFamily <- info 
+                         = NoMirror
+                         | otherwise
+                         = GenerateMirror
 
 swizzleTcTyConBndrs :: [(GenerateWFMirrorFlag, TcTyCon, ScopedPairs, TcKind)]
                 -> TcM [(GenerateWFMirrorFlag, TcTyCon, ScopedPairs, TcKind)]
@@ -1036,7 +1042,7 @@ generaliseTcTyCon (mflag, tc, scoped_prs, tc_res_kind)
        -- already added it to the context.
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
        ; mb_wf_tc <- if partyCtrs && (genWFMirror mflag)
-                     then do let wf_tycon_name = tyConName $ wfMirrorTyCon tc -- this better exist
+                     then do let wf_tycon_name = tyConName $ wfMirrorTyCon "generaliseTcTyCon" tc -- this better exist
                              return (Just $ mkWFTcTyCon (wf_tycon_name) final_tcbs tc_res_kind
                                       (mkTyVarNamePairs (sorted_spec_tvs ++ req_tvs))
                                       True
@@ -1493,7 +1499,9 @@ getInitialKind (InitialKindCheck msig) (FamDecl { tcdFam =
              , fdInfo      = info } } )
   = do { let flav = getFamFlav Nothing info
              ctxt = TyFamResKindCtxt name
-       ; tc <- kcDeclHeader GenerateMirror (InitialKindCheck msig) name flav ktvs $
+             g_mirror | DataFamily <- info = NoMirror
+                      | otherwise          = GenerateMirror
+       ; tc <- kcDeclHeader g_mirror (InitialKindCheck msig) name flav ktvs $
                case famResultKindSignature resultSig of
                  Just ksig -> TheKind <$> tcLHsKindSig ctxt ksig
                  Nothing ->
@@ -1523,11 +1531,12 @@ get_fam_decl_initial_kind mb_parent_tycon
                , fdTyVars    = ktvs
                , fdResultSig = L _ resultSig
                , fdInfo      = info }
-  = kcDeclHeader GenerateMirror InitialKindInfer name flav ktvs $ genResultKind resultSig
+  = kcDeclHeader g_mirror InitialKindInfer name flav ktvs $ genResultKind resultSig
   where
     flav = getFamFlav mb_parent_tycon info
     ctxt = TyFamResKindCtxt name
-
+    g_mirror | DataFamily <- info = NoMirror
+             | otherwise = GenerateMirror
     genResultKind resultSig =
       case resultSig of
         KindSig _ ki                            -> TheKind <$> tcLHsKindSig ctxt ki
@@ -1550,13 +1559,14 @@ check_initial_kind_assoc_fam cls
     , fdTyVars    = ktvs
     , fdResultSig = unLoc -> resultSig
     , fdInfo      = info }
-  = do kcDeclHeader GenerateMirror (InitialKindCheck CUSK) name flav ktvs $
+  = do kcDeclHeader g_mirror (InitialKindCheck CUSK) name flav ktvs $
                     genResultKind resultSig
 
   where
     ctxt = TyFamResKindCtxt name
     flav = getFamFlav (Just cls) info
-
+    g_mirror | DataFamily <- info = NoMirror
+             | otherwise = GenerateMirror
     genResultKind resultSig =
                  case famResultKindSignature resultSig of
                     Just ksig -> TheKind <$> tcLHsKindSig ctxt ksig
@@ -2545,7 +2555,6 @@ tcClassDecl1 roles_info class_name hs_ctxt meths fundeps sigs ats at_defs
        ; traceTc "tcClassDecl 1" (ppr class_name $$ ppr tc $$ ppr binders)
        ; let tycon_name = class_name        -- We use the same name
              roles = roles_info tycon_name  -- for TyCon and Class 
---        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors 
        ; (ctxt, fds, at_stuff, sig_stuff)
             <- pushLevelAndSolveEqualities skol_info (binderVars binders) $
                -- The (binderVars binders) is needed bring into scope the
@@ -2643,7 +2652,13 @@ tcClassATs class_name cls ats at_defs
                         emptyNameEnv at_defs
     tc_at :: LFamilyDecl GhcRn -> TcM [ClassATItem]
     tc_at at = do { partyCtrs <- xoptM LangExt.PartialTypeConstructors
-                  ; wf_at_name_mb <- if partyCtrs then Just <$> mk_wf_name (at_fam_name at) else return Nothing
+                  ; let isDataFam | DataFamily <- fdInfo $ unLoc at
+                                  = True
+                                  | otherwise
+                                  = False
+                  ; wf_at_name_mb <- if (partyCtrs && not isDataFam)
+                                     then Just <$> mk_wf_name (at_fam_name at)
+                                     else return Nothing
                   ; fam_tc <- addLocMA (tcFamDecl1 (Just cls) wf_at_name_mb) at -- each at gives us a WF_ats for free
                   ; let at_defs = lookupNameEnv at_defs_map (at_fam_name at)
                                   `orElse` []
@@ -2651,8 +2666,8 @@ tcClassATs class_name cls ats at_defs
                   -- ANI TODO: if there's a default definition, we might as well generate a WF for it?
                   
                   ; traceTc "wfelab tc_at" (ppr fam_tc <+> ppr (wfMirrorTyCon_maybe fam_tc))
-                  ; let wf_mirror_at = if (isWFMirrorTyCon fam_tc || not partyCtrs)
-                                       then [] else [ATI (wfMirrorTyCon fam_tc) Nothing]
+                  ; let wf_mirror_at = if (isWFMirrorTyCon fam_tc || not partyCtrs || isDataFam)
+                                       then [] else [ATI (wfMirrorTyCon "tc_at" fam_tc) Nothing]
                   ; return $ (ATI fam_tc atd):wf_mirror_at }
 
 -------------------------
@@ -4363,7 +4378,7 @@ checkValidTyCon tc
                     ; checkTc hsBoot $ TcRnUnknownMessage $ mkPlainError noHints $
                       text "You may define an abstract closed type family" $$
                       text "only in a .hs-boot file" }
-               ; DataFamilyTyCon {}           -> return ()
+               ; DataFamilyTyCon {}           -> do {traceTc "checkTyConDataFam" empty; return ()}
                ; OpenSynFamilyTyCon           -> return ()
                ; BuiltInSynFamTyCon _         -> return () }
 

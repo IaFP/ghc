@@ -4,9 +4,10 @@ T9497c-run: T9497c-run.hs:2:8: error:
     • In an equation for ‘main’: main = _main
     • Relevant bindings include
         main :: IO () (bound at T9497c-run.hs:2:1)
+      Constraints include IO @ () (from T9497c-run.hs:1:1-13)
       Valid hole fits include
         main :: IO () (bound at T9497c-run.hs:2:1)
-        readLn :: forall a. Read a => IO a
+        readLn :: forall a. (Read a, IO @ a) => IO a
           with readLn @()
           (imported from ‘Prelude’ at T9497c-run.hs:1:1
            (and originally defined in ‘System.IO’))

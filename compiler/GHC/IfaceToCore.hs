@@ -745,16 +745,20 @@ tc_iface_decl parent _ (IfaceFamily {ifName = tc_name,
      ; rhs      <- forkM (mk_doc tc_name) $
                    tc_fam_flav tc_name fam_flav
      ; res_name <- traverse (newIfaceName . mkTyVarOccFS) res
-     ; tycon <- if m then
-                  return $ mkWFFamilyTyCon tc_name binders' constraintKind res_name rhs parent
-                else do forkM (mk_doc_wf tc_name) $
-                          do { wf_name <- mk_wf_name tc_name
-                             ; let wf'tc = mkWFFamilyTyCon wf_name binders'
-                                              constraintKind res_name rhs parent
+     ; tycon <- if m
+                then return $ mkWFFamilyTyCon tc_name binders' constraintKind res_name rhs parent
+                else case fam_flav of
+                       IfaceDataFamilyTyCon -> return $ mkFamilyTyCon tc_name binders'
+                                                           res_kind' res_name rhs parent inj Nothing
+  
+                       _ -> do forkM (mk_doc_wf tc_name) $
+                                 do { wf_name <- mk_wf_name tc_name
+                                    ; let wf'tc = mkWFFamilyTyCon wf_name binders'
+                                                  constraintKind res_name rhs parent
                               -- ANI TODO: this is not quite right.
                               -- We need to find the exact same $wf'tc that we should have previously generated.
-                             ; return $ mkFamilyTyCon tc_name binders'
-                                           res_kind' res_name rhs parent inj (Just wf'tc) }
+                                    ; return $ mkFamilyTyCon tc_name binders'
+                                         res_kind' res_name rhs parent inj (Just wf'tc) }
      ; return (ATyCon tycon) }
    where
      mk_doc n = text "Type family synonym" <+> ppr n
@@ -841,24 +845,36 @@ tc_iface_decl _parent ignore_prags
 
    tc_at cls (IfaceAT tc_decl (Just _) if_def)
      = do ATyCon tc <- tc_iface_decl (Just cls) ignore_prags tc_decl
-          let wf_tc = wfMirrorTyCon tc -- this better not fail as we know this is not a mirror
-          mb_def <- case if_def of
-                      Nothing  -> return Nothing
-                      Just def -> forkM (mk_at_doc tc)           $
-                                  extendIfaceTyVarEnv (tyConTyVars tc) $
-                                  do { tc_def <- tcIfaceType def
-                                     ; return (Just (tc_def, NoATVI)) }
+          if not (isDataFamilyTyCon tc)
+            then do { let wf_tc = wfMirrorTyCon "tc_at" tc -- this better not fail as we know this is not a mirror
+                    ; mb_def <- case if_def of
+                        Nothing  -> return Nothing
+                        Just def -> forkM (mk_at_doc tc)           $
+                                    extendIfaceTyVarEnv (tyConTyVars tc) $
+                                    do { tc_def <- tcIfaceType def
+                                       ; return (Just (tc_def, NoATVI)) }
                   -- Must be done lazily in case the RHS of the defaults mention
                   -- the type constructor being defined here
                   -- e.g.   type AT a; type AT b = AT [b]   #8002
-          let wf_tc_ati = ATI wf_tc Nothing
-          let tc_ati = ATI tc mb_def
-          return $ [tc_ati , wf_tc_ati]
+                    ; let wf_tc_ati = ATI wf_tc Nothing
+                          tc_ati = ATI tc mb_def
+                    ; return $ [tc_ati , wf_tc_ati] }
+            else do { mb_def <- case if_def of
+                        Nothing  -> return Nothing
+                        Just def -> forkM (mk_at_doc tc)           $
+                                    extendIfaceTyVarEnv (tyConTyVars tc) $
+                                    do { tc_def <- tcIfaceType def
+                                       ; return (Just (tc_def, NoATVI)) }
+                  -- Must be done lazily in case the RHS of the defaults mention
+                  -- the type constructor being defined here
+                  -- e.g.   type AT a; type AT b = AT [b]   #8002
+                     ; let tc_ati = ATI tc mb_def
+                     ; return [tc_ati] }
    tc_at _ (IfaceAT _ Nothing _) = return []
    
    mk_sc_doc pred = text "Superclass" <+> ppr pred
    mk_at_doc tc = text "Associated type " <+> ppr tc
-                  <+> text "WF type" <+> ppr (wfMirrorTyCon tc)
+                  <+> text "WF type" <+> ppr (wfMirrorTyCon_maybe tc)
    mk_op_doc op_name op_ty = text "Class op" <+> sep [ppr op_name, ppr op_ty]
 
 tc_iface_decl _ _ (IfaceAxiom { ifName = tc_name, ifTyCon = tc

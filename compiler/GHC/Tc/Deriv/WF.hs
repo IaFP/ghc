@@ -271,7 +271,7 @@ genWFTyFamInst fam_inst
   | SynFamilyInst <- famInstFlavor fam_inst
   = do { let (fam_tc, ts) = famInstSplitLHS fam_inst
              rhs_ty = famInstRHS fam_inst
-       ; let wf_tc = wfMirrorTyCon fam_tc
+       ; let wf_tc = wfMirrorTyCon "genWFTyFamInst" fam_tc
              loc = noAnnSrcSpan . getSrcSpan $ fam_inst
        ; inst_name <- newFamInstTyConName (L loc (getName wf_tc)) ts
        ; preds <- genWfConstraintsTcM False rhs_ty []
