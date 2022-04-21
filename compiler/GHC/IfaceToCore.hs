@@ -746,13 +746,15 @@ tc_iface_decl parent b (IfaceFamily {ifName = tc_name,
      ; rhs      <- forkM (mk_doc tc_name) $
                    tc_fam_flav tc_name fam_flav
      ; res_name <- traverse (newIfaceName . mkTyVarOccFS) res
-     ; tycon <- case mirror of
-         Just _  -> return $ mkWFFamilyTyCon tc_name binders' constraintKind res_name rhs parent
-         Nothing -> do forkM (mk_doc_wf tc_name) $
-                         do { wf'tc <- mapM (tc_iface_decl parent b) mirror
-                            ; return $ mkFamilyTyCon tc_name binders'
-                                       res_kind' res_name rhs parent inj (fmap tyThingTyCon wf'tc)
-                            }
+
+     -- N.B. we map over (mirror :: Maybe IFaceDecl) here,
+     -- so if this TF does not have a WF mirror (i.e, mirror is Nothing),
+     -- the code will work anyway.
+     ; tycon <- do
+         { wf'tc <- mapM (tc_iface_decl parent b) mirror
+         ; return $ mkFamilyTyCon tc_name binders'
+                    res_kind' res_name rhs parent inj (fmap tyThingTyCon wf'tc)
+         }
      ; return (ATyCon tycon) }
    where
      mk_doc n = text "Type family synonym" <+> ppr n
