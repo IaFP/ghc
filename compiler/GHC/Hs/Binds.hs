@@ -874,8 +874,6 @@ instance (
   WFT (XOverLit (GhcPass p)),
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (NoGhcTcPass p),
-  WFT (NoGhcTcPass (NoGhcTcPass p)),
   WFT (SyntaxExprGhc p),
   WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif

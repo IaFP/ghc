@@ -958,7 +958,6 @@ instance (
   WFT (XOverLit (GhcPass p)),
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (NoGhcTcPass (NoGhcTcPass p)),
   WFT (SyntaxExprGhc p),
   WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
@@ -997,7 +996,6 @@ instance (
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
   WFT (Anno (IdGhcP p)),
-  WFT (NoGhcTcPass (NoGhcTcPass p)),
 #endif
   OutputableBndrFlag flag p,
           OutputableBndrFlag flag (NoGhcTcPass p),
@@ -1064,7 +1062,6 @@ pprHsOuterFamEqnTyVarBndrs :: (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
-   WFT (NoGhcTcPass (NoGhcTcPass p)),
    WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
@@ -1079,7 +1076,6 @@ pprHsOuterSigTyVarBndrs :: (
 #if MIN_VERSION_base(4,16,0)
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (NoGhcTcPass (NoGhcTcPass p)),
   WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
                            OutputableBndrId p)
