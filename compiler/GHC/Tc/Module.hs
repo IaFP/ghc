@@ -119,7 +119,7 @@ import GHC.Core.TyCon
 import GHC.Core.ConLike
 import GHC.Core.DataCon
 import GHC.Core.Type
-import GHC.Core.TyWF (redWfTypeTcM)
+-- import GHC.Core.TyWF (redWfTypeTcM)
 import GHC.Core.Class
 import GHC.Core.Coercion.Axiom
 import GHC.Core.Reduction ( Reduction(..) )

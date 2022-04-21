@@ -15,7 +15,7 @@ module GHC.Hs.Pat where
 import GHC.Utils.Outputable
 import GHC.Hs.Extension (
 #if MIN_VERSION_base(4,16,0)
-  NoGhcTcPass, GhcRn, IdGhcP, Pass(..),
+  NoGhcTcPass, GhcRn, IdGhcP,
 #endif
   OutputableBndrId, GhcPass )
 
@@ -48,7 +48,7 @@ pprLPat :: (
   WFT (XOverLit (GhcPass (NoGhcTcPass p))),
   WFT (Anno (IdGhcP p)),
   WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),	 
+  WFT (SyntaxExprGhc p),
   WFT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => LPat (GhcPass p) -> SDoc

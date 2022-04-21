@@ -2043,16 +2043,7 @@ extract_hs_tv_bndrs_kvs tv_bndrs =
 
 extract_tv :: LocatedN RdrName -> FreeKiTyVars -> FreeKiTyVars
 extract_tv tv@(L _ e) acc =
-  if isRdrTyVar e then {-
-    if isRdrTyVar wf_rdr_n then 
-      tv:tv':acc else -} tv:acc else acc
-{-  where
-    tv':: LocatedN RdrName
-    tv' = L l wf_rdr_n
-    wf_rdr_n = k e
-    k :: RdrName -> RdrName
-    k n = mkRdrUnqual $ mkOccName (rdrNameSpace n) (wF_TC_PREFIX ++ occNameString (rdrNameOcc n))
--}      
+  if isRdrTyVar e then tv:acc else acc
 
 -- Deletes duplicates in a list of Located things. This is used to:
 --
