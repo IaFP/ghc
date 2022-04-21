@@ -70,7 +70,7 @@ module GHC.Core.TyCon(
         isEnumerationTyCon,
         isNewTyCon, isAbstractTyCon,
         isFamilyTyCon, isOpenFamilyTyCon, isOpenTypeFamilyTyCon,
-        isTypeFamilyTyCon, isDataFamilyTyCon,
+        isTypeFamilyTyCon, isDataFamilyTyCon, isDataFamFlav,
         isWfTyCon,
         isClosedTypeFamilyTyCon, isClosedSynFamilyTyConWithAxiom_maybe,
         tyConInjectivityInfo,
@@ -2468,11 +2468,11 @@ hasWfMirrorTyCon (FamilyTyCon {tyConWfRef = m}) = isJust m
 hasWfMirrorTyCon (TcTyCon {tyConWfRef = m}) = isJust m
 hasWfMirrorTyCon _ = False
 
-wfMirrorTyCon :: TyCon -> TyCon
-wfMirrorTyCon (FamilyTyCon { tyConWfRef=(Just m) }) = m
-wfMirrorTyCon (TcTyCon { tyConWfRef=(Just m) }) = m
-wfMirrorTyCon tc
-  = pprPanic "No entry for a mirror tycon for: " (ppr tc)
+wfMirrorTyCon :: String -> TyCon -> TyCon
+wfMirrorTyCon _ (FamilyTyCon { tyConWfRef=(Just m) }) = m
+wfMirrorTyCon _ (TcTyCon { tyConWfRef=(Just m) }) = m
+wfMirrorTyCon s tc
+  = pprPanic ("Called from " ++ s ++ " No entry for a mirror tycon for: ") (ppr tc)
   
 -- The unit tycon didn't used to be classed as a tuple tycon
 -- but I thought that was silly so I've undone it

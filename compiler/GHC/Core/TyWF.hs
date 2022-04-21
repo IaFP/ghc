@@ -24,27 +24,28 @@ module GHC.Core.TyWF (
   , genAtAtConstraintsExceptTcM
   , at'at
   ) where
-
-import GHC.Tc.Instance.Family (tcGetFamInstEnvs)
-import GHC.Core.FamInstEnv (topNormaliseType)
 import GHC.Base (mapM)
 import GHC.Prelude hiding (mapM)
+import GHC.Tc.Instance.Family (tcGetFamInstEnvs)
 import GHC.Tc.Solver.Monad (matchFamTcM)
 import GHC.Tc.Utils.TcType
+import GHC.Tc.Utils.Monad
 import GHC.Tc.Validity (tyConArityErr)
 import GHC.Core.TyCo.Rep
 import GHC.Core.TyCon
 import GHC.Core.Type
+import GHC.Core.FamInstEnv (topNormaliseType)
 import GHC.Core.Reduction (reductionReducedType)
 import GHC.Builtin.Names
 import GHC.Builtin.Names.TH
 import GHC.Builtin.Types (isCTupleTyConName, wfTyCon)
-import GHC.Tc.Utils.Monad
+import GHC.Types.Name (isWiredInName)
 import GHC.Utils.Panic (pprPanic)
 import GHC.Utils.Outputable
 import GHC.Utils.Misc(lengthAtLeast)
-import Control.Monad.Trans.Class
 
+import Control.Monad.Trans.Class
+import Data.Maybe
 -------------------------------------------------------------------------
 {-
 %************************************************************************
@@ -235,7 +236,6 @@ isTyConInternal tycon =
   || isBoxedTupleTyCon tycon || isUnboxedTupleTyCon tycon
   || isUnboxedSumTyCon tycon
   || tycon `hasKey` stablePtrPrimTyConKey || tycon `hasKey` stablePtrTyConKey
-  -- || tycon `hasKey` staticPtrTyConKey || (tyConName tycon == staticPtrTyConName)
   || tycon `hasKey` staticPtrInfoTyConKey || (tyConName tycon == staticPtrInfoTyConName)
   || tycon `hasKey` ptrTyConKey || tycon `hasKey` funPtrTyConKey
   || tycon `hasKey` qTyConKey || tyConName tycon == qTyConName
@@ -275,10 +275,10 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
             ; return $ foldl mergeAtAtConstraints [] $ fmap newPreds elabds
             }
   | isTyConAssoc tycon || isOpenTypeFamilyTyCon tycon || isClosedTypeFamilyTyCon tycon
-  , hasWfMirrorTyCon tycon
+  , hasWfMirrorTyCon tycon -- It can be an associated data type family it is handled as a normal tycon
   = do { traceTc "wfelab isTyConAssoc/open/closed typefam" (ppr tycon <+> ppr args)
        ; let (args_tc, extra_args_tc) = splitAt (tyConArity tycon) args
-       ; let wftycon = wfMirrorTyCon tycon -- this better exist
+       ; let wftycon = wfMirrorTyCon "tyConGenAtsTcM" tycon -- this better exist
        ; traceTc "wfelab lookup2" (ppr wftycon)
          -- This tycon may be oversaturated so we break down the args into 2 parts:
          -- 1. args_tc which is of length tycon arity
@@ -301,6 +301,18 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
          else return $ foldl mergeAtAtConstraints [] $ (fmap newPreds args_wfts) ++ [wftct:extra_css]
        }
 
+  | isClosedTypeFamilyTyCon tycon
+  || (isTypeFamilyTyCon tycon && isWiredInName (tyConName tycon))
+  = do { traceTc "wfelab closed fam tycon" (ppr tycon)
+       ; co_ty_mb <- matchFamTcM tycon args
+       ; args_wfts <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args       
+       ; case co_ty_mb of
+           Nothing -> return $ foldl mergeAtAtConstraints [] (fmap newPreds args_wfts)
+           Just r | ty <- reductionReducedType r -> do {
+             ; elabd <- genAtAtConstraintsTcM isTyConPhase ty
+             ; return $ foldl mergeAtAtConstraints [] ((fmap newPreds args_wfts) ++ [newPreds elabd])
+             }
+       }
   | isTypeSynonymTyCon tycon =
       do { traceTc "wfelab typesyn" (ppr tycon)
          ; cs <- if (args `lengthAtLeast` (tyConArity tycon))
@@ -321,18 +333,6 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
 
          ; return $ mergeAtAtConstraints cs_args cs
          }
-  | isTypeFamilyTyCon tycon && (not $ isDataFamilyTyCon tycon)
-  -- it is possible that we may not have a wf'tc for a family tycon tc
-  = do { traceTc "wfelab other typefam tycon" (ppr tycon)
-       ; co_ty_mb <- matchFamTcM tycon args
-       ; args_wfts <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args       
-       ; case co_ty_mb of
-           Nothing -> return $ foldl mergeAtAtConstraints [] (fmap newPreds args_wfts)
-           Just r | ty <- reductionReducedType r -> do {
-             ; elabd <- genAtAtConstraintsTcM isTyConPhase ty
-             ; return $ foldl mergeAtAtConstraints [] ((fmap newPreds args_wfts) ++ [newPreds elabd])
-             }
-       }
   -- Vanilla data types/newtypes/data family 
   | otherwise
   = do { traceTc "wfelab fallthrough" (ppr tycon <+> ppr args)
@@ -365,7 +365,7 @@ recGenAts tc args ts {-etycons-} = recGenAts' tc arg_binders [] [] ts
 -- Hence we zip the actual arguments with
 -- the formal arguments and then ignore the ones that are inferred
 -- i.e. automatically put in by the compiler.
--- Fore example T (a::k) b c is actually T k a b c where k is inferred
+-- Fore example T (a::k) b c is actually T {k} a b c where k is inferred
 -- hence we would only generate [T k @ a, T k a @ b, T k a b @ c]. T @ k is skipped
 -- ref. see https://github.com/IaFP/PartialityInPractice/issues/2
 recGenAts' :: Monad m => TyCon
