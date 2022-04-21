@@ -3194,7 +3194,7 @@ tcWFTyFamInstEqn fam_tc
     (L loc (FamEqn { feqn_bndrs  = outer_bndrs
                    , feqn_pats   = hs_pats
                    , feqn_rhs    = hs_rhs_ty }))
-  = do { let wf_fam_tc = wfMirrorTyCon fam_tc
+  = do { let wf_fam_tc = wfMirrorTyCon "tcWFTyFamInstEqn" fam_tc
        ; (qtvs, pats, rhs_ty) <- tcTyFamInstEqnGuts fam_tc NotAssociated
                                       outer_bndrs hs_pats hs_rhs_ty (Just wf_fam_tc)
        ; return (mkCoAxBranch qtvs [] [] pats rhs_ty
