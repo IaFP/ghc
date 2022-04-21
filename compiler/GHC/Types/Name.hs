@@ -97,7 +97,6 @@ import GHC.Utils.Binary
 import GHC.Data.FastString
 import GHC.Utils.Outputable
 import GHC.Utils.Panic
-import Data.List (isPrefixOf)
 
 import Control.DeepSeq
 import Data.Data
