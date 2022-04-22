@@ -23,7 +23,6 @@ import GHC.Hs
 import GHC.Tc.Utils.Monad
 import GHC.Tc.Instance.Family
 import GHC.Tc.Utils.Env
-import GHC.Core.FamInstEnv
 import GHC.Core.TyCo.Rep
 
 import GHC.Core.Type

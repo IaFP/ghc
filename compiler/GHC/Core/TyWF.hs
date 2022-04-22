@@ -45,7 +45,6 @@ import GHC.Utils.Outputable
 import GHC.Utils.Misc(lengthAtLeast)
 
 import Control.Monad.Trans.Class
-import Data.Maybe
 -------------------------------------------------------------------------
 {-
 %************************************************************************

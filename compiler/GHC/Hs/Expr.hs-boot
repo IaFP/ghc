@@ -28,15 +28,19 @@ import Language.Haskell.Syntax.Expr
   , GRHSs
   , HsSplice
   )
-import GHC.Hs.Extension ( OutputableBndrId, GhcPass, Pass (..), GhcRn, GhcTc )
+import GHC.Hs.Extension ( OutputableBndrId, GhcPass, GhcRn, GhcTc
+#if MIN_VERSION_base(4,16,0)
+                        , Pass (..)
+#endif
+                        )
 
 #if MIN_VERSION_base(4,16,0)
 import GHC.Types (WFT)
 import Language.Haskell.Syntax.Extension
 import GHC.Hs.Extension (NoGhcTcPass, IdGhcP)
 import Language.Haskell.Syntax.Extension (NoExtField)
-#endif
 import qualified Data.Kind
+#endif
 
 instance (
 #if MIN_VERSION_base(4,16,0)

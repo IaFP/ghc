@@ -45,7 +45,6 @@ import Control.Monad
 import GHC.Driver.Session
 import GHC.Parser.PostProcess ( setRdrNameSpace )
 import Data.Either            ( partitionEithers )
-import Data.List (isPrefixOf)
 import qualified GHC.LanguageExtensions as LangExt
 
 
@@ -700,7 +699,7 @@ check_occs ie occs avails
             | greNameMangledName child == greNameMangledName child'   -- Duplicate export
             -- But we don't want to warn if the same thing is exported
             -- by two different module exports. See ticket #4478.
-            || wF_TC_PREFIX `isPrefixOf` (occNameString (nameOccName $ greNameMangledName child))
+            || isWFTyConOcc (nameOccName $ greNameMangledName child)
             -- get away with a warning if you see that WF_* is bing exported twice.
             -> do { warnIf (not (dupExport_ok child ie ie')) (TcRnDuplicateExport child ie ie')
                   ; return occs }

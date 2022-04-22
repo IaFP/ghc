@@ -289,7 +289,7 @@ mk_mod_usage_info pit hsc_env this_mod direct_imports used_names
           | isJust ochs 
           = ochs
           | Nothing <- ochs
-          , wF_TC_PREFIX `isPrefixOf` (occNameString occ)
+          , isWFTyConOcc occ
           = Nothing
           | otherwise
           = pprPanic "mkUsage" (ppr mod <+> ppr occ <+> ppr used_names)

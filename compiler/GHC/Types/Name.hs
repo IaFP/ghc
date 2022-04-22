@@ -75,8 +75,6 @@ module GHC.Types.Name (
         pprInfixName, pprPrefixName, pprModulePrefix, pprNameUnqualified,
         nameStableString,
 
-         wF_TC_PREFIX,
-        
         -- Re-export the OccName stuff
         module GHC.Types.Name.Occurrence
     ) where
@@ -408,11 +406,7 @@ isVarName = isVarOcc . nameOccName
 isSystemName (Name {n_sort = System}) = True
 isSystemName _                        = False
 
-isWFName n =  isWFTyConOcc $ nameOccName n
-
-wF_TC_PREFIX :: String -- ANI TODO: restrict this to OccNames perhaps or renamer? It should also be a FS and not a string
-wF_TC_PREFIX = "$wf:" -- fsList "$WF_"
-
+isWFName n = isWFTyConOcc $ nameOccName n
 
 {-
 ************************************************************************
