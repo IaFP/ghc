@@ -39,6 +39,8 @@ just attach noSrcSpan to everything.
 {-# OPTIONS_GHC -Wno-incomplete-record-updates #-}
 
 module GHC.Hs.Utils(
+  GenerateWFMirrorFlag (..), genWFMirror, 
+  
   -- * Terms
   mkHsPar, mkHsApp, mkHsAppWith, mkHsApps, mkHsAppsWith,
   mkHsAppType, mkHsAppTypes, mkHsCaseAlt,
@@ -1472,19 +1474,30 @@ hsTyClForeignBinders :: [TyClGroup GhcRn]
 -- We need to look at instance declarations too,
 -- because their associated types may bind data constructors
 hsTyClForeignBinders tycl_decls foreign_decls
-  =    map unLoc (hsForeignDeclsBinders foreign_decls)
-    ++ getSelectorNames
-         (foldMap (foldMap hsLTyClDeclBinders . group_tyclds) tycl_decls
-         `mappend`
-         foldMap (foldMap hsLInstDeclBinders . group_instds) tycl_decls)
+  =  map unLoc (hsForeignDeclsBinders foreign_decls)
+     ++ getSelectorNames1
+         (foldMap (foldMap hsLTyClDeclBinders . group_tyclds) tycl_decls)
+     ++ getSelectorNames2
+         (foldMap (foldMap hsLInstDeclBinders . group_instds) tycl_decls)
   where
-    getSelectorNames :: ([LocatedA Name], [LFieldOcc GhcRn]) -> [Name]
-    getSelectorNames (ns, fs) = map unLoc ns ++ map (foExt . unLoc) fs
+    getSelectorNames1 :: ([(LocatedA Name, GenerateWFMirrorFlag)], [LFieldOcc GhcRn]) -> [Name]
+    getSelectorNames1 (ns, fs) = map (unLoc . fst) ns ++ map (foExt . unLoc) fs
+
+    getSelectorNames2 :: ([LocatedA Name], [LFieldOcc GhcRn]) -> [Name]
+    getSelectorNames2 (ns, fs) = map unLoc ns ++ map (foExt . unLoc) fs
+
+data GenerateWFMirrorFlag = GenerateMirror -- ^ generates a mirror tycon
+                          | NoMirror       -- ^ skips on the mirror tycon generation
+                  
+
+genWFMirror :: GenerateWFMirrorFlag -> Bool
+genWFMirror GenerateMirror = True
+genWFMirror _              = False
 
 -------------------
 hsLTyClDeclBinders :: IsPass p
                    => LocatedA (TyClDecl (GhcPass p))
-                   -> ([LocatedA (IdP (GhcPass p))], [LFieldOcc (GhcPass p)])
+                   -> ([(LocatedA (IdP (GhcPass p)), GenerateWFMirrorFlag)], [LFieldOcc (GhcPass p)])
 -- ^ Returns all the /binding/ names of the decl.  The first one is
 -- guaranteed to be the name of the decl. The first component
 -- represents all binding names except record fields; the second
@@ -1495,26 +1508,36 @@ hsLTyClDeclBinders :: IsPass p
 -- See Note [SrcSpan for binders]
 
 hsLTyClDeclBinders (L loc (FamDecl { tcdFam = FamilyDecl
-                                            { fdLName = (L _ name) } }))
-  = ([L loc name], [])
+                                            { fdLName = (L _ name)
+                                            , fdInfo  = info }}))
+  | DataFamily <- info
+  = ([(L loc name, NoMirror)], [])
+  | otherwise = ([(L loc name, GenerateMirror)], [])
+
 hsLTyClDeclBinders (L loc (SynDecl
                                { tcdLName = (L _ name) }))
-  = ([L loc name], [])
+  = ([(L loc name, NoMirror)], [])
 hsLTyClDeclBinders (L loc (ClassDecl
                                { tcdLName = (L _ cls_name)
                                , tcdSigs  = sigs
                                , tcdATs   = ats }))
-  = (L loc cls_name :
-     [ L fam_loc fam_name | (L fam_loc (FamilyDecl
-                                        { fdLName = L _ fam_name })) <- ats ]
+  = ((L loc cls_name, NoMirror) :
+     [ (L fam_loc fam_name, g_mirror) | (L fam_loc (FamilyDecl
+                                                    { fdLName = L _ fam_name
+                                                    , fdInfo  = info })) <- ats
+                                      , let g_mirror | DataFamily <- info
+                                                     = NoMirror
+                                                     |otherwise
+                                                     = GenerateMirror
+                                      ]
      ++
-     [ L mem_loc mem_name
+     [ (L mem_loc mem_name, NoMirror)
                           | (L mem_loc (ClassOpSig _ False ns _)) <- sigs
                           , (L _ mem_name) <- ns ]
     , [])
 hsLTyClDeclBinders (L loc (DataDecl    { tcdLName = (L _ name)
                                        , tcdDataDefn = defn }))
-  = (\ (xs, ys) -> (L loc name : xs, ys)) $ hsDataDefnBinders defn
+  = (\ (xs, ys) -> (((L loc name, NoMirror) : (map (\x -> (x,NoMirror)) xs)), ys)) $ hsDataDefnBinders defn
 
 
 -------------------

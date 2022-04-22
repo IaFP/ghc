@@ -937,37 +937,39 @@ getLocalNonValBinders fixity_env
            -> RnM [(AvailInfo, [(Name, [FieldLabel])])]
     new_tc dup_fields_ok has_sel tc_decl -- NOT for type/data instances
         = do { let (bndrs, flds) = hsLTyClDeclBinders tc_decl
-             ; names@(main_name : sub_names) <- mapM (newTopSrcBinder . l2n) bndrs
-             ; flds' <- mapM (newRecordSelector dup_fields_ok has_sel sub_names) flds
+             ; names@(main_name : sub_names) <- mapM (\(b, m) -> do n <- newTopSrcBinder $ l2n b
+                                                                    return (n, m) ) bndrs
+             ; flds' <- mapM (newRecordSelector dup_fields_ok has_sel (map fst sub_names)) flds
              ; let fld_env = case unLoc tc_decl of
-                     DataDecl { tcdDataDefn = d } -> mk_fld_env d names flds'
+                     DataDecl { tcdDataDefn = d } -> mk_fld_env d (map fst names) flds'
                      _                            -> []
              ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
              ; if partyCtrs
-               then  case unLoc tc_decl of
+               then case unLoc tc_decl of -- I don't think we need this complicated logic here.
+                                          -- It can be simplified
                        fdecl@(FamDecl {})
-                         -> if isWiredInName main_name || isDataFamilyDecl fdecl
-                            then return [(availTC main_name names flds', fld_env)]
+                         -> if isWiredInName (fst main_name) || not (genWFMirror (snd main_name))
+                            then return [(availTC (fst main_name) (map fst names) flds', fld_env)]
                             else do { m <- getModule
-                                    ; wf_name <- newWFGlobalBinder m main_name
-                                    ; return [ (availTC main_name names flds', fld_env)
+                                    ; wf_name <- newWFGlobalBinder m (fst main_name)
+                                    ; return [ (availTC (fst main_name) (map fst names) flds', fld_env)
                                              , ((availTC wf_name [wf_name] []), []) ]
                                     }
                        ClassDecl {}                 -- pick out each of the sub_names
                                                     -- that look like a tycon and
                                                     -- generate a wf'* name for them
                          -> do { m <- getModule
-                               ; let ats_names = filter isTyConName sub_names 
-                               ; wf_names <- mapM (newWFGlobalBinder m) ats_names
-                               ; return [(availTC main_name (names ++ wf_names) (flds'), fld_env)]
+                               ; let ats_names = filter (genWFMirror . snd) sub_names 
+                               ; wf_names <- mapM (newWFGlobalBinder m) (map fst ats_names)
+                               ; return [(availTC (fst main_name) ((map fst names) ++ wf_names) (flds'), fld_env)]
                                }
-                       _          -> return $ [(availTC main_name names flds', fld_env)]
-               else return $ [(availTC main_name names flds', fld_env)]
+                       _          -> return $ [(availTC (fst main_name) (map fst names) flds', fld_env)]
+               else return $ [(availTC (fst main_name) (map fst names) flds', fld_env)]
              }
 
     newWFGlobalBinder :: Module -> Name -> RnM Name
     newWFGlobalBinder m main_name
-          = do { let occ = mkTcOcc $ wF_TC_PREFIX ++ (occNameString . nameOccName $ main_name)
+          = do { let occ = mkWFTyConOcc $ nameOccName main_name
                ; newGlobalBinder m occ (nameSrcSpan main_name) }
 
     -- Calculate the mapping from constructor names to fields, which

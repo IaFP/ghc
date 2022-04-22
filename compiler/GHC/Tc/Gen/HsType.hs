@@ -50,7 +50,6 @@ module GHC.Tc.Gen.HsType (
         InitialKindStrategy(..),
         SAKS_or_CUSK(..),
         ContextKind(..),
-        GenerateWFMirrorFlag (..), genWFMirror,
         kcDeclHeader,
         tcHsLiftedType,   tcHsOpenType,
         tcHsLiftedTypeNC, tcHsOpenTypeNC,
@@ -3069,15 +3068,6 @@ expectedKindInCtxt (InstDeclCtxt {})   = TheKind constraintKind
 expectedKindInCtxt SpecInstCtxt        = TheKind constraintKind
 expectedKindInCtxt _                   = OpenKind
 
-
-
-data GenerateWFMirrorFlag = GenerateMirror -- ^ generates a mirror tycon
-                          | NoMirror       -- ^ skips on the mirror tycon generation
-                  
-
-genWFMirror :: GenerateWFMirrorFlag -> Bool
-genWFMirror GenerateMirror = True
-genWFMirror _              = False
 
 {- *********************************************************************
 *                                                                      *

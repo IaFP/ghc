@@ -281,6 +281,4 @@ trace_hi_diffs logger doc = when (logHasDumpFlag logger Opt_D_dump_hi_diffs) $ p
 
 
 newWFIfaceName :: OccName -> IfL Name
-newWFIfaceName n = do { let wf_occ = mkTcOcc $ wF_TC_PREFIX ++ (occNameString n)
-                  ; newIfaceName wf_occ
-                  }
+newWFIfaceName n = newIfaceName $ mkWFTyConOcc n

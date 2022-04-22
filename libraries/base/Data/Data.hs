@@ -158,9 +158,6 @@ import GHC.Arr               -- So we can give Data instance for Array
 import qualified GHC.Generics as Generics (Fixity(..))
 import GHC.Generics hiding (Fixity(..))
                              -- So we can give Data instance for U1, V1, ...
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total, Total2)
-#endif
 
 ------------------------------------------------------------------------------
 --

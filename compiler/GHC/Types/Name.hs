@@ -411,8 +411,7 @@ isSystemName _                        = False
 isWFName n =  isWFTyConOcc $ nameOccName n
 
 wF_TC_PREFIX :: String -- ANI TODO: restrict this to OccNames perhaps or renamer? It should also be a FS and not a string
-wF_TC_PREFIX = "$wf'" -- fsList "$WF_"
--- WF_TC_PREFIX = "$tc_wf'"
+wF_TC_PREFIX = "$wf:" -- fsList "$WF_"
 
 
 {-

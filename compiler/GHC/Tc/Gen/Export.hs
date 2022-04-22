@@ -353,12 +353,12 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
 
       
      ----
-    -- ANI TODO: This is not quite right. We don't want to exprt wf'DataType names
+    -- ANI TODO: This is not quite right. We don't want to exprt wf'Tc names
     lookup_wf_ie :: LIEWrappedName (IdP GhcPs) -> RnM [(IE GhcRn, AvailInfo)]
     lookup_wf_ie (L l rdr)
         = do { (name, _) <- lookupGreAvailRn $ ieWrappedName rdr
              ; let wf_name = if isTyConName name
-                             then [(mkTcOcc (wF_TC_PREFIX ++ (occNameString (nameOccName name))))]
+                             then [mkWFTyConOcc $ nameOccName name]
                              else []
              ; m <- getModule
              ; n::[Name] <- mapM (lookupOrig m) wf_name
