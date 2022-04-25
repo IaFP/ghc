@@ -38,6 +38,7 @@ import GHC.Builtin.Types (wfTyConName, wfTyCon, cTupleTyCon)
 import GHC.Types.SrcLoc
 import GHC.Utils.Outputable as Outputable
 
+import Data.List (singleton)
 
 
 {-
@@ -152,7 +153,7 @@ getMatchingPredicates :: Type     -- Has to exists
                       -> [PredType]
                       -> TcM Type
 getMatchingPredicates t tvs preds
-  = do mpreds <- redConstraints $ getMatchingPredicates' t tvs preds
+  = do mpreds <- redConstraints True $ getMatchingPredicates' t tvs preds
        let n = length mpreds
        if n == 1
          then return $ head mpreds
@@ -305,7 +306,7 @@ genWFTyFamInst fam_inst
        ; traceTc "wfelab axiom synfam" (vcat [ parens (ppr inst_name)
                                               , ppr wf_tc <+> ppr lhs_tys <+> text "~" <+> ppr wf_rhs_ty
                                               ])
-       ; (:[]) <$> newFamInst SynFamilyInst axiom
+       ; singleton <$> newFamInst SynFamilyInst axiom
        }
   | otherwise -- data families instance equations are eta reducible as they are representational 
   = return []

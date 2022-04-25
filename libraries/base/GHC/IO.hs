@@ -50,7 +50,7 @@ import GHC.Show
 import GHC.IO.Unsafe
 import Unsafe.Coerce ( unsafeCoerce )
 import {-# SOURCE #-} GHC.IO.Exception ( userError, IOError )
-
+import GHC.Types (type (@))
 -- ---------------------------------------------------------------------------
 -- The IO Monad
 
@@ -338,7 +338,7 @@ onException io what = io `catchException` \e -> do _ <- what
 -- asynchronous exceptions are received.  To create a new thread in
 -- an unmasked state use 'Control.Concurrent.forkIOWithUnmask'.
 --
-mask  :: ((forall a. IO a -> IO a) -> IO b) -> IO b
+mask  :: ((forall a. IO @ a => IO a -> IO a) -> IO b) -> IO b
 
 -- | Like 'mask', but does not pass a @restore@ action to the argument.
 mask_ :: IO a -> IO a
@@ -353,7 +353,7 @@ mask_ :: IO a -> IO a
 -- that the interruptible operation will only block for a short period
 -- of time.
 --
-uninterruptibleMask :: ((forall a. IO a -> IO a) -> IO b) -> IO b
+uninterruptibleMask :: ((forall a. IO @ a => IO a -> IO a) -> IO b) -> IO b
 
 -- | Like 'uninterruptibleMask', but does not pass a @restore@ action
 -- to the argument.

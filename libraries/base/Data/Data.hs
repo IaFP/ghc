@@ -12,10 +12,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE QuantifiedConstraints #-}
--- #if __GLASGOW_HASKELL__ >= 903
--- {-# LANGUAGE NoPartialTypeConstructors #-}
--- #endif
-
 
 -----------------------------------------------------------------------------
 -- |

@@ -38,7 +38,7 @@ import GHC.Types.RepType
 import GHC.Core.TyCon
 import GHC.Core.Coercion
 import GHC.Core.Multiplicity
-import GHC.Core.TyWF (at'at)
+-- import GHC.Core.TyWF (at'at)
 import GHC.Tc.Utils.Env
 import GHC.Tc.Utils.TcType
 
@@ -64,7 +64,7 @@ import GHC.Utils.Encoding
 
 import Data.Maybe
 import Data.List (unzip4, nub)
-import qualified GHC.LanguageExtensions as LangExt
+-- import qualified GHC.LanguageExtensions as LangExt
 
 {-
 Desugaring of @foreign@ declarations is naturally split up into
@@ -438,7 +438,7 @@ dsFExportDynamic id co0 cconv = do
     mod <- getModule
     dflags <- getDynFlags
     let platform = targetPlatform dflags
-        partyCtrs = xopt LangExt.PartialTypeConstructors dflags
+        -- partyCtrs = xopt LangExt.PartialTypeConstructors dflags
         fe_nm = mkFastString $ zEncodeString
             (moduleStableString mod ++ "$" ++ toCName dflags id)
         -- Construct the label based on the passed id, don't use names
@@ -449,10 +449,10 @@ dsFExportDynamic id co0 cconv = do
     let
         stable_ptr_ty = mkTyConApp stable_ptr_tycon [arg_ty]
         export_ty     = mkVisFunTyMany stable_ptr_ty arg_ty
-        at_dict_ty1    = (mkTyConTy io_tc) `at'at` stable_ptr_ty  -- IO @ StablePtr (Int32 -> IO Int32)
-        at_dict_ty2    = (mkTyConTy io_tc) `at'at` res_ty  -- IO @ FunPtr (Int32 -> IO Int32)
-    at_dict_id1 <- newPredVarDs at_dict_ty1
-    at_dict_id2 <- newPredVarDs at_dict_ty2
+        -- at_dict_ty1    = (mkTyConTy io_tc) `at'at` stable_ptr_ty  -- IO @ StablePtr (Int32 -> IO Int32)
+        -- at_dict_ty2    = (mkTyConTy io_tc) `at'at` res_ty  -- IO @ FunPtr (Int32 -> IO Int32)
+    -- at_dict_id1 <- newPredVarDs at_dict_ty1
+    -- at_dict_id2 <- newPredVarDs at_dict_ty2
     bindIOId <- dsLookupGlobalId bindIOName
     stbl_value <- newSysLocalDs Many stable_ptr_ty
     (h_code, c_code, typestring, args_size) <- dsFExport id (mkRepReflCo export_ty) fe_nm cconv True
@@ -483,15 +483,15 @@ dsFExportDynamic id co0 cconv = do
     ccall_adj <- dsCCall adjustor adj_args PlayRisky (mkTyConApp io_tc [res_ty])
         -- PlayRisky: the adjustor doesn't allocate in the Haskell heap or do a callback
     let io_app_args
-          | partyCtrs
-          = [ Type stable_ptr_ty
-            , Type res_ty
-            , Var at_dict_id1
-            , Var at_dict_id2
-            , mkApps (Var newStablePtrId) [Type arg_ty, Var at_dict_id1, Var cback]
-            , Lam stbl_value ccall_adj
-            ]
-          | otherwise
+          -- | partyCtrs
+          -- = [ Type stable_ptr_ty
+          --   , Type res_ty
+          --   , Var at_dict_id1
+          --   , Var at_dict_id2
+          --   , mkApps (Var newStablePtrId) [Type arg_ty{-, Var at_dict_id1-}, Var cback]
+          --   , Lam stbl_value ccall_adj
+          --   ]
+          -- | otherwise
           = [ Type stable_ptr_ty
             , Type res_ty
             , mkApps (Var newStablePtrId) [Type arg_ty, Var cback ]
@@ -499,12 +499,12 @@ dsFExportDynamic id co0 cconv = do
             ]
 
         io_app
-          | partyCtrs
-          = mkLams tvs                         $
-            Lam cback                          $
-            mkLetRec [(at_dict_id1, Var at_dict_id1), (at_dict_id2, Var at_dict_id2)]  $
-            mkApps (Var bindIOId) io_app_args
-          | otherwise
+          -- | partyCtrs
+          -- = mkLams tvs                         $
+          --   Lam cback                          $
+          --   mkLetRec [(at_dict_id1, Var at_dict_id1), (at_dict_id2, Var at_dict_id2)]  $
+          --   mkApps (Var bindIOId) io_app_args
+          -- | otherwise
           = mkLams tvs                         $
             Lam cback                          $
             mkApps (Var bindIOId) io_app_args

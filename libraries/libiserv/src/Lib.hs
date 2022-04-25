@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, RecordWildCards, GADTs, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, RankNTypes, RecordWildCards, GADTs, ScopedTypeVariables, ExplicitNamespaces, TypeOperators #-}
 module Lib (serv) where
 
 import GHCi.Run
@@ -12,13 +12,21 @@ import Data.Binary
 
 import Text.Printf
 import System.Environment (getProgName)
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type (@))
+#endif
+
 
 type MessageHook = Msg -> IO Msg
 
 trace :: String -> IO ()
 trace s = getProgName >>= \name -> printf "[%20s] %s\n" name s
 
-serv :: Bool -> MessageHook -> Pipe -> (forall a .IO a -> IO a) -> IO ()
+serv :: Bool -> MessageHook -> Pipe -> (forall a .
+#if MIN_VERSION_base(4,16,0)
+                                         IO @ a => 
+#endif
+                                         IO a -> IO a) -> IO ()
 serv verbose hook pipe restore = loop
  where
   loop = do

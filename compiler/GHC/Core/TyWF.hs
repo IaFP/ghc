@@ -86,7 +86,7 @@ elabWfTypeTcM isTyConPhase ty
   | isForAllTy ty = do
       { let (covarbndrs, ty') = splitForAllTyCoVarBinders ty
       ; elabd <- genAtAtConstraintsTcM isTyConPhase ty'
-      ; c_extra' <- if isTyConPhase then return (newPreds elabd) else redConstraints (newPreds elabd)
+      ; c_extra' <- redConstraints isTyConPhase (newPreds elabd)
       ; let eTy = mkForAllTys covarbndrs $ attachConstraints c_extra' (elabTy elabd)
       ; traceTc "wfelabtype(foralled)=" (vcat [ text "tyconphase" <+> ppr isTyConPhase
                                               , text "before:" <+> ppr ty
@@ -95,7 +95,7 @@ elabWfTypeTcM isTyConPhase ty
       }
   | otherwise = do
       { elabd <- genAtAtConstraintsTcM isTyConPhase ty
-      ; c_extra' <- if isTyConPhase then return (newPreds elabd) else redConstraints (newPreds elabd)
+      ; c_extra' <- redConstraints isTyConPhase (newPreds elabd)
       ; let eTy = attachConstraints c_extra' (elabTy elabd)
       ; traceTc "wfelabtype(vanilla)=" (vcat [ text "tyconphase" <+> ppr isTyConPhase
                                              , text "before:" <+> ppr ty
@@ -175,9 +175,7 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
              else do { traceTc "wfelab appty3:" (ppr (tcSplitAppTys (tcTypeKind ty1))
                                          <+> ppr (head (reverse (snd (tcSplitAppTys (tcTypeKind ty1))))))
                      ; let atc = ty1 `at'at` ty2
-                     ; wfc <- if isTyConPhase
-                              then return [atc]
-                              else flatten_atat_constraint atc -- if it is reducible, reduce it! 
+                     ; wfc <- flatten_atat_constraint isTyConPhase atc -- if it is reducible, reduce it! 
                      ; elabd1 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
                      ; elabd2 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty2
                      ; return $ elabDetails (AppTy (elabTy elabd1) (elabTy elabd2))
@@ -205,7 +203,7 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
                else genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
       c_extra <- if isTyConPhase
                  then return $ newPreds elabd
-                 else redConstraints $ newPreds elabd
+                 else redConstraints isTyConPhase $ newPreds elabd
                              
       -- let (have'bvar, donthave'bvar) = partition (predHas bvarTy) c_extra
       let r_ty = ForAllTy bndr (attachConstraints c_extra (elabTy elabd))
@@ -291,13 +289,10 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; extra_css <- sequenceAts tycon args_tc extra_args_tc [] []
        ; args_wfts <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        
-       ; let should_reduce_constraints = not isTyConPhase || isClosedTypeFamilyTyCon tycon
-       ; if should_reduce_constraints
-         then do { r_args_wfts <- mapM redConstraints $ fmap newPreds args_wfts
-                 ; let r_args_wft = foldl mergeAtAtConstraints [] r_args_wfts
-                 ; mergeAtAtConstraints r_args_wft <$> redConstraints (wftct:extra_css)
-                 }
-         else return $ foldl mergeAtAtConstraints [] $ (fmap newPreds args_wfts) ++ [wftct:extra_css]
+       ; let should_not_reduce_constraints = isTyConPhase && not (isClosedTypeFamilyTyCon tycon)
+       ; r_args_wfts <- mapM (redConstraints should_not_reduce_constraints) $ fmap newPreds args_wfts
+       ; let r_args_wft = foldl mergeAtAtConstraints [] r_args_wfts
+       ; mergeAtAtConstraints r_args_wft <$> redConstraints should_not_reduce_constraints (wftct:extra_css)
        }
   | isTypeFamilyTyCon tycon && isWiredInName (tyConName tycon)
   = do { traceTc "wfelab closed fam tycon" (ppr tycon)
@@ -315,18 +310,14 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
          ; cs <- if (args `lengthAtLeast` (tyConArity tycon))
                  then case coreView (mkTyConApp tycon args) of
                         Just ty   -> do { cs <- newPreds <$> genAtAtConstraintsExceptTcM isTyConPhase eTycons ts ty
-                                        ; if isTyConPhase then return cs else redConstraints cs
+                                        ; redConstraints isTyConPhase cs
                                         }
                   
                         Nothing   -> pprPanic "tysyn tyConGenAts" (ppr tycon)
                  else failWithTc (tyConArityErr tycon args)
-         ; cs_args <- if isTyConPhase
-                      then foldl mergeAtAtConstraints [] <$>
-                           ((fmap newPreds) <$>
-                           mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args)
-                      else do css <- (fmap newPreds) <$>
-                                     mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
-                              foldl mergeAtAtConstraints [] <$> mapM redConstraints css
+         ; cs_args <- do css <- (fmap newPreds) <$>
+                                mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
+                         foldl mergeAtAtConstraints [] <$> mapM (redConstraints isTyConPhase) css
 
          ; return $ mergeAtAtConstraints cs_args cs
          }
@@ -335,7 +326,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
   = do { traceTc "wfelab fallthrough" (ppr tycon <+> ppr args)
        ; arg_css <- (fmap newPreds) <$> mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; ats <- recGenAtsTcM tycon args ts {-etycons-}
-       ; ats' <- if isTyConPhase then return ats else redConstraints ats
+       ; ats' <- redConstraints isTyConPhase ats
        ; return $ foldl mergeAtAtConstraints ats' arg_css }
 
 
@@ -431,17 +422,30 @@ predTyVars ty
   = predTyVars argTy ++ predTyVars resTy
   | otherwise = []
 
-redConstraints :: ThetaType -> TcM ThetaType
-redConstraints theta = foldl mergeAtAtConstraints [] <$> mapM flatten_atat_constraint theta
+redConstraints :: Bool -> ThetaType -> TcM ThetaType
+redConstraints isTyConPhase theta = foldl mergeAtAtConstraints [] <$>
+                                    mapM (flatten_atat_constraint isTyConPhase) theta
 
 -- | Sometimes the caller of the function doesn't expect any redundant @'s
 --   eagerly reduce the type to potentially a type family free form
 --   if the reduced type is an empty dictonary return [] else return the actual dictonary
-flatten_atat_constraint :: PredType -> TcM ThetaType
-flatten_atat_constraint ty
+flatten_atat_constraint :: Bool -> PredType -> TcM ThetaType
+flatten_atat_constraint isTyConPhase ty
   | (TyConApp tc _) <- ty
-  , isTypeFamilyTyCon tc
   , isWFMirrorTyCon tc
+  , not isTyConPhase
+  = do fam_envs <- GHC.Tc.Instance.Family.tcGetFamInstEnvs
+       let ty' = topNormaliseType fam_envs ty
+       tuplesToList ty'
+  | (TyConApp tc ((TyConApp tc2 _):_)) <- ty
+  , isWFMirrorTyCon tc
+  , tc2 `hasKey` ioTyConKey -- only reduce IO as it is special for ghci 
+  = do fam_envs <- GHC.Tc.Instance.Family.tcGetFamInstEnvs
+       let ty' = topNormaliseType fam_envs ty
+       tuplesToList ty'
+  | (TyConApp tc (_:_:(TyConApp tc2 _):_)) <- ty
+  , isWFMirrorTyCon tc
+  , tc2 `hasKey` ioTyConKey -- only reduce IO as it is special for ghci 
   = do fam_envs <- GHC.Tc.Instance.Family.tcGetFamInstEnvs
        let ty' = topNormaliseType fam_envs ty
        tuplesToList ty'
@@ -460,7 +464,7 @@ flatten_atat_constraint ty
 -- where wft' (T a) = flatten_atat_constraints wft (T a)
 redWfTypeTcM  :: Type -> TcM Type
 redWfTypeTcM ty = do
-  theta' <- redConstraints theta
+  theta' <- redConstraints False theta
   traceTc "wfelabtype simplify" (vcat [ text "before:" <+> ppr ty
                                       , text "after:" <+> ppr (mkSpecSigmaTy tvs theta' tau)
                                       ])

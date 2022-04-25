@@ -3,7 +3,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE UnliftedFFITypes #-}
-{-# LANGUAGE NoPartialTypeConstructors #-} -- The buck has to stop somewwhere
 
 {-# OPTIONS_HADDOCK not-home #-}
 
