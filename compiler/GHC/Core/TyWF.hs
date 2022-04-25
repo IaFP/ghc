@@ -229,7 +229,6 @@ isTyConInternal tycon =
   || tycon `hasKey` someTypeRepTyConKey
   || tycon `hasKey` eqTyConKey || tycon `hasKey` heqTyConKey
   || tycon `hasKey` proxyPrimTyConKey
-  || tycon `hasKey` listTyConKey -- TODO ANI: this can go away 
   || isBoxedTupleTyCon tycon || isUnboxedTupleTyCon tycon
   || isUnboxedSumTyCon tycon
   || tycon `hasKey` stablePtrPrimTyConKey || tycon `hasKey` stablePtrTyConKey
@@ -439,13 +438,13 @@ flatten_atat_constraint isTyConPhase ty
        tuplesToList ty'
   | (TyConApp tc ((TyConApp tc2 _):_)) <- ty
   , isWFMirrorTyCon tc
-  , tc2 `hasKey` ioTyConKey -- only reduce IO as it is special for ghci 
+  , tc2 `hasKey` ioTyConKey || tc2 `hasKey` listTyConKey -- only reduce IO as it is special for ghci 
   = do fam_envs <- GHC.Tc.Instance.Family.tcGetFamInstEnvs
        let ty' = topNormaliseType fam_envs ty
        tuplesToList ty'
   | (TyConApp tc (_:_:(TyConApp tc2 _):_)) <- ty
   , isWFMirrorTyCon tc
-  , tc2 `hasKey` ioTyConKey -- only reduce IO as it is special for ghci 
+  , tc2 `hasKey` ioTyConKey || tc2 `hasKey` listTyConKey -- only reduce IO as it is special for ghci 
   = do fam_envs <- GHC.Tc.Instance.Family.tcGetFamInstEnvs
        let ty' = topNormaliseType fam_envs ty
        tuplesToList ty'
