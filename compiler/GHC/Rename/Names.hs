@@ -947,7 +947,7 @@ getLocalNonValBinders fixity_env
              ; if partyCtrs
                then case unLoc tc_decl of -- I don't think we need this complicated logic here.
                                           -- It can be simplified
-                       fdecl@(FamDecl {})
+                       FamDecl {}
                          -> if isWiredInName (fst main_name) || not (genWFMirror (snd main_name))
                             then return [(availTC (fst main_name) (map fst names) flds', fld_env)]
                             else do { m <- getModule

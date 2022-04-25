@@ -32,7 +32,7 @@ import GHC.Unit.Module.Deps
 
 import GHC.Data.Maybe
 
-import Data.List (sortBy, isPrefixOf)
+import Data.List (sortBy)
 import Data.Map (Map)
 import qualified Data.Map as Map
 

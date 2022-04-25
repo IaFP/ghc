@@ -1707,6 +1707,7 @@ deriving instance Generic1 Down
 data family Sing (a :: k)
 
 type instance Sing @ a = ()
+-- This exists becuase I don't want to deal with (Sing :: Maybe b) case
 -- we never export Sing data family out of this module.
 -- effectively making it closed. hence we know that Sing @ a ~ () by case analysis i.e. 
 

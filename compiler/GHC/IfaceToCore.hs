@@ -757,8 +757,6 @@ tc_iface_decl parent b (IfaceFamily {ifName = tc_name,
      ; return (ATyCon tycon) }
    where
      mk_doc n = text "Type family synonym" <+> ppr n
-     mk_doc_wf tc = text "WF Type family synonym"
-                          <+> ppr tc
 
      tc_fam_flav :: Name -> IfaceFamTyConFlav -> IfL FamTyConFlav
      tc_fam_flav tc_name IfaceDataFamilyTyCon

@@ -299,9 +299,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
                  }
          else return $ foldl mergeAtAtConstraints [] $ (fmap newPreds args_wfts) ++ [wftct:extra_css]
        }
-
-  | isClosedTypeFamilyTyCon tycon
-  || (isTypeFamilyTyCon tycon && isWiredInName (tyConName tycon))
+  | isTypeFamilyTyCon tycon && isWiredInName (tyConName tycon)
   = do { traceTc "wfelab closed fam tycon" (ppr tycon)
        ; co_ty_mb <- matchFamTcM tycon args
        ; args_wfts <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args       

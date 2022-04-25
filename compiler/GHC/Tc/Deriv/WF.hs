@@ -23,6 +23,7 @@ import GHC.Hs
 import GHC.Tc.Utils.Monad
 import GHC.Tc.Instance.Family
 import GHC.Tc.Utils.Env
+import GHC.Tc.Utils.TcType
 import GHC.Core.TyCo.Rep
 
 import GHC.Core.Type
@@ -32,6 +33,7 @@ import GHC.Core.DataCon
 import GHC.Types.Name
 import GHC.Core.TyCon
 import GHC.Core.TyWF
+import GHC.Types.Var.Set
 import GHC.Builtin.Types (wfTyConName, wfTyCon, cTupleTyCon)
 import GHC.Types.SrcLoc
 import GHC.Utils.Outputable as Outputable
@@ -179,21 +181,21 @@ getMatchingPredicates' tv tvs preds =
 --   Tree @ a
 genWFFamInstConstraint :: Type -> TcM Type
 genWFFamInstConstraint rhs
-  = do {
-  ; preds <- genWfConstraintsTcM False rhs []
-  ; let n = length preds
-        wf_rhs_ty = if n == 1
-                    then head preds
-                    else mkTyConApp (cTupleTyCon n) preds
-  ; return wf_rhs_ty
-  }
+  = do { preds <- genWfConstraintsTcM False rhs []
+       ; let n = length preds
+       ; if n == 1
+         then return $ head preds
+         else return $ mkTyConApp (cTupleTyCon n) preds
+       }
 
 -- This is called when we are type checking a data family instance
 mk_datafam_wfs :: SrcSpan -> TyCon -> [Type] -> TyCon -> TcM [FamInst]
 mk_datafam_wfs loc fam_tc pats rep_tc
   | isDataFamilyTyCon fam_tc
   , let bndrs_and_pats = zip (tyConBinders fam_tc) pats
-  = mk_datafam_wfs' loc fam_tc bndrs_and_pats [] (tyConTyVars fam_tc) [] [] -- TODO change this to more appropriate theta
+        d_ctxt = tyConStupidTheta rep_tc
+  = do traceTc "wfelab mk_datafam_wfs" (ppr $ map (\(b, p) -> (b, p, tcTypeKind p)) bndrs_and_pats)
+       mk_datafam_wfs' loc fam_tc bndrs_and_pats [] (tyConTyVars fam_tc) [] d_ctxt []
   | otherwise
   = return []
 
@@ -228,41 +230,49 @@ mk_atat_fam' loc acc tc uTys (tyd, ty:tyl) (tyvarsd, (tyvar, shouldInc):tyvarsl)
     =  mk_atat_fam' loc acc tc uTys (tyd', tyl) (tyvarsd', tyvarsl) ctxt
   where
     tyd' = tyd ++ [ty]
-    tyvarsd' = tyvarsd ++ [tyvar]
+    tyvarsd' = dVarSetElems . mkDVarSet $ tyvarsd ++ [tyvar]
 mk_atat_fam' _ acc _ _ _ _ _ = return acc
 
 
 mk_datafam_wfs' :: SrcSpan -> TyCon
-                -> [(TyConBinder,Type)]
-                -> [Type] -> [TyVar] -> [PredType]
+                -> [(TyConBinder,Type)] -> [Type]
+                -> [TyVar] -> [TyVar]
+                -> [PredType]
                 -> [FamInst] -> TcM [FamInst]
-mk_datafam_wfs' _ _ [] _ _ _ acc = return acc
-mk_datafam_wfs' _ _ _ _ [] _ acc = return acc
-mk_datafam_wfs' loc fam_tc ((bndr,ty_arg):rest) tyds (tyvar:tyvards) theta acc
+mk_datafam_wfs' _ _ [] _ _ _ _ acc = return acc
+mk_datafam_wfs' _ _ _ _ [] _ _ acc = return acc
+mk_datafam_wfs' loc fam_tc ((bndr,ty_arg):ty_rest) tyds (tyvar:tyvars_rest) tyvards theta acc
   | AnonTCB VisArg <- binderArgFlag bndr
   = do let tyd' = tyds ++ [ty_arg]
-           tyvarsd' = tyvards ++ [tyvar]
+           tyvarsd' = if isTyVarTy ty_arg
+             then tyvards ++ [getTyVar "mk_datafam_wfs" ty_arg]
+             else tyvards ++ [tyvar]
        inst_name <- newFamInstTyConName (L (noAnnSrcSpan loc) wfTyConName) ((mkTyConTy fam_tc):tyd')
        let argK = tcTypeKind ty_arg
            f = mkTyConApp fam_tc tyds
            fk = tcTypeKind f
            resK = piResultTy fk argK
-           rhs_pred = (mkTyConTy (cTupleTyCon 0))
+           rhs_pred = mkTyConTy (cTupleTyCon 0)
            lhs_tys = [argK, resK, f, ty_arg]
-           axiom = mkSingleCoAxiom Nominal inst_name tyvarsd' [] [] wfTyCon lhs_tys rhs_pred
+           axiom_vars = dVarSetElems . mkDVarSet $ concatMap predTyVars lhs_tys
+           axiom = mkSingleCoAxiom Nominal inst_name axiom_vars [] [] wfTyCon lhs_tys rhs_pred
        traceTc "wfelab datafam axiom" (vcat [ parens (ppr inst_name)
                                             , parens (ppr f <> dcolon <> ppr fk)
                                                        <+> ppr wfTyCon
                                                        <+> parens (ppr ty_arg <> dcolon <> ppr argK)
                                                        <+> text "~"
                                                        <+> ppr rhs_pred
-                                            , ppr wfTyCon <+> ppr lhs_tys <+> text "~" <+> ppr rhs_pred
+                                            , ppr axiom_vars <+> ppr wfTyCon <+> ppr lhs_tys <+> text "~" <+> ppr rhs_pred
                                             , text "isForallTy: " <> ppr (isForAllTy argK)
                                             ])
        fam <- newFamInst SynFamilyInst axiom
-       mk_datafam_wfs' loc fam_tc rest (tyds++[ty_arg]) tyvards theta (fam:acc)
+       mk_datafam_wfs' loc fam_tc ty_rest tyd' tyvars_rest tyvarsd' theta (fam:acc)
   | otherwise
-  = mk_datafam_wfs' loc fam_tc rest (tyds++[ty_arg]) tyvards theta acc
+  , let tyd' = tyds ++ [ty_arg]
+        tyvarsd' = if isTyVarTy ty_arg
+                   then tyvards ++ [getTyVar "mk_datafam_wfs" ty_arg]
+                   else tyvards ++ [tyvar]
+  = mk_datafam_wfs' loc fam_tc ty_rest tyd' tyvars_rest tyvarsd' theta acc
 
 
 {-

@@ -2,9 +2,6 @@
 {-# LANGUAGE DataKinds #-}
 
 module AssoTypes where
-import GHC.Generics
-import GHC.Types
-
 
 class Collection a where
   type Elem a
@@ -12,36 +9,21 @@ class Collection a where
   cons :: Elem a -> a -> a
 
 
--- blahType :: Elem a -> a
--- blahType = undefined
-
-
 instance Collection [a] where
   type Elem [a] = a
   e = []
   cons = (:)
 
--- some higher order order assocated types
 
--- class Gen a where
---   type Repr a :: Type -> Type
---   -- WFT (Repr a) :: Type -> Constraint
---   reprFrom :: a -> (Repr a) x
---   toRepr :: (Repr a) x -> a
+class AssocDF1 a where
+  data ADF1 a
+  op1 :: ADF1 a -> a 
 
 
--- data Pair a b = Pair a b
--- data Ord a => OrdPair a b = OrdPair a b
-
--- instance Gen (Pair a b) where -- I don't know how to write this tbh i suspect i'm missing :*: things
---   type Repr (Pair a b) = (,) a
---   from (Pair a b) = (a, b)
---   to (a, b) = Pair a b
-
-
--- instance Gen (OrdPair a b) where
---   type Repr (OrdPair a b) = (,) a
---   from (OrdPair a b) = (a, b)
---   to (a, b) = OrdPair a b
-
-data Pair a b = P a b deriving Generic
+class Assoc2DF a where
+  data ADF2 a
+  type ATF2 a 
+  op2 :: a -> (ADF2 a, ATF2 a)
+  -- should elaborate to
+  -- op2 :: (ADF @ a, $wf:ATF2 a) => a -> (ADF a, ATF2 a)
+  
