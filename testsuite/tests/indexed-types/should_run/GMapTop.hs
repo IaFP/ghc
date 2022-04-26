@@ -6,7 +6,7 @@ import Prelude hiding (lookup)
 import Data.Char (ord)
 import qualified Data.Map as Map
 import Data.Kind (Type)
-
+import GHC.Types (type(@))
 
 -- Generic maps as toplevel indexed data types
 ----------------------------------------------
@@ -38,14 +38,14 @@ instance GMapKey () where
   lookup () (GMapUnit v)   = v
   insert () v (GMapUnit _) = GMapUnit $ Just v
 
-instance (GMapKey a, GMapKey b) => GMapKey (a, b) where
+instance (GMap @ a, GMap @ b, GMapKey a, GMapKey b) => GMapKey (a, b) where
   empty                         = GMapPair empty
   lookup (a, b) (GMapPair gm)   = lookup a gm >>= lookup b
   insert (a, b) v (GMapPair gm) = GMapPair $ case lookup a gm of
                                     Nothing  -> insert a (insert b v empty) gm
                                     Just gm2 -> insert a (insert b v gm2  ) gm
 
-instance (GMapKey a, GMapKey b) => GMapKey (Either a b) where
+instance (GMap @ a, GMap @ b, GMapKey a, GMapKey b) => GMapKey (Either a b) where
   empty                                   = GMapEither empty empty
   lookup (Left  a) (GMapEither gm1  _gm2) = lookup a gm1
   lookup (Right b) (GMapEither _gm1 gm2 ) = lookup b gm2

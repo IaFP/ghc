@@ -6,6 +6,7 @@ import Prelude hiding (lookup)
 import Data.Char (ord)
 import qualified Data.Map as Map
 import Data.Kind (Type)
+import GHC.Types (type(@))
 
 -- Generic maps as ATs
 -- -------------------
@@ -34,7 +35,7 @@ instance GMapKey () where
   lookup () (GMapUnit v)   = v
   insert () v (GMapUnit _) = GMapUnit $ Just v
 
-instance (GMapKey a, GMapKey b) => GMapKey (a, b) where
+instance (GMap @ a, GMap @ b, GMapKey a, GMapKey b) => GMapKey (a, b) where
   data GMap (a, b) v            = GMapPair (GMap a (GMap b v))
   empty                         = GMapPair empty
   lookup (a, b) (GMapPair gm)   = lookup a gm >>= lookup b
@@ -42,7 +43,7 @@ instance (GMapKey a, GMapKey b) => GMapKey (a, b) where
                                     Nothing  -> insert a (insert b v empty) gm
                                     Just gm2 -> insert a (insert b v gm2  ) gm
 
-instance (GMapKey a, GMapKey b) => GMapKey (Either a b) where
+instance (GMap @ a, GMap @ b, GMapKey a, GMapKey b) => GMapKey (Either a b) where
   data GMap (Either a b) v                = GMapEither (GMap a v) (GMap b v)
   empty                                   = GMapEither empty empty
   lookup (Left  a) (GMapEither gm1  _gm2) = lookup a gm1
