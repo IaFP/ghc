@@ -746,14 +746,13 @@ tc_iface_decl parent b (IfaceFamily {ifName = tc_name,
      ; rhs      <- forkM (mk_doc tc_name) $
                    tc_fam_flav tc_name fam_flav
      ; res_name <- traverse (newIfaceName . mkTyVarOccFS) res
-     -- N.B. we map over (mirror :: Maybe IFaceDecl) here,
-     -- so if this TF does not have a WF mirror (i.e, mirror is Nothing),
-     -- the code will work anyway.
-     ; tycon <- do
-         { wf'tc <- mapM (tc_iface_decl parent b) mirror
-         ; return $ mkFamilyTyCon tc_name binders'
-                    res_kind' res_name rhs parent inj (fmap tyThingTyCon wf'tc)
-         }
+     ; tycon <- do { wf'tc <- mapM (tc_iface_decl parent b) mirror
+                   ; if isWFName tc_name
+                     then return $ mkWFFamilyTyCon tc_name binders'
+                            res_kind' res_name rhs parent
+                     else return $ mkFamilyTyCon tc_name binders'
+                            res_kind' res_name rhs parent inj (fmap tyThingTyCon wf'tc)
+                   }
      ; return (ATyCon tycon) }
    where
      mk_doc n = text "Type family synonym" <+> ppr n
@@ -836,23 +835,10 @@ tc_iface_decl _parent ignore_prags
              ; ty' <- forkM (doc <+> text "dm") $ tcIfaceType ty
              ; return (Just (GenericDM (noSrcSpan, ty'))) }
 
-   tc_at cls (IfaceAT tc_decl (Just _) if_def)
+   tc_at cls (IfaceAT tc_decl _ if_def)
      = do ATyCon tc <- tc_iface_decl (Just cls) ignore_prags tc_decl
-          if not (isDataFamilyTyCon tc)
-            then do { let wf_tc = wfMirrorTyCon "tc_at" tc -- this better not fail as we know this is not a mirror
-                    ; mb_def <- case if_def of
-                        Nothing  -> return Nothing
-                        Just def -> forkM (mk_at_doc tc)           $
-                                    extendIfaceTyVarEnv (tyConTyVars tc) $
-                                    do { tc_def <- tcIfaceType def
-                                       ; return (Just (tc_def, NoATVI)) }
-                  -- Must be done lazily in case the RHS of the defaults mention
-                  -- the type constructor being defined here
-                  -- e.g.   type AT a; type AT b = AT [b]   #8002
-                    ; let wf_tc_ati = ATI wf_tc Nothing
-                          tc_ati = ATI tc mb_def
-                    ; return $ [tc_ati , wf_tc_ati] }
-            else do { mb_def <- case if_def of
+          if isDataFamilyTyCon tc
+            then do { mb_def <- case if_def of
                         Nothing  -> return Nothing
                         Just def -> forkM (mk_at_doc tc)           $
                                     extendIfaceTyVarEnv (tyConTyVars tc) $
@@ -863,7 +849,21 @@ tc_iface_decl _parent ignore_prags
                   -- e.g.   type AT a; type AT b = AT [b]   #8002
                      ; let tc_ati = ATI tc mb_def
                      ; return [tc_ati] }
-   tc_at _ (IfaceAT _ Nothing _) = return []
+            else if not (isWFMirrorTyCon tc)
+                 then do { let wf_tc = wfMirrorTyCon "tc_at" tc -- this better not fail as we know this is not a mirror
+                         ; mb_def <- case if_def of
+                                Nothing  -> return Nothing
+                                Just def -> forkM (mk_at_doc tc)           $
+                                            extendIfaceTyVarEnv (tyConTyVars tc) $
+                                            do { tc_def <- tcIfaceType def
+                                               ; return (Just (tc_def, NoATVI)) }
+                  -- Must be done lazily in case the RHS of the defaults mention
+                  -- the type constructor being defined here
+                  -- e.g.   type AT a; type AT b = AT [b]   #8002
+                         ; let wf_tc_ati = ATI wf_tc Nothing
+                               tc_ati = ATI tc mb_def
+                         ; return $ [tc_ati , wf_tc_ati] }
+                 else return []
    
    mk_sc_doc pred = text "Superclass" <+> ppr pred
    mk_at_doc tc = text "Associated type " <+> ppr tc
@@ -1009,13 +1009,14 @@ tc_iface_decl_fingerprint ignore_prags (_version, decl)
                            Just thing -> thing
                            Nothing    ->
                              pprPanic "tc_iface_decl_fingerprint" (ppr main_name $$
+                                                                   ppr thing $$
                                                                    ppr n $$
                                                                    ppr decl $$
                                                                    ppr mini_env)
 
         ; implicit_names <- mapM lookupIfaceTop (ifaceDeclImplicitBndrs decl)
 
---         ; traceIf (text "Loading decl for " <> ppr main_name $$ ppr implicit_names)
+        ; traceIf (text "Loading decl for " <> ppr main_name $$ ppr implicit_names)
         ; return $ (main_name, thing) :
                       -- uses the invariant that implicit_names and
                       -- implicitTyThings are bijective

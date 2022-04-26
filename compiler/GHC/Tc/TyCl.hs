@@ -2858,16 +2858,11 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
   ; checkDataKindSig DataFamilySort res_kind
   ; tc_rep_name <- newTyConRepName tc_name
   ; let inj   = Injective $ replicate (length binders) True
-  ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-  ; let wf_tycon_mb = if partyCtrs && isJust wfname
-                      then Just $ mkWFFamilyTyCon (fromJust wfname) binders constraintKind
-                                        Nothing OpenSynFamilyTyCon parent
-                      else Nothing
         tycon = mkFamilyTyCon tc_name binders
                               res_kind
                               (resultVariableName sig)
                               (DataFamilyTyCon tc_rep_name)
-                              parent inj wf_tycon_mb
+                              parent inj Nothing
   ; return tycon }
 
   | OpenTypeFamily <- fam_info

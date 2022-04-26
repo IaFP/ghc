@@ -5,8 +5,10 @@ module NewType where
 
 import GHC.Types (type (@))
 -- simple examples 
--- data Ord a => T a = T | B a (T a) (T a)
+data Ord a => T a = T | B a (T a) (T a)
+
 -- newtype Eq a => NT a = NT {unNT :: T a} -- not okay as Eq a |/- Ord a
+newtype NT a = NT {unNT :: T a} -- not okay as () |/- Ord a
 
 data Eq a => Key a = Key a
 newtype Ord a => Map a b = Map {unMap :: Key a -> b} -- okay as Ord a |- Eq a
