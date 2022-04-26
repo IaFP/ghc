@@ -145,26 +145,38 @@ values (see function @mkRdrRecordUpd@ in 'GHC.Parser.PostProcess').
 
 type LFieldLabelStrings p = XRec p (FieldLabelStrings p)
 
-newtype
-#if MIN_VERSION_base(4,16,0)
- WFT (XRec p (DotFieldOcc p)) =>
-#endif
-  FieldLabelStrings p =
+newtype FieldLabelStrings p =
   FieldLabelStrings [XRec p (DotFieldOcc p)]
 
-instance (UnXRec p, Outputable (XRec p FieldLabelString)) => Outputable (FieldLabelStrings p) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec p (DotFieldOcc p)),
+#endif
+  UnXRec p, Outputable (XRec p FieldLabelString)) => Outputable (FieldLabelStrings p) where
   ppr (FieldLabelStrings flds) =
     hcat (punctuate dot (map (ppr . unXRec @p) flds))
 
-instance (UnXRec p, Outputable (XRec p FieldLabelString)) => OutputableBndr (FieldLabelStrings p) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec p (DotFieldOcc p)),
+#endif
+  UnXRec p, Outputable (XRec p FieldLabelString)) => OutputableBndr (FieldLabelStrings p) where
   pprInfixOcc = pprFieldLabelStrings
   pprPrefixOcc = pprFieldLabelStrings
 
-instance (UnXRec p,  Outputable (XRec p FieldLabelString)) => OutputableBndr (Located (FieldLabelStrings p)) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec p (DotFieldOcc p)),
+#endif
+  UnXRec p,  Outputable (XRec p FieldLabelString)) => OutputableBndr (Located (FieldLabelStrings p)) where
   pprInfixOcc = pprInfixOcc . unLoc
   pprPrefixOcc = pprInfixOcc . unLoc
 
-pprFieldLabelStrings :: forall p. (UnXRec p, Outputable (XRec p FieldLabelString)) => FieldLabelStrings p -> SDoc
+pprFieldLabelStrings :: forall p. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec p (DotFieldOcc p)),
+#endif
+  UnXRec p, Outputable (XRec p FieldLabelString)) => FieldLabelStrings p -> SDoc
 pprFieldLabelStrings (FieldLabelStrings flds) =
     hcat (punctuate dot (map (ppr . unXRec @p) flds))
 

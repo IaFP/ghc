@@ -1899,9 +1899,6 @@ tcMethodBody clas tyvars dfun_ev_vars inst_tys
           -- then skip adding local_ev_binds this to the abs_ev_binds.
           -- I suspect this is due to my solver medling. But meh, i got no time.
           -- It is likely that this medling with IORef i'm going to shoot myself in the foot
-       -- ; bm <- getTcEvBindsMap ev_binds_var
-       -- ; let shouldAdd = not (isEmptyEvBindMap bm) || isCoEvBindsVar ev_binds_var
-       --       local_ev_binds = if shouldAdd then [] else
              local_ev_binds = [TcEvBinds ev_binds_var]
              full_bind = AbsBinds { abs_ext      = noExtField
                                   , abs_tvs      = tyvars
@@ -1913,7 +1910,6 @@ tcMethodBody clas tyvars dfun_ev_vars inst_tys
        ; traceTc "tcMethodBody }" (vcat [(ppr global_meth_id) <+> dcolon <+> ppr (idType global_meth_id)
                                          , text "dfun_ev_binds:" <+> ppr dfun_ev_binds
                                          , text "local_ev_binds:" <+> ppr local_ev_binds
-                                         -- , text "bm: " <+> ppr bm
                                          ])
        ; return (global_meth_id, L bind_loc full_bind, Just meth_implic) }
   where

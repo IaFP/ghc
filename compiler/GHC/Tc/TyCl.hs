@@ -39,7 +39,7 @@ import GHC.Tc.Solver( pushLevelAndSolveEqualities, pushLevelAndSolveEqualitiesX
                     , reportUnsolvedEqualities )
 import GHC.Tc.Utils.Monad
 import GHC.Tc.Utils.Env
-import GHC.Tc.Utils.Unify( unifyType, emitResidualTvConstraint )
+import GHC.Tc.Utils.Unify( unifyType, emitResidualTvConstraint, tcSubTypeSigma )
 import GHC.Tc.Types.Constraint( emptyWC )
 import GHC.Tc.Validity
 import GHC.Tc.Utils.Zonk
@@ -54,7 +54,7 @@ import GHC.Tc.Utils.TcType
 import GHC.Tc.Instance.Family
 import GHC.Tc.Types.Origin
 
-import GHC.Builtin.Types (oneDataConTy,  unitTy, makeRecoveryTyCon )
+import GHC.Builtin.Types (oneDataConTy,  unitTy, makeRecoveryTyCon, cTupleTyCon)
 
 import GHC.Rename.Env( lookupConstructorFields )
 
@@ -69,6 +69,7 @@ import GHC.Core.Coercion.Axiom
 import GHC.Core.TyCon
 import GHC.Core.DataCon
 import GHC.Core.Unify
+import GHC.Core.TyWF
 
 import GHC.Types.Error
 import GHC.Types.Id
@@ -4288,7 +4289,6 @@ However, we do not *always* want to substitute. Consider
 data H (a :: k) where
   MkH :: H Int
 
-With explicit kind variables:
 
 data H k (a :: k) where
   MkH :: H * Int
@@ -4443,7 +4443,8 @@ checkValidTyCon tc
                ; checkValidTheta (DataTyCtxt name) (tyConStupidTheta tc)
 
                ; traceTc "cvtc2" (ppr tc)
-
+               ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+               ; if isNewTyCon tc && partyCtrs then checkNewTypeThetaEntailment tc else return ()
                ; dflags          <- getDynFlags
                ; existential_ok  <- xoptM LangExt.ExistentialQuantification
                ; gadt_ok         <- xoptM LangExt.GADTs
@@ -4501,6 +4502,48 @@ checkValidTyCon tc
             where
                 res2 = dataConOrigResTy con2
                 fty2 = dataConFieldType con2 lbl
+
+-- When we are in a partial type constructor world
+-- we need to check if the constraints scribed by the user in the type context,
+-- say C, entails the well formed constraints on the RHS, say T.
+-- eg. newtype C => NT a = NT { unNT :: T } then C => wft (T)
+-- restriction: always call this function on a new type tycon
+checkNewTypeThetaEntailment :: TyCon -> TcM ()
+checkNewTypeThetaEntailment tc
+  | null $ tyConStupidTheta tc -- normal case
+  = return ()
+  | otherwise
+  = do { let tc_th = tyConStupidTheta tc
+             ctxt  = thetaToCnstTy tc_th
+             (_, rhs_ty) = newTyConRhs tc
+       ; wf_theta <- genWfConstraintsTcM False rhs_ty []
+       ; let wf_ct = thetaToCnstTy wf_theta
+       ; traceTc "wfelab newtype theta entailment" (vcat [ text "theta"  <+> ppr ctxt
+                                                         , text "wf ct" <+> ppr wf_ct ] )
+       ; _ <- addErrCtxtM (newTypeCtxt (tyConName tc) ctxt wf_ct) $
+                    tcSubTypeSigma (DataTyCtxt $ tyConName tc)
+                                   (attachConstraints wf_theta rhs_ty)
+                                   (attachConstraints tc_th rhs_ty)
+
+       ; return ()
+       }
+    where thetaToCnstTy :: ThetaType -> Type
+          thetaToCnstTy theta = let n = length theta in
+                                      if n == 1
+                                      then head theta
+                                      else mkTyConApp (cTupleTyCon n) theta
+
+newTypeCtxt :: Name -> TcType -> TcType -> TidyEnv -> TcM (TidyEnv, SDoc)
+newTypeCtxt tc_name ctxt rhs_ct env0
+  = do { (env1, ctxt)  <- zonkTidyTcType env0 ctxt
+       ; (env2, rhs_ct) <- zonkTidyTcType env1 rhs_ct
+       ; let msg = hang (text "When checking the context for newtype" <+> quotes (ppr tc_name))
+                      2 (vcat [ text "New type context is more general than its RHS"
+                              , text "New type context:" <+> ppr ctxt
+                              , text "      RHS context:" <+> ppr rhs_ct ])
+       ; return (env2, msg) }
+
+
 
 checkPartialRecordField :: [DataCon] -> FieldLabel -> TcM ()
 -- Checks the partial record field selector, and warns.

@@ -2,26 +2,16 @@
            , RoleAnnotations, RankNTypes, ExistentialQuantification, TypeFamilies, TypeFamilyDependencies #-}
 
 module NewType where
-import GHC.Types (Total, WFT)
 
--- newtype NT f a = MkNT {unNT :: f a}
+import GHC.Types (type (@))
+-- simple examples 
+-- data Ord a => T a = T | B a (T a) (T a)
+-- newtype Eq a => NT a = NT {unNT :: T a} -- not okay as Eq a |/- Ord a
 
-data B a = B a
+data Eq a => Key a = Key a
+newtype Ord a => Map a b = Map {unMap :: Key a -> b} -- okay as Ord a |- Eq a
 
-class C a where
-  type family T a = r | r -> a
-  mblah :: T a -> B a
-  tblah :: B a -> T a
+newtype f @ a => Rec f a = Rec {unRec :: f a} -- Okay as f @ a |- f @ a
+                                              -- but does the solver know about this? -- Yes
 
-instance C Bool where
-  type instance T Bool = Bool
-  mblah b = B b
-  tblah (B b) = b
-  
-newtype ECP = ECP {unECP :: forall a. (WFT (T a), C a) => B a}
-
-f :: ECP -> ECP 
-f ecp = ECP $ mblah (tblah (unECP ecp))
-
-
-data Ord a => Tree a = Tip | Branch a (Tree a) (Tree a)
+newtype Ord a => RecNT a = RecNT {unRecNT :: RecNT [a] -> a } -- this is okay
