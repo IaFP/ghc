@@ -218,8 +218,6 @@ data IfaceClassOp
 
 data IfaceAT = IfaceAT  -- See GHC.Core.Class.ClassATItem
                   IfaceDecl          -- The associated type declaration
-                  (Maybe IfaceDecl)  -- The well Formedness type declaration. This makes the interfaced
-                                     -- backward incompatible
                   (Maybe IfaceType)  -- Default associated type instance, if any
 
 
@@ -495,7 +493,7 @@ ifaceDeclImplicitBndrs (IfaceClass { ifName = cls_tc_name
     --    no wrapper (class dictionaries never have a wrapper)
     [dc_occ, dcww_occ] ++
     -- associated types
-    [occName (ifName at) | IfaceAT at _ _ <- ats ] ++
+    [occName (ifName at) | IfaceAT at _ <- ats ] ++
     -- superclass selectors
     [mkSuperDictSelOcc n cls_tc_occ | n <- [1..n_ctxt]] ++
     -- operation selectors
@@ -928,7 +926,7 @@ pprIfaceDecl ss (IfaceClass { ifName  = clas
       dsigs = ppr_trim $ map maybeShowSig sigs
 
       maybeShowAssoc :: IfaceAT -> Maybe SDoc
-      maybeShowAssoc asc@(IfaceAT d _ _)
+      maybeShowAssoc asc@(IfaceAT d _)
         | showSub ss d = Just $ pprIfaceAT ss asc
         | otherwise    = Nothing
 
@@ -1119,17 +1117,13 @@ instance Outputable IfaceAT where
    ppr = pprIfaceAT showToIface
 
 pprIfaceAT :: ShowSub -> IfaceAT -> SDoc
-pprIfaceAT ss (IfaceAT d mb_wf_d mb_def)
+pprIfaceAT ss (IfaceAT d mb_def)
   = vcat [ pprIfaceDecl ss d
          , case mb_def of
               Nothing  -> Outputable.empty
               Just rhs -> nest 2 $
                           text "Default:"  <+> ppr rhs
-         , case mb_wf_d of
-             Nothing  -> Outputable.empty
-             Just rhs -> nest 2 $
-                         text "WF Mirror:" <+> ppr (ifName rhs) ]
-
+         ]
 
 instance Outputable IfaceTyConParent where
   ppr p = pprIfaceTyConParent p
@@ -1612,14 +1606,11 @@ freeNamesIfContext :: IfaceContext -> NameSet
 freeNamesIfContext = fnList freeNamesIfType
 
 freeNamesIfAT :: IfaceAT -> NameSet
-freeNamesIfAT (IfaceAT decl mb_wf_decl mb_def)
+freeNamesIfAT (IfaceAT decl mb_def)
   = freeNamesIfDecl decl &&&
     (case mb_def of
       Nothing  -> emptyNameSet
-      Just rhs -> freeNamesIfType rhs) &&&
-    (case mb_wf_decl of
-      Nothing  -> emptyNameSet
-      Just rhs -> freeNamesIfDecl rhs)
+      Just rhs -> freeNamesIfType rhs)
 
 freeNamesIfClsSig :: IfaceClassOp -> NameSet
 freeNamesIfClsSig (IfaceClassOp _n ty dm) = freeNamesIfType ty &&& freeNamesDM dm
@@ -2090,15 +2081,13 @@ instance Binary IfaceClassOp where
         return (IfaceClassOp n ty def)
 
 instance Binary IfaceAT where
-    put_ bh (IfaceAT dec wf_dec defs) = do
+    put_ bh (IfaceAT dec defs) = do
         put_ bh dec
-        put_ bh wf_dec
         put_ bh defs
     get bh = do
         dec  <- get bh
-        wf_dec <- get bh
         defs <- get bh
-        return (IfaceAT dec wf_dec defs)
+        return (IfaceAT dec defs)
 
 instance Binary IfaceAxBranch where
     put_ bh (IfaceAxBranch a1 a2 a3 a4 a5 a6 a7) = do
@@ -2578,7 +2567,7 @@ instance NFData IfaceClassBody where
     IfConcreteClass f1 f2 f3 f4 -> rnf f1 `seq` rnf f2 `seq` rnf f3 `seq` f4 `seq` ()
 
 instance NFData IfaceAT where
-  rnf (IfaceAT f1 f2 f3) = rnf f1 `seq` rnf f2 `seq` rnf f3
+  rnf (IfaceAT f1 f2) = rnf f1 `seq` rnf f2
 
 instance NFData IfaceClassOp where
   rnf (IfaceClassOp f1 f2 f3) = rnf f1 `seq` rnf f2 `seq` f3 `seq` ()

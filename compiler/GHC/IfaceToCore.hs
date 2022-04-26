@@ -835,7 +835,7 @@ tc_iface_decl _parent ignore_prags
              ; ty' <- forkM (doc <+> text "dm") $ tcIfaceType ty
              ; return (Just (GenericDM (noSrcSpan, ty'))) }
 
-   tc_at cls (IfaceAT tc_decl _ if_def)
+   tc_at cls (IfaceAT tc_decl if_def)
      = do ATyCon tc <- tc_iface_decl (Just cls) ignore_prags tc_decl
           if isDataFamilyTyCon tc
             then do { mb_def <- case if_def of
@@ -1008,15 +1008,12 @@ tc_iface_decl_fingerprint ignore_prags (_version, decl)
               lookup n = case lookupOccEnv mini_env (getOccName n) of
                            Just thing -> thing
                            Nothing    ->
-                             pprPanic "tc_iface_decl_fingerprint" (ppr main_name $$
-                                                                   ppr thing $$
-                                                                   ppr n $$
-                                                                   ppr decl $$
-                                                                   ppr mini_env)
+                             pprPanic "tc_iface_decl_fingerprint" (ppr thing $$
+                                                                   ppr n)
 
         ; implicit_names <- mapM lookupIfaceTop (ifaceDeclImplicitBndrs decl)
 
-        ; traceIf (text "Loading decl for " <> ppr main_name $$ ppr implicit_names)
+        -- ; traceIf (text "Loading decl for " <> ppr main_name $$ ppr implicit_names)
         ; return $ (main_name, thing) :
                       -- uses the invariant that implicit_names and
                       -- implicitTyThings are bijective

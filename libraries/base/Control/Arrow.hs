@@ -406,7 +406,7 @@ instance Monad m => ArrowApply (Kleisli m) where
 -- | The 'ArrowApply' class is equivalent to 'Monad': any monad gives rise
 --   to a 'Kleisli' arrow, and any instance of 'ArrowApply' defines a monad.
 
-newtype ArrowMonad a b = ArrowMonad (a () b)
+newtype (a () @ b, a @ ()) => ArrowMonad a b = ArrowMonad (a () b)
 {-
 -- | @since 4.6.0.0
 instance Arrow a => Functor (ArrowMonad a) where

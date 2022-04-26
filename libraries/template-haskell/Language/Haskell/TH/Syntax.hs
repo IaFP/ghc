@@ -416,8 +416,12 @@ The splice will evaluate to (MkAge 3) and you can't add that to
 
 -- Code constructor
 
-type role Code representational nominal   -- See Note [Role of TExp]
-newtype Code m (a :: TYPE (r :: RuntimeRep)) = Code
+type role Code nominal nominal   -- See Note [Role of TExp]
+newtype
+#if MIN_VERSION_base(4,16,0)
+  m @ TExp a =>
+#endif
+  Code m (a :: TYPE (r :: RuntimeRep)) = Code
   { examineCode :: m (TExp a) -- ^ Underlying monadic value
   }
 

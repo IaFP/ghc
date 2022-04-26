@@ -39,7 +39,7 @@ infixr 9 `Compose`
 -- | Right-to-left composition of functors.
 -- The composition of applicative functors is always applicative,
 -- but the composition of monads is not always a monad.
-newtype Compose f g a = Compose { getCompose :: f (g a) }
+newtype (f @ g a, g @ a) => Compose f g a = Compose { getCompose :: f (g a) }
   deriving ( Data     -- ^ @since 4.9.0.0
            -- , Generic  -- ^ @since 4.9.0.0
            -- , Generic1 -- ^ @since 4.9.0.0

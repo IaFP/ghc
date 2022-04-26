@@ -154,7 +154,7 @@ import GHC.Arr               -- So we can give Data instance for Array
 import qualified GHC.Generics as Generics (Fixity(..))
 import GHC.Generics hiding (Fixity(..))
                              -- So we can give Data instance for U1, V1, ...
-
+import GHC.Types (type (@))
 ------------------------------------------------------------------------------
 --
 --      The Data class
@@ -465,7 +465,7 @@ newtype Qr r a = Qr { unQr  :: r -> r }
 
 
 -- | The type constructor used in definition of gmapMp
-newtype Mp m x = Mp { unMp :: m (x, Bool) }
+newtype m @ (x, Bool) => Mp m x = Mp { unMp :: m (x, Bool) }
 
 
 

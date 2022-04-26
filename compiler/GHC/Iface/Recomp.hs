@@ -1460,9 +1460,7 @@ declExtras fix_fn ann_fn rule_env inst_env fi_env dm_env decl
   where
         n = getOccName decl
         id_extras occ = IdExtras (fix_fn occ) (lookupOccEnvL rule_env occ) (ann_fn occ)
-        at_extras (IfaceAT decl wf_decl _) = lookupOccEnvL inst_env (getOccName decl)
-                                             ++ (concat . maybeToList) ((lookupOccEnvL inst_env . getOccName) <$> wf_decl)
-
+        at_extras (IfaceAT decl _) = lookupOccEnvL inst_env (getOccName decl)
 
 {- Note [default method Name] (see also #15970)
 

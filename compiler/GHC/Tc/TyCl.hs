@@ -4439,7 +4439,8 @@ checkValidTyCon tc
 
                ; traceTc "cvtc2" (ppr tc)
                ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-               ; if isNewTyCon tc && partyCtrs then checkNewTypeThetaEntailment tc else return ()
+               ; if isNewTyCon tc && partyCtrs && (not $ isGadtSyntaxTyCon tc)
+                 then checkNewTypeThetaEntailment tc else return ()
                ; dflags          <- getDynFlags
                ; existential_ok  <- xoptM LangExt.ExistentialQuantification
                ; gadt_ok         <- xoptM LangExt.GADTs
@@ -4505,7 +4506,7 @@ checkValidTyCon tc
 -- restriction: always call this function on a new type tycon
 checkNewTypeThetaEntailment :: TyCon -> TcM ()
 checkNewTypeThetaEntailment tc
-  | null $ tyConStupidTheta tc -- normal case
+  | null (tyConStupidTheta tc)
   = return ()
   | otherwise
   = do { let tc_th = tyConStupidTheta tc
@@ -4524,9 +4525,8 @@ checkNewTypeThetaEntailment tc
        }
     where thetaToCnstTy :: ThetaType -> Type
           thetaToCnstTy theta = let n = length theta in
-                                      if n == 1
-                                      then head theta
-                                      else mkTyConApp (cTupleTyCon n) theta
+                                  if n == 1 then head theta
+                                  else mkTyConApp (cTupleTyCon n) theta
 
 newTypeCtxt :: Name -> TcType -> TcType -> TidyEnv -> TcM (TidyEnv, SDoc)
 newTypeCtxt tc_name ctxt rhs_ct env0
