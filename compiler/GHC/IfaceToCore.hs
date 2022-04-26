@@ -1008,7 +1008,10 @@ tc_iface_decl_fingerprint ignore_prags (_version, decl)
               lookup n = case lookupOccEnv mini_env (getOccName n) of
                            Just thing -> thing
                            Nothing    ->
-                             pprPanic "tc_iface_decl_fingerprint" (ppr main_name <+> ppr n $$ ppr (decl))
+                             pprPanic "tc_iface_decl_fingerprint" (ppr main_name $$
+                                                                   ppr n $$
+                                                                   ppr decl $$
+                                                                   ppr mini_env)
 
         ; implicit_names <- mapM lookupIfaceTop (ifaceDeclImplicitBndrs decl)
 
