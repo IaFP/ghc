@@ -216,8 +216,10 @@ mk_atat_fam' loc acc tc uTys (tyd, ty:tyl) (tyvarsd, (tyvar, shouldInc):tyvarsl)
              f = mkTyConApp tc tyd
              fk = tcTypeKind f
              resK = piResultTy fk argK
-             axiom = mkSingleCoAxiom Nominal inst_name tyvarsd' [] [] wfTyCon [argK, resK, f, ty] mpred
-       ; traceTc "mk_atat_fam building axiom " (vcat [ ppr inst_name
+             lhs_tys = [argK, resK, f, ty]
+             axiom_vars = dVarSetElems . mkDVarSet $ concatMap predTyVars lhs_tys
+             axiom = mkSingleCoAxiom Nominal inst_name axiom_vars [] [] wfTyCon  lhs_tys mpred
+       ; traceTc "mk_atat_fam building axiom " (vcat [ ppr inst_name, ppr axiom_vars
                                                      , parens (ppr f <> dcolon <> ppr fk)
                                                        <+> ppr wfTyCon
                                                        <+> parens (ppr ty <> dcolon <> ppr argK)

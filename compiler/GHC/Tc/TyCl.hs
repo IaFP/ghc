@@ -216,10 +216,10 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
          -- Step 3: Add the implicit things;
          -- we want them in the environment because
          -- they may be mentioned in interface files
-       ; enblPCtrs <- xoptM LangExt.PartialTypeConstructors
+       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
        ; isBootFile <- tcIsHsBootOrSig
        ; (gbl_env, th_bndrs) <-
-           if enblPCtrs
+           if partyCtrs
            then do { traceTc "---- start wf enrichment ---- { " empty
 
                    ; let locs :: [SrcSpan] = map (locA . getLoc) tyclds
@@ -231,17 +231,15 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                          -- do not call mk_atat_fam if we are in boot files
                          -- as we cannot generate open type family instances in boot files
                          return []
-                       else
-                       if (length tyclds == 1)
+                       else if (length tyclds == 1)
                           -- for now we can only reason about non-circular datatypes
-                       then concatMapM (\(l, tc) -> mk_atat_fam l tc) locsAndTcs
+                            then concatMapM (\(l, tc) -> mk_atat_fam l tc) locsAndTcs
                             -- We generate T @ a ~ () axioms here
                             -- for all the mutually recursive datatypes
                             -- thats the best we can do atm
-                       else concatMapM (\(l, tc) -> mk_atat_fam_except_units l tc tyclss)
-                            locsAndTcs
-                   ; let
-                         (open, rest1)   = partition (isOpenTypeFamilyTyCon . snd) locsAndTcs
+                            else concatMapM (\(l, tc) -> mk_atat_fam_except_units l tc tyclss)
+                                 locsAndTcs
+                   ; let (open, rest1)   = partition (isOpenTypeFamilyTyCon . snd) locsAndTcs
                          (closed, rest2) = partition (isClosedTypeFamilyTyCon . snd) rest1
                          wf_mirrors = concatMap (maybeToList . wfMirrorTyCon_maybe . snd) (open ++ closed)
                      
@@ -258,10 +256,19 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                    }
            else do { addTyConsToGblEnv tyclss }
 
-           -- Step 4: check instance declarations
+         -- Step 4: check instance declarations
        ; (gbl_env', inst_info, datafam_deriv_info, th_bndrs') <-
          setGblEnv gbl_env $
          tcInstDecls1 instds
+
+       -- Step 5:
+       -- check that the RHS of newtype is not more constraint than the specified data context theta
+       -- We do this here and not when we are checking valid tycon is because we need information
+       -- of how the wellformed type familes reduce. No need to return the new global environment as
+       -- we are just doing a validity check
+       ; if partyCtrs
+         then setGblEnv gbl_env' $ checkPartialNewTypes tyclss
+         else return ()
 
        ; let deriv_info = datafam_deriv_info ++ data_deriv_info
        ; let gbl_env'' = gbl_env'
@@ -4438,9 +4445,9 @@ checkValidTyCon tc
                ; checkValidTheta (DataTyCtxt name) (tyConStupidTheta tc)
 
                ; traceTc "cvtc2" (ppr tc)
-               ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-               ; if isNewTyCon tc && partyCtrs && (not $ isGadtSyntaxTyCon tc)
-                 then checkNewTypeThetaEntailment tc else return ()
+               -- ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+               -- ; if isNewTyCon tc && partyCtrs && (not $ isGadtSyntaxTyCon tc)
+               --   then checkNewTypeThetaEntailment tc else return ()
                ; dflags          <- getDynFlags
                ; existential_ok  <- xoptM LangExt.ExistentialQuantification
                ; gadt_ok         <- xoptM LangExt.GADTs
@@ -4499,6 +4506,13 @@ checkValidTyCon tc
                 res2 = dataConOrigResTy con2
                 fty2 = dataConFieldType con2 lbl
 
+
+checkPartialNewTypes :: [TyCon] -> TcM ()
+checkPartialNewTypes [] = return ()
+checkPartialNewTypes tcs = recoverM (return ())
+                           (mapM_ checkNewTypeThetaEntailment $
+                           filter (\tc -> isNewTyCon tc && (not $ isGadtSyntaxTyCon tc)) tcs)
+
 -- When we are in a partial type constructor world
 -- we need to check if the constraints scribed by the user in the type context,
 -- say C, entails the well formed constraints on the RHS, say T.
@@ -4506,9 +4520,6 @@ checkValidTyCon tc
 -- restriction: always call this function on a new type tycon
 checkNewTypeThetaEntailment :: TyCon -> TcM ()
 checkNewTypeThetaEntailment tc
-  | null (tyConStupidTheta tc)
-  = return ()
-  | otherwise
   = do { let tc_th = tyConStupidTheta tc
              ctxt  = thetaToCnstTy tc_th
              (_, rhs_ty) = newTyConRhs tc

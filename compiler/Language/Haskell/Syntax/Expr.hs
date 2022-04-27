@@ -145,8 +145,8 @@ values (see function @mkRdrRecordUpd@ in 'GHC.Parser.PostProcess').
 
 type LFieldLabelStrings p = XRec p (FieldLabelStrings p)
 
-newtype FieldLabelStrings p =
-  FieldLabelStrings [XRec p (DotFieldOcc p)]
+data FieldLabelStrings p =
+     FieldLabelStrings [XRec p (DotFieldOcc p)]
 
 instance (
 #if MIN_VERSION_base(4,16,0)
