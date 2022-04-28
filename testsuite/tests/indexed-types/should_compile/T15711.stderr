@@ -1,4 +1,6 @@
 TYPE CONSTRUCTORS
+  associated type family $wf:F{2} :: forall a. Maybe a -> Constraint
+    roles nominal nominal
   class C{1} :: * -> Constraint
   associated type family F{2} :: forall a. Maybe a -> *
     roles nominal nominal

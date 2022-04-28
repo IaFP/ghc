@@ -5,7 +5,28 @@ COERCION AXIOMS
   axiom T15852.D:R:DFProxyProxy0 ::
     forall k1 (j :: k1) k2 (c :: k2).
       DF (Proxy c) = T15852.R:DFProxyProxy k1 j k2 c
+  axiom T15852.R:@R:DFProxyProxykjkc ::
+    forall k1 (j :: k1) k2 (c :: k2).
+      @ (T15852.R:DFProxyProxy k1 j k2) c = () :: Constraint
+  axiom T15852.R:@R:DFProxyProxykjkca ::
+    forall k1 (j :: k1) k2 (c :: k2) (a :: Proxy j).
+      @ (T15852.R:DFProxyProxy k1 j k2 c) a = () :: Constraint
+  axiom T15852.R:@DFProxyProxy ::
+    forall k1 (j :: k1) k2 (c :: k2). @ DF (Proxy c) = () :: Constraint
+  axiom T15852.R:@DFProxyProxya ::
+    forall k1 (j :: k1) k2 (c :: k2) (a :: Proxy j).
+      @ (DF (Proxy c)) a = () :: Constraint
 FAMILY INSTANCES
+  type instance forall {k1} {j :: k1} {k2} {c :: k2}.
+                  DF @ Proxy c = () :: Constraint -- Defined at T15852.hs:10:1
+  type instance forall {k1} {j :: k1} {k2} {c :: k2} {a :: Proxy j}.
+                  DF (Proxy c) @ a = () :: Constraint -- Defined at T15852.hs:10:1
+  type instance forall {k1} {j :: k1} {k2} {c :: k2}.
+                  T15852.R:DFProxyProxy k1 j k2 @ c = () :: Constraint
+                    -- Defined at T15852.hs:10:1
+  type instance forall {k1} {j :: k1} {k2} {c :: k2} {a :: Proxy j}.
+                  T15852.R:DFProxyProxy k1 j k2 c @ a = () :: Constraint
+                    -- Defined at T15852.hs:10:1
   data instance forall {k1} {j :: k1} {k2} {c :: k2}.
                   DF (Proxy c) -- Defined at T15852.hs:10:15
 Dependent modules: []

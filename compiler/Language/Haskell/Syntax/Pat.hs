@@ -229,7 +229,9 @@ type HsConPatDetails p = HsConDetails (HsPatSigType (NoGhcTc p)) (LPat p) (HsRec
 
 hsConPatArgs :: forall p . (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))), -- TODO This should go away
+  WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p))))
+  , WFT (XRec p (FieldOcc p))
+  ,   
 #endif
   UnXRec p) => HsConPatDetails p -> [LPat p]
 hsConPatArgs (PrefixCon _ ps) = ps
@@ -240,12 +242,7 @@ hsConPatArgs (InfixCon p1 p2) = [p1,p2]
 --
 -- HsRecFields is used only for patterns and expressions (not data type
 -- declarations)
-data
-#if MIN_VERSION_base(4,16,0)
-    ( WFT (XRec p (HsRecField  p arg))
-    , WFT (XRec p (FieldOcc p))) =>  -- ANI Todo Should go away
-#endif
-  HsRecFields p arg         -- A bunch of record fields
+data HsRecFields p arg         -- A bunch of record fields
                                 --      { x = 3, y = True }
         -- Used for both expressions and patterns
   = HsRecFields { rec_flds   :: [LHsRecField p arg],
@@ -350,10 +347,22 @@ data HsFieldBind lhs rhs = HsFieldBind {
 --
 -- See also Note [Disambiguating record fields] in GHC.Tc.Gen.Head.
 
-hsRecFields :: forall p arg. UnXRec p => HsRecFields p arg -> [XCFieldOcc p]
+hsRecFields :: forall p arg. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) arg))
+  , WFT (XRec p (FieldOcc p))
+  ,
+#endif
+  UnXRec p) => HsRecFields p arg -> [XCFieldOcc p]
 hsRecFields rbinds = map (hsRecFieldSel . unXRec @p) (rec_flds rbinds)
 
-hsRecFieldsArgs :: forall p arg. UnXRec p => HsRecFields p arg -> [arg]
+hsRecFieldsArgs :: forall p arg. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) arg))
+  , WFT (XRec p (FieldOcc p))
+  , 
+#endif
+  UnXRec p) => HsRecFields p arg -> [arg]
 hsRecFieldsArgs rbinds = map (hfbRHS . unXRec @p) (rec_flds rbinds)
 
 hsRecFieldSel :: forall p arg. UnXRec p => HsRecField p arg -> XCFieldOcc p

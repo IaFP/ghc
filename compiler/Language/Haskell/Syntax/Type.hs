@@ -1304,14 +1304,7 @@ type LConDeclField pass = XRec pass (ConDeclField pass)
 
 -- | Constructor Declaration Field
 data ConDeclField pass  -- Record fields have Haddock docs on them
-  =
-#if MIN_VERSION_base(4,16,0)
-  ( WFT (XConDeclField pass)
-  , WFT (LFieldOcc pass)
-  , WFT (LBangType pass)
-  ) => 
-#endif
-    ConDeclField { cd_fld_ext  :: XConDeclField pass,
+  = ConDeclField { cd_fld_ext  :: XConDeclField pass,
                    cd_fld_names :: [LFieldOcc pass],
                                    -- ^ See Note [ConDeclField passs]
                    cd_fld_type :: LBangType pass,
@@ -1319,11 +1312,7 @@ data ConDeclField pass  -- Record fields have Haddock docs on them
       -- ^ - 'GHC.Parser.Annotation.AnnKeywordId' : 'GHC.Parser.Annotation.AnnDcolon'
 
       -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
-  |
-#if MIN_VERSION_base(4,16,0)
-  WFT (XXConDeclField pass) => 
-#endif
-    XConDeclField !(XXConDeclField pass)
+  | XConDeclField !(XXConDeclField pass)
 
 -- | Describes the arguments to a data constructor. This is a common
 -- representation for several constructor-related concepts, including:

@@ -19,3 +19,11 @@ type instance HTF (Blah a) = Either a
 
 -- type family TTF a :: Type
 -- type instance TTF (TSyn a) = a -- Error: illegal polymorphic type forall b. Either a b -> Blah a
+
+type family Sing :: k -> Type
+
+type family Id (x :: a) :: a where
+  Id x = x
+
+sId :: forall a (x :: a). Sing x -> Sing (Id x)
+sId sx = sx

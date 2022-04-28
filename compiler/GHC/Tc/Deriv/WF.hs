@@ -106,7 +106,7 @@ mk_atat_fam_except loc tc skip_tcs
   | isDataFamilyTyCon tc -- we never hit this branch
   = mk_atat_fam_units loc tc
   | (isAlgTyCon tc && saneTyConForElab tc) -- is this a vanilla tycon
-    || isNewTyCon tc 
+  || isNewTyCon tc
   = do { elabds <- mapM (genAtAtConstraintsExceptTcM True (tc:skip_tcs) []) dt_ctx
        ; let css = fmap newPreds elabds
              elab_dt_ctx = foldl mergeAtAtConstraints [] css

@@ -220,25 +220,14 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
        ; isBootFile <- tcIsHsBootOrSig
        ; (gbl_env, th_bndrs) <-
            if partyCtrs
-           then do { traceTc "---- start wf enrichment ---- { " empty
+           then do { traceTc "---- start wf constraints generation ---- { " empty
 
                    ; let locs :: [SrcSpan] = map (locA . getLoc) tyclds
-                             -- ; let tAndR = thisAndRest tyclss
                          locsAndTcs = zip locs tyclss
-                     -- remark: below is a bit ugly
-                   ; fam_insts <-
-                       if isBootFile then
+                   ; fam_insts <- if isBootFile then return []
                          -- do not call mk_atat_fam if we are in boot files
                          -- as we cannot generate open type family instances in boot files
-                         return []
-                       else if (length tyclds == 1)
-                          -- for now we can only reason about non-circular datatypes
-                            then concatMapM (\(l, tc) -> mk_atat_fam l tc) locsAndTcs
-                            -- We generate T @ a ~ () axioms here
-                            -- for all the mutually recursive datatypes
-                            -- thats the best we can do atm
-                            else concatMapM (\(l, tc) -> mk_atat_fam_except_units l tc tyclss)
-                                 locsAndTcs
+                                  else concatMapM (\(l, tc) -> mk_atat_fam l tc) locsAndTcs
                    ; let (open, rest1)   = partition (isOpenTypeFamilyTyCon . snd) locsAndTcs
                          (closed, rest2) = partition (isClosedTypeFamilyTyCon . snd) rest1
                          wf_mirrors = concatMap (maybeToList . wfMirrorTyCon_maybe . snd) (open ++ closed)
@@ -249,12 +238,12 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                              , text "Others:" <+> (vcat $ fmap (ppr . snd) rest2)
                              ])
 
-                   ; traceTc "---- end wf enrichment ---- }" empty
+                   ; traceTc "---- end wf wf constraints generation ---- }" empty
 
                    ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $
                                                        (fmap snd locsAndTcs) ++ wf_mirrors)
                    }
-           else do { addTyConsToGblEnv tyclss }
+           else addTyConsToGblEnv tyclss
 
          -- Step 4: check instance declarations
        ; (gbl_env', inst_info, datafam_deriv_info, th_bndrs') <-
@@ -263,7 +252,7 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
 
        -- Step 5:
        -- check that the RHS of newtype is not more constraint than the specified data context theta
-       -- We do this here and not when we are checking valid tycon is because we need information
+       -- We do this here and not when we are checking validity of a tycon because we need information
        -- of how the wellformed type familes reduce. No need to return the new global environment as
        -- we are just doing a validity check
        ; if partyCtrs

@@ -7,47 +7,23 @@
 module RecursiveDTs where
 
 
--- import GHC.Types (Constraint)
-import GHC.Types (type (@@), Total)
-
 
 data Queue e = Q e (QList e)
 data QList e
     = Nil
     | QCons (Queue e) (QList e)
 
+data Map a b = M a b
+-- newtype Ord a => NTRec1 a = NTRec1 {unntRec1 :: NTRec2 a}
+-- newtype Eq a => NTRec2 a = NTRec2 {unntRec2 :: NTRec1 a} -- This doesn't work
 
+newtype Ord a => NTRec1 a = NTRec1 {unntRec1 :: NTRec2 a}
+newtype Ord a => NTRec2 a = NTRec2 {unntRec2 :: NTRec1 a} -- This should work
 
-data ListMap m a
-  = LM { lm_nil  :: Maybe a
-       , lm_cons :: m (ListMap m a) }
+data IsNode a => Graph a = Graph { graphMap :: (Map (Key a) a) }
 
-class TrieMap m where
-   type Key m :: *
-   emptyTM  :: m a
-
-type BndrMap = TypeMapG
-
-data CoreMapX a = R {bleh :: ListMap CoreMapG (CoreMapG (ListMap BndrMap a))}
-
-type TypeMapG = GenMap TypeMapX
-
-type CoreMapG = GenMap CoreMapX
-
-data GenMap m a
-   = EmptyMap
-   | SingletonMap (Key m) a
-   | MultiMap (m a)
-
-data TypeMapX a
-  = TM { tm_app :: TypeMapG (TypeMapG a) }
-
-emptyE :: CoreMapX a
-emptyE = undefined
-
-
--- CoreMapX @@ a ~> ListMap CoreMapG @@ CoreMapG (ListMap BndrMap a)
---               ~> GenMap CoreMapX @@ ListMap (GenMap CoreMapX) (GenMap CoreMapX (ListMap BndrMap a))
---               ~> CoreMapX @@ ListMap (GenMap CoreMapX) (GenMap CoreMapX (ListMap BndrMap a))
-
--- Yikes!
+class Ord (Key a) => IsNode a where
+  type Key a :: *
+  nodeKey :: a -> Key a
+  nodeNeighbors :: a -> [Key a]
+                
