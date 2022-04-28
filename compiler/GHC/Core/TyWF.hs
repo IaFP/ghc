@@ -279,7 +279,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
          -- This tycon may be oversaturated so we break down the args into 2 parts:
          -- 1. args_tc which is of length tycon arity
          -- 2. extra_args_tc which is the rest of the args
-         -- we would use the wf mirror to generate wf_tc args_tc constraint
+         -- we would use the wf mirror to generate `wf_tc args_tc` constraint
          -- the rest will be given to generate wf ((tycon args) extra_args_t)
          -- For example: Rep a :: * -> *
          -- wf (Rep a x) = [$wf'Rep a, Rep a @ x]

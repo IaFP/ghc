@@ -4434,9 +4434,6 @@ checkValidTyCon tc
                ; checkValidTheta (DataTyCtxt name) (tyConStupidTheta tc)
 
                ; traceTc "cvtc2" (ppr tc)
-               -- ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-               -- ; if isNewTyCon tc && partyCtrs && (not $ isGadtSyntaxTyCon tc)
-               --   then checkNewTypeThetaEntailment tc else return ()
                ; dflags          <- getDynFlags
                ; existential_ok  <- xoptM LangExt.ExistentialQuantification
                ; gadt_ok         <- xoptM LangExt.GADTs
@@ -4509,8 +4506,9 @@ checkPartialNewTypes tcs = recoverM (return ())
 -- restriction: always call this function on a new type tycon
 checkNewTypeThetaEntailment :: TyCon -> TcM ()
 checkNewTypeThetaEntailment tc
-  = do { let tc_th = tyConStupidTheta tc
-             ctxt  = thetaToCnstTy tc_th
+  = do { let tc_th' = tyConStupidTheta tc
+       ; tc_th  <- foldl mergeAtAtConstraints tc_th' <$> mapM (\t -> genWfConstraintsTcM False t []) tc_th'
+       ; let ctxt  = thetaToCnstTy tc_th
              (_, rhs_ty) = newTyConRhs tc
        ; wf_theta <- genWfConstraintsTcM False rhs_ty []
        ; let wf_ct = thetaToCnstTy wf_theta

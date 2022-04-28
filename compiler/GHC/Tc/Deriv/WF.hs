@@ -108,6 +108,7 @@ mk_atat_fam_except loc tc skip_tcs
   | (isAlgTyCon tc && saneTyConForElab tc) -- is this a vanilla tycon
   || isNewTyCon tc
   = do { elabds <- mapM (genAtAtConstraintsExceptTcM True (tc:skip_tcs) []) dt_ctx
+       -- This elaboration is necessary as we may have a type syn that needs expansion in the datatype context
        ; let css = fmap newPreds elabds
              elab_dt_ctx = foldl mergeAtAtConstraints [] css
              css' =  mergeAtAtConstraints elab_dt_ctx dt_ctx

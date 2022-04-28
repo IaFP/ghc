@@ -228,7 +228,6 @@ type OutputableBndrId pass =
   , WFT (Anno (IdGhcP pass))
   , WFT (Anno (IdGhcP (NoGhcTcPass pass)))
 #endif
-  
   )
 
 -- | See Note [Constructor cannot occur]
