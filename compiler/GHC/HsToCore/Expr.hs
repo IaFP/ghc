@@ -1036,16 +1036,29 @@ dsHsVar :: Id -> DsM CoreExpr
 dsHsVar var
   = return (varToCoreExpr var) -- See Note [Desugaring vars]
 
-dsHsConLike :: ConLike -> DsM CoreExpr
+dsHsConLike :: ConLike -> DsM (CoreExpr, Maybe Arity)
 dsHsConLike (RealDataCon dc)
-  = return (varToCoreExpr (dataConWrapId dc))
+  | isVanillaDataCon dc && not (isNewDataCon dc)
+  = do { traceIf (vcat [ text "dsHsCon" <+> ppr dc
+                       , ppr $ dataConSourceArity dc
+                       , ppr $ dataConRepArity dc
+                       , ppr $ dataConStupidTheta dc])
+       ; return (varToCoreExpr (dataConWrapId dc)
+                , Just $ dataConSourceArity dc)
+       }
+  | otherwise -- existential/GADT data con/newtype
+  = do { traceIf (vcat [ text "dsHsCon" <+> ppr dc
+                       , ppr $ dataConSourceArity dc
+                       , ppr $ dataConRepArity dc
+                       , ppr $ dataConStupidTheta dc])
+       ; return (varToCoreExpr (dataConWrapId dc), Nothing) }
 dsHsConLike (PatSynCon ps)
   | Just (builder_name, _, add_void) <- patSynBuilder ps
   = do { builder_id <- dsLookupGlobalId builder_name
        ; return (if add_void
-                 then mkCoreApp (text "dsConLike" <+> ppr ps)
-                                (Var builder_id) (Var voidPrimId)
-                 else Var builder_id) }
+                 then (mkCoreApp (text "dsConLike" <+> ppr ps)
+                                (Var builder_id) (Var voidPrimId), Nothing)
+                 else (Var builder_id, Nothing)) }
   | otherwise
   = pprPanic "dsConLike" (ppr ps)
 
@@ -1054,18 +1067,26 @@ dsConLike :: ConLike -> [TcInvisTVBinder] -> [Scaled Type] -> DsM CoreExpr
 -- See Note [Typechecking data constructors] in GHC.Tc.Gen.Head
 --     for what is going on here
 dsConLike con tvbs tys
-  = do { ds_con <- dsHsConLike con
-       ; ids    <- newSysLocalsDs tys
+  = do { partyCtrs <- xoptM LangExt.PartialTypeConstructors
+       ; (ds_con, real_arity_mb) <- dsHsConLike con
+       ; ids'    <- newSysLocalsDs tys
+       ; let ids = if partyCtrs
+                   then (case real_arity_mb of
+                           Just real_arity -> drop (length tys - real_arity) $ ids'
+                           Nothing -> dropList (conLikeStupidTheta con) ids')
+                   else ids'
+             drop_stupid = if partyCtrs then id else dropList (conLikeStupidTheta con)
+
                    -- newSysLocalDs: /can/ be lev-poly; see
                    -- Note [Checking representation-polymorphic data constructors]
+       ; traceIf (text "dsCon" <+> ppr con <+> ppr (length ids') <+> ppr (length ids))
        ; return (mkLams tvs $
-                 mkLams ids $
+                 mkLams ids' $
                  ds_con `mkTyApps` mkTyVarTys tvs
                         `mkVarApps` drop_stupid ids) }
   where
     tvs = binderVars tvbs
 
-    drop_stupid = dropList (conLikeStupidTheta con)
     -- drop_stupid: see Note [Instantiating stupid theta]
     --              in GHC.Tc.Gen.Head
 

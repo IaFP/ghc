@@ -50,7 +50,7 @@ import qualified Control.Monad.Trans.RWS.Strict as RWS
 import Control.Monad.Trans.Cont ( ContT (..) )
 import Data.ByteString ( ByteString )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
+import GHC.Types (Total, WFT)
 #endif
 
 -- | @uncurry 'mkStgBinding' . 'decomposeStgBinding' = id@
@@ -194,7 +194,11 @@ collectFloats = go (0 :: Int) []
 
 -- | Omitting this makes for strange closure allocation schemes that crash the
 -- GC.
-removeRhsCCCS :: GenStgRhs pass -> GenStgRhs pass
+removeRhsCCCS ::
+#if MIN_VERSION_base(4,16,0)
+  (WFT (XRhsClosure pass), WFT (BinderP pass)) => 
+#endif
+    GenStgRhs pass -> GenStgRhs pass
 removeRhsCCCS (StgRhsClosure ext ccs upd bndrs body)
   | isCurrentCCS ccs
   = StgRhsClosure ext dontCareCCS upd bndrs body

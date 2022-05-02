@@ -32,13 +32,12 @@ import GHC.Generics (Generic, Generic1)
 import Text.Read (Read(..), readListDefault, readListPrecDefault)
 import GHC.Types (type (@), Total, Type)
 -- | Lifted product of functors.
+
 data Product f g a = Pair (f a) (g a)
   deriving ( Data     -- ^ @since 4.9.0.0
-           -- , Generic  -- ^ @since 4.9.0.0
-           -- , Generic1 -- ^ @since 4.9.0.0
+           , Generic  -- ^ @since 4.9.0.0
+           , Generic1 -- ^ @since 4.9.0.0
            )
-deriving instance (Total f, Total g) => Generic (Product f g a)
-deriving instance (Total f, Total g) => Generic1 (Product f g)
 
 -- | @since 4.9.0.0
 instance (Total f, Total g, Eq1 f, Eq1 g) => Eq1 (Product f g) where

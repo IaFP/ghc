@@ -53,7 +53,6 @@ import GHC.Builtin.Names.TH (liftClassKey)
 import GHC.Core.TyCon
 import GHC.Core.Type
 import GHC.Utils.Misc
-import GHC.Types.Var.Set
 
 import Control.Monad.Trans.Reader
 import Data.Maybe
@@ -520,7 +519,7 @@ mkThetaOriginFromPreds = ThetaOrigin [] [] []
 stableMergePredOrigin :: [PredOrigin] -> [PredOrigin] -> [PredOrigin]
 stableMergePredOrigin p1s p2s = maux [] [] (fmap k p1s) p1s (fmap k p2s) p2s
   where
-    k p@(PredOrigin ty _ _) = ty
+    k (PredOrigin ty _ _) = ty
     maux _ acc [] _ [] _ = (reverse acc)
     maux _ acc [] _ _ p2s = (reverse acc) ++ p2s
     maux ts acc (t1:t1s) (p1:p1s) t2s p2s = if any (eqType t1) (ts ++ t2s)
@@ -926,9 +925,9 @@ cond_functorOK allowFunctions allowExQuantifiedLastTyVar _
   = allValid (map check_con data_cons)
   where
     tc_tvs            = tyConTyVars rep_tc
-    last_tv           = last tc_tvs
-    bad_stupid_theta  = filter is_bad (tyConStupidTheta rep_tc)
-    is_bad pred       = last_tv `elemVarSet` exactTyCoVarsOfType pred
+    -- last_tv           = last tc_tvs
+    -- bad_stupid_theta  = filter is_bad (tyConStupidTheta rep_tc)
+    -- is_bad pred       = last_tv `elemVarSet` exactTyCoVarsOfType pred
       -- See Note [Check that the type variable is truly universal]
 
     data_cons = tyConDataCons rep_tc

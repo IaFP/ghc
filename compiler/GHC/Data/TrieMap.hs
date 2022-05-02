@@ -44,7 +44,7 @@ import GHC.Utils.Outputable
 import Control.Monad( (>=>) )
 import Data.Kind( Type )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@), Total)
+import GHC.Types (type(@), Total, WFT)
 #endif
 import qualified Data.Semigroup as S
 
@@ -440,16 +440,16 @@ Compressed triemaps are heavily used by GHC.Core.Map.Expr. So we have to mark so
 as INLINEABLE to permit specialization.
 -}
 
-data
-#if MIN_VERSION_base(4,16,0)
-  m @ a =>
-#endif
-  GenMap m a
+data GenMap m a
    = EmptyMap
    | SingletonMap (Key m) a
    | MultiMap (m a)
 
-instance (Outputable a, Outputable (m a)) => Outputable (GenMap m a) where
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (Key m),
+#endif
+  Outputable a, Outputable (m a)) => Outputable (GenMap m a) where
   ppr EmptyMap = text "Empty map"
   ppr (SingletonMap _ v) = text "Singleton map" <+> ppr v
   ppr (MultiMap m) = ppr m
@@ -521,19 +521,31 @@ xtG k f m@(SingletonMap k' v')
 xtG k f (MultiMap m) = MultiMap (alterTM k f m)
 
 {-# INLINEABLE mapG #-}
-mapG :: TrieMap m => (a -> b) -> GenMap m a -> GenMap m b
+mapG :: (
+#if MIN_VERSION_base(4,16,0)
+         WFT (Key m), m @ a, m @ b,
+#endif
+         TrieMap m) => (a -> b) -> GenMap m a -> GenMap m b
 mapG _ EmptyMap = EmptyMap
 mapG f (SingletonMap k v) = SingletonMap k (f v)
 mapG f (MultiMap m) = MultiMap (mapTM f m)
 
 {-# INLINEABLE fdG #-}
-fdG :: TrieMap m => (a -> b -> b) -> GenMap m a -> b -> b
+fdG :: (
+#if MIN_VERSION_base(4,16,0)
+         WFT (Key m), m @ a,
+#endif
+  TrieMap m) => (a -> b -> b) -> GenMap m a -> b -> b
 fdG _ EmptyMap = \z -> z
 fdG k (SingletonMap _ v) = \z -> k v z
 fdG k (MultiMap m) = foldTM k m
 
 {-# INLINEABLE ftG #-}
-ftG :: TrieMap m => (a -> Bool) -> GenMap m a -> GenMap m a
+ftG :: (
+#if MIN_VERSION_base(4,16,0)
+         WFT (Key m), m @ a,
+#endif
+  TrieMap m) => (a -> Bool) -> GenMap m a -> GenMap m a
 ftG _ EmptyMap = EmptyMap
 ftG f input@(SingletonMap _ v)
   | f v       = input

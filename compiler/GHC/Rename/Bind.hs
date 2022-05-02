@@ -1200,7 +1200,7 @@ rnMatchGroup :: (
 #if MIN_VERSION_base(4,16,0)
                   WFT (Anno (Match GhcRn (LocatedA (body GhcRn))))
                 , WFT (Anno (GRHS GhcRn (LocatedA (body GhcRn))))
-                ,
+                , WFT (Anno [GenLocated SrcSpanAnnA (Match GhcRn (LocatedA (body GhcRn)))]),
 #endif
                   Outputable (body GhcPs), AnnoBody body
                 )

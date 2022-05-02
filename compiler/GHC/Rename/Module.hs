@@ -1,4 +1,4 @@
-
+{-# LANGUAGE CPP        #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
@@ -77,6 +77,9 @@ import Data.List.NonEmpty ( NonEmpty(..) )
 import Data.Maybe ( isNothing, fromMaybe, mapMaybe )
 import qualified Data.Set as Set ( difference, fromList, toList, null )
 import Data.Function ( on )
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 {- | @rnSourceDecl@ "renames" declarations.
 It simultaneously performs dependency analysis and precedence parsing.
@@ -2634,7 +2637,11 @@ add_kisig d [] = [TyClGroup { group_ext    = noExtField
 add_kisig d (tycls@(TyClGroup { group_kisigs = kisigs }) : rest)
   = tycls { group_kisigs = d : kisigs } : rest
 
-add_bind :: LHsBind a -> HsValBinds a -> HsValBinds a
+add_bind ::
+#if MIN_VERSION_base(4,16,0)
+            (WFT (XValBinds a a), WFT (XRec a (Sig a))) =>
+#endif
+            LHsBind a -> HsValBinds a -> HsValBinds a
 add_bind b (ValBinds x bs sigs) = ValBinds x (bs `snocBag` b) sigs
 add_bind _ (XValBindsLR {})     = panic "GHC.Rename.Module.add_bind"
 

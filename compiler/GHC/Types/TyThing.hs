@@ -199,7 +199,6 @@ implicitTyConThings tc
     class_stuff = case tyConClass_maybe tc of
         Nothing -> []
         Just cl -> implicitClassThings cl
-    -- wftyfam =  fmap ATyCon (maybeToList $ wfMirrorTyCon_maybe tc)
 
 -- For newtypes and closed type families (only) add the implicit coercion tycon
 implicitCoTyCon :: TyCon -> [TyThing]

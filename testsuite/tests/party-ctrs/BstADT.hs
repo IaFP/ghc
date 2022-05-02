@@ -9,12 +9,6 @@
 
 module BstADT where
 
-#if __GLASGOW_HASKELL__ >= 810
-import GHC.Types (type (@))
-#endif
-
-
-
 data Ord a => BST a = Leaf | Node a (BST a) (BST a)
 
 deriving instance Show a => Show (BST a)

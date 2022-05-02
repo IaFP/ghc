@@ -75,7 +75,7 @@ import GHC.Data.Bag
 import qualified Data.Kind
 import System.Process
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@))
+import GHC.Types (type(@), WFT)
 #endif
 
 {-
@@ -90,7 +90,11 @@ import GHC.Types (type(@))
 --   the compiler pipeline. If a hook is not installed, GHC
 --   uses the default built-in behaviour
 
-emptyHooks :: Hooks
+emptyHooks ::
+#if MIN_VERSION_base(4,16,0)
+              WFT (DsForeignsHook) =>
+#endif
+              Hooks
 emptyHooks = Hooks
   { dsForeignsHook         = Nothing
   , tcForeignImportsHook   = Nothing

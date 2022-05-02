@@ -63,6 +63,7 @@ import GHC.Types.Id.Info
 import GHC.Core.PatSyn( PatSyn )
 import GHC.Core.ConLike( ConLike(..) )
 import GHC.Core.DataCon
+import GHC.Core.TyWF
 import GHC.Types.Name
 import GHC.Types.Name.Reader
 import GHC.Core.TyCon
@@ -832,8 +833,14 @@ tcInferDataCon con
              stupid_theta = dataConStupidTheta con
 
        ; scaled_arg_tys <- mapM linear_to_poly args
-
-       ; let full_theta  = stupid_theta ++ theta
+       -- for a call to a data constructor to be OK, we should also ensure
+       -- that each of the type arguments are also well formed.
+       -- For now just worry about H98 data cons
+       -- GADTs are a bit tricky due to the extra existentials 
+       ; wf_theta <- if isVanillaDataCon con && not (isNewDataCon con)
+                     then concatMapM (\t -> genWfConstraintsTcM False (scaledThing t) []) args
+                     else return []
+       ; let full_theta  = wf_theta ++ stupid_theta ++ theta
              all_arg_tys = map unrestricted full_theta ++ scaled_arg_tys
                 -- stupid-theta must come first
                 -- See Note [Instantiating stupid theta]

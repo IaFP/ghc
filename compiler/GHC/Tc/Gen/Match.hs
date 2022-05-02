@@ -151,6 +151,8 @@ tcMatchesCase :: (
 #if MIN_VERSION_base(4,16,0)
    WFT (Anno (Match GhcRn (LocatedA (body GhcRn)))),
    WFT (Anno (Match GhcTc (LocatedA (body GhcTc)))),
+   WFT (Anno [GenLocated SrcSpanAnnA (Match GhcTc (LocatedA (body GhcTc)))]),
+   WFT (Anno (GRHS GhcTc (LocatedA (body GhcTc)))),
 #endif
   AnnoBody body) =>
                 TcMatchCtxt body                         -- Case context
@@ -224,6 +226,8 @@ tcMatches :: (
 #if MIN_VERSION_base(4,16,0)
    WFT (Anno (Match GhcRn (LocatedA (body GhcRn)))),
    WFT (Anno (Match GhcTc (LocatedA (body GhcTc)))),
+   WFT (Anno [GenLocated SrcSpanAnnA (Match GhcTc (LocatedA (body GhcTc)))]),
+   WFT (Anno (GRHS GhcTc (LocatedA (body GhcTc)))),
 #endif
   AnnoBody body) => TcMatchCtxt body
           -> [Scaled ExpSigmaType]      -- Expected pattern types
@@ -263,7 +267,11 @@ tcMatches ctxt pat_tys rhs_ty (MG { mg_alts = L l matches
                     , mg_origin = origin }) }
 
 -------------
-tcMatch :: (AnnoBody body) => TcMatchCtxt body
+tcMatch :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (Anno (GRHS GhcTc (LocatedA (body GhcTc)))),
+#endif
+  AnnoBody body) => TcMatchCtxt body
         -> [Scaled ExpSigmaType]        -- Expected pattern types
         -> ExpRhoType            -- Expected result-type of the Match.
         -> LMatch GhcRn (LocatedA (body GhcRn))
@@ -289,7 +297,11 @@ tcMatch ctxt pat_tys rhs_ty match
             _          -> addErrCtxt (pprMatchInCtxt match) thing_inside
 
 -------------
-tcGRHSs :: AnnoBody body
+tcGRHSs :: (
+#if MIN_VERSION_base(4,16,0)
+           WFT (Anno (GRHS GhcTc (LocatedA (body GhcTc)))),
+#endif
+           AnnoBody body)
         => TcMatchCtxt body -> GRHSs GhcRn (LocatedA (body GhcRn)) -> ExpRhoType
         -> TcM (GRHSs GhcTc (LocatedA (body GhcTc)))
 

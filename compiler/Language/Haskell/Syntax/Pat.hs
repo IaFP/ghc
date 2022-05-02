@@ -285,7 +285,11 @@ type HsRecUpdField p    = HsFieldBind (LAmbiguousFieldOcc p) (LHsExpr p)
 -- - 'GHC.Parser.Annotation.AnnKeywordId' : 'GHC.Parser.Annotation.AnnEqual',
 --
 -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
-data HsFieldBind lhs rhs = HsFieldBind {
+data
+#if MIN_VERSION_base(4,16,0)
+  WFT (XHsFieldBind lhs) =>  -- ANI TODO: is this really needed?
+#endif
+  HsFieldBind lhs rhs = HsFieldBind {
         hfbAnn :: XHsFieldBind lhs,
         hfbLHS :: lhs,
         hfbRHS :: rhs,           -- ^ Filled in by renamer when punning

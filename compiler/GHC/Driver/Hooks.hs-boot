@@ -1,17 +1,27 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ >= 903
-{-# LANGUAGE ExplicitNamespaces, TypeOperators, UndecidableSuperClasses #-}
+{-# LANGUAGE ExplicitNamespaces, TypeOperators, UndecidableSuperClasses, TypeFamilies #-}
 #endif
 module GHC.Driver.Hooks where
 
 import GHC.Prelude ()
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@))
+import GHC.Types (type(@), WFT)
+import qualified Data.Kind
+#endif
+
+#if MIN_VERSION_base(4,16,0)
+-- See Note [The Decoupling Abstract Data Hack]
+type family DsForeignsHook :: Data.Kind.Type
 #endif
 
 data Hooks
 
-emptyHooks :: Hooks
+emptyHooks ::
+#if MIN_VERSION_base(4,16,0)
+              WFT (DsForeignsHook) =>
+#endif
+              Hooks
 
 class
 #if __GLASGOW_HASKELL__ >= 903
