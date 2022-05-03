@@ -26,11 +26,14 @@ mapHandler f (MkHandler h) = MkHandler (\e -> fmap f (h e))
 data Ord a => Blah a = Blah a
   deriving Functor
 
-data OrdList a where
+data Ord a => OrdList a where
   ONil :: OrdList a 
   OCons :: Blah a -> OrdList a -> OrdList a
 
 -- assume f is monotonus
-mapOrdList :: (Ord a, Ord b) => (a -> b) -> OrdList a -> OrdList b
+mapOrdList :: (a -> b) -> OrdList a -> OrdList b
 mapOrdList _ ONil = ONil
 mapOrdList f (OCons b l) = OCons (fmap f b) (mapOrdList f l)
+
+instance Functor OrdList where
+  fmap = mapOrdList

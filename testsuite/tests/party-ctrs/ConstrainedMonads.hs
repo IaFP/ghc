@@ -109,7 +109,7 @@ instance Monad Vec where
 ---------------------------------
 ------   Sunroof Example  -------
 ---------------------------------
-{-
+
 type JSString = String
 type JSBool = Bool
 
@@ -135,7 +135,7 @@ instance Sunroof JSBool where
 data Sunroof a => JS a where
   Prompt :: JSString -> JS JSString
   Alert :: JSString -> JS ()
-  If :: Sunroof a => JSBool -> JS a -> JS a -> JS a
+  If :: JSBool -> JS a -> JS a -> JS a
 
   Return :: a -> JS a
   Bind :: JS x -> (x -> JS a) -> JS a
@@ -174,7 +174,9 @@ instance Applicative JS where
   pure         = Return
   liftA2 _ _ _ = undefined
   (<*>) _ _    = undefined
+  (<*) _ _     = undefined
+  (*>) _ _     = undefined
   
 instance Monad JS where
   (>>=) = Bind
--}
+

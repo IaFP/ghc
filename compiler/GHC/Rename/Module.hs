@@ -1930,12 +1930,7 @@ rnDataDefn :: HsDocContext -> HsDataDefn GhcPs
 rnDataDefn doc (HsDataDefn { dd_ND = new_or_data, dd_cType = cType
                            , dd_ctxt = context, dd_cons = condecls
                            , dd_kindSig = m_sig, dd_derivs = derivs })
-  = do  { -- DatatypeContexts (i.e., stupid contexts) can't be combined with
-          -- GADT syntax. See Note [The stupid context] in GHC.Core.DataCon.
-          checkTc (h98_style || null (fromMaybeContext context))
-                  (badGadtStupidTheta doc)
-
-        ; (m_sig', sig_fvs) <- case m_sig of
+  = do  { (m_sig', sig_fvs) <- case m_sig of
              Just sig -> first Just <$> rnLHsKind doc sig
              Nothing  -> return (Nothing, emptyFVs)
         ; (context', fvs1) <- rnMaybeContext doc context
@@ -2084,12 +2079,6 @@ rnLDerivStrategy doc mds thing_inside
     boring_case ds = do
       (thing, fvs) <- thing_inside
       pure (ds, thing, fvs)
-
-badGadtStupidTheta :: HsDocContext -> TcRnMessage
-badGadtStupidTheta _
-  = TcRnUnknownMessage $ mkPlainError noHints $
-    vcat [text "No context is allowed on a GADT-style data declaration",
-          text "(You can put a context on each constructor, though.)"]
 
 illegalDerivStrategyErr :: DerivStrategy GhcPs -> TcRnMessage
 illegalDerivStrategyErr ds

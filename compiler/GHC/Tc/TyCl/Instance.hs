@@ -692,7 +692,7 @@ tcDataFamInstDecl mb_clsinfo tv_skol_env
 
        -- Check that the family declaration is for the right kind
        ; checkTc (isDataFamilyTyCon fam_tc) (wrongKindOfFamily fam_tc)
-       ; gadt_syntax <- dataDeclChecks fam_name new_or_data hs_ctxt hs_cons
+       ; gadt_syntax <- dataDeclChecks fam_name new_or_data hs_cons
           -- Do /not/ check that the number of patterns = tyConArity fam_tc
           -- See [Arity of data families] in GHC.Core.FamInstEnv
        ; (qtvs, pats, res_kind, stupid_theta)

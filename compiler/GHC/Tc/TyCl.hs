@@ -3064,7 +3064,7 @@ tcDataDefn err_ctxt roles_info tc_name
        --    - for H98 constructors only, the ConDecl
        -- But it does no harm to bring them into scope
        -- over GADT ConDecls as well; and it's awkward not to
-    do { gadt_syntax <- dataDeclChecks tc_name new_or_data ctxt cons
+    do { gadt_syntax <- dataDeclChecks tc_name new_or_data cons
          -- see Note [Datatype return kinds]
        ; (extra_bndrs, final_res_kind) <- etaExpandAlgTyCon tycon_binders res_kind
 
@@ -3501,18 +3501,13 @@ that 'a' must have that kind, and to bring 'k' into scope.
 -}
 
 dataDeclChecks :: Name -> NewOrData
-               -> Maybe (LHsContext GhcRn) -> [LConDecl GhcRn]
+                -> [LConDecl GhcRn]
                -> TcM Bool
-dataDeclChecks tc_name new_or_data mctxt cons
-  = do { let stupid_theta = fromMaybeContext mctxt
-         -- Check that we don't use GADT syntax in H98 world
-       ;  gadtSyntax_ok <- xoptM LangExt.GADTSyntax
+dataDeclChecks tc_name new_or_data cons
+  = do { gadtSyntax_ok <- xoptM LangExt.GADTSyntax
+       -- Check that we don't use GADT syntax in H98 world
        ; let gadt_syntax = consUseGadtSyntax cons
        ; checkTc (gadtSyntax_ok || not gadt_syntax) (badGadtDecl tc_name)
-
-           -- Check that the stupid theta is empty for a GADT-style declaration.
-           -- See Note [The stupid context] in GHC.Core.DataCon.
-       ; checkTc (null stupid_theta || not gadt_syntax) (badStupidTheta tc_name)
 
          -- Check that a newtype has exactly one constructor
          -- Do this before checking for empty data decls, so that
@@ -5456,11 +5451,6 @@ badExistential con
                   text "has existential type variables, a context, or a specialised result type")
          2 (vcat [ ppr con <+> dcolon <+> ppr (dataConDisplayType show_linear_types con)
                  , parens $ text "Enable ExistentialQuantification or GADTs to allow this" ]))
-
-badStupidTheta :: Name -> TcRnMessage
-badStupidTheta tc_name
-  = TcRnUnknownMessage $ mkPlainError noHints $
-  text "A data type declared in GADT style cannot have a context:" <+> quotes (ppr tc_name)
 
 newtypeConError :: Name -> Int -> TcRnMessage
 newtypeConError tycon n
