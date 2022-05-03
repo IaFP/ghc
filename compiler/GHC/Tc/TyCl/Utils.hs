@@ -930,18 +930,19 @@ mkOneRecordSelector all_cons idDetails fl has_sel
                                    -- could improve on it in the case where all the
                                    -- fields in all the constructor have multiplicity Many.
                                    field_ty
-       ; let isOkTyCon = case idDetails of
+       ; let isVTyCon = case idDetails of
                -- we want to elaborate the type signture of the field selectors
-               -- only if they are not GADTs and newtypes AKA vanilla H98 
-                       RecSelData tycon -> isVanillaAlgTyCon tycon && not (isGadtSyntaxTyCon tycon)
-                       _                -> False 
+               -- only if they are not GADTs and newtypes AKA vanilla H98
+               -- isGadtSyntaxTyCon is used to weed out types that encode existentials
+                          RecSelData tycon -> isVanillaAlgTyCon tycon && not (isGadtSyntaxTyCon tycon)
+                          _                -> False 
        ; let isNTTyCon = case idDetails of
-                       RecSelData tycon -> isNewTyCon tycon
-                       _                -> False 
+                           RecSelData tycon -> isNewTyCon tycon
+                           _                -> False 
        ; sel_ty <- if partyCtrs
                    then if isNTTyCon
                         then elabWfTypeTcM False sel_ty' -- reduce if its a newtype
-                        else if isOkTyCon then elabWfTypeTcM True sel_ty' else return sel_ty'
+                        else if isVTyCon then elabWfTypeTcM True sel_ty' else return sel_ty'
                    else return sel_ty' 
              -- Make the binding: sel (C2 { fld = x }) = x
              --                   sel (C7 { fld = x }) = x

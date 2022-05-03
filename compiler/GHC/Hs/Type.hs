@@ -280,7 +280,11 @@ hsTyVarBndrFlag (UserTyVar _ fl _)     = fl
 hsTyVarBndrFlag (KindedTyVar _ fl _ _) = fl
 
 -- | Set the attached flag
-setHsTyVarBndrFlag :: flag -> HsTyVarBndr flag' (GhcPass pass)
+setHsTyVarBndrFlag ::
+#if MIN_VERSION_base(4,16,0)
+  (WFT (IdGhcP pass), WFT (Anno (IdGhcP pass))) =>
+#endif
+  flag -> HsTyVarBndr flag' (GhcPass pass)
   -> HsTyVarBndr flag (GhcPass pass)
 setHsTyVarBndrFlag f (UserTyVar x _ l)     = UserTyVar x f l
 setHsTyVarBndrFlag f (KindedTyVar x _ l k) = KindedTyVar x f l k

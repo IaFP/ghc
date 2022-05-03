@@ -6,16 +6,10 @@ module BST where
 
 import GHC.Types (type (@))
 
--- data (Ord a) => BST a where
---   Leaf :: BST a
---   Node :: a -> BST a -> BST a -> BST a
-  
 newtype Ord a => BST a = BST { unBST :: Tree a }
                        deriving Show
--- instance (Show a) => Show (BST a) where
---   show 
 
--- deriving instance (Show a, Ord a) => Show (BST a)
+
 insert'bst :: a -> BST a -> BST a
 insert'bst v bst = BST (insert v (unBST bst))
 

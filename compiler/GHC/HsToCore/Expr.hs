@@ -1038,20 +1038,15 @@ dsHsVar var
 
 dsHsConLike :: ConLike -> DsM (CoreExpr, Maybe Arity)
 dsHsConLike (RealDataCon dc)
-  | isVanillaDataCon dc && not (isNewDataCon dc)
-  = do { traceIf (vcat [ text "dsHsCon" <+> ppr dc
-                       , ppr $ dataConSourceArity dc
-                       , ppr $ dataConRepArity dc
-                       , ppr $ dataConStupidTheta dc])
-       ; return (varToCoreExpr (dataConWrapId dc)
-                , Just $ dataConSourceArity dc)
-       }
-  | otherwise -- existential/GADT data con/newtype
-  = do { traceIf (vcat [ text "dsHsCon" <+> ppr dc
-                       , ppr $ dataConSourceArity dc
-                       , ppr $ dataConRepArity dc
-                       , ppr $ dataConStupidTheta dc])
-       ; return (varToCoreExpr (dataConWrapId dc), Nothing) }
+  | not (isNewDataCon dc)
+  = return (varToCoreExpr (dataConWrapId dc)
+           , Just $ idArity (dataConWrapId dc))
+    -- wrap arity can be more than the worker arity hence pass that (rather than
+    -- source arity or rep arity)
+    -- tells dsHsConLike the appropriate number of arguments to drop
+
+  | otherwise -- newtypes
+  = return (varToCoreExpr (dataConWrapId dc), Nothing)
 dsHsConLike (PatSynCon ps)
   | Just (builder_name, _, add_void) <- patSynBuilder ps
   = do { builder_id <- dsLookupGlobalId builder_name
@@ -1068,18 +1063,19 @@ dsConLike :: ConLike -> [TcInvisTVBinder] -> [Scaled Type] -> DsM CoreExpr
 --     for what is going on here
 dsConLike con tvbs tys
   = do { partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; (ds_con, real_arity_mb) <- dsHsConLike con
+       ; (ds_con, arity_mb) <- dsHsConLike con
        ; ids'    <- newSysLocalsDs tys
        ; let ids = if partyCtrs
-                   then (case real_arity_mb of
-                           Just real_arity -> drop (length tys - real_arity) $ ids'
+                   then (case arity_mb of
+                           Just arity -> drop (length tys - arity) $ ids'
+                           -- drop all the prefixed args that are just wf_theta + stupid_theta
                            Nothing -> dropList (conLikeStupidTheta con) ids')
+                           -- we force newtypes to have stupidTheta so drop those, for pat syn stupid_theta is 0
                    else ids'
              drop_stupid = if partyCtrs then id else dropList (conLikeStupidTheta con)
 
                    -- newSysLocalDs: /can/ be lev-poly; see
                    -- Note [Checking representation-polymorphic data constructors]
-       ; traceIf (text "dsCon" <+> ppr con <+> ppr (length ids') <+> ppr (length ids))
        ; return (mkLams tvs $
                  mkLams ids' $
                  ds_con `mkTyApps` mkTyVarTys tvs

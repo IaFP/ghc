@@ -837,7 +837,7 @@ tcInferDataCon con
        -- that each of the type arguments are also well formed.
        -- For now just worry about H98 data cons
        -- GADTs are a bit tricky due to the extra existentials 
-       ; wf_theta <- if isVanillaDataCon con && not (isNewDataCon con)
+       ; wf_theta <- if not (isNewDataCon con)
                      then foldl mergeAtAtConstraints [] <$>
                           mapM (\t -> genWfConstraintsTcM False (scaledThing t) []) args
                      else return []

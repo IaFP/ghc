@@ -110,7 +110,11 @@ isEmptyBlock _          = False
 emptyBlock :: Block n O O
 emptyBlock = BNil
 
-blockCons :: n O O -> Block n O x -> Block n O x
+blockCons ::
+#if MIN_VERSION_base(4,16,0)
+  Total2 n => 
+#endif
+  n O O -> Block n O x -> Block n O x
 blockCons n b = case b of
   BlockOC b l  -> (BlockOC $! (n `blockCons` b)) l
   BNil{}    -> BMiddle n
@@ -119,7 +123,11 @@ blockCons n b = case b of
   BSnoc{}   -> n `BCons` b
   BCons{}   -> n `BCons` b
 
-blockSnoc :: Block n e O -> n O O -> Block n e O
+blockSnoc ::
+#if MIN_VERSION_base(4,16,0)
+  Total2 n => 
+#endif
+  Block n e O -> n O O -> Block n e O
 blockSnoc b n = case b of
   BlockCO f b -> BlockCO f $! (b `blockSnoc` n)
   BNil{}      -> BMiddle n
@@ -128,47 +136,91 @@ blockSnoc b n = case b of
   BSnoc{}     -> b `BSnoc` n
   BCons{}     -> b `BSnoc` n
 
-blockJoinHead :: n C O -> Block n O x -> Block n C x
+blockJoinHead ::
+#if MIN_VERSION_base(4,16,0)
+  Total2 n => 
+#endif
+  n C O -> Block n O x -> Block n C x
 blockJoinHead f (BlockOC b l) = BlockCC f b l
 blockJoinHead f b = BlockCO f BNil `cat` b
 
-blockJoinTail :: Block n e O -> n O C -> Block n e C
+blockJoinTail ::
+#if MIN_VERSION_base(4,16,0)
+  Total2 n => 
+#endif
+  Block n e O -> n O C -> Block n e C
 blockJoinTail (BlockCO f b) t = BlockCC f b t
 blockJoinTail b t = b `cat` BlockOC BNil t
 
-blockJoin :: n C O -> Block n O O -> n O C -> Block n C C
+blockJoin ::
+#if MIN_VERSION_base(4,16,0)
+  Total2 n => 
+#endif
+  n C O -> Block n O O -> n O C -> Block n C C
 blockJoin f b t = BlockCC f b t
 
-blockAppend :: Block n e O -> Block n O x -> Block n e x
+blockAppend ::
+#if MIN_VERSION_base(4,16,0)
+  Total2 n => 
+#endif
+  Block n e O -> Block n O x -> Block n e x
 blockAppend = cat
 
 
 -- Taking apart
 
-firstNode :: Block n C x -> n C O
+firstNode ::
+#if MIN_VERSION_base(4,16,0)
+  Total2 n => 
+#endif
+  Block n C x -> n C O
 firstNode (BlockCO n _)   = n
 firstNode (BlockCC n _ _) = n
 
-lastNode :: Block n x C -> n O C
+lastNode ::
+#if MIN_VERSION_base(4,16,0)
+  Total2 n => 
+#endif
+  Block n x C -> n O C
 lastNode (BlockOC   _ n) = n
 lastNode (BlockCC _ _ n) = n
 
-blockSplitHead :: Block n C x -> (n C O, Block n O x)
+blockSplitHead ::
+#if MIN_VERSION_base(4,16,0)
+  Total2 n => 
+#endif
+  Block n C x -> (n C O, Block n O x)
 blockSplitHead (BlockCO n b)   = (n, b)
 blockSplitHead (BlockCC n b t) = (n, BlockOC b t)
 
-blockSplitTail :: Block n e C -> (Block n e O, n O C)
+blockSplitTail ::
+#if MIN_VERSION_base(4,16,0)
+  Total2 n => 
+#endif
+  Block n e C -> (Block n e O, n O C)
 blockSplitTail (BlockOC b n)   = (b, n)
 blockSplitTail (BlockCC f b t) = (BlockCO f b, t)
 
 -- | Split a closed block into its entry node, open middle block, and
 -- exit node.
-blockSplit :: Block n C C -> (n C O, Block n O O, n O C)
+blockSplit ::
+#if MIN_VERSION_base(4,16,0)
+  Total2 n => 
+#endif
+  Block n C C -> (n C O, Block n O O, n O C)
 blockSplit (BlockCC f b t) = (f, b, t)
 
-blockToList :: Block n O O -> [n O O]
+blockToList ::
+#if MIN_VERSION_base(4,16,0)
+  Total2 n => 
+#endif
+  Block n O O -> [n O O]
 blockToList b = go b []
-   where go :: Block n O O -> [n O O] -> [n O O]
+   where go ::
+#if MIN_VERSION_base(4,16,0)
+              Total2 n => 
+#endif
+           Block n O O -> [n O O] -> [n O O]
          go BNil         r = r
          go (BMiddle n)  r = n : r
          go (BCat b1 b2) r = go b1 $! go b2 r
@@ -180,18 +232,30 @@ blockFromList = foldr BCons BNil
 
 -- Modifying
 
-replaceFirstNode :: Block n C x -> n C O -> Block n C x
+replaceFirstNode ::
+#if MIN_VERSION_base(4,16,0)
+  Total2 n => 
+#endif
+  Block n C x -> n C O -> Block n C x
 replaceFirstNode (BlockCO _ b)   f = BlockCO f b
 replaceFirstNode (BlockCC _ b n) f = BlockCC f b n
 
-replaceLastNode :: Block n x C -> n O C -> Block n x C
+replaceLastNode ::
+#if MIN_VERSION_base(4,16,0)
+  Total2 n => 
+#endif
+  Block n x C -> n O C -> Block n x C
 replaceLastNode (BlockOC   b _) n = BlockOC b n
 replaceLastNode (BlockCC l b _) n = BlockCC l b n
 
 -- -----------------------------------------------------------------------------
 -- General concatenation
 
-cat :: Block n e O -> Block n O x -> Block n e x
+cat ::
+#if MIN_VERSION_base(4,16,0)
+  Total2 n => 
+#endif
+  Block n e O -> Block n O x -> Block n e x
 cat x y = case x of
   BNil -> y
 
@@ -267,12 +331,19 @@ mapBlock' f = mapBlock3' (f, f, f)
 -- middle nodes and last nodes respectively.  The map is strict.
 --
 mapBlock3' :: forall n n' e x .
+#if MIN_VERSION_base(4,16,0)
+  (Total2 n, Total2 n') => 
+#endif
              ( n C O -> n' C O
              , n O O -> n' O O,
                n O C -> n' O C)
           -> Block n e x -> Block n' e x
 mapBlock3' (f, m, l) b = go b
-  where go :: forall e x . Block n e x -> Block n' e x
+  where go :: forall e x .
+#if MIN_VERSION_base(4,16,0)
+          (Total2 n, Total2 n') => 
+#endif
+          Block n e x -> Block n' e x
         go (BlockOC b y)   = (BlockOC $! go b) $! l y
         go (BlockCO x b)   = (BlockCO $! f x) $! (go b)
         go (BlockCC x b y) = ((BlockCC $! f x) $! go b) $! (l y)
@@ -290,7 +361,7 @@ mapBlock3' (f, m, l) b = go b
 -- The fold function must be polymorphic in the shape of the nodes.
 foldBlockNodesF3 :: forall n a b c .
 #if MIN_VERSION_base(4,16,0)
-  (Total2 n) =>
+                     (Total2 n) =>
 #endif  
                    ( n C O       -> a -> b
                    , n O O       -> b -> b
@@ -298,24 +369,44 @@ foldBlockNodesF3 :: forall n a b c .
                  -> (forall e x . Block n e x -> IndexedCO e a b -> IndexedCO x c b)
 foldBlockNodesF  :: forall n a .
 #if MIN_VERSION_base(4,16,0)
-  (Total2 n) =>
+                     (Total2 n) =>
 #endif  
                     (forall e x . n e x       -> a -> a)
                  -> (forall e x . Block n e x -> IndexedCO e a a -> IndexedCO x a a)
 foldBlockNodesB3 :: forall n a b c .
+#if MIN_VERSION_base(4,16,0)
+                    Total2 n => 
+#endif
+  
                    ( n C O       -> b -> c
                    , n O O       -> b -> b
                    , n O C       -> a -> b)
-                 -> (forall e x . Block n e x -> IndexedCO x a b -> IndexedCO e c b)
+                 -> (forall e x .
+#if MIN_VERSION_base(4,16,0)
+                                Total2 n => 
+#endif
+                                Block n e x -> IndexedCO x a b -> IndexedCO e c b)
 foldBlockNodesB  :: forall n a .
 #if MIN_VERSION_base(4,16,0)
-  (Total2 n) =>
+                    Total2 n =>
 #endif  
-                    (forall e x . n e x       -> a -> a)
-                 -> (forall e x . Block n e x -> IndexedCO x a a -> IndexedCO e a a)
+                    (forall e x .
+#if MIN_VERSION_base(4,16,0)
+                                 Total2 n => 
+#endif
+                     n e x       -> a -> a)
+                 -> (forall e x .
+#if MIN_VERSION_base(4,16,0)
+                                 Total2 n => 
+#endif
+                                Block n e x -> IndexedCO x a a -> IndexedCO e a a)
 
 foldBlockNodesF3 (ff, fm, fl) = block
-  where block :: forall e x . Block n e x -> IndexedCO e a b -> IndexedCO x c b
+  where block :: forall e x .
+#if MIN_VERSION_base(4,16,0)
+                              Total2 n => 
+#endif
+          Block n e x -> IndexedCO e a b -> IndexedCO x c b
         block (BlockCO f b  )   = ff f `cat` block b
         block (BlockCC f b l)   = ff f `cat` block b `cat` fl l
         block (BlockOC   b l)   =            block b `cat` fl l
@@ -330,7 +421,11 @@ foldBlockNodesF3 (ff, fm, fl) = block
 foldBlockNodesF f = foldBlockNodesF3 (f, f, f)
 
 foldBlockNodesB3 (ff, fm, fl) = block
-  where block :: forall e x . Block n e x -> IndexedCO x a b -> IndexedCO e c b
+  where block :: forall e x .
+#if MIN_VERSION_base(4,16,0)
+                              Total2 n => 
+#endif
+                             Block n e x -> IndexedCO x a b -> IndexedCO e c b
         block (BlockCO f b  )   = ff f `cat` block b
         block (BlockCC f b l)   = ff f `cat` block b `cat` fl l
         block (BlockOC   b l)   =            block b `cat` fl l
@@ -343,4 +438,3 @@ foldBlockNodesB3 (ff, fm, fl) = block
         cat f f' = f . f'
 
 foldBlockNodesB f = foldBlockNodesB3 (f, f, f)
-

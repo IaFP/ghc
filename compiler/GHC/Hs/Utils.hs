@@ -657,7 +657,11 @@ nlHsCase expr matches
 nlList exprs          = noLocA (ExplicitList noAnn exprs)
 
 nlHsAppTy :: LHsType (GhcPass p) -> LHsType (GhcPass p) -> LHsType (GhcPass p)
-nlHsTyVar :: IsSrcSpanAnn p a
+nlHsTyVar :: (
+#if MIN_VERSION_base(4,16,0)
+              WFT (Anno (IdGhcP p)),
+#endif
+             IsSrcSpanAnn p a)
           => IdP (GhcPass p)                            -> LHsType (GhcPass p)
 nlHsFunTy :: LHsType (GhcPass p) -> LHsType (GhcPass p) -> LHsType (GhcPass p)
 nlHsParTy :: LHsType (GhcPass p)                        -> LHsType (GhcPass p)
@@ -667,7 +671,11 @@ nlHsTyVar x   = noLocA (HsTyVar noAnn NotPromoted (noLocA x))
 nlHsFunTy a b = noLocA (HsFunTy noAnn (HsUnrestrictedArrow noHsUniTok) (parenthesizeHsType funPrec a) b)
 nlHsParTy t   = noLocA (HsParTy noAnn t)
 
-nlHsTyConApp :: IsSrcSpanAnn p a
+nlHsTyConApp :: (
+#if MIN_VERSION_base(4,16,0)
+                WFT (Anno (IdGhcP p)),
+#endif
+                IsSrcSpanAnn p a)
              => LexicalFixity -> IdP (GhcPass p)
              -> [LHsTypeArg (GhcPass p)] -> LHsType (GhcPass p)
 nlHsTyConApp fixity tycon tys

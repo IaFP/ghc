@@ -4526,15 +4526,15 @@ checkNewTypeThetaEntailment tc
                                   if n == 1 then head theta
                                   else mkTyConApp (cTupleTyCon n) theta
 
-newTypeCtxt :: Name -> TcType -> TcType -> TidyEnv -> TcM (TidyEnv, SDoc)
-newTypeCtxt tc_name ctxt rhs_ct env0
-  = do { (env1, ctxt)  <- zonkTidyTcType env0 ctxt
-       ; (env2, rhs_ct) <- zonkTidyTcType env1 rhs_ct
-       ; let msg = hang (text "When checking the context for newtype" <+> quotes (ppr tc_name))
-                      2 (vcat [ text "New type context is more general than its RHS"
-                              , text "New type context:" <+> ppr ctxt
-                              , text "      RHS context:" <+> ppr rhs_ct ])
-       ; return (env2, msg) }
+          newTypeCtxt :: Name -> TcType -> TcType -> TidyEnv -> TcM (TidyEnv, SDoc)
+          newTypeCtxt tc_name ctxt rhs_ct env0
+              = do { (env1, ctxt)  <- zonkTidyTcType env0 ctxt
+                   ; (env2, rhs_ct) <- zonkTidyTcType env1 rhs_ct
+                   ; let msg = hang (text "When checking the context for newtype" <+> quotes (ppr tc_name))
+                                       2 (vcat [ text "New type context is more general than its RHS"
+                                               , text "New type context:" <+> ppr ctxt
+                                               , text "      RHS context:" <+> ppr rhs_ct ])
+                   ; return (env2, msg) }
 
 
 
