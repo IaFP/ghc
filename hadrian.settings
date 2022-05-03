@@ -91,19 +91,25 @@ stage2.libiserv.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMetho
 
 #####
 ##### Stage 3 hs options
-##### -- incomplete list should just copy stage2.
+##### 
 
 
 stage3.array.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.base.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage3.binary.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.bytestring.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage3.Cabal.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.containers.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.deepseq.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.directory.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.exceptions.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.filepath.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.ghc.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage3.ghci.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.ghc-compact.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage3.ghc-boot.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage3.ghc-boot-th.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage3.ghc-bin.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.ghc-pkg.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.haskeline.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.hp2ps.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
@@ -119,7 +125,15 @@ stage3.hpc.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -X
 stage3.text.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.unix.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.template-haskell.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage3.haddock.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage3.transformers.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XTypeOperators
 stage3.terminfo.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage3.check-exact.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage3.iserv.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage3.libiserv.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+
+
+## Commands that span over stages
 
 stage1.*.ghc.hs.opts += -fforce-recomp 
 stage2.*.ghc.hs.opts += -g3 -debug -fforce-recomp
@@ -128,5 +142,5 @@ stage2.rts.ghc.c.opts += -optc-ggdb
 
 # if you want to enable core linting. this makes the compilation slow
 # uncomment the two lines below
-# stage1.*.ghc.hs.opts += -dcore-lint
-# stage2.*.ghc.hs.opts += -dcore-lint
+stage1.*.ghc.hs.opts += -dcore-lint
+stage2.*.ghc.hs.opts += -dcore-lint

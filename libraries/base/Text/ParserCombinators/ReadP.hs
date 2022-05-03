@@ -81,7 +81,6 @@ import GHC.List ( replicate, null )
 import GHC.Base hiding ( many )
 
 import Control.Monad.Fail
-import GHC.Types (type(@))
 
 infixr 5 +++, <++
 

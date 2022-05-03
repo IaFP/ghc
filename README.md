@@ -1,4 +1,4 @@
-The Glorious Haskell Compiler (Forked from The Glasgow Haskell Compiler)
+The Glorioustest Haskell Compiler (Forked from The Glasgow Haskell Compiler)
 ==============================
 
 How to I setup this code with partial type constructors and run the programs?
@@ -13,7 +13,7 @@ How to I setup this code with partial type constructors and run the programs?
 1. `./hadrian/build -j stage1:exe:ghc-bin`
 1. [go read a paper that you have been putting off](https://xkcd.com/303/)
 1. `_build/ghc-stage1 --version # this should print out the GHC version`
-1. `./hadrian/build -j stage2:exe:ghc-bin`
+1. `./hadrian/build -j`
 1. `_build/ghc-stage2 --version # this should print out the GHC version`
 
  

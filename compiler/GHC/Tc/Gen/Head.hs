@@ -838,9 +838,10 @@ tcInferDataCon con
        -- For now just worry about H98 data cons
        -- GADTs are a bit tricky due to the extra existentials 
        ; wf_theta <- if isVanillaDataCon con && not (isNewDataCon con)
-                     then concatMapM (\t -> genWfConstraintsTcM False (scaledThing t) []) args
+                     then foldl mergeAtAtConstraints [] <$>
+                          mapM (\t -> genWfConstraintsTcM False (scaledThing t) []) args
                      else return []
-       ; let full_theta  = wf_theta ++ stupid_theta ++ theta
+       ; let full_theta  = wf_theta ++ stupid_theta ++ theta -- It is important to ++ them and not mergeAtAt them
              all_arg_tys = map unrestricted full_theta ++ scaled_arg_tys
                 -- stupid-theta must come first
                 -- See Note [Instantiating stupid theta]
