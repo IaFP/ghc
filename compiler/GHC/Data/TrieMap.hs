@@ -322,7 +322,7 @@ filterMaybe f input@(Just x) | f x       = input
 
 data
 #if MIN_VERSION_base(4,16,0)
-  m @ ListMap m a =>
+  m @ ListMap m a => -- removing this causes specializer to produce core that failes core linting in GHC/Core/Map/Expr.hs
 #endif
   ListMap m a
   = LM { lm_nil  :: Maybe a

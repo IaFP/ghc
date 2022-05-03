@@ -29,3 +29,6 @@ newtype Ord a => NTRec2 a = NTRec2 {unntRec2 :: NTRec1 a} -- This Works fine too
 -- newtype Eq a => NT a = NT {unNT :: T a} -- not okay as Eq a |/- Ord a
 -- newtype NT a = NT {unNT :: T a} -- not okay as () |/- Ord a
 
+
+newtype m @ b => Kleisli m a b = Kleisli { runKleisli :: a -> m b }
+                                deriving Functor -- This is new

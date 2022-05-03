@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 {-# OPTIONS_GHC -Wno-inline-rule-shadowing #-}
     -- The RULES for the methods of class Category may never fire
     -- e.g. identity/left, identity/right, association;  see #10528
@@ -24,7 +25,7 @@ import qualified GHC.Base (id,(.))
 import Data.Type.Coercion
 import Data.Type.Equality
 import Data.Coerce (coerce)
-
+import GHC.Types (Total2)
 infixr 9 .
 infixr 1 >>>, <<<
 
@@ -34,7 +35,7 @@ infixr 1 >>>, <<<
 -- [Left identity]  @'id' '.' f  =  f@
 -- [Associativity]  @f '.' (g '.' h)  =  (f '.' g) '.' h@
 --
-class Category cat where
+class Total2 cat => Category cat where
     -- | the identity morphism
     id :: cat a a
 
@@ -46,8 +47,8 @@ class Category cat where
                 id . p = p
 "identity/right"        forall p .
                 p . id = p
--- "association"   forall p q r .
---                 (p . q) . r = p . (q . r)
+"association"   forall p q r .
+                (p . q) . r = p . (q . r)
  #-}
 
 -- | @since 3.0

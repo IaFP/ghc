@@ -1,7 +1,8 @@
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE InstanceSigs         #-}
-{-# LANGUAGE Safe                 #-}
+{-# LANGUAGE Trustworthy          #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE RankNTypes, QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Functor.Classes
@@ -83,7 +84,7 @@ import Text.ParserCombinators.ReadPrec (ReadPrec, readPrec_to_S, readS_to_Prec)
 import Text.Read (Read(..), parens, prec, step)
 import Text.Read.Lex (Lexeme(..))
 import Text.Show (showListWith)
-
+import GHC.Types (Total, type (@))
 -- $setup
 -- >>> import Prelude
 -- >>> import Data.Complex (Complex (..))
@@ -691,17 +692,17 @@ instance (Read a, Read b, Read c) => Read1 ((,,,) a b c) where
 -- | @since 4.16.0.0
 instance (Show a, Show b, Show c) => Show1 ((,,,) a b c) where
     liftShowsPrec = liftShowsPrec2 showsPrec showList
-{-
+
 -- | @since 4.17.0.0
-instance (Generic1 f, Eq1 (Rep1 f)) => Eq1 (Generically1 f) where
+instance (Generic1 f, Total f, forall a. Rep1 f @ a, Eq1 (Rep1 f)) => Eq1 (Generically1 f) where
   liftEq :: (a1 -> a2 -> Bool) -> (Generically1 f a1 -> Generically1 f a2 -> Bool)
   liftEq (===) (Generically1 as1) (Generically1 as2) = liftEq (===) (from1 as1) (from1 as2)
 
 -- | @since 4.17.0.0
-instance (Generic1 f, Ord1 (Rep1 f)) => Ord1 (Generically1 f) where
+instance (Generic1 f, Total f, forall a. Rep1 f @ a, Ord1 (Rep1 f)) => Ord1 (Generically1 f) where
   liftCompare :: (a1 -> a2 -> Ordering) -> (Generically1 f a1 -> Generically1 f a2 -> Ordering)
   liftCompare cmp (Generically1 as1) (Generically1 as2) = liftCompare cmp (from1 as1) (from1 as2)
--}
+
 -- | @since 4.9.0.0
 instance Eq2 Either where
     liftEq2 e1 _ (Left x) (Left y) = e1 x y
