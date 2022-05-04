@@ -17,7 +17,7 @@
 -- | Module "Trampoline" defines the trampoline computations and their basic building blocks.
 
 {-# LANGUAGE ScopedTypeVariables, RankNTypes, MultiParamTypeClasses, TypeFamilies, KindSignatures,
-             FlexibleContexts, FlexibleInstances, OverlappingInstances, UndecidableInstances
+             FlexibleContexts, FlexibleInstances, OverlappingInstances, UndecidableInstances, QuantifiedConstraints
  #-}
 
 module T3787 where
@@ -32,7 +32,7 @@ import Data.Foldable (toList)
 import Data.Maybe (maybe)
 import Data.Sequence (Seq, viewl)
 import Data.Kind (Type)
-
+import GHC.Types (type (@), Total)
 par, pseq :: a -> b -> b
 par = error "urk"
 pseq = error "urk"
@@ -67,7 +67,7 @@ instance ParallelizableMonad IO where
                           return (a, b)
 
 -- | Suspending monadic computations.
-newtype Trampoline s m r = Trampoline {
+newtype m @ (TrampolineState s m r) => Trampoline s m r = Trampoline {
    -- | Run the next step of a `Trampoline` computation.
    bounce :: m (TrampolineState s m r)
    }
@@ -78,25 +78,33 @@ data TrampolineState s m r =
    -- | Computation is suspended, its remainder is embedded in the functor /s/.
  | Suspend !(s (Trampoline s m r))
 
-instance (Functor s, Monad m) => Functor (Trampoline s m) where
+instance (Total m, Total s, Functor s, Monad m) => Functor (Trampoline s m) where
    fmap = liftM
 
-instance (Functor s, Monad m) => Applicative (Trampoline s m) where
+instance (Total m, Total s, Functor s, Monad m) => Applicative (Trampoline s m) where
    pure x = Trampoline (pure (Done x))
    (<*>) = ap
 
-instance (Functor s, Monad m) => Monad (Trampoline s m) where
+instance (Total m, Total s, Functor s, Monad m) => Monad (Trampoline s m) where
    return = pure
    t >>= f = Trampoline (bounce t >>= apply f)
-      where apply f (Done x) = bounce (f x)
-            apply f (Suspend s) = return (Suspend (fmap (>>= f) s))
+      where
+        apply :: (Total s1, Total m1, Functor s1, Monad m1)
+              => (a1 -> Trampoline s1 m1 r)
+              -> TrampolineState s1 m1 a1 -> m1 (TrampolineState s1 m1 r)
+        apply f (Done x) = bounce (f x)
+        apply f (Suspend s) = return (Suspend (fmap (>>= f) s))
 
-instance (Functor s, ParallelizableMonad m) => ParallelizableMonad (Trampoline s m) where
-   parallelize t1 t2 = Trampoline $ liftM combine $ parallelize (bounce t1) (bounce t2) where
-      combine (Done x, Done y) = Done (x, y)
-      combine (Suspend s, Done y) = Suspend (fmap (liftM $ \x-> (x, y)) s)
-      combine (Done x, Suspend s) = Suspend (fmap (liftM $ (,) x) s)
-      combine (Suspend s1, Suspend s2) = Suspend (fmap (parallelize $ suspend s1) s2)
+instance (Total m, Total s, Functor s, ParallelizableMonad m) => ParallelizableMonad (Trampoline s m) where
+   parallelize t1 t2 = Trampoline $ liftM combine $ parallelize (bounce t1) (bounce t2)
+     where
+       combine :: (Total m1, Total s1, Functor s1, ParallelizableMonad m1)
+               => (TrampolineState s1 m1 a1, TrampolineState s1 m1 b1)
+               -> TrampolineState s1 m1 (a1, b1)
+       combine (Done x, Done y) = Done (x, y)
+       combine (Suspend s, Done y) = Suspend (fmap (liftM $ \x-> (x, y)) s)
+       combine (Done x, Suspend s) = Suspend (fmap (liftM $ (,) x) s)
+       combine (Suspend s1, Suspend s2) = Suspend (fmap (parallelize $ suspend s1) s2)
 
 instance Functor s => MonadTrans (Trampoline s) where
    lift = Trampoline . liftM Done
@@ -109,16 +117,16 @@ data Await x y = Await !(x -> y)
 instance Functor (Await x) where
    fmap f (Await g) = Await (f . g)
 
-data EitherFunctor l r x = LeftF (l x) | RightF (r x)
+data (l @ x, r @ x) => EitherFunctor l r x = LeftF (l x) | RightF (r x)
 instance (Functor l, Functor r) => Functor (EitherFunctor l r) where
    fmap f (LeftF l) = LeftF (fmap f l)
    fmap f (RightF r) = RightF (fmap f r)
 
-newtype NestedFunctor l r x = NestedFunctor (l (r x))
+newtype (l @ r x, r @ x) => NestedFunctor l r x = NestedFunctor (l (r x))
 instance (Functor l, Functor r) => Functor (NestedFunctor l r) where
    fmap f (NestedFunctor lr) = NestedFunctor ((fmap . fmap) f lr)
 
-data SomeFunctor l r x = LeftSome (l x) | RightSome (r x) | Both (NestedFunctor l r x)
+data (l @ x, r @ x, l @ r x) => SomeFunctor l r x = LeftSome (l x) | RightSome (r x) | Both (NestedFunctor l r x)
 instance (Functor l, Functor r) => Functor (SomeFunctor l r) where
    fmap f (LeftSome l) = LeftSome (fmap f l)
    fmap f (RightSome r) = RightSome (fmap f r)
@@ -129,16 +137,16 @@ type TryYield x = EitherFunctor (Yield x) (Await Bool)
 suspend :: (Monad m, Functor s) => s (Trampoline s m x) -> Trampoline s m x
 suspend s = Trampoline (return (Suspend s))
 
-yield :: forall m x. Monad m => x -> Trampoline (Yield x) m ()
+yield :: forall m x. (Total m, Monad m) => x -> Trampoline (Yield x) m ()
 yield x = suspend (Yield x (return ()))
 
-await :: forall m x. Monad m => Trampoline (Await x) m x
+await :: forall m x. (Total m, Monad m) => Trampoline (Await x) m x
 await = suspend (Await return)
 
-tryYield :: forall m x. Monad m => x -> Trampoline (TryYield x) m Bool
+tryYield :: forall m x. (Total m, Monad m) => x -> Trampoline (TryYield x) m Bool
 tryYield x = suspend (LeftF (Yield x (suspend (RightF (Await return)))))
 
-canYield :: forall m x. Monad m => Trampoline (TryYield x) m Bool
+canYield :: forall m x. (Total m, Monad m) => Trampoline (TryYield x) m Bool
 canYield = suspend (RightF (Await return))
 
 fromTrampoline :: Monad m => Trampoline s m x -> m x
@@ -153,9 +161,10 @@ pogoStick reveal t = bounce t
                               of Done result -> return result
                                  Suspend c -> pogoStick reveal (reveal c)
 
-pogoStickNested :: (Functor s1, Functor s2, Monad m) => 
-                   (s2 (Trampoline (EitherFunctor s1 s2) m x) -> Trampoline (EitherFunctor s1 s2) m x)
-                   -> Trampoline (EitherFunctor s1 s2) m x -> Trampoline s1 m x
+pogoStickNested :: ( s1 @ Trampoline (EitherFunctor s1 s2) m x, s1 @ Trampoline s1 m x
+                   , Functor s1, Functor s2, Monad m)
+                =>  (s2 (Trampoline (EitherFunctor s1 s2) m x) -> Trampoline (EitherFunctor s1 s2) m x)
+                -> Trampoline (EitherFunctor s1 s2) m x -> Trampoline s1 m x
 pogoStickNested reveal t = 
    Trampoline{bounce= bounce t
                       >>= \s-> case s
@@ -176,8 +185,9 @@ nest a b = NestedFunctor $ fmap (\x-> fmap ((,) x) b) a
 --                                                                                     fmap (uncurry couple) (nest s1 s2)
 --                          }
 
-coupleAlternating :: (Monad m, Functor s1, Functor s2) => 
-                     Trampoline s1 m x -> Trampoline s2 m y -> Trampoline (SomeFunctor s1 s2) m (x, y)
+coupleAlternating :: ( Total s1, Total s2, Total m
+                     , Monad m, Functor s1, Functor s2)
+                  => Trampoline s1 m x -> Trampoline s2 m y -> Trampoline (SomeFunctor s1 s2) m (x, y)
 coupleAlternating t1 t2 = 
    Trampoline{bounce= do ts1 <- bounce t1
                          ts2 <- bounce t2
@@ -190,7 +200,8 @@ coupleAlternating t1 t2 =
                                                return $ Suspend $ fmap (flip coupleAlternating (return y)) (LeftSome s1)
              }
 
-coupleParallel :: (ParallelizableMonad m, Functor s1, Functor s2) => 
+coupleParallel :: (Total s1, Total s2, Total m,
+                   ParallelizableMonad m, Functor s1, Functor s2) => 
                   Trampoline s1 m x -> Trampoline s2 m y -> Trampoline (SomeFunctor s1 s2) m (x, y)
 coupleParallel t1 t2 = 
    Trampoline{bounce= parallelize (bounce t1) (bounce t2)
@@ -204,7 +215,8 @@ coupleParallel t1 t2 =
                                         return $ Suspend $ fmap (flip coupleParallel (return y)) (LeftSome s1)
              }
 
-coupleNested :: (Monad m, Functor s0, Functor s1, Functor s2) => 
+coupleNested :: ( Total m, Total s0, Total s1, Total s2
+                  , Monad m, Functor s0, Functor s1, Functor s2) => 
                 Trampoline (EitherFunctor s0 s1) m x -> Trampoline (EitherFunctor s0 s2) m y -> 
                 Trampoline (EitherFunctor s0 (SomeFunctor s1 s2)) m (x, y)
 coupleNested t1 t2 = 
@@ -225,18 +237,20 @@ coupleNested t1 t2 =
                                                return $ Suspend $ LeftF $ fmap (coupleNested $ suspend $ LeftF s1) s2
              }
 
-seesaw :: (Monad m, Functor s1, Functor s2) => 
+seesaw :: (Total m, Total s1, Total s2,
+           Monad m, Functor s1, Functor s2) => 
            (forall x y s t. (s ~ SomeFunctor s1 s2, t ~ Trampoline s m (x, y)) => s t -> t)
            -> Trampoline s1 m x -> Trampoline s2 m y -> m (x, y)
 seesaw resolve t1 t2 = pogoStick resolve (coupleAlternating t1 t2)
 
-seesawParallel :: (ParallelizableMonad m, Functor s1, Functor s2) => 
+seesawParallel :: (Total m, Total s1, Total s2,
+                   ParallelizableMonad m, Functor s1, Functor s2) => 
                   (forall x y s t. (s ~ SomeFunctor s1 s2, t ~ Trampoline s m (x, y)) => s t -> t)
                   -> Trampoline s1 m x -> Trampoline s2 m y -> m (x, y)
 seesawParallel resolve t1 t2 = pogoStick resolve (coupleParallel t1 t2)
 
 resolveProducerConsumer :: forall a s s0 t t' m x. 
-                           (Functor s0, Monad m, s ~ SomeFunctor (TryYield a) (Await (Maybe a)), 
+                           (Total s0, Functor s0, Monad m, s ~ SomeFunctor (TryYield a) (Await (Maybe a)), 
                             t ~ Trampoline (EitherFunctor s0 s) m x) => 
                            s t -> t
 -- Arg :: s t
@@ -247,7 +261,7 @@ resolveProducerConsumer (RightSome (Await c)) = c Nothing
 resolveProducerConsumer (Both (NestedFunctor (LeftF (Yield x (Await c))))) = c (Just x)
 resolveProducerConsumer (Both (NestedFunctor (RightF (Await c)))) = suspend (RightF $ RightSome $ c True)
 
-couplePC :: ParallelizableMonad m => Trampoline (Yield a) m x -> Trampoline (Await (Maybe a)) m y -> m (x, y)
+couplePC :: (Total m, ParallelizableMonad m) => Trampoline (Yield a) m x -> Trampoline (Await (Maybe a)) m y -> m (x, y)
 couplePC t1 t2 = parallelize (bounce t1) (bounce t2)
                  >>= \(s1, s2)-> case (s1, s2)
                                  of (Done x, Done y) -> return (x, y)
@@ -255,7 +269,7 @@ couplePC t1 t2 = parallelize (bounce t1) (bounce t2)
                                     (Suspend (Yield _ c1), Done y) -> couplePC c1 (return y)
                                     (Done x, Suspend (Await c2)) -> couplePC (return x) (c2 Nothing)
 
-coupleFinite :: ParallelizableMonad m => Trampoline (TryYield a) m x -> Trampoline (Await (Maybe a)) m y -> m (x, y)
+coupleFinite :: (Total m, ParallelizableMonad m) => Trampoline (TryYield a) m x -> Trampoline (Await (Maybe a)) m y -> m (x, y)
 coupleFinite t1 t2 =
    parallelize (bounce t1) (bounce t2)
    >>= \(s1, s2)-> case (s1, s2)
@@ -266,7 +280,7 @@ coupleFinite t1 t2 =
                       (Suspend (RightF (Await c1)), Suspend s2@Await{}) -> coupleFinite (c1 True) (suspend s2)
                       (Suspend (RightF (Await c1)), Done y) -> coupleFinite (c1 False) (return y)
 
-coupleFiniteSequential :: Monad m => Trampoline (TryYield a) m x -> Trampoline (Await (Maybe a)) m y -> m (x, y)
+coupleFiniteSequential :: (Total m, Monad m) => Trampoline (TryYield a) m x -> Trampoline (Await (Maybe a)) m y -> m (x, y)
 coupleFiniteSequential t1 t2 =
    bounce t1
    >>= \s1-> bounce t2
@@ -293,12 +307,12 @@ coupleFiniteSequential t1 t2 =
 --                       (Done x, Suspend (LeftF s)) -> suspend (fmap (coupleNested (return x)) s)
 --                       (Suspend (LeftF s1), Suspend (LeftF s2)) -> suspend (fmap (coupleNested $ suspend $ LeftF s1) s2)
 
-coupleNestedFinite :: (Functor s, ParallelizableMonad m) =>
+coupleNestedFinite :: (Total s, Total m, Functor s, ParallelizableMonad m) =>
                       Trampoline (SinkFunctor s a) m x -> Trampoline (SourceFunctor s a) m y -> Trampoline s m (x, y)
 coupleNestedFinite t1 t2 = lift (parallelize (bounce t1) (bounce t2))
                            >>= stepCouple coupleNestedFinite
 
-coupleNestedFiniteSequential :: (Functor s, Monad m) =>
+coupleNestedFiniteSequential :: (Total s, Total m, Functor s, Monad m) =>
                                 Trampoline (SinkFunctor s a) m x
                              -> Trampoline (SourceFunctor s a) m y
                              -> Trampoline s m (x, y)
@@ -307,7 +321,7 @@ coupleNestedFiniteSequential producer consumer =
 -- coupleNestedFiniteSequential t1 t2 = lift (liftM2 (,) (bounce t1) (bounce t2))
 --                                      >>= stepCouple coupleNestedFiniteSequential
 
-stepCouple :: (Functor s, Monad m) =>
+stepCouple :: (Total s, Total m, Functor s, Monad m) =>
               (Trampoline (EitherFunctor s (TryYield a)) m x
                   -> Trampoline (EitherFunctor s (Await (Maybe a))) m y
                   -> Trampoline s m (x, y))
@@ -327,13 +341,15 @@ stepCouple f couple = case couple
                          (Suspend (LeftF s1), Suspend (RightF s2)) -> suspend (fmap (flip f (suspend $ RightF s2)) s1)
                          (Suspend (RightF s1), Suspend (LeftF s2)) -> suspend (fmap (f (suspend $ RightF s1)) s2)
 
-local :: forall m l r x. (Functor r, Monad m) => Trampoline r m x -> Trampoline (EitherFunctor l r) m x
+local :: forall m l r x. (Total l, Total r, Total m, Functor r, Monad m)
+      => Trampoline r m x -> Trampoline (EitherFunctor l r) m x
 local (Trampoline mr) = Trampoline (liftM inject mr)
-   where inject :: TrampolineState r m x -> TrampolineState (EitherFunctor l r) m x
+   where inject :: Total l => TrampolineState r m x -> TrampolineState (EitherFunctor l r) m x
          inject (Done x) = Done x
          inject (Suspend r) = Suspend (RightF $ fmap local r)
 
-out :: forall m l r x. (Functor l, Monad m) => Trampoline l m x -> Trampoline (EitherFunctor l r) m x
+out :: forall m l r x. (Total r, Total l, Total m, Functor l, Monad m)
+    => Trampoline l m x -> Trampoline (EitherFunctor l r) m x
 out (Trampoline ml) = Trampoline (liftM inject ml)
    where inject :: TrampolineState l m x -> TrampolineState (EitherFunctor l r) m x
          inject (Done x) = Done x
@@ -344,14 +360,14 @@ class (Functor a, Functor d) => AncestorFunctor a d where
    -- | Convert the ancestor functor into its descendant. The descendant functor typically contains the ancestor.
    liftFunctor :: a x -> d x
 
-instance Functor a => AncestorFunctor a a where
+instance (Total a, Functor a) => AncestorFunctor a a where
    liftFunctor = id
-instance (Functor a, Functor d', Functor d, d ~ EitherFunctor d' s, AncestorFunctor a d') => AncestorFunctor a d where
+instance (Total a, Total d, Functor a, Functor d', Functor d, d ~ EitherFunctor d' s, AncestorFunctor a d') => AncestorFunctor a d where
    liftFunctor = LeftF . (liftFunctor :: a x -> d' x)
 
-liftOut :: forall m a d x. (Monad m, Functor a, AncestorFunctor a d) => Trampoline a m x -> Trampoline d m x
+liftOut :: forall m a d x. (Total m, Total a, Total d, Monad m, Functor a, AncestorFunctor a d) => Trampoline a m x -> Trampoline d m x
 liftOut (Trampoline ma) = Trampoline (liftM inject ma)
-   where inject :: TrampolineState a m x -> TrampolineState d m x
+   where inject :: (Total m, Total d, Total a) => TrampolineState a m x -> TrampolineState d m x
          inject (Done x) = Done x
          inject (Suspend a) = Suspend (liftFunctor $ fmap liftOut a)
 
@@ -366,10 +382,10 @@ data Sink (m :: Type -> Type) a x =
    -- | Function 'put' tries to put a value into the given `Sink`. The intervening 'Trampoline' computations suspend up
    -- to the 'pipe' invocation that has created the argument sink. The result of 'put' indicates whether the operation
    -- succeeded.
-   put :: forall d. (AncestorFunctor a d) => x -> Trampoline d m Bool,
+   put :: forall d. (Total d, AncestorFunctor a d) => x -> Trampoline d m Bool,
    -- | Function 'canPut' checks if the argument `Sink` accepts values, i.e., whether a 'put' operation would succeed on
    -- the sink.
-   canPut :: forall d. (AncestorFunctor a d) => Trampoline d m Bool
+   canPut :: forall d. (Total d, AncestorFunctor a d) => Trampoline d m Bool
    }
 
 -- | A 'Source' can be used to read values into any nested `Trampoline` computation whose functor provably descends from
@@ -380,22 +396,23 @@ newtype Source (m :: Type -> Type) a x =
    -- | Function 'get' tries to get a value from the given 'Source' argument. The intervening 'Trampoline' computations
    -- suspend all the way to the 'pipe' function invocation that created the source. The function returns 'Nothing' if
    -- the argument source is empty.
-   get :: forall d. (AncestorFunctor a d) => Trampoline d m (Maybe x)
+   get :: forall d. (Total d, AncestorFunctor a d) => Trampoline d m (Maybe x)
    }
 
 -- | Converts a 'Sink' on the ancestor functor /a/ into a sink on the descendant functor /d/.
-liftSink :: forall m a d x. (Monad m, AncestorFunctor a d) => Sink m a x -> Sink m d x
+liftSink :: forall m a d x. (Total m, Total d, Monad m, AncestorFunctor a d) => Sink m a x -> Sink m d x
 liftSink s = Sink {put= liftOut . (put s :: x -> Trampoline d m Bool),
                    canPut= liftOut (canPut s :: Trampoline d m Bool)}
 
 -- | Converts a 'Source' on the ancestor functor /a/ into a source on the descendant functor /d/.
-liftSource :: forall m a d x. (Monad m, AncestorFunctor a d) => Source m a x -> Source m d x
+liftSource :: forall m a d x. (Total m, Total d, Monad m, AncestorFunctor a d) => Source m a x -> Source m d x
 liftSource s = Source {get= liftOut (get s :: Trampoline d m (Maybe x))}
 
 -- | The 'pipe' function splits the computation into two concurrent parts, /producer/ and /consumer/. The /producer/ is
 -- given a 'Sink' to put values into, and /consumer/ a 'Source' to get those values from. Once producer and consumer
 -- both complete, 'pipe' returns their paired results.
-pipe :: forall m a a1 a2 x r1 r2. (Monad m, Functor a, a1 ~ SinkFunctor a x, a2 ~ SourceFunctor a x) =>
+pipe :: forall m a a1 a2 x r1 r2. (Total m, Total a, Monad m,
+                                   Functor a, a1 ~ SinkFunctor a x, a2 ~ SourceFunctor a x) =>
         (Sink m a1 x -> Trampoline a1 m r1) -> (Source m a2 x -> Trampoline a2 m r2) -> Trampoline a m (r1, r2)
 pipe producer consumer = coupleNestedFiniteSequential (producer sink) (consumer source) where
    sink = Sink {put= liftOut . (local . tryYield :: x -> Trampoline a1 m Bool),
@@ -403,50 +420,57 @@ pipe producer consumer = coupleNestedFiniteSequential (producer sink) (consumer 
    source = Source (liftOut (local await :: Trampoline a2 m (Maybe x))) :: Source m a2 x
 
 -- | The 'pipeP' function is equivalent to 'pipe', except the /producer/ and /consumer/ are run in parallel.
-pipeP :: forall m a a1 a2 x r1 r2. (ParallelizableMonad m, Functor a, a1 ~ SinkFunctor a x, a2 ~ SourceFunctor a x) =>
-         (Sink m a1 x -> Trampoline a1 m r1) -> (Source m a2 x -> Trampoline a2 m r2) -> Trampoline a m (r1, r2)
+pipeP :: forall m a a1 a2 x r1 r2. (Total m, Total a,
+                                    ParallelizableMonad m, Functor a, a1 ~ SinkFunctor a x, a2 ~ SourceFunctor a x)
+      => (Sink m a1 x -> Trampoline a1 m r1) -> (Source m a2 x -> Trampoline a2 m r2) -> Trampoline a m (r1, r2)
 pipeP producer consumer = coupleNestedFinite (producer sink) (consumer source) where
    sink = Sink {put= liftOut . (local . tryYield :: x -> Trampoline a1 m Bool),
                 canPut= liftOut (local canYield :: Trampoline a1 m Bool)} :: Sink m a1 x
    source = Source (liftOut (local await :: Trampoline a2 m (Maybe x))) :: Source m a2 x
 
 -- | The 'pipePS' function acts either as 'pipeP' or as 'pipe', depending on the argument /parallel/.
-pipePS :: forall m a a1 a2 x r1 r2. (ParallelizableMonad m, Functor a, a1 ~ SinkFunctor a x, a2 ~ SourceFunctor a x) =>
+pipePS :: forall m a a1 a2 x r1 r2. ( Total m, Total a,
+                                      ParallelizableMonad m, Functor a, a1 ~ SinkFunctor a x
+                                    , a2 ~ SourceFunctor a x) =>
           Bool -> (Sink m a1 x -> Trampoline a1 m r1) -> (Source m a2 x -> Trampoline a2 m r2) ->
           Trampoline a m (r1, r2)
 pipePS parallel = if parallel then pipeP else pipe
 
-getSuccess :: forall m a d x . (Monad m, AncestorFunctor a d)
+getSuccess :: forall m a d x . (Total m, Total d, Total a, Monad m, AncestorFunctor a d)
               => Source m a x -> (x -> Trampoline d m ()) {- ^ Success continuation -} -> Trampoline d m ()
 getSuccess source succeed = get source >>= maybe (return ()) succeed
 
 -- | Function 'get'' assumes that the argument source is not empty and returns the value the source yields. If the
 -- source is empty, the function throws an error.
-get' :: forall m a d x . (Monad m, AncestorFunctor a d) => Source m a x -> Trampoline d m x
+get' :: forall m a d x . (Total m, Total d, Monad m, Total a, AncestorFunctor a d) => Source m a x -> Trampoline d m x
 get' source = get source >>= maybe (error "get' failed") return
 
 -- | 'pour' copies all data from the /source/ argument into the /sink/ argument, as long as there is anything to copy
 -- and the sink accepts it.
-pour :: forall m a1 a2 d x . (Monad m, AncestorFunctor a1 d, AncestorFunctor a2 d)
+pour :: forall m a1 a2 d x . (Total m, Total a1, Total a2, Total d, Monad m
+                             , AncestorFunctor a1 d, AncestorFunctor a2 d)
         => Source m a1 x -> Sink m a2 x -> Trampoline d m ()
 pour source sink = fill'
    where fill' = canPut sink >>= flip when (getSuccess source (\x-> put sink x >> fill'))
 
 -- | 'pourMap' is like 'pour' that applies the function /f/ to each argument before passing it into the /sink/.
-pourMap :: forall m a1 a2 d x y . (Monad m, AncestorFunctor a1 d, AncestorFunctor a2 d)
+pourMap :: forall m a1 a2 d x y . (Total m, Total a1, Total d, Total a2
+                                  , Monad m, AncestorFunctor a1 d, AncestorFunctor a2 d)
            => (x -> y) -> Source m a1 x -> Sink m a2 y -> Trampoline d m ()
 pourMap f source sink = loop
    where loop = canPut sink >>= flip when (get source >>= maybe (return ()) (\x-> put sink (f x) >> loop))
 
 -- | 'pourMapMaybe' is to 'pourMap' like 'Data.Maybe.mapMaybe' is to 'Data.List.Map'.
-pourMapMaybe :: forall m a1 a2 d x y . (Monad m, AncestorFunctor a1 d, AncestorFunctor a2 d)
+pourMapMaybe :: forall m a1 a2 d x y . (Total m, Total a1, Total d, Total a2,
+                                        Monad m, AncestorFunctor a1 d, AncestorFunctor a2 d)
                 => (x -> Maybe y) -> Source m a1 x -> Sink m a2 y -> Trampoline d m ()
 pourMapMaybe f source sink = loop
    where loop = canPut sink >>= flip when (get source >>= maybe (return ()) (\x-> maybe (return False) (put sink) (f x) >> loop))
 
 -- | 'tee' is similar to 'pour' except it distributes every input value from the /source/ arguments into both /sink1/
 -- and /sink2/.
-tee :: forall m a1 a2 a3 d x . (Monad m, AncestorFunctor a1 d, AncestorFunctor a2 d, AncestorFunctor a3 d)
+tee :: forall m a1 a2 a3 d x . (Total m, Total a1, Total d, Total a2, Total a3,
+                                Monad m, AncestorFunctor a1 d, AncestorFunctor a2 d, AncestorFunctor a3 d)
        => Source m a1 x -> Sink m a2 x -> Sink m a3 x -> Trampoline d m ()
 tee source sink1 sink2 = distribute
    where distribute = do c1 <- canPut sink1
@@ -456,17 +480,20 @@ tee source sink1 sink2 = distribute
 
 -- | 'putList' puts entire list into its /sink/ argument, as long as the sink accepts it. The remainder that wasn't
 -- accepted by the sink is the result value.
-putList :: forall m a d x. (Monad m, AncestorFunctor a d) => [x] -> Sink m a x -> Trampoline d m [x]
+putList :: forall m a d x. (Total m, Total a, Total d, Monad m,
+                            AncestorFunctor a d) => [x] -> Sink m a x -> Trampoline d m [x]
 putList [] sink = return []
 putList l@(x:rest) sink = put sink x >>= cond (putList rest sink) (return l)
 
 -- | 'getList' returns the list of all values generated by the source.
-getList :: forall m a d x. (Monad m, AncestorFunctor a d) => Source m a x -> Trampoline d m [x]
+getList :: forall m a d x. (Total m, Total a, Total d,
+                            Monad m, AncestorFunctor a d) => Source m a x -> Trampoline d m [x]
 getList source = getList' return
    where getList' f = get source >>= maybe (f []) (\x-> getList' (f . (x:)))
 
 -- | 'consumeAndSuppress' consumes the entire source ignoring the values it generates.
-consumeAndSuppress :: forall m a d x. (Monad m, AncestorFunctor a d) => Source m a x -> Trampoline d m ()
+consumeAndSuppress :: forall m a d x. (Total m, Total a, Total d,
+                                       Monad m, AncestorFunctor a d) => Source m a x -> Trampoline d m ()
 consumeAndSuppress source = get source
                             >>= maybe (return ()) (const (consumeAndSuppress source))
 
@@ -479,5 +506,5 @@ whenNull :: forall a m. Monad m => m [a] -> [a] -> m [a]
 whenNull action list = if null list then action else return list
 
 -- | Like 'putList', except it puts the contents of the given 'Data.Sequence.Seq' into the sink.
-putQueue :: forall m a d x. (Monad m, AncestorFunctor a d) => Seq x -> Sink m a x -> Trampoline d m [x]
+putQueue :: forall m a d x. (Total m, Total d, Total a, Monad m, AncestorFunctor a d) => Seq x -> Sink m a x -> Trampoline d m [x]
 putQueue q sink = putList (toList (viewl q)) sink
