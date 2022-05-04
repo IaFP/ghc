@@ -1,0 +1,13 @@
+full_path,package,module,count
+Language/Haskell/Syntax/Extension.hs,Language,Extension.hs,1
+GHC/CmmToAsm/PIC.hs,GHC,PIC.hs,1
+GHC/Driver/Pipeline/Monad.hs,GHC,Monad.hs,1
+GHC/Driver/Session.hs,GHC,Session.hs,1
+GHC/Driver/Hooks.hs,GHC,Hooks.hs,1
+GHC/Driver/Monad.hs,GHC,Monad.hs,1
+GHC/Parser/PostProcess.hs,GHC,PostProcess.hs,1
+GHC/Hs/Utils.hs,GHC,Utils.hs,1
+GHC/Types/TyThing.hs,GHC,TyThing.hs,1
+GHC/Types/Unique/Supply.hs,GHC,Supply.hs,1
+GHC/Utils/Logger.hs,GHC,Logger.hs,1
+GHC/Unit/Module.hs,GHC,Module.hs,1
