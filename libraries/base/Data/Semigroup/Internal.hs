@@ -304,9 +304,9 @@ instance Monad Product where
 --
 -- @since 4.8.0.0
 newtype f @ a => Alt f a = Alt {getAlt :: f a}
-  deriving (--  Generic     -- ^ @since 4.8.0.0
-           -- , Generic1    -- ^ @since 4.8.0.0
-             Read        -- ^ @since 4.8.0.0
+  deriving ( Generic     -- ^ @since 4.8.0.0
+           , Generic1    -- ^ @since 4.8.0.0
+           , Read        -- ^ @since 4.8.0.0
            , Show        -- ^ @since 4.8.0.0
            , Eq          -- ^ @since 4.8.0.0
            , Ord         -- ^ @since 4.8.0.0
@@ -318,13 +318,6 @@ newtype f @ a => Alt f a = Alt {getAlt :: f a}
            , Alternative -- ^ @since 4.8.0.0
            , Functor     -- ^ @since 4.8.0.0
            )
--- deriving instance (Total f, Monad f) => Monad (Alt f)
--- deriving instance (Total f, MonadPlus f) => MonadPlus (Alt f)
--- deriving instance (Total f, Applicative f) => Applicative (Alt f)
--- deriving instance (Total f, Alternative f) => Alternative (Alt f)
--- deriving instance (Total f, Functor f) => Functor (Alt f)
-deriving instance (Total f, Functor f) => Generic1 (Alt f)
-deriving instance (Total f, Functor f) => Generic (Alt f a)
 
 instance (Alternative f) => Semigroup (Alt f a) where
     (<>) = coerce ((<|>) :: f a -> f a -> f a)

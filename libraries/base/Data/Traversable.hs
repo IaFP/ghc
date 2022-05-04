@@ -356,11 +356,11 @@ instance Traversable Last where
     traverse f (Last x) = Last <$> traverse f x
 
 -- | @since 4.12.0.0
-instance (Total f, Traversable f) => Traversable (Alt f) where
+instance Traversable f => Traversable (Alt f) where
     traverse f (Alt x) = Alt <$> traverse f x
 
 -- | @since 4.12.0.0
-instance (Total f, Traversable f) => Traversable (Ap f) where
+instance Traversable f => Traversable (Ap f) where
     traverse f (Ap x) = Ap <$> traverse f x
 
 -- | @since 4.9.0.0
@@ -390,13 +390,13 @@ deriving instance Traversable V1
 deriving instance Traversable Par1
 
 -- | @since 4.9.0.0
-deriving instance (Total f, Traversable f) => Traversable (Rec1 f)
+deriving instance Traversable f => Traversable (Rec1 f)
 
 -- | @since 4.9.0.0
 deriving instance Traversable (K1 i c)
 
 -- | @since 4.9.0.0
-deriving instance (Total f, Traversable f) => Traversable (M1 i c f)
+deriving instance Traversable f => Traversable (M1 i c f)
 
 -- | @since 4.9.0.0
 deriving instance (Total f, Total g, Traversable f, Traversable g) => Traversable (f :+: g)

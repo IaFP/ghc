@@ -882,11 +882,11 @@ instance Foldable Last where
     foldMap f = foldMap f . getLast
 
 -- | @since 4.12.0.0
-instance (Total f, Foldable f) => Foldable (Alt f) where
+instance Foldable f => Foldable (Alt f) where
     foldMap f = foldMap f . getAlt
 
 -- | @since 4.12.0.0
-instance (Total f, Foldable f) => Foldable (Ap f) where
+instance Foldable f => Foldable (Ap f) where
     foldMap f = foldMap f . getAp
 
 -- Instances for GHC.Generics
@@ -915,22 +915,22 @@ deriving instance Foldable V1
 deriving instance Foldable Par1
 
 -- | @since 4.9.0.0
-deriving instance (Total f, Foldable f) => Foldable (Rec1 f)
+deriving instance Foldable f => Foldable (Rec1 f)
 
 -- | @since 4.9.0.0
 deriving instance Foldable (K1 i c)
 
 -- | @since 4.9.0.0
-deriving instance (Total f, Foldable f) => Foldable (M1 i c f)
+deriving instance Foldable f => Foldable (M1 i c f)
 
 -- | @since 4.9.0.0
-deriving instance (Total f, Total g, Foldable f, Foldable g) => Foldable (f :+: g)
+deriving instance (Foldable f, Foldable g) => Foldable (f :+: g)
 
 -- | @since 4.9.0.0
-deriving instance (Total f, Total g, Foldable f, Foldable g) => Foldable (f :*: g)
+deriving instance (Foldable f, Foldable g) => Foldable (f :*: g)
 
 -- | @since 4.9.0.0
-deriving instance (Total f, Total g, Foldable f, Foldable g) => Foldable (f :.: g)
+deriving instance (Foldable f, Foldable g) => Foldable (f :.: g)
 
 -- | @since 4.9.0.0
 deriving instance Foldable UAddr

@@ -105,7 +105,7 @@ instance MonadZip Last where
     mzipWith = liftM2
 
 -- | @since 4.8.0.0
-instance (Total f, MonadZip f) => MonadZip (Alt f) where
+instance MonadZip f => MonadZip (Alt f) where
     mzipWith f (Alt ma) (Alt mb) = Alt (mzipWith f ma mb)
 
 -- | @since 4.9.0.0
@@ -122,11 +122,11 @@ instance MonadZip Par1 where
     mzipWith = liftM2
 
 -- | @since 4.9.0.0
-instance (Total f, MonadZip f) => MonadZip (Rec1 f) where
+instance MonadZip f => MonadZip (Rec1 f) where
     mzipWith f (Rec1 fa) (Rec1 fb) = Rec1 (mzipWith f fa fb)
 
 -- | @since 4.9.0.0
-instance (Total f, MonadZip f) => MonadZip (M1 i c f) where
+instance MonadZip f => MonadZip (M1 i c f) where
     mzipWith f (M1 fa) (M1 fb) = M1 (mzipWith f fa fb)
 
 -- | @since 4.9.0.0
