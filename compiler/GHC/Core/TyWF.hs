@@ -438,9 +438,9 @@ flatten_atat_constraint isTyConPhase ty
        tuplesToList ty'
   | (TyConApp tc ((TyConApp tc2 _):_)) <- ty
   , isWFMirrorTyCon tc
-  , tc2 `hasKey` ioTyConKey -- only reduce IO as it is special for ghci 
+  , tc2 `hasKey` ioTyConKey
     || tc2 `hasKey` listTyConKey
-    || tc2 `hasKey` maybeTyConKey
+    -- || tc2 `hasKey` maybeTyConKey -- Maybe causes problems in specializer
     || tc2 `hasKey` ratioTyConKey
   = do fam_envs <- GHC.Tc.Instance.Family.tcGetFamInstEnvs
        let ty' = topNormaliseType fam_envs ty
@@ -449,7 +449,7 @@ flatten_atat_constraint isTyConPhase ty
   , isWFMirrorTyCon tc
   , tc2 `hasKey` ioTyConKey
     || tc2 `hasKey` listTyConKey
-    || tc2 `hasKey` maybeTyConKey -- only reduce IO as it is special for ghci
+    -- || tc2 `hasKey` maybeTyConKey
     || tc2 `hasKey` ratioTyConKey    
   = do fam_envs <- GHC.Tc.Instance.Family.tcGetFamInstEnvs
        let ty' = topNormaliseType fam_envs ty
