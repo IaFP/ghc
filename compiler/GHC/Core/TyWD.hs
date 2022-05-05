@@ -433,29 +433,26 @@ flatten_atat_constraint isTyConPhase ty
   | (TyConApp tc _) <- ty
   , isWDMirrorTyCon tc
   , not isTyConPhase
-  = do fam_envs <- GHC.Tc.Instance.Family.tcGetFamInstEnvs
-       let ty' = topNormaliseType fam_envs ty
-       tuplesToList ty'
-  | (TyConApp tc ((TyConApp tc2 _):_)) <- ty
+  = reduceType ty
+  | (TyConApp tc ((TyConApp tc2 _):targs)) <- ty
   , isWDMirrorTyCon tc
   , tc2 `hasKey` ioTyConKey
     || tc2 `hasKey` listTyConKey
-    -- || tc2 `hasKey` maybeTyConKey -- Maybe causes problems in specializer
+    -- || tc2 `hasKey` maybeTyConKey -- ANI Causes problems in specializer no idea why.
     || tc2 `hasKey` ratioTyConKey
-  = do fam_envs <- GHC.Tc.Instance.Family.tcGetFamInstEnvs
-       let ty' = topNormaliseType fam_envs ty
-       tuplesToList ty'
+  = reduceType ty
   | (TyConApp tc (_:_:(TyConApp tc2 _):_)) <- ty
   , isWDMirrorTyCon tc
   , tc2 `hasKey` ioTyConKey
     || tc2 `hasKey` listTyConKey
     -- || tc2 `hasKey` maybeTyConKey
     || tc2 `hasKey` ratioTyConKey    
-  = do fam_envs <- GHC.Tc.Instance.Family.tcGetFamInstEnvs
-       let ty' = topNormaliseType fam_envs ty
-       tuplesToList ty'
+  = reduceType ty
   | otherwise = return [ty]
   where
+    reduceType :: PredType -> TcM ThetaType
+    reduceType ty = do fam_envs <- GHC.Tc.Instance.Family.tcGetFamInstEnvs                  
+                       tuplesToList $ topNormaliseType fam_envs ty
     tuplesToList :: Type -> TcM [Type]
     tuplesToList ty
       | (TyConApp tc tork_args) <- ty
