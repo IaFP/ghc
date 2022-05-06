@@ -873,13 +873,13 @@ newtype f @ p => Rec1 (f :: k -> Type) (p :: k) = Rec1 { unRec1 :: f p }
 
 
 -- | @since 4.9.0.0
-deriving instance (Total f, Applicative f) => Applicative (Rec1 f)
+deriving instance (Applicative f) => Applicative (Rec1 f)
 
 -- | @since 4.9.0.0
-deriving instance (Total f, Alternative f) => Alternative (Rec1 f)
+deriving instance (Alternative f) => Alternative (Rec1 f)
 
 -- | @since 4.9.0.0
-instance (Total f, Monad f) => Monad (Rec1 f) where
+instance (Monad f) => Monad (Rec1 f) where
   Rec1 x >>= f = Rec1 (x >>= \a -> unRec1 (f a))
 
 -- | @since 4.9.0.0
@@ -915,16 +915,16 @@ deriving instance Semigroup c => Semigroup (K1 i c p)
 deriving instance Monoid c => Monoid (K1 i c p)
 
 -- | @since 4.9.0.0
-deriving instance (Total f, Applicative f) => Applicative (M1 i c f)
+deriving instance Applicative f => Applicative (M1 i c f)
 
 -- | @since 4.9.0.0
-deriving instance (Total f, Alternative f) => Alternative (M1 i c f)
+deriving instance Alternative f => Alternative (M1 i c f)
 
 -- | @since 4.9.0.0
-deriving instance (Total f, Monad f) => Monad (M1 i c f)
+deriving instance Monad f => Monad (M1 i c f)
 
 -- | @since 4.9.0.0
-deriving instance (Total f, MonadPlus f) => MonadPlus (M1 i c f)
+deriving instance MonadPlus f => MonadPlus (M1 i c f)
 
 -- | @since 4.12.0.0
 deriving instance Semigroup (f p) => Semigroup (M1 i c f p)
@@ -1011,8 +1011,6 @@ newtype (f @ g p, g @ p) => (:.:) (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) =
            , Generic  -- ^ @since 4.7.0.0
            , Generic1 -- ^ @since 4.9.0.0 
            )
-
-deriving instance (Total f, Total g, Functor f, Functor g) => Generic1 (f :.: g)
 
 -- | @since 4.9.0.0
 instance (Total f, Total g, Applicative f, Applicative g) => Applicative (f :.: g) where

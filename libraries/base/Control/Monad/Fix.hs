@@ -132,11 +132,11 @@ instance MonadFix Last where
     mfix f   = Last (mfix (getLast . f))
 
 -- | @since 4.8.0.0
-instance (Total f, MonadFix f) => MonadFix (Alt f) where
+instance MonadFix f => MonadFix (Alt f) where
     mfix f   = Alt (mfix (getAlt . f))
 
 -- | @since 4.12.0.0
-instance (Total f, MonadFix f) => MonadFix (Ap f) where
+instance MonadFix f => MonadFix (Ap f) where
     mfix f   = Ap (mfix (getAp . f))
 
 -- Instances for GHC.Generics
@@ -145,11 +145,11 @@ instance MonadFix Par1 where
     mfix f = Par1 (fix (unPar1 . f))
 
 -- | @since 4.9.0.0
-instance (Total f, MonadFix f) => MonadFix (Rec1 f) where
+instance MonadFix f => MonadFix (Rec1 f) where
     mfix f = Rec1 (mfix (unRec1 . f))
 
 -- | @since 4.9.0.0
-instance (Total f, MonadFix f) => MonadFix (M1 i c f) where
+instance MonadFix f => MonadFix (M1 i c f) where
     mfix f = M1 (mfix (unM1. f))
 
 -- | @since 4.9.0.0

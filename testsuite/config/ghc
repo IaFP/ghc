@@ -71,12 +71,12 @@ if windows:
         config.other_ways += winio_ways
 
 config.way_flags = {
-    'normal'       : ['-XPartialTypeConstructors', '-XTypeOperators', '-XConstrainedClassMethods', '-XUndecidableInstances', '-XTypeFamilies'],
+    'normal'       : ['-XPartialTypeConstructors', '-XTypeOperators', '-XConstrainedClassMethods', '-XUndecidableInstances', '-XTypeFamilies', '-XQuantifiedConstraints'],
     'normal_h'     : [],
     'g1'           : [],
     'nursery_chunks' : [],
     'debug_numa'   : ['-threaded', '-debug'],
-    'optasm'       : ['-O', '-fasm', '-XPartialTypeConstructors', '-XTypeOperators', '-XConstrainedClassMethods', '-XUndecidableInstances', '-XTypeFamilies'],
+    'optasm'       : ['-O', '-fasm', '-XPartialTypeConstructors', '-XTypeOperators', '-XConstrainedClassMethods', '-XUndecidableInstances', '-XTypeFamilies', '-XQuantifiedConstraints'],
     'llvm'         : ['-fllvm'],
     'optllvm'      : ['-O', '-fllvm'],
     'debugllvm'    : ['-fllvm', '-keep-llvm-files'],

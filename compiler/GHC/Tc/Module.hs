@@ -119,7 +119,6 @@ import GHC.Core.TyCon
 import GHC.Core.ConLike
 import GHC.Core.DataCon
 import GHC.Core.Type
--- import GHC.Core.TyWF (redWfTypeTcM)
 import GHC.Core.Class
 import GHC.Core.Coercion.Axiom
 import GHC.Core.Reduction ( Reduction(..) )
@@ -2512,10 +2511,6 @@ tcGhciStmts stmts
       ; AnId unsafe_coerce_id <- tcLookupGlobal unsafeCoercePrimName
            -- We use unsafeCoerce# here because of (U11) in
            -- Note [Implementing unsafeCoerce] in base:Unsafe.Coerce
-      -- ; ret_id_ty <- if partyCtrs
-      --                then redWfTypeTcM (idType ret_id) -- reduce `IO @ a => a -> IO a` to just `a -> IO a`
-      --                else return $ idType ret_id
-      -- ; let ret_id' = setIdType ret_id ret_id_ty
       ; let ret_expr = nlHsApp (nlHsTyApp ret_id [ret_ty]) $
                        noLocA $ ExplicitList unitTy $
                        map mk_item ids
