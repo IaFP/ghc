@@ -1,0 +1,8 @@
+.//template-haskell/Language/Haskell/TH/Syntax.hs:2
+.//Cabal/Cabal/src/Distribution/Parsec.hs:1
+.//Cabal/Cabal/src/Distribution/Compat/Graph.hs:1
+.//Cabal/Cabal/src/Distribution/Compat/Semigroup.hs:1
+.//haskeline/System/Console/Haskeline/Monads.hs:2
+.//haskeline/System/Console/Haskeline/Term.hs:2
+.//time/lib/Data/Format.hs:1
+.//mtl/Control/Monad/Reader/Class.hs:1

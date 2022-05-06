@@ -1,0 +1,9 @@
+full_path,package,module,count
+template-haskell/Language/Haskell/TH/Syntax.hs,template-haskell,Syntax.hs,2
+Cabal/Cabal/src/Distribution/Parsec.hs,Cabal,Parsec.hs,1
+Cabal/Cabal/src/Distribution/Compat/Graph.hs,Cabal,Graph.hs,1
+Cabal/Cabal/src/Distribution/Compat/Semigroup.hs,Cabal,Semigroup.hs,1
+haskeline/System/Console/Haskeline/Monads.hs,haskeline,Monads.hs,2
+haskeline/System/Console/Haskeline/Term.hs,haskeline,Term.hs,2
+time/lib/Data/Format.hs,time,Format.hs,1
+mtl/Control/Monad/Reader/Class.hs,mtl,Class.hs,1
