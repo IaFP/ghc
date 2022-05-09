@@ -22,7 +22,6 @@ module GHC.Core.TyWD (
   , redConstraints
   , genWdConstraintsTcM
   , genAtAtConstraintsExceptTcM
-  , at'at
   ) where
 import GHC.Base (mapM)
 import GHC.Prelude hiding (mapM)
@@ -232,8 +231,9 @@ isTyConInternal tycon =
   || isBoxedTupleTyCon tycon || isUnboxedTupleTyCon tycon
   || isUnboxedSumTyCon tycon
   || tycon `hasKey` stablePtrPrimTyConKey || tycon `hasKey` stablePtrTyConKey
-  || tycon `hasKey` staticPtrInfoTyConKey || (tyConName tycon == staticPtrInfoTyConName)
-  || tycon `hasKey` ptrTyConKey || tycon `hasKey` funPtrTyConKey
+  -- || tycon `hasKey` staticPtrInfoTyConKey || (tyConName tycon == staticPtrInfoTyConName)
+  -- || tycon `hasKey` ptrTyConKey
+  || tycon `hasKey` funPtrTyConKey
   || tycon `hasKey` qTyConKey || tyConName tycon == qTyConName
   || tycon `hasKey` anyTyConKey
   || tycon == funTyCon
@@ -434,21 +434,26 @@ flatten_atat_constraint isTyConPhase ty
   , isWDMirrorTyCon tc
   , not isTyConPhase
   = reduceType ty
-  | (TyConApp tc ((TyConApp tc2 _):targs)) <- ty
-  , isWDMirrorTyCon tc
+  | (TyConApp tc ((TyConApp tc2 _):_)) <- ty
+  , isWFMirrorTyCon tc
   , tc2 `hasKey` ioTyConKey
     || tc2 `hasKey` listTyConKey
     -- || tc2 `hasKey` maybeTyConKey -- ANI Causes problems in specializer no idea why.
     || tc2 `hasKey` ratioTyConKey
+    || tc2 `hasKey` staticPtrTyConKey
+    || tc2 `hasKey` ptrTyConKey    
   = reduceType ty
   | (TyConApp tc (_:_:(TyConApp tc2 _):_)) <- ty
   , isWDMirrorTyCon tc
   , tc2 `hasKey` ioTyConKey
     || tc2 `hasKey` listTyConKey
     -- || tc2 `hasKey` maybeTyConKey
-    || tc2 `hasKey` ratioTyConKey    
+    || tc2 `hasKey` ratioTyConKey
+    || tc2 `hasKey` staticPtrTyConKey
+    || tc2 `hasKey` ptrTyConKey    
   = reduceType ty
-  | otherwise = return [ty]
+  | otherwise
+  = return [ty]
   where
     reduceType :: PredType -> TcM ThetaType
     reduceType ty = do fam_envs <- GHC.Tc.Instance.Family.tcGetFamInstEnvs                  

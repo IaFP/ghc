@@ -58,5 +58,7 @@ Derived type family instances:
                                                                                                'GHC.Generics.DecidedLazy)
                                                                                             (GHC.Generics.Rec1
                                                                                                GenDerivOutput1_0.List)))
+  type GHC.Generics.$wf:Rep1
+         GenDerivOutput1_0.List = () :: Constraint
 
 

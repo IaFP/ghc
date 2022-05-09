@@ -1,22 +1,37 @@
 [1 of 2] Compiling GFunctor         ( GFunctor/GFunctor.hs, out_T5462No1/GFunctor.o )
-[2 of 2] Compiling T5462No1         ( T5462No1.hs, out_T5462No1/T5462No1.o )
 
-T5462No1.hs:25:42: error:
-    • Can't make a derived instance of ‘GFunctor F’:
-        ‘GFunctor’ is not a stock derivable class (Eq, Show, etc.)
-    • In the newtype declaration for ‘F’
-    Suggested fix:
-      Perhaps you intended to use GeneralizedNewtypeDeriving
-      for GHC's newtype-deriving extension
+GFunctor/GFunctor.hs:50:12: error:
+    • Could not deduce: Rep1 f @ b arising from a use of ‘to1’
+      from the context: GFunctor f
+        bound by the class declaration for ‘GFunctor’
+        at GFunctor/GFunctor.hs:46:7-14
+      or from: (Generic1 f, GFunctor' (Rep1 f), $wf:Rep1 f, f @ a, f @ b)
+        bound by the type signature for:
+                   gmap :: forall a b.
+                           (Generic1 f, GFunctor' (Rep1 f), $wf:Rep1 f, f @ a, f @ b) =>
+                           (a -> b) -> f a -> f b
+        at GFunctor/GFunctor.hs:(48,19)-(49,40)
+    • In the first argument of ‘(.)’, namely ‘to1’
+      In the expression: to1 . gmap' f . from1
+      In an equation for ‘gmap’: gmap f = to1 . gmap' f . from1
+    • Relevant bindings include
+        f :: a -> b (bound at GFunctor/GFunctor.hs:50:8)
+        gmap :: (a -> b) -> f a -> f b (bound at GFunctor/GFunctor.hs:50:3)
 
-T5462No1.hs:27:23: error:
-    • Can't make a derived instance of ‘C1 G’:
-        ‘C1’ is not a stock derivable class (Eq, Show, etc.)
-    • In the data declaration for ‘G’
-    Suggested fix: Perhaps you intended to use DeriveAnyClass
-
-T5462No1.hs:28:23: error:
-    • Can't make a derived instance of ‘C2 H’:
-        ‘C2’ is not a stock derivable class (Eq, Show, etc.)
-    • In the data declaration for ‘H’
-    Suggested fix: Perhaps you intended to use DeriveAnyClass
+GFunctor/GFunctor.hs:50:18: error:
+    • Could not deduce: Rep1 f @ a arising from a use of ‘gmap'’
+      from the context: GFunctor f
+        bound by the class declaration for ‘GFunctor’
+        at GFunctor/GFunctor.hs:46:7-14
+      or from: (Generic1 f, GFunctor' (Rep1 f), $wf:Rep1 f, f @ a, f @ b)
+        bound by the type signature for:
+                   gmap :: forall a b.
+                           (Generic1 f, GFunctor' (Rep1 f), $wf:Rep1 f, f @ a, f @ b) =>
+                           (a -> b) -> f a -> f b
+        at GFunctor/GFunctor.hs:(48,19)-(49,40)
+    • In the first argument of ‘(.)’, namely ‘gmap' f’
+      In the second argument of ‘(.)’, namely ‘gmap' f . from1’
+      In the expression: to1 . gmap' f . from1
+    • Relevant bindings include
+        f :: a -> b (bound at GFunctor/GFunctor.hs:50:8)
+        gmap :: (a -> b) -> f a -> f b (bound at GFunctor/GFunctor.hs:50:3)

@@ -4,8 +4,3 @@ GenCannotDoRep0_0.hs:13:45: error:
         Constructor ‘Dynamic’ has existential type variables in its type
     • In the data declaration for ‘Dynamic’
     Suggested fix: Use a standalone deriving declaration instead
-
-GenCannotDoRep0_0.hs:28:1: error:
-    • Can't make a derived instance of ‘Generic (D Int a)’:
-        D must not have a datatype context
-    • In the stand-alone deriving instance for ‘Generic (D Int a)’

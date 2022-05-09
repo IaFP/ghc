@@ -1686,12 +1686,6 @@ touchabilityTest flav tv1 rhs
   , canSolveByUnification info rhs
   = do { ambient_lvl  <- getTcLevel
        ; given_eq_lvl <- getInnermostGivenEqLevel
-       -- ; traceTcS "checking touchability for levels: " (text "ambient: " <> ppr ambient_lvl
-       --                                                 <+> text "innermost: " <> ppr given_eq_lvl
-       --                                                 <+> text "this: " <> ppr tv_lvl)
-       -- ; traceTcS "comparing lvls: sameDepthAs" (ppr (tv_lvl `sameDepthAs` ambient_lvl))
-       -- ; traceTcS "free metas and skols " (ppr free_metas
-       --                                     <+> ppr free_skols)
        ; if | tv_lvl `sameDepthAs` ambient_lvl
             -> return TouchableSameLevel
 

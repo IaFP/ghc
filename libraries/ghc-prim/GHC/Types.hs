@@ -364,8 +364,7 @@ type WDT t = t ~ t
 -- class WDT a
 -- instance a ~ a => WDT a
 
--- class Total (f :: k' -> k)
--- Total a = forall a. f @@ a
+-- type Total a = forall a. f @ a -- ideally but can't do this.
 class f @ a => Cheat (f :: k' -> k) (a :: k')
 instance f @ a => Cheat (f :: k' -> k) (a :: k')
 

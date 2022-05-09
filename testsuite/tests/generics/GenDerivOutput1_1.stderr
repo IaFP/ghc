@@ -192,6 +192,7 @@ Derived type family instances:
                                                                                        'GHC.Generics.DecidedLazy)
                                                                                     (GHC.Generics.Rec1
                                                                                        CanDoRep1_1.Dd)))
+  type GHC.Generics.$wf:Rep1 CanDoRep1_1.Dd = () :: Constraint
   type GHC.Generics.Rep (CanDoRep1_1.Dd a) = GHC.Generics.D1
                                                ('GHC.Generics.MetaData
                                                   "Dd" "CanDoRep1_1" "main" 'GHC.Types.False)
@@ -221,6 +222,7 @@ Derived type family instances:
                                                                                        (GHC.Generics.Rec0
                                                                                           (CanDoRep1_1.Dd
                                                                                              a))))
+  type GHC.Generics.$wf:Rep (CanDoRep1_1.Dd a) = () :: Constraint
   type GHC.Generics.Rep (CanDoRep1_1.Dc a) = GHC.Generics.D1
                                                ('GHC.Generics.MetaData
                                                   "Dc" "CanDoRep1_1" "main" 'GHC.Types.False)
@@ -250,6 +252,7 @@ Derived type family instances:
                                                                                        (GHC.Generics.Rec0
                                                                                           (CanDoRep1_1.Dc
                                                                                              a))))
+  type GHC.Generics.$wf:Rep (CanDoRep1_1.Dc a) = () :: Constraint
   type GHC.Generics.Rep1 CanDoRep1_1.Db = GHC.Generics.D1
                                             ('GHC.Generics.MetaData
                                                "Db" "CanDoRep1_1" "main" 'GHC.Types.False)
@@ -278,6 +281,7 @@ Derived type family instances:
                                                                                        'GHC.Generics.DecidedLazy)
                                                                                     (GHC.Generics.Rec1
                                                                                        CanDoRep1_1.Db)))
+  type GHC.Generics.$wf:Rep1 CanDoRep1_1.Db = () :: Constraint
   type GHC.Generics.Rep1 CanDoRep1_1.Dc = GHC.Generics.D1
                                             ('GHC.Generics.MetaData
                                                "Dc" "CanDoRep1_1" "main" 'GHC.Types.False)
@@ -306,6 +310,7 @@ Derived type family instances:
                                                                                        'GHC.Generics.DecidedLazy)
                                                                                     (GHC.Generics.Rec1
                                                                                        CanDoRep1_1.Dc)))
+  type GHC.Generics.$wf:Rep1 CanDoRep1_1.Dc = () :: Constraint
   type GHC.Generics.Rep (CanDoRep1_1.Db a) = GHC.Generics.D1
                                                ('GHC.Generics.MetaData
                                                   "Db" "CanDoRep1_1" "main" 'GHC.Types.False)
@@ -335,6 +340,7 @@ Derived type family instances:
                                                                                        (GHC.Generics.Rec0
                                                                                           (CanDoRep1_1.Db
                                                                                              a))))
+  type GHC.Generics.$wf:Rep (CanDoRep1_1.Db a) = () :: Constraint
   type GHC.Generics.Rep (CanDoRep1_1.Da a) = GHC.Generics.D1
                                                ('GHC.Generics.MetaData
                                                   "Da" "CanDoRep1_1" "main" 'GHC.Types.False)
@@ -364,6 +370,7 @@ Derived type family instances:
                                                                                        (GHC.Generics.Rec0
                                                                                           (CanDoRep1_1.Da
                                                                                              a))))
+  type GHC.Generics.$wf:Rep (CanDoRep1_1.Da a) = () :: Constraint
   type GHC.Generics.Rep1 CanDoRep1_1.Da = GHC.Generics.D1
                                             ('GHC.Generics.MetaData
                                                "Da" "CanDoRep1_1" "main" 'GHC.Types.False)
@@ -392,5 +399,6 @@ Derived type family instances:
                                                                                        'GHC.Generics.DecidedLazy)
                                                                                     (GHC.Generics.Rec1
                                                                                        CanDoRep1_1.Da)))
+  type GHC.Generics.$wf:Rep1 CanDoRep1_1.Da = () :: Constraint
 
 

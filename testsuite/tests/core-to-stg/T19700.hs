@@ -61,6 +61,7 @@ map' f = \ ary ->
         mary <- new_ n
         go ary mary 0 n
   where
+    go :: forall s a b. Array a -> MArray s b -> Int -> Int -> ST s (MArray s b)
     go ary mary i n
         | i >= n    = return mary
         | otherwise = do

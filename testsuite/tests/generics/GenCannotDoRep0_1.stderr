@@ -1,5 +1,45 @@
 
-GenCannotDoRep0_1.hs:8:49: error:
-    • Can't make a derived instance of ‘Generic (Context a)’:
-        Context must not have a datatype context
-    • In the data declaration for ‘Context’
+GenCannotDoRep0_1.hs:8:1: error:
+    • Could not deduce (Show a) arising from a use of ‘Context’
+      from the context: ($wf:Rep (Context a), Rep (Context a) @ x)
+        bound by the type signature for:
+                   from :: forall x.
+                           ($wf:Rep (Context a), Rep (Context a) @ x) =>
+                           Context a -> Rep (Context a) x
+        at GenCannotDoRep0_1.hs:8:1
+      Possible fix:
+        add (Show a) to the context of
+          the type signature for:
+            from :: forall x.
+                    ($wf:Rep (Context a), Rep (Context a) @ x) =>
+                    Context a -> Rep (Context a) x
+          or the instance declaration
+    • In the pattern: Context g1
+      In a case alternative: Context g1 -> M1 (M1 (K1 g1))
+      In the first argument of ‘M1’, namely
+        ‘(case x of Context g1 -> M1 (M1 (K1 g1)))’
+      When typechecking the code for ‘from’
+        in a derived instance for ‘Generic (Context a)’:
+        To see the code I am typechecking, use -ddump-deriv
+
+GenCannotDoRep0_1.hs:8:1: error:
+    • Could not deduce (Show a) arising from a use of ‘Context’
+      from the context: ($wf:Rep (Context a), Rep (Context a) @ x)
+        bound by the type signature for:
+                   to :: forall x.
+                         ($wf:Rep (Context a), Rep (Context a) @ x) =>
+                         Rep (Context a) x -> Context a
+        at GenCannotDoRep0_1.hs:8:1
+      Possible fix:
+        add (Show a) to the context of
+          the type signature for:
+            to :: forall x.
+                  ($wf:Rep (Context a), Rep (Context a) @ x) =>
+                  Rep (Context a) x -> Context a
+          or the instance declaration
+    • In the expression: Context g1
+      In a case alternative: (M1 (M1 (K1 g1))) -> Context g1
+      In the expression: case x of (M1 (M1 (K1 g1))) -> Context g1
+      When typechecking the code for ‘to’
+        in a derived instance for ‘Generic (Context a)’:
+        To see the code I am typechecking, use -ddump-deriv

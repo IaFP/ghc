@@ -49,7 +49,6 @@ import GHC.Core.Coercion( instNewTyCon_maybe, mkSymCo )
 import GHC.Core
 import GHC.Core.Utils
 import GHC.Core.Make
-import GHC.Core.TyWD (at'at)
 
 import GHC.Driver.Session
 import GHC.Types.CostCentre
@@ -424,10 +423,8 @@ dsExpr (HsStatic _ expr@(L loc _)) = do
     expr_ds <- dsLExpr expr
     let ty = exprType expr_ds
     makeStaticId <- dsLookupGlobalId makeStaticName
-    staticPtrTyCon <- dsLookupTyCon staticPtrTyConName
     dflags <- getDynFlags
     let platform = targetPlatform dflags
-        partyCtrs = xopt LangExt.PartialTypeConstructors dflags
     let (line, col) = case locA loc of
            RealSrcSpan r _ ->
                             ( srcLocLine $ realSrcSpanStart r
@@ -438,19 +435,9 @@ dsExpr (HsStatic _ expr@(L loc _)) = do
                      [ Type intTy              , Type intTy
                      , mkIntExprInt platform line, mkIntExprInt platform col
                      ]
-
-        at_dict_ty = (mkTyConTy staticPtrTyCon) `at'at` ty -- StaticPtr @ a
-    at_dict_id <- newPredVarDs at_dict_ty
-    let static_args -- This many not be necessary 
-          | partyCtrs
-          = [ Type ty, Var at_dict_id, srcLoc, expr_ds ]
-          | otherwise
+    let static_args
           = [ Type ty, srcLoc, expr_ds ]
         static_expr
-          | partyCtrs 
-          = mkLetRec [(at_dict_id, Var at_dict_id)] $
-            mkCoreApps (Var makeStaticId) static_args
-          | otherwise
           = mkCoreApps (Var makeStaticId) static_args
     putSrcSpanDsA loc $ return static_expr
 

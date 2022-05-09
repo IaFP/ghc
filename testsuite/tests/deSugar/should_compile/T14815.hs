@@ -24,20 +24,25 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UnboxedTuples              #-}
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
 
 module K where
 
 import qualified Control.Monad.State.Strict as S
 import Control.Monad.Trans
 import GHC.Exts
+import GHC.Types (type (@), Total)
 
 class Monad m => PrimMonad m where
   type PrimState m
   primitive :: (State# (PrimState m) -> (# State# (PrimState m), a #)) -> m a
 
-newtype StateT s m a = StateT (S.StateT s m a)
-  deriving (Functor, Applicative, Monad, MonadTrans)
+newtype m @ (a, s) => StateT s m a = StateT (S.StateT s m a)
+  deriving (Functor, MonadTrans)
 
-instance PrimMonad m => PrimMonad (StateT s m) where
+deriving instance (Total m, Monad m) => Applicative (StateT s m)
+deriving instance (Total m, Monad m) => Monad (StateT s m)
+
+instance (Total m, PrimMonad m) => PrimMonad (StateT s m) where
   type PrimState (StateT s m) = PrimState m
   primitive ~a = lift (primitive a) ; {-# INLINE primitive #-}

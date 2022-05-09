@@ -163,8 +163,7 @@ Derived class instances:
           (GHC.Generics.M1 GHC.Generics.U1) -> T10604_deriving.Proxy
   
   instance GHC.Generics.Generic (T10604_deriving.Empty a) where
-    GHC.Generics.from x
-      = GHC.Generics.M1 (case x of x -> case x of {})
+    GHC.Generics.from x = GHC.Generics.M1 (case x of x -> case x of {})
     GHC.Generics.to (GHC.Generics.M1 x) = case x of x -> case x of {}
   
   instance GHC.Generics.Generic1
@@ -215,6 +214,8 @@ Derived type family instances:
                                                                     'GHC.Generics.DecidedLazy)
                                                                  (GHC.Generics.Rec0
                                                                     @{*} GHC.Types.Int))))
+  type GHC.Generics.$wf:Rep
+         (T10604_deriving.Starify a) = () :: Constraint
   type GHC.Generics.Rep1
          @(*) T10604_deriving.Starify = GHC.Generics.D1
                                           @{*}
@@ -250,6 +251,8 @@ Derived type family instances:
                                                       'GHC.Generics.NoSourceStrictness
                                                       'GHC.Generics.DecidedLazy)
                                                    (GHC.Generics.Rec0 @{*} GHC.Types.Int))))
+  type GHC.Generics.$wf:Rep1
+         @(*) T10604_deriving.Starify = () :: Constraint
   type GHC.Generics.Rep
          (T10604_deriving.SumOfProducts @{k} a) = GHC.Generics.D1
                                                     @{*}
@@ -320,6 +323,8 @@ Derived type family instances:
                                                                 (GHC.Generics.Rec0
                                                                    @{*}
                                                                    (T10604_deriving.Proxy @k a))))))
+  type GHC.Generics.$wf:Rep
+         (T10604_deriving.SumOfProducts @{k} a) = () :: Constraint
   type GHC.Generics.Rep1
          @k (T10604_deriving.SumOfProducts @{k}) = GHC.Generics.D1
                                                      @{k}
@@ -388,6 +393,8 @@ Derived type family instances:
                                                                  (GHC.Generics.Rec1
                                                                     @k
                                                                     (T10604_deriving.Proxy @k))))))
+  type GHC.Generics.$wf:Rep1
+         @k (T10604_deriving.SumOfProducts @{k}) = () :: Constraint
   type GHC.Generics.Rep
          (T10604_deriving.Wrap2 @k a) = GHC.Generics.D1
                                           @{*}
@@ -408,6 +415,8 @@ Derived type family instances:
                                                    @{*}
                                                    (T10604_deriving.Proxy
                                                       @(*) (T10604_deriving.Proxy @(k -> *) a)))))
+  type GHC.Generics.$wf:Rep
+         (T10604_deriving.Wrap2 @k a) = () :: Constraint
   type GHC.Generics.Rep1
          @(k -> *) (T10604_deriving.Wrap2 @k) = GHC.Generics.D1
                                                   @{k -> *}
@@ -436,6 +445,8 @@ Derived type family instances:
                                                            (GHC.Generics.Rec1
                                                               @(k -> *)
                                                               (T10604_deriving.Proxy @(k -> *))))))
+  type GHC.Generics.$wf:Rep1
+         @(k -> *) (T10604_deriving.Wrap2 @k) = () :: Constraint
   type GHC.Generics.Rep (T10604_deriving.Wrap a) = GHC.Generics.D1
                                                      @{*}
                                                      ('GHC.Generics.MetaData
@@ -459,6 +470,8 @@ Derived type family instances:
                                                            (GHC.Generics.Rec0
                                                               @{*}
                                                               (T10604_deriving.Proxy @(* -> *) a))))
+  type GHC.Generics.$wf:Rep
+         (T10604_deriving.Wrap a) = () :: Constraint
   type GHC.Generics.Rep1
          @(* -> *) T10604_deriving.Wrap = GHC.Generics.D1
                                             @{* -> *}
@@ -477,6 +490,8 @@ Derived type family instances:
                                                      'GHC.Generics.DecidedLazy)
                                                   (GHC.Generics.Rec1
                                                      @(* -> *) (T10604_deriving.Proxy @(* -> *)))))
+  type GHC.Generics.$wf:Rep1
+         @(* -> *) T10604_deriving.Wrap = () :: Constraint
   type GHC.Generics.Rep
          (T10604_deriving.Proxy @k a) = GHC.Generics.D1
                                           @{*}
@@ -487,6 +502,8 @@ Derived type family instances:
                                              ('GHC.Generics.MetaCons
                                                 "Proxy" 'GHC.Generics.PrefixI 'GHC.Types.False)
                                              (GHC.Generics.U1 @(*)))
+  type GHC.Generics.$wf:Rep
+         (T10604_deriving.Proxy @k a) = () :: Constraint
   type GHC.Generics.Rep1
          @k (T10604_deriving.Proxy @k) = GHC.Generics.D1
                                            @{k}
@@ -497,6 +514,8 @@ Derived type family instances:
                                               ('GHC.Generics.MetaCons
                                                  "Proxy" 'GHC.Generics.PrefixI 'GHC.Types.False)
                                               (GHC.Generics.U1 @k))
+  type GHC.Generics.$wf:Rep1
+         @k (T10604_deriving.Proxy @k) = () :: Constraint
   type GHC.Generics.Rep (T10604_deriving.Empty a) = GHC.Generics.D1
                                                       @{*}
                                                       ('GHC.Generics.MetaData
@@ -505,6 +524,8 @@ Derived type family instances:
                                                          "main"
                                                          'GHC.Types.False)
                                                       (GHC.Generics.V1 @(*))
+  type GHC.Generics.$wf:Rep
+         (T10604_deriving.Empty a) = () :: Constraint
   type GHC.Generics.Rep1
          @GHC.Types.Bool T10604_deriving.Empty = GHC.Generics.D1
                                                    @{GHC.Types.Bool}
@@ -514,6 +535,8 @@ Derived type family instances:
                                                       "main"
                                                       'GHC.Types.False)
                                                    (GHC.Generics.V1 @GHC.Types.Bool)
+  type GHC.Generics.$wf:Rep1
+         @GHC.Types.Bool T10604_deriving.Empty = () :: Constraint
 
 
 
