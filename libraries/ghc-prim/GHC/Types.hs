@@ -38,6 +38,7 @@ module GHC.Types (
         type (~~), Coercible,
         TYPE, Levity(..), RuntimeRep(..),
         LiftedRep, UnliftedRep,
+
         -- Things for representing well-defined constraints
         type (@), WDT, Total, Total2,
         -- Things that are Unboxable
