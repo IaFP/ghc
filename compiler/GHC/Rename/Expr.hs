@@ -80,7 +80,7 @@ import Data.Ord
 import Data.Array
 import qualified Data.List.NonEmpty as NE
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 {- Note [Handling overloaded and rebindable constructs]
@@ -978,7 +978,7 @@ type AnnoBody body
 -- | Rename some Stmts
 rnStmts :: (
 #if MIN_VERSION_base(4,16,0)
-             WFT (Anno (StmtLR GhcRn GhcPs (LocatedA (body GhcPs))))
+             WDT (Anno (StmtLR GhcRn GhcPs (LocatedA (body GhcPs))))
            ,
 #endif
            AnnoBody body)
@@ -1026,7 +1026,7 @@ noPostProcessStmts _ stmts = return (map fst stmts, emptyNameSet)
 
 rnStmtsWithFreeVars :: (
 #if MIN_VERSION_base(4,16,0)
-                         WFT (Anno (StmtLR GhcRn GhcPs (LocatedA (body GhcPs))))
+                         WDT (Anno (StmtLR GhcRn GhcPs (LocatedA (body GhcPs))))
                        ,
 #endif
            AnnoBody body)
@@ -1096,7 +1096,7 @@ At one point we failed to make this distinction, leading to #11216.
 
 rnStmt :: (
 #if MIN_VERSION_base(4,16,0)
-            WFT (Anno (StmtLR GhcRn GhcPs (LocatedA (body GhcPs))))
+            WDT (Anno (StmtLR GhcRn GhcPs (LocatedA (body GhcPs))))
           ,
 #endif
           AnnoBody body)
@@ -1368,7 +1368,7 @@ type Segment stmts = (Defs,
 -- wrapper that does both the left- and right-hand sides
 rnRecStmtsAndThen :: (
 #if MIN_VERSION_base(4,16,0)
-                       WFT (Anno (StmtLR GhcRn GhcPs (LocatedA (body GhcPs))))
+                       WDT (Anno (StmtLR GhcRn GhcPs (LocatedA (body GhcPs))))
                      ,
 #endif
                      AnnoBody body) =>

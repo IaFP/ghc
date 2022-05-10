@@ -47,7 +47,7 @@ import GHC.Utils.Outputable
 import GHC.Types.SrcLoc
 -- libraries:
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 type LPat p = XRec p (Pat p)
@@ -229,8 +229,8 @@ type HsConPatDetails p = HsConDetails (HsPatSigType (NoGhcTc p)) (LPat p) (HsRec
 
 hsConPatArgs :: forall p . (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p))))
-  , WFT (XRec p (FieldOcc p))
+  WDT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p))))
+  , WDT (XRec p (FieldOcc p))
   ,   
 #endif
   UnXRec p) => HsConPatDetails p -> [LPat p]
@@ -287,7 +287,7 @@ type HsRecUpdField p    = HsFieldBind (LAmbiguousFieldOcc p) (LHsExpr p)
 -- For details on above see note [exact print annotations] in GHC.Parser.Annotation
 data
 #if MIN_VERSION_base(4,16,0)
-  WFT (XHsFieldBind lhs) =>  -- ANI TODO: is this really needed?
+  WDT (XHsFieldBind lhs) =>  -- ANI TODO: is this really needed?
 #endif
   HsFieldBind lhs rhs = HsFieldBind {
         hfbAnn :: XHsFieldBind lhs,
@@ -353,8 +353,8 @@ data
 
 hsRecFields :: forall p arg. (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) arg))
-  , WFT (XRec p (FieldOcc p))
+  WDT (XRec p (HsFieldBind (XRec p (FieldOcc p)) arg))
+  , WDT (XRec p (FieldOcc p))
   ,
 #endif
   UnXRec p) => HsRecFields p arg -> [XCFieldOcc p]
@@ -362,8 +362,8 @@ hsRecFields rbinds = map (hsRecFieldSel . unXRec @p) (rec_flds rbinds)
 
 hsRecFieldsArgs :: forall p arg. (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) arg))
-  , WFT (XRec p (FieldOcc p))
+  WDT (XRec p (HsFieldBind (XRec p (FieldOcc p)) arg))
+  , WDT (XRec p (FieldOcc p))
   , 
 #endif
   UnXRec p) => HsRecFields p arg -> [arg]

@@ -901,7 +901,7 @@ checkHiBootIface'
         missing_names' = case lookupNameEnv local_export_env name of
                           Nothing    -> [name]
                           Just avail -> availNames boot_avail `minusList` availNames avail
-        missing_names = filter (not . isWFName) missing_names'
+        missing_names = filter (not . isWDName) missing_names'
         -- see lookup_wf_ie in Tc.Gen.Export.hs as to why we want to filter out wf names in our check
 
     local_export_env :: NameEnv AvailInfo

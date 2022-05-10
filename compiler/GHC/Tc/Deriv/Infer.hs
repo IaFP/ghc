@@ -48,7 +48,7 @@ import GHC.Tc.Validity (validDerivPred)
 import GHC.Tc.Utils.Unify (buildImplicationFor, checkConstraints)
 import GHC.Builtin.Types (typeToTypeKind)
 import GHC.Core.Unify (tcUnifyTy)
-import GHC.Core.TyWF (genWfConstraintsTcM, genWfConstraints, predTyArgs, mergeAtAtConstraints)
+import GHC.Core.TyWD (genWfConstraintsTcM, genWfConstraints, predTyArgs, mergeAtAtConstraints)
 import GHC.Utils.Misc
 import GHC.Types.Var
 import GHC.Types.Var.Set

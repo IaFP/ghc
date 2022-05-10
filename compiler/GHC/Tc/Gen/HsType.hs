@@ -104,7 +104,7 @@ import GHC.Types.Name.Reader( lookupLocalRdrOcc )
 import GHC.Types.Var
 import GHC.Types.Var.Set
 import GHC.Core.TyCon
-import GHC.Core.TyWF
+import GHC.Core.TyWD
 import GHC.Core.ConLike
 import GHC.Core.DataCon
 import GHC.Core.Class
@@ -1992,12 +1992,12 @@ tcTyVar mode name         -- Could be a tyvar, a tycon, or a datacon
            -- See Note [Recursion through the kinds]
            ATcTyCon tc_tc
              -> do { check_tc tc_tc
-                   ; traceTc "ATcTyCon" (ppr tc_tc <+> ppr (wfMirrorTyCon_maybe tc_tc))
+                   ; traceTc "ATcTyCon" (ppr tc_tc <+> ppr (wdMirrorTyCon_maybe tc_tc))
                    ; return (mkTyConTy tc_tc, tyConKind tc_tc) }
 
            AGlobal (ATyCon tc)
              -> do { check_tc tc
-                   ; traceTc "AGlobalTyCon" (ppr tc <+> ppr (wfMirrorTyCon_maybe tc))
+                   ; traceTc "AGlobalTyCon" (ppr tc <+> ppr (wdMirrorTyCon_maybe tc))
                    ; return (mkTyConTy tc, tyConKind tc) }
 
            AGlobal (AConLike (RealDataCon dc))
@@ -2342,7 +2342,7 @@ instance Outputable SAKS_or_CUSK where
 
 -- See Note [kcCheckDeclHeader vs kcInferDeclHeader]
 kcDeclHeader
-  :: GenerateWFMirrorFlag
+  :: GenerateWDMirrorFlag
   -> InitialKindStrategy
   -> Name              -- ^ of the thing being checked
   -> TyConFlavour      -- ^ What sort of 'TyCon' is being checked
@@ -2370,7 +2370,7 @@ of a type constructor.
 
 ------------------------------
 kcCheckDeclHeader ::
-  GenerateWFMirrorFlag
+  GenerateWDMirrorFlag
   -> SAKS_or_CUSK
   -> Name              -- ^ of the thing being checked
   -> TyConFlavour      -- ^ What sort of 'TyCon' is being checked
@@ -2381,7 +2381,7 @@ kcCheckDeclHeader mflag (SAKS sig) = kcCheckDeclHeader_sig mflag sig
 kcCheckDeclHeader mflag CUSK       = kcCheckDeclHeader_cusk mflag
 
 kcCheckDeclHeader_cusk
-  :: GenerateWFMirrorFlag
+  :: GenerateWDMirrorFlag
   -> Name              -- ^ of the thing being checked
   -> TyConFlavour      -- ^ What sort of 'TyCon' is being checked
   -> LHsQTyVars GhcRn  -- ^ Binders in the header
@@ -2430,9 +2430,9 @@ kcCheckDeclHeader_cusk mflag name flav
 
              all_tv_prs =  mkTyVarNamePairs (scoped_kvs ++ tc_tvs)
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; mb_wf_tctycon <- if partyCtrs && genWFMirror mflag
+       ; mb_wf_tctycon <- if partyCtrs && genWDMirror mflag
                           then do { wf_name <- mk_wf_name name
-                                  ; let mirror_tycon = mkWFTcTyCon wf_name final_tc_binders
+                                  ; let mirror_tycon = mkWDTcTyCon wf_name final_tc_binders
                                                           constraintKind all_tv_prs
                                                           True flav 
                                   ; return $ Just mirror_tycon
@@ -2477,7 +2477,7 @@ kcCheckDeclHeader_cusk mflag name flav
 --
 -- This function does not do telescope checking.
 kcInferDeclHeader
-  :: GenerateWFMirrorFlag
+  :: GenerateWDMirrorFlag
   -> Name              -- ^ of the thing being checked
   -> TyConFlavour      -- ^ What sort of 'TyCon' is being checked
   -> LHsQTyVars GhcRn
@@ -2515,9 +2515,9 @@ kcInferDeclHeader mflag name flav
                --     ditto Implicit
                -- See Note [Cloning for type variable binders]
       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-      ; mb_wf_tctycon <- if partyCtrs && genWFMirror mflag
+      ; mb_wf_tctycon <- if partyCtrs && genWDMirror mflag
                          then do { wf_name <- mk_wf_name name
-                                 ; let mirror_tycon = mkWFTcTyCon wf_name tc_binders constraintKind all_tv_prs
+                                 ; let mirror_tycon = mkWDTcTyCon wf_name tc_binders constraintKind all_tv_prs
                                                       False flav
                                  ; return $ Just mirror_tycon
                                  }
@@ -2533,7 +2533,7 @@ kcInferDeclHeader mflag name flav
          vcat [ ppr name, ppr kv_ns, ppr hs_tvs
               , ppr scoped_kvs
               , ppr tc_tvs, ppr (mkTyConKind tc_binders res_kind)
-              , ppr $ wfMirrorTyCon_maybe tycon ]
+              , ppr $ wdMirrorTyCon_maybe tycon ]
        ; return tycon }
   where
     ctxt_kind | tcFlavourIsOpen flav = TheKind liftedTypeKind
@@ -2542,7 +2542,7 @@ kcInferDeclHeader mflag name flav
 -- | Kind-check a declaration header against a standalone kind signature.
 -- See Note [Arity inference in kcCheckDeclHeader_sig]
 kcCheckDeclHeader_sig ::
-  GenerateWFMirrorFlag
+  GenerateWDMirrorFlag
   -> Kind              -- ^ Standalone kind signature, fully zonked! (zonkTcTypeToType)
   -> Name              -- ^ of the thing being checked
   -> TyConFlavour      -- ^ What sort of 'TyCon' is being checked
@@ -2642,9 +2642,9 @@ kcCheckDeclHeader_sig mflag kisig name flav
               implicit_tv_prs = implicit_nms `zip` implicit_tvs
               all_tv_prs      = implicit_tv_prs ++ explicit_tv_prs
         ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-        ; mb_wf_tctycon <- if partyCtrs && genWFMirror mflag
+        ; mb_wf_tctycon <- if partyCtrs && genWDMirror mflag
                           then do { wf_name <- mk_wf_name name
-                                  ; let mirror_tycon = mkWFTcTyCon wf_name tcbs constraintKind all_tv_prs
+                                  ; let mirror_tycon = mkWDTcTyCon wf_name tcbs constraintKind all_tv_prs
                                                        True flav
                                   ; return $ Just mirror_tycon
                                   }

@@ -2004,8 +2004,8 @@ multMulTyConKey :: Unique
 multMulTyConKey = mkPreludeTyConUnique 199
 
 
-wfTyConKey :: Unique
-wfTyConKey = mkPreludeTyConUnique 900
+wdTyConKey :: Unique
+wdTyConKey = mkPreludeTyConUnique 900
 
 ---------------- Template Haskell -------------------
 --      GHC.Builtin.Names.TH: USES TyConUniques 200-299

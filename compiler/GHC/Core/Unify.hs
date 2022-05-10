@@ -681,7 +681,7 @@ This happened, for example, in #9106.
 It gets worse.  In #14164 we wanted to take the fixpoint of
 this substitution
    [ xs_asV :-> F a_aY6 (z_aY7 :: a_aY6)
-                        (rest_aWF :: G a_aY6 (z_aY7 :: a_aY6))
+                        (rest_aWD :: G a_aY6 (z_aY7 :: a_aY6))
    , a_aY6  :-> a_aXQ ]
 
 We have to apply the substitution for a_aY6 two levels deep inside

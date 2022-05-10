@@ -51,7 +51,7 @@ import GHC.Core.Coercion ( pprCoAxiom )
 import GHC.Driver.Session
 import GHC.Tc.Instance.Family
 import GHC.Core.FamInstEnv
-import GHC.Tc.Deriv.WF (genWFTyFamInst)
+import GHC.Tc.Deriv.WD (genWDTyFamInst)
 import GHC.Types.Error
 import GHC.Types.Id
 import GHC.Types.Name
@@ -558,7 +558,7 @@ tcATDefault loc inst_subst defined_ats (ATI fam_tc defs)
                                               , pprCoAxiom axiom ])
        ; fam_inst <- newFamInst SynFamilyInst axiom
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; wf_fam_inst <- if partyCtrs then genWFTyFamInst fam_inst else return []
+       ; wf_fam_inst <- if partyCtrs then genWDTyFamInst fam_inst else return []
        ; return $ fam_inst:wf_fam_inst }
    -- No defaults ==> generate a warning
   | otherwise  -- defs = Nothing
@@ -586,5 +586,5 @@ warnMissingAT name
                  (text "No explicit" <+> text "associated type"
                                      <+> text "or default declaration for"
                                      <+> quotes (ppr name))
-       ; diagnosticTc  (warn && hsc_src == HsSrcFile && not (isWFName name)) dia
+       ; diagnosticTc  (warn && hsc_src == HsSrcFile && not (isWDName name)) dia
        }

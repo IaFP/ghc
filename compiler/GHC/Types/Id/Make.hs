@@ -651,7 +651,7 @@ This desugars to
 
    traverse f foo = case foo of
         Foo i# a -> let i = I# i#
-                    in map ($WFoo i) (f a)
+                    in map ($WDoo i) (f a)
 
 If the wrapper `$WFoo` is not inlined, we get a fruitless reboxing of `i`.
 But if we inline the wrapper, we get

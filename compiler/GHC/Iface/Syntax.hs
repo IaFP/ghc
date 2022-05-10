@@ -148,7 +148,7 @@ data IfaceDecl
                    ifResKind  :: IfaceKind,         -- Kind of the *tycon*
                    ifFamFlav  :: IfaceFamTyConFlav,
                    ifFamInj   :: Injectivity,       -- injectivity information
-                   ifWFMirror :: Maybe IfaceDecl    -- mirror tycon
+                   ifWDMirror :: Maybe IfaceDecl    -- mirror tycon
                  }             
 
   | IfaceClass { ifName    :: IfaceTopBndr,             -- Name of the class TyCon
@@ -970,7 +970,7 @@ pprIfaceDecl ss (IfaceSynonym { ifName    = tc
 pprIfaceDecl ss (IfaceFamily { ifName = tycon
                              , ifFamFlav = rhs, ifBinders = binders
                              , ifResKind = res_kind
-                             , ifResVar = res_var, ifFamInj = inj {-, ifWFMirror = wfm-} })
+                             , ifResVar = res_var, ifFamInj = inj {-, ifWDMirror = wdm-} })
   | IfaceDataFamilyTyCon <- rhs
   = vcat [ pprStandaloneKindSig name_doc (mkIfaceTyConKind binders res_kind)
          , text "data family" <+> pprIfaceDeclHead suppress_bndr_sig [] ss tycon binders
@@ -982,7 +982,7 @@ pprIfaceDecl ss (IfaceFamily { ifName = tycon
                    <+> pprIfaceDeclHead suppress_bndr_sig [] ss tycon binders
                    <+> ppShowRhs ss (pp_where rhs))
               2 (pp_inj res_var inj <+> ppShowRhs ss (pp_rhs rhs)
-                 -- $$ ppr wfm
+                 -- $$ ppr wdm
                 )
            $$ nest 2 (ppShowRhs ss (pp_branches rhs))
          ]
@@ -1533,14 +1533,14 @@ freeNamesIfDecl (IfaceSynonym { ifBinders = bndrs, ifResKind = res_k
     freeNamesIfType rhs
 
 freeNamesIfDecl (IfaceFamily { ifBinders = bndrs, ifResKind = res_k
-                             , ifFamFlav = flav, ifWFMirror = wfm })
+                             , ifFamFlav = flav, ifWDMirror = wdm })
   = freeNamesIfVarBndrs bndrs &&&
     freeNamesIfKind res_k &&&
     freeNamesIfFamFlav flav &&&
-    freeNamesWfMirror wfm
+    freeNamesWdMirror wdm
     where
-      freeNamesWfMirror Nothing = emptyNameSet
-      freeNamesWfMirror (Just wfm') = freeNamesIfDecl wfm'
+      freeNamesWdMirror Nothing = emptyNameSet
+      freeNamesWdMirror (Just wdm') = freeNamesIfDecl wdm'
 
 freeNamesIfDecl (IfaceClass{ ifBinders = bndrs, ifBody = cls_body })
   = freeNamesIfVarBndrs bndrs &&&

@@ -50,7 +50,7 @@ import qualified Control.Monad.Trans.RWS.Strict as RWS
 import Control.Monad.Trans.Cont ( ContT (..) )
 import Data.ByteString ( ByteString )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total, WFT)
+import GHC.Types (Total, WDT)
 #endif
 
 -- | @uncurry 'mkStgBinding' . 'decomposeStgBinding' = id@
@@ -196,7 +196,7 @@ collectFloats = go (0 :: Int) []
 -- GC.
 removeRhsCCCS ::
 #if MIN_VERSION_base(4,16,0)
-  (WFT (XRhsClosure pass), WFT (BinderP pass)) => 
+  (WDT (XRhsClosure pass), WDT (BinderP pass)) => 
 #endif
     GenStgRhs pass -> GenStgRhs pass
 removeRhsCCCS (StgRhsClosure ext ccs upd bndrs body)

@@ -8,7 +8,7 @@ import GHC.Types.Name.Set ( FreeVars )
 import GHC.Tc.Types
 import GHC.Utils.Outputable  ( Outputable )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 rnExpr :: HsExpr GhcPs
@@ -26,7 +26,7 @@ type AnnoBody body
 rnStmts :: --forall thing body.
            (
 #if MIN_VERSION_base(4,16,0)
-             WFT (Anno (StmtLR GhcRn GhcPs (LocatedA (body GhcPs))))
+             WDT (Anno (StmtLR GhcRn GhcPs (LocatedA (body GhcPs))))
            ,
 #endif
            AnnoBody body) => HsStmtContext GhcRn

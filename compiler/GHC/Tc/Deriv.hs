@@ -13,7 +13,7 @@
 
 -- | Handles @deriving@ clauses on @data@ declarations.
 module GHC.Tc.Deriv ( tcDeriving, DerivInfo(..),
-                    module GHC.Tc.Deriv.WF
+                    module GHC.Tc.Deriv.WD
                     ) where
 
 import GHC.Prelude
@@ -27,7 +27,7 @@ import GHC.Tc.Instance.Family
 import GHC.Tc.Types.Origin
 import GHC.Tc.Deriv.Infer
 import GHC.Tc.Deriv.Utils
-import GHC.Tc.Deriv.WF
+import GHC.Tc.Deriv.WD
 import GHC.Tc.TyCl.Class( instDeclCtxt3, tcATDefault )
 import GHC.Tc.Utils.Env
 import GHC.Tc.Deriv.Generate

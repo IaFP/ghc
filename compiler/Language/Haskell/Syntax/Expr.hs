@@ -49,7 +49,7 @@ import GHC.Utils.Panic
 import GHC.Data.FastString
 import GHC.Core.Type
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 -- libraries:
@@ -147,7 +147,7 @@ type LFieldLabelStrings p = XRec p (FieldLabelStrings p)
 
 newtype
 #if MIN_VERSION_base(4,16,0)
-  WFT (XRec p (DotFieldOcc p)) => 
+  WDT (XRec p (DotFieldOcc p)) => 
 #endif
   FieldLabelStrings p = FieldLabelStrings [XRec p (DotFieldOcc p)]
 
@@ -1806,7 +1806,7 @@ matchSeparator PatSyn       = panic "unused"
 
 pprMatchContext :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XRec p (IdP p)),
+  WDT (XRec p (IdP p)),
 #endif
   Outputable (IdP p), UnXRec p)
                 => HsMatchContext p -> SDoc
@@ -1821,7 +1821,7 @@ pprMatchContext ctxt
 
 pprMatchContextNoun :: forall p. (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XRec p (IdP p)),
+  WDT (XRec p (IdP p)),
 #endif
   Outputable (IdP p), UnXRec p) => HsMatchContext p -> SDoc
 pprMatchContextNoun (FunRhs {mc_fun=fun})
@@ -1848,7 +1848,7 @@ pprArrowMatchContextNoun KappaExpr    = text "arrow kappa abstraction"
 -----------------
 pprAStmtContext, pprStmtContext :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XRec p (IdP p)),
+  WDT (XRec p (IdP p)),
 #endif
   Outputable (IdP p), UnXRec p) => HsStmtContext p -> SDoc
 pprAStmtContext (HsDoStmt flavour) = pprAHsDoFlavour flavour

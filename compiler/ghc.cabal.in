@@ -352,7 +352,7 @@ Library
         GHC.Core.TyCo.Subst
         GHC.Core.TyCo.Tidy
         GHC.Core.Type
-        GHC.Core.TyWF
+        GHC.Core.TyWD
         GHC.Core.Unfold
         GHC.Core.Unfold.Make
         GHC.Core.Unify
@@ -596,7 +596,7 @@ Library
         GHC.Tc.Deriv.Generics
         GHC.Tc.Deriv.Infer
         GHC.Tc.Deriv.Utils
-        GHC.Tc.Deriv.WF
+        GHC.Tc.Deriv.WD
         GHC.Tc.Errors
         GHC.Tc.Errors.Hole
         GHC.Tc.Errors.Hole.FitTypes

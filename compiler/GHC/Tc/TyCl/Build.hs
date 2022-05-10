@@ -464,7 +464,7 @@ newTyConRepName tc_name
 
 mk_wf_name :: Name -> TcRnIf gbl lcl Name
 mk_wf_name n = do { let m = nameModule n
-                  ; let wf_occ = mkWFTyConOcc (nameOccName n)
+                  ; let wf_occ = mkWDTyConOcc (nameOccName n)
                   ; wf_name <- lookupOrig m wf_occ
                   ; return wf_name
                   }

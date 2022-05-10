@@ -18,7 +18,7 @@ import GHC.Core.InstEnv         ( DFunInstType )
 import GHC.Types.Var
 import GHC.Tc.Errors.Types
 import GHC.Tc.Utils.TcType
-import GHC.Builtin.Names ( coercibleTyConKey, heqTyConKey, eqTyConKey, ipClassKey, wfTyConKey )
+import GHC.Builtin.Names ( coercibleTyConKey, heqTyConKey, eqTyConKey, ipClassKey, wdTyConKey )
 import GHC.Core.Coercion.Axiom ( CoAxBranch (..), CoAxiom (..), TypeEqn, fromBranches, sfInteractInert, sfInteractTop )
 import GHC.Core.Class
 import GHC.Core.TyCon
@@ -2300,7 +2300,7 @@ naturallyCoherentClass cls
     || cls `hasKey` heqTyConKey
     || cls `hasKey` eqTyConKey
     || cls `hasKey` coercibleTyConKey
-    || cls `hasKey` wfTyConKey
+    || cls `hasKey` wdTyConKey
 
 
 {- Note [Instance and Given overlap]

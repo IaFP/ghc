@@ -79,7 +79,7 @@ import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Class  ( lift )
 import Control.Applicative        ( (<|>) )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total, WFT)
+import GHC.Types (Total, WDT)
 #endif
 
 {- Note [Updating HieAst for changes in the GHC AST]
@@ -842,7 +842,7 @@ type AnnoBody p body
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-    WFT (IdGhcP p),
+    WDT (IdGhcP p),
 #endif
   HiePass p) 
   => ToHie (BindContext (LocatedA (HsBind (GhcPass p)))) where
@@ -883,8 +883,8 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-           WFT (Anno (GRHS (GhcPass p) (LocatedA (body (GhcPass p)))))
-          , WFT (IdGhcP p)
+           WDT (Anno (GRHS (GhcPass p) (LocatedA (body (GhcPass p)))))
+          , WDT (IdGhcP p)
           ,
 #endif
            HiePass p
@@ -904,7 +904,7 @@ setOrigin Generated _ = GeneratedInfo
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (IdGhcP p),
+  WDT (IdGhcP p),
 #endif
   HiePass p) => ToHie (Located (PatSynBind (GhcPass p) (GhcPass p))) where
     toHie (L sp psb) = concatM $ case psb of
@@ -933,7 +933,7 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (IdGhcP p),
+  WDT (IdGhcP p),
 #endif
   HiePass p) => ToHie (HsPatSynDir (GhcPass p)) where
   toHie dir = case dir of
@@ -942,8 +942,8 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-           WFT (Anno (GRHS (GhcPass p) (LocatedA (body (GhcPass p)))))
-          , WFT (IdGhcP p)
+           WDT (Anno (GRHS (GhcPass p) (LocatedA (body (GhcPass p)))))
+          , WDT (IdGhcP p)
           ,
 #endif
            HiePass p
@@ -978,7 +978,7 @@ instance HiePass p => ToHie (HsStmtContext (GhcPass p)) where
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (IdGhcP p),
+  WDT (IdGhcP p),
 #endif
   HiePass p) => ToHie (PScoped (LocatedA (Pat (GhcPass p)))) where
   toHie (PS rsp scope pscope lpat@(L ospan opat)) =
@@ -1090,8 +1090,8 @@ instance ToHie (TScoped (HsPatSigType GhcRn)) where
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-           WFT (Anno (GRHS (GhcPass p) (LocatedA (body (GhcPass p)))))
-         , WFT (IdGhcP p)
+           WDT (Anno (GRHS (GhcPass p) (LocatedA (body (GhcPass p)))))
+         , WDT (IdGhcP p)
          ,
 #endif
            ToHie (LocatedA (body (GhcPass p)))
@@ -1108,7 +1108,7 @@ instance ( ToHie (LocatedA (body (GhcPass p)))
          , HiePass p
          , AnnoBody p body,
 #if MIN_VERSION_base(4,16,0)
-         WFT (IdGhcP p),
+         WDT (IdGhcP p),
 #endif
   HiePass p) => ToHie (LocatedAn NoEpAnns (GRHS (GhcPass p) (LocatedA (body (GhcPass p))))) where
   toHie (L span g) = concatM $ makeNodeA g span : case g of
@@ -1119,7 +1119,7 @@ instance ( ToHie (LocatedA (body (GhcPass p)))
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (IdGhcP p),
+  WDT (IdGhcP p),
 #endif
   HiePass p) => ToHie (LocatedA (HsExpr (GhcPass p))) where
   toHie e@(L mspan oexpr) = concatM $ getTypeNode e : case oexpr of
@@ -1267,7 +1267,7 @@ instance (
 -- NOTE: no longer have the location
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (IdGhcP p),
+  WDT (IdGhcP p),
 #endif
   HiePass p) => ToHie (HsTupArg (GhcPass p)) where
   toHie arg = concatM $ case arg of
@@ -1281,7 +1281,7 @@ instance ( ToHie (LocatedA (body (GhcPass p)))
          , HiePass p
          ,
 #if MIN_VERSION_base(4,16,0)
-         WFT (IdGhcP p)
+         WDT (IdGhcP p)
          ,
 #endif
   HiePass p) => ToHie (RScoped (LocatedA (Stmt (GhcPass p) (LocatedA (body (GhcPass p)))))) where
@@ -1322,7 +1322,7 @@ instance ( ToHie (LocatedA (body (GhcPass p)))
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (IdGhcP p),
+  WDT (IdGhcP p),
 #endif
   HiePass p) => ToHie (RScoped (HsLocalBinds (GhcPass p))) where
   toHie (RS scope binds) = concatM $ makeNode binds (spanHsLocaLBinds binds) : case binds of
@@ -1367,7 +1367,7 @@ scopeHsLocaLBinds (EmptyLocalBinds _) = NoScope
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (IdGhcP p),
+  WDT (IdGhcP p),
 #endif
   HiePass p) => ToHie (RScoped (LocatedA (IPBind (GhcPass p)))) where
   toHie (RS scope (L sp bind)) = concatM $ makeNodeA bind sp : case bind of
@@ -1380,7 +1380,7 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (IdGhcP p),
+  WDT (IdGhcP p),
 #endif
   HiePass p) => ToHie (RScoped (HsValBindsLR (GhcPass p) (GhcPass p))) where
   toHie (RS sc v) = concatM $ case v of
@@ -1392,7 +1392,7 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (IdGhcP p),
+  WDT (IdGhcP p),
 #endif
   HiePass p) => ToHie (RScoped (NHsValBindsLR (GhcPass p))) where
   toHie (RS sc (NValBinds binds sigs)) = concatM $
@@ -1434,7 +1434,7 @@ instance HiePass p => ToHie (RFContext (LocatedAn NoEpAnns (AmbiguousFieldOcc (G
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (IdGhcP p),
+  WDT (IdGhcP p),
 #endif
   HiePass p) => ToHie (RScoped (ApplicativeArg (GhcPass p))) where
   toHie (RS sc (ApplicativeArgOne _ pat expr _)) = concatM
@@ -1457,7 +1457,7 @@ instance ToHie (HsConDeclGADTDetails GhcRn) where
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (IdGhcP p),
+  WDT (IdGhcP p),
 #endif
   HiePass p) => ToHie (LocatedAn NoEpAnns (HsCmdTop (GhcPass p))) where
   toHie (L span top) = concatM $ makeNodeA top span : case top of
@@ -1467,7 +1467,7 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (IdGhcP p),
+  WDT (IdGhcP p),
 #endif
   HiePass p) => ToHie (LocatedA (HsCmd (GhcPass p))) where
   toHie (L span cmd) = concatM $ makeNodeA cmd span : case cmd of
@@ -1969,7 +1969,7 @@ instance ToHie (LocatedAn NoEpAnns HsIPName) where
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (IdGhcP p),
+  WDT (IdGhcP p),
 #endif
   HiePass p) => ToHie (LocatedA (HsSplice (GhcPass p))) where
   toHie (L span sp) = concatM $ makeNodeA sp span : case sp of

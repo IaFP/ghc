@@ -79,7 +79,7 @@ import Data.Foldable      ( toList )
 import Data.List          ( partition, sortBy )
 import Data.List.NonEmpty ( NonEmpty(..) )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 {-
@@ -1198,9 +1198,9 @@ type AnnoBody body
 
 rnMatchGroup :: (
 #if MIN_VERSION_base(4,16,0)
-                  WFT (Anno (Match GhcRn (LocatedA (body GhcRn))))
-                , WFT (Anno (GRHS GhcRn (LocatedA (body GhcRn))))
-                , WFT (Anno [GenLocated SrcSpanAnnA (Match GhcRn (LocatedA (body GhcRn)))]),
+                  WDT (Anno (Match GhcRn (LocatedA (body GhcRn))))
+                , WDT (Anno (GRHS GhcRn (LocatedA (body GhcRn))))
+                , WDT (Anno [GenLocated SrcSpanAnnA (Match GhcRn (LocatedA (body GhcRn)))]),
 #endif
                   Outputable (body GhcPs), AnnoBody body
                 )
@@ -1216,8 +1216,8 @@ rnMatchGroup ctxt rnBody (MG { mg_alts = L lm ms, mg_origin = origin })
 
 rnMatch :: (
 #if MIN_VERSION_base(4,16,0)
-             WFT (Anno (Match GhcRn (LocatedA (body GhcRn))))
-           , WFT (Anno (GRHS GhcRn (LocatedA (body GhcRn))))    
+             WDT (Anno (Match GhcRn (LocatedA (body GhcRn))))
+           , WDT (Anno (GRHS GhcRn (LocatedA (body GhcRn))))    
            ,
 #endif
              AnnoBody body)
@@ -1229,8 +1229,8 @@ rnMatch ctxt rnBody = wrapLocFstMA (rnMatch' ctxt rnBody)
 
 rnMatch' :: (
 #if MIN_VERSION_base(4,16,0)
-              WFT (Anno (Match GhcRn (LocatedA (body GhcRn))))
-            , WFT (Anno (GRHS GhcRn (LocatedA (body GhcRn))))
+              WDT (Anno (Match GhcRn (LocatedA (body GhcRn))))
+            , WDT (Anno (GRHS GhcRn (LocatedA (body GhcRn))))
             , 
 #endif
               AnnoBody body)
@@ -1271,8 +1271,8 @@ emptyCaseErr ctxt = TcRnUnknownMessage $ mkPlainError noHints $
 
 rnGRHSs :: (
 #if MIN_VERSION_base(4,16,0)
-             WFT (Anno (Match GhcRn (LocatedA (body GhcRn))))
-           , WFT (Anno (GRHS GhcRn (LocatedA (body GhcRn))))
+             WDT (Anno (Match GhcRn (LocatedA (body GhcRn))))
+           , WDT (Anno (GRHS GhcRn (LocatedA (body GhcRn))))
            ,
 #endif
            AnnoBody body)
@@ -1287,7 +1287,7 @@ rnGRHSs ctxt rnBody (GRHSs _ grhss binds)
 
 rnGRHS :: (
 #if MIN_VERSION_base(4,16,0)
-            WFT (Anno (GRHS GhcRn (LocatedA (body GhcRn))))
+            WDT (Anno (GRHS GhcRn (LocatedA (body GhcRn))))
           ,
 #endif
           AnnoBody body)

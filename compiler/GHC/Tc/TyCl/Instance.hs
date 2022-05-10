@@ -607,9 +607,9 @@ tcTyFamInstDecl mb_clsinfo (L loc decl@(TyFamInstDecl { tfid_eqn = eqn }))
        ; let axiom = mkUnbranchedCoAxiom rep_tc_name fam_tc co_ax_branch
        ; fam_inst <- newFamInst SynFamilyInst axiom
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; wf_fam_insts <- if (partyCtrs && not (isWFMirrorTyCon fam_tc))
+       ; wf_fam_insts <- if (partyCtrs && not (isWDMirrorTyCon fam_tc))
          -- we can have @ fam instances in src we do not want to build a wf'@ instance for it. 
-                         then genWFTyFamInst fam_inst else return []
+                         then genWDTyFamInst fam_inst else return []
        ; return $ fam_inst:wf_fam_insts
        }
 

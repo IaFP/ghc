@@ -46,7 +46,7 @@ import GHC.Core.Predicate
 import GHC.Core.Make( rEC_SEL_ERROR_ID )
 import GHC.Core.Class
 import GHC.Core.Type
-import GHC.Core.TyWF
+import GHC.Core.TyWD
 import GHC.Core.TyCon
 import GHC.Core.ConLike
 import GHC.Core.DataCon

@@ -38,7 +38,7 @@ import GHC.Types.RepType
 import GHC.Core.TyCon
 import GHC.Core.Coercion
 import GHC.Core.Multiplicity
--- import GHC.Core.TyWF (at'at)
+-- import GHC.Core.TyWD (at'at)
 import GHC.Tc.Utils.Env
 import GHC.Tc.Utils.TcType
 

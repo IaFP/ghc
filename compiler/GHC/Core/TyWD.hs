@@ -6,10 +6,10 @@
 #if __GLASGOW_HASKELL__ >= 903
 {-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
 #endif
-module GHC.Core.TyWF (
+module GHC.Core.TyWD (
 
   ------------------------------
-  -- wellformed constraint generation
+  -- well definedness constraint generation
   WfElabTypeDetails (..)
   , genWfConstraints -- lifted version of genWfConstraintsTcM needed for DerivM 
   , predTyArgs, predTyVars
@@ -38,7 +38,7 @@ import GHC.Core.FamInstEnv (topNormaliseType)
 import GHC.Core.Reduction (reductionReducedType)
 import GHC.Builtin.Names
 import GHC.Builtin.Names.TH
-import GHC.Builtin.Types (isCTupleTyConName, wfTyCon)
+import GHC.Builtin.Types (isCTupleTyConName, wdTyCon)
 import GHC.Types.Name (isWiredInName)
 import GHC.Utils.Panic (pprPanic)
 import GHC.Utils.Outputable
@@ -142,7 +142,7 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
   -- recursively build @ constraints for type constructor
   | (TyConApp tyc tycargs) <- ty =
       if tyc `hasKey` typeRepTyConKey  -- this is supposed to save us from sometyperep, typerep nonsense.
-      || isWFMirrorTyCon tyc
+      || isWDMirrorTyCon tyc
       || any (== tyc) tycons
         then return $ elabDetails ty []
         else if tyConResKind tyc `tcEqType` constraintKind
@@ -237,7 +237,7 @@ isTyConInternal tycon =
   || tycon `hasKey` qTyConKey || tyConName tycon == qTyConName
   || tycon `hasKey` anyTyConKey
   || tycon == funTyCon
-  || isWFMirrorTyCon tycon -- @ is also a mirror
+  || isWDMirrorTyCon tycon -- @ is also a mirror
   
 -- ANI ToDo, this function is no longer meant to do what it's supposed to do. Need to rethink this one.
 saneTyConForElab :: TyCon -> Bool
@@ -258,7 +258,7 @@ tyConGenAtsTcM :: Bool
                -> [Type]
                -> TcM ThetaType
 tyConGenAtsTcM isTyConPhase eTycons ts tycon args
-  | isWFMirrorTyCon tycon -- leave the wftycons untouched
+  | isWDMirrorTyCon tycon -- leave the wftycons untouched
   = do { traceTc "wfelab mirrorTyCon" (ppr tycon); return [] }
   | isTyConInternal tycon || isClassTyCon tycon || tyConResKind tycon `tcEqType` constraintKind
   = do { traceTc "wfelab internalTyCon/ClassTyCon/ConstraintKind tycon" (ppr tycon)
@@ -271,10 +271,10 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
             ; return $ foldl mergeAtAtConstraints [] $ fmap newPreds elabds
             }
   | isTyConAssoc tycon || isOpenTypeFamilyTyCon tycon || isClosedTypeFamilyTyCon tycon
-  , hasWfMirrorTyCon tycon -- It can be an associated data type family it is handled as a normal tycon
+  , hasWdMirrorTyCon tycon -- It can be an associated data type family it is handled as a normal tycon
   = do { traceTc "wfelab isTyConAssoc/open/closed typefam" (ppr tycon <+> ppr args)
        ; let (args_tc, extra_args_tc) = splitAt (tyConArity tycon) args
-       ; let wftycon = wfMirrorTyCon "tyConGenAtsTcM" tycon -- this better exist
+       ; let wftycon = wdMirrorTyCon "tyConGenAtsTcM" tycon -- this better exist
        ; traceTc "wfelab lookup2" (ppr wftycon)
          -- This tycon may be oversaturated so we break down the args into 2 parts:
          -- 1. args_tc which is of length tycon arity
@@ -388,7 +388,7 @@ sequenceAts tycon args_tc (ty:extra_args) ts acc
 -- that the correctly kinded type is instantiated in @ class
 -- @ {k'} {k} (f :: k' -> k) (arg:: k')
 at'at :: Type -> Type -> PredType
-at'at f arg = mkTyConApp wfTyCon [argk, resk, f, arg]
+at'at f arg = mkTyConApp wdTyCon [argk, resk, f, arg]
   where argk = tcTypeKind arg
         fk   = tcTypeKind f
         resk = piResultTy fk argk
@@ -431,13 +431,13 @@ redConstraints isTyConPhase theta = foldl mergeAtAtConstraints [] <$>
 flatten_atat_constraint :: Bool -> PredType -> TcM ThetaType
 flatten_atat_constraint isTyConPhase ty
   | (TyConApp tc _) <- ty
-  , isWFMirrorTyCon tc
+  , isWDMirrorTyCon tc
   , not isTyConPhase
   = do fam_envs <- GHC.Tc.Instance.Family.tcGetFamInstEnvs
        let ty' = topNormaliseType fam_envs ty
        tuplesToList ty'
   | (TyConApp tc ((TyConApp tc2 _):_)) <- ty
-  , isWFMirrorTyCon tc
+  , isWDMirrorTyCon tc
   , tc2 `hasKey` ioTyConKey
     || tc2 `hasKey` listTyConKey
     -- || tc2 `hasKey` maybeTyConKey -- Maybe causes problems in specializer
@@ -446,7 +446,7 @@ flatten_atat_constraint isTyConPhase ty
        let ty' = topNormaliseType fam_envs ty
        tuplesToList ty'
   | (TyConApp tc (_:_:(TyConApp tc2 _):_)) <- ty
-  , isWFMirrorTyCon tc
+  , isWDMirrorTyCon tc
   , tc2 `hasKey` ioTyConKey
     || tc2 `hasKey` listTyConKey
     -- || tc2 `hasKey` maybeTyConKey

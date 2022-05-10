@@ -49,7 +49,7 @@ import GHC.Core.Coercion( instNewTyCon_maybe, mkSymCo )
 import GHC.Core
 import GHC.Core.Utils
 import GHC.Core.Make
-import GHC.Core.TyWF (at'at)
+import GHC.Core.TyWD (at'at)
 
 import GHC.Driver.Session
 import GHC.Types.CostCentre

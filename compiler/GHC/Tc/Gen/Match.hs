@@ -79,7 +79,7 @@ import GHC.Types.SrcLoc
 import Control.Monad
 import Control.Arrow ( second )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 {-
@@ -149,10 +149,10 @@ parser guarantees that each equation has exactly one argument.
 
 tcMatchesCase :: (
 #if MIN_VERSION_base(4,16,0)
-   WFT (Anno (Match GhcRn (LocatedA (body GhcRn)))),
-   WFT (Anno (Match GhcTc (LocatedA (body GhcTc)))),
-   WFT (Anno [GenLocated SrcSpanAnnA (Match GhcTc (LocatedA (body GhcTc)))]),
-   WFT (Anno (GRHS GhcTc (LocatedA (body GhcTc)))),
+   WDT (Anno (Match GhcRn (LocatedA (body GhcRn)))),
+   WDT (Anno (Match GhcTc (LocatedA (body GhcTc)))),
+   WDT (Anno [GenLocated SrcSpanAnnA (Match GhcTc (LocatedA (body GhcTc)))]),
+   WDT (Anno (GRHS GhcTc (LocatedA (body GhcTc)))),
 #endif
   AnnoBody body) =>
                 TcMatchCtxt body                         -- Case context
@@ -224,10 +224,10 @@ type AnnoBody body
 -- | Type-check a MatchGroup.
 tcMatches :: (
 #if MIN_VERSION_base(4,16,0)
-   WFT (Anno (Match GhcRn (LocatedA (body GhcRn)))),
-   WFT (Anno (Match GhcTc (LocatedA (body GhcTc)))),
-   WFT (Anno [GenLocated SrcSpanAnnA (Match GhcTc (LocatedA (body GhcTc)))]),
-   WFT (Anno (GRHS GhcTc (LocatedA (body GhcTc)))),
+   WDT (Anno (Match GhcRn (LocatedA (body GhcRn)))),
+   WDT (Anno (Match GhcTc (LocatedA (body GhcTc)))),
+   WDT (Anno [GenLocated SrcSpanAnnA (Match GhcTc (LocatedA (body GhcTc)))]),
+   WDT (Anno (GRHS GhcTc (LocatedA (body GhcTc)))),
 #endif
   AnnoBody body) => TcMatchCtxt body
           -> [Scaled ExpSigmaType]      -- Expected pattern types
@@ -269,7 +269,7 @@ tcMatches ctxt pat_tys rhs_ty (MG { mg_alts = L l matches
 -------------
 tcMatch :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (Anno (GRHS GhcTc (LocatedA (body GhcTc)))),
+  WDT (Anno (GRHS GhcTc (LocatedA (body GhcTc)))),
 #endif
   AnnoBody body) => TcMatchCtxt body
         -> [Scaled ExpSigmaType]        -- Expected pattern types
@@ -299,7 +299,7 @@ tcMatch ctxt pat_tys rhs_ty match
 -------------
 tcGRHSs :: (
 #if MIN_VERSION_base(4,16,0)
-           WFT (Anno (GRHS GhcTc (LocatedA (body GhcTc)))),
+           WDT (Anno (GRHS GhcTc (LocatedA (body GhcTc)))),
 #endif
            AnnoBody body)
         => TcMatchCtxt body -> GRHSs GhcRn (LocatedA (body GhcRn)) -> ExpRhoType

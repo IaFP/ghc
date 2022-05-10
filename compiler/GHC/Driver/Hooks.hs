@@ -75,7 +75,7 @@ import GHC.Data.Bag
 import qualified Data.Kind
 import System.Process
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@), WFT)
+import GHC.Types (type(@), WDT)
 #endif
 
 {-
@@ -92,7 +92,7 @@ import GHC.Types (type(@), WFT)
 
 emptyHooks ::
 #if MIN_VERSION_base(4,16,0)
-              WFT (DsForeignsHook) =>
+              WDT (DsForeignsHook) =>
 #endif
               Hooks
 emptyHooks = Hooks

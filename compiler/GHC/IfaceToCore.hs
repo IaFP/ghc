@@ -739,7 +739,7 @@ tc_iface_decl parent b (IfaceFamily {ifName = tc_name,
                                      ifResKind = res_kind,
                                      ifResVar = res,
                                      ifFamInj = inj,
-                                     ifWFMirror = mirror
+                                     ifWDMirror = mirror
                                     })
    = bindIfaceTyConBinders_AT binders $ \ binders' -> do
      { res_kind' <- tcIfaceType res_kind    -- Note [Synonym kind loop]
@@ -747,8 +747,8 @@ tc_iface_decl parent b (IfaceFamily {ifName = tc_name,
                    tc_fam_flav tc_name fam_flav
      ; res_name <- traverse (newIfaceName . mkTyVarOccFS) res
      ; tycon <- do { wf'tc <- mapM (tc_iface_decl parent b) mirror
-                   ; if isWFName tc_name
-                     then return $ mkWFFamilyTyCon tc_name binders'
+                   ; if isWDName tc_name
+                     then return $ mkWDFamilyTyCon tc_name binders'
                             res_kind' res_name rhs parent
                      else return $ mkFamilyTyCon tc_name binders'
                             res_kind' res_name rhs parent inj (fmap tyThingTyCon wf'tc)
@@ -849,8 +849,8 @@ tc_iface_decl _parent ignore_prags
                   -- e.g.   type AT a; type AT b = AT [b]   #8002
                      ; let tc_ati = ATI tc mb_def
                      ; return [tc_ati] }
-            else if not (isWFMirrorTyCon tc)
-                 then do { let wf_tc = wfMirrorTyCon "tc_at" tc -- this better not fail as we know this is not a mirror
+            else if not (isWDMirrorTyCon tc)
+                 then do { let wf_tc = wdMirrorTyCon "tc_at" tc -- this better not fail as we know this is not a mirror
                          ; mb_def <- case if_def of
                                 Nothing  -> return Nothing
                                 Just def -> forkM (mk_at_doc tc)           $
@@ -867,7 +867,7 @@ tc_iface_decl _parent ignore_prags
    
    mk_sc_doc pred = text "Superclass" <+> ppr pred
    mk_at_doc tc = text "Associated type " <+> ppr tc
-                  <+> text "WF type" <+> ppr (wfMirrorTyCon_maybe tc)
+                  <+> text "WD type" <+> ppr (wdMirrorTyCon_maybe tc)
    mk_op_doc op_name op_ty = text "Class op" <+> sep [ppr op_name, ppr op_ty]
 
 tc_iface_decl _ _ (IfaceAxiom { ifName = tc_name, ifTyCon = tc

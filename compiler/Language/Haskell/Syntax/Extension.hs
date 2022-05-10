@@ -29,7 +29,7 @@ import Data.Data hiding ( Fixity )
 import Data.Kind (Type)
 import GHC.Utils.Outputable
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 {-
@@ -153,7 +153,7 @@ class MapXRec p where
 -- See Note [XRec and SrcSpans in the AST]
 class
 #if MIN_VERSION_base(4,16,0)
-  WFT (XRec p a) =>
+  WDT (XRec p a) =>
 #endif
   WrapXRec p a where
   wrapXRec :: a -> XRec p a
