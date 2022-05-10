@@ -902,7 +902,7 @@ checkHiBootIface'
                           Nothing    -> [name]
                           Just avail -> availNames boot_avail `minusList` availNames avail
         missing_names = filter (not . isWDName) missing_names'
-        -- see lookup_wf_ie in Tc.Gen.Export.hs as to why we want to filter out wf names in our check
+        -- see lookup_wd_ie in Tc.Gen.Export.hs as to why we want to filter out wf names in our check
 
     local_export_env :: NameEnv AvailInfo
     local_export_env = availsToNameEnv local_exports
@@ -984,10 +984,10 @@ checkBootDeclM is_boot boot_thing real_thing
 -- [Note] Checking Mirror Type Family Free Type Equality
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 -- Ideally we should just be checking straight for equality.
--- but extra $wf' constraints and @ constraints that get elaborated
+-- but extra $wd: constraints and @ constraints that get elaborated
 -- might not be elaborated in boot file. This is becuase we don't know the body of the
 -- data type defs while type checking boot.
--- So we relax the type equality by skipping on the wf constraints
+-- So we relax the type equality by skipping on the wd constraints
 
 -- | Compares the two things for equivalence between boot-file and normal
 -- code. Returns @Nothing@ on success or @Just "some helpful info for user"@

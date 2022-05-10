@@ -1098,7 +1098,7 @@ shortCutSolver dflags ev_w ev_i
                        , cir_mk_ev     = mk_ev
                        , cir_what      = what }
                  | safeOverlap what
-                 , all isTyFamFree (filter (\ x -> not (isWfPred x)) preds) -- all the preds that don't mention @ are ty fam free
+                 , all isTyFamFree (filter (\ x -> not (isWdPred x)) preds) -- all the preds that don't mention @ are ty fam free
                  -- Note [Shortcut solving: type families]
                  -> do { let solved_dicts' = addDict solved_dicts cls tys ev
                              -- solved_dicts': it is important that we add our goal

@@ -1101,11 +1101,11 @@ unify_ty env ty1 ty2 _kco
   = if isInjectiveTyCon tc1 Nominal
     then unify_tys env tys1 tys2
     else do { let inj | isTypeFamilyTyCon tc1
-                      , not (isWfTyCon tc1)
+                      , not (isWdTyCon tc1)
                       = case tyConInjectivityInfo tc1 of
                                NotInjective -> repeat False
                                Injective bs -> bs
-                      | isWfTyCon tc1              -- @ type family constructor is special.
+                      | isWdTyCon tc1              -- @ type family constructor is special.
                       = repeat True                -- Its not injective but you can split it as it is regular
                       
                       | otherwise

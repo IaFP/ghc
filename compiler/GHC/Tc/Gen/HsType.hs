@@ -93,7 +93,7 @@ import GHC.Tc.Utils.Zonk
 import GHC.Core.TyCo.Rep
 import GHC.Core.TyCo.Ppr
 import GHC.Tc.Utils.TcType
-import GHC.Tc.TyCl.Build (mk_wf_name)
+import GHC.Tc.TyCl.Build (mk_wd_name)
 import GHC.Tc.Utils.Instantiate ( tcInstInvisibleTyBinders, tcInstInvisibleTyBindersN,
                                   tcInstInvisibleTyBinder )
 import GHC.Core.Type
@@ -396,7 +396,7 @@ tcClassSigType names sig_ty
   = addSigCtxt sig_ctxt sig_ty $
     do { (implic, ty) <- tc_lhs_sig_type skol_info sig_ty (TheKind liftedTypeKind)
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; ty <- if partyCtrs then elabWfTypeTcM False ty else return ty
+       ; ty <- if partyCtrs then elabWdTypeTcM False ty else return ty
        ; emitImplication implic
        ; return ty }
        -- Do not zonk-to-Type, nor perform a validity check
@@ -437,7 +437,7 @@ tcHsSigType shouldSquash ctxt sig_ty
 
        ; ty <- zonkTcType ty
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; ty <- if partyCtrs then elabWfTypeTcM (not shouldSquash) ty else return ty
+       ; ty <- if partyCtrs then elabWdTypeTcM (not shouldSquash) ty else return ty
        ; checkValidType ctxt ty
 
        ; traceTc "end tcHsSigType }" (ppr ty)
@@ -614,14 +614,14 @@ tc_top_lhs_type tyki ctxt (L loc sig_ty@(HsSig { sig_bndrs = hs_outer_bndrs
        ; final_ty' <- zonkTcTypeToTypeX ze (mkInfForAllTys kvs ty1)
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
        ; final_ty <- if partyCtrs && isTypeLevel tyki
-                     then elabWfTypeTcM (not keepElabType) final_ty' -- TODO: Just pass in the ctxt maybe?
+                     then elabWdTypeTcM (not keepElabType) final_ty' -- TODO: Just pass in the ctxt maybe?
                      else return final_ty'
        
        ; traceTc "tc_top_lhs_type }" (vcat [ppr sig_ty, ppr final_ty])
        ; return final_ty }
   where
     skol_info = SigTypeSkol ctxt
-    keepElabType = isCtxtGoodForWfTyRed ctxt
+    keepElabType = isCtxtGoodForWdTyRed ctxt
 -----------------
 tcHsDeriv :: LHsSigType GhcRn -> TcM ([TyVar], Class, [Type], [Kind])
 -- Like tcHsSigType, but for the ...deriving( C t1 ty2 ) clause
@@ -2430,9 +2430,9 @@ kcCheckDeclHeader_cusk mflag name flav
 
              all_tv_prs =  mkTyVarNamePairs (scoped_kvs ++ tc_tvs)
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; mb_wf_tctycon <- if partyCtrs && genWDMirror mflag
-                          then do { wf_name <- mk_wf_name name
-                                  ; let mirror_tycon = mkWDTcTyCon wf_name final_tc_binders
+       ; mb_wd_tctycon <- if partyCtrs && genWDMirror mflag
+                          then do { wd_name <- mk_wd_name name
+                                  ; let mirror_tycon = mkWDTcTyCon wd_name final_tc_binders
                                                           constraintKind all_tv_prs
                                                           True flav 
                                   ; return $ Just mirror_tycon
@@ -2442,7 +2442,7 @@ kcCheckDeclHeader_cusk mflag name flav
        ; let tycon = mkTcTyCon name final_tc_binders res_kind all_tv_prs
                                True -- it is generalised
                                flav
-                               mb_wf_tctycon
+                               mb_wd_tctycon
        ; reportUnsolvedEqualities skol_info (binderVars final_tc_binders)
                                   tclvl wanted
 
@@ -2515,9 +2515,9 @@ kcInferDeclHeader mflag name flav
                --     ditto Implicit
                -- See Note [Cloning for type variable binders]
       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-      ; mb_wf_tctycon <- if partyCtrs && genWDMirror mflag
-                         then do { wf_name <- mk_wf_name name
-                                 ; let mirror_tycon = mkWDTcTyCon wf_name tc_binders constraintKind all_tv_prs
+      ; mb_wd_tctycon <- if partyCtrs && genWDMirror mflag
+                         then do { wd_name <- mk_wd_name name
+                                 ; let mirror_tycon = mkWDTcTyCon wd_name tc_binders constraintKind all_tv_prs
                                                       False flav
                                  ; return $ Just mirror_tycon
                                  }
@@ -2527,7 +2527,7 @@ kcInferDeclHeader mflag name flav
        ; let tycon = mkTcTyCon name tc_binders res_kind all_tv_prs
                                False -- not yet generalised
                                flav
-                               mb_wf_tctycon
+                               mb_wd_tctycon
 
        ; traceTc "kcInferDeclHeader: not-cusk" $
          vcat [ ppr name, ppr kv_ns, ppr hs_tvs
@@ -2642,14 +2642,14 @@ kcCheckDeclHeader_sig mflag kisig name flav
               implicit_tv_prs = implicit_nms `zip` implicit_tvs
               all_tv_prs      = implicit_tv_prs ++ explicit_tv_prs
         ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-        ; mb_wf_tctycon <- if partyCtrs && genWDMirror mflag
-                          then do { wf_name <- mk_wf_name name
-                                  ; let mirror_tycon = mkWDTcTyCon wf_name tcbs constraintKind all_tv_prs
+        ; mb_wd_tctycon <- if partyCtrs && genWDMirror mflag
+                          then do { wd_name <- mk_wd_name name
+                                  ; let mirror_tycon = mkWDTcTyCon wd_name tcbs constraintKind all_tv_prs
                                                        True flav
                                   ; return $ Just mirror_tycon
                                   }
                           else return Nothing
-        ; let tc              = mkTcTyCon name tcbs r_ki all_tv_prs True flav mb_wf_tctycon
+        ; let tc              = mkTcTyCon name tcbs r_ki all_tv_prs True flav mb_wd_tctycon
               skol_info       = TyConSkol flav name
 
         -- Check that there are no unsolved equalities

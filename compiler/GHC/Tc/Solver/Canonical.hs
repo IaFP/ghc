@@ -1752,7 +1752,7 @@ canTyConApp ev eq_rel tc1 tys1 tc2 tys2
      -- See Note [Decomposing equality]
     can_decompose inerts
       =  isInjectiveTyCon tc1 (eqRelRole eq_rel)
-      || isWfTyCon tc1
+      || isWdTyCon tc1
       || (ctEvFlavour ev /= Given && isEmptyBag (matchableGivens loc pred inerts))
 
 {-

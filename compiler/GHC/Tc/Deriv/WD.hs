@@ -12,7 +12,7 @@ module GHC.Tc.Deriv.WD ( mk_atat_fam, mk_atat_fam_except
                        , mk_atat_fam_units, mk_atat_fam_except_units
                        , genWDTyFamInst, genWDTyFamInsts
                        , genWDFamInstConstraint
-                       , mk_datafam_wfs
+                       , mk_datafam_wds
                        ) where
 
 
@@ -183,7 +183,7 @@ getMatchingPredicates' tv tvs preds =
 --   Tree @ a
 genWDFamInstConstraint :: Type -> TcM Type
 genWDFamInstConstraint rhs
-  = do { preds <- genWfConstraintsTcM False rhs []
+  = do { preds <- genWdConstraintsTcM False rhs []
        ; let n = length preds
        ; if n == 1
          then return $ head preds
@@ -191,13 +191,13 @@ genWDFamInstConstraint rhs
        }
 
 -- This is called when we are type checking a data family instance
-mk_datafam_wfs :: SrcSpan -> TyCon -> [Type] -> TyCon -> TcM [FamInst]
-mk_datafam_wfs loc fam_tc pats rep_tc
+mk_datafam_wds :: SrcSpan -> TyCon -> [Type] -> TyCon -> TcM [FamInst]
+mk_datafam_wds loc fam_tc pats rep_tc
   | isDataFamilyTyCon fam_tc
   , let bndrs_and_pats = zip (tyConBinders fam_tc) pats
         d_ctxt = tyConStupidTheta rep_tc
-  = do traceTc "wfelab mk_datafam_wfs" (ppr $ map (\(b, p) -> (b, p, tcTypeKind p)) bndrs_and_pats)
-       mk_datafam_wfs' loc fam_tc bndrs_and_pats [] (tyConTyVars fam_tc) [] d_ctxt []
+  = do traceTc "wdelab mk_datafam_wds" (ppr $ map (\(b, p) -> (b, p, tcTypeKind p)) bndrs_and_pats)
+       mk_datafam_wds' loc fam_tc bndrs_and_pats [] (tyConTyVars fam_tc) [] d_ctxt []
   | otherwise
   = return []
 
@@ -238,18 +238,18 @@ mk_atat_fam' loc acc tc uTys (tyd, ty:tyl) (tyvarsd, (tyvar, shouldInc):tyvarsl)
 mk_atat_fam' _ acc _ _ _ _ _ = return acc
 
 
-mk_datafam_wfs' :: SrcSpan -> TyCon
+mk_datafam_wds' :: SrcSpan -> TyCon
                 -> [(TyConBinder,Type)] -> [Type]
                 -> [TyVar] -> [TyVar]
                 -> [PredType]
                 -> [FamInst] -> TcM [FamInst]
-mk_datafam_wfs' _ _ [] _ _ _ _ acc = return acc
-mk_datafam_wfs' _ _ _ _ [] _ _ acc = return acc
-mk_datafam_wfs' loc fam_tc ((bndr,ty_arg):ty_rest) tyds (tyvar:tyvars_rest) tyvards theta acc
+mk_datafam_wds' _ _ [] _ _ _ _ acc = return acc
+mk_datafam_wds' _ _ _ _ [] _ _ acc = return acc
+mk_datafam_wds' loc fam_tc ((bndr,ty_arg):ty_rest) tyds (tyvar:tyvars_rest) tyvards theta acc
   | AnonTCB VisArg <- binderArgFlag bndr
   = do let tyd' = tyds ++ [ty_arg]
            tyvarsd' = if isTyVarTy ty_arg
-             then tyvards ++ [getTyVar "mk_datafam_wfs" ty_arg]
+             then tyvards ++ [getTyVar "mk_datafam_wds" ty_arg]
              else tyvards ++ [tyvar]
        inst_name <- newFamInstTyConName (L (noAnnSrcSpan loc) wdTyConName) ((mkTyConTy fam_tc):tyd')
        let argK = tcTypeKind ty_arg
@@ -260,7 +260,7 @@ mk_datafam_wfs' loc fam_tc ((bndr,ty_arg):ty_rest) tyds (tyvar:tyvars_rest) tyva
            lhs_tys = [argK, resK, f, ty_arg]
            axiom_vars = dVarSetElems . mkDVarSet $ concatMap predTyVars lhs_tys
            axiom = mkSingleCoAxiom Nominal inst_name axiom_vars [] [] wdTyCon lhs_tys rhs_pred
-       traceTc "wfelab datafam axiom" (vcat [ parens (ppr inst_name)
+       traceTc "wdelab datafam axiom" (vcat [ parens (ppr inst_name)
                                             , parens (ppr f <> dcolon <> ppr fk)
                                                        <+> ppr wdTyCon
                                                        <+> parens (ppr ty_arg <> dcolon <> ppr argK)
@@ -270,13 +270,13 @@ mk_datafam_wfs' loc fam_tc ((bndr,ty_arg):ty_rest) tyds (tyvar:tyvars_rest) tyva
                                             , text "isForallTy: " <> ppr (isForAllTy argK)
                                             ])
        fam <- newFamInst SynFamilyInst axiom
-       mk_datafam_wfs' loc fam_tc ty_rest tyd' tyvars_rest tyvarsd' theta (fam:acc)
+       mk_datafam_wds' loc fam_tc ty_rest tyd' tyvars_rest tyvarsd' theta (fam:acc)
   | otherwise
   , let tyd' = tyds ++ [ty_arg]
         tyvarsd' = if isTyVarTy ty_arg
-                   then tyvards ++ [getTyVar "mk_datafam_wfs" ty_arg]
+                   then tyvards ++ [getTyVar "mk_datafam_wds" ty_arg]
                    else tyvards ++ [tyvar]
-  = mk_datafam_wfs' loc fam_tc ty_rest tyd' tyvars_rest tyvarsd' theta acc
+  = mk_datafam_wds' loc fam_tc ty_rest tyd' tyvars_rest tyvarsd' theta acc
 
 
 {-
@@ -291,23 +291,23 @@ data instance DF (a::Bool) where
 -- given a type family instance equation
 -- D a b ~ T a b
 -- generates a WD_D a equation
--- $wf'D a b ~ wf(T a b)
--- or $wf'D a b ~ (T @ a, T a @ b)
--- and even simplify it to $wf'D a b ~ () if T is total
+-- $wd:D a b ~ wdt(T a b)
+-- or $wd: a b ~ (T @ a, T a @ b)
+-- and even simplify it to $wd:D a b ~ () if T is total
 genWDTyFamInst :: FamInst -> TcM [FamInst] -- can be [] if there's a Sing
 genWDTyFamInst fam_inst
   | SynFamilyInst <- famInstFlavor fam_inst
   = do { let (fam_tc, ts) = famInstSplitLHS fam_inst
              rhs_ty = famInstRHS fam_inst
-       ; let wf_tc = wdMirrorTyCon "genWDTyFamInst" fam_tc
+       ; let wd_tc = wdMirrorTyCon "genWDTyFamInst" fam_tc
              loc = noAnnSrcSpan . getSrcSpan $ fam_inst
-       ; inst_name <- newFamInstTyConName (L loc (getName wf_tc)) ts
-       ; wf_rhs_ty <- genWDFamInstConstraint rhs_ty
+       ; inst_name <- newFamInstTyConName (L loc (getName wd_tc)) ts
+       ; wd_rhs_ty <- genWDFamInstConstraint rhs_ty
        ; let tvs     = fi_tvs fam_inst
              lhs_tys = ts
-             axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wf_tc lhs_tys wf_rhs_ty
-       ; traceTc "wfelab axiom synfam" (vcat [ parens (ppr inst_name)
-                                              , ppr wf_tc <+> ppr lhs_tys <+> text "~" <+> ppr wf_rhs_ty
+             axiom = mkSingleCoAxiom Nominal inst_name tvs [] [] wd_tc lhs_tys wd_rhs_ty
+       ; traceTc "wdelab axiom synfam" (vcat [ parens (ppr inst_name)
+                                              , ppr wd_tc <+> ppr lhs_tys <+> text "~" <+> ppr wd_rhs_ty
                                               ])
        ; singleton <$> newFamInst SynFamilyInst axiom
        }

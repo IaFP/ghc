@@ -558,8 +558,8 @@ tcATDefault loc inst_subst defined_ats (ATI fam_tc defs)
                                               , pprCoAxiom axiom ])
        ; fam_inst <- newFamInst SynFamilyInst axiom
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; wf_fam_inst <- if partyCtrs then genWDTyFamInst fam_inst else return []
-       ; return $ fam_inst:wf_fam_inst }
+       ; wd_fam_inst <- if partyCtrs then genWDTyFamInst fam_inst else return []
+       ; return $ fam_inst:wd_fam_inst }
    -- No defaults ==> generate a warning
   | otherwise  -- defs = Nothing
   = do { warnMissingAT (tyConName fam_tc)

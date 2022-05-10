@@ -1068,7 +1068,7 @@ dsConLike con tvbs tys
        ; let ids = if partyCtrs
                    then (case arity_mb of
                            Just arity -> drop (length tys - arity) $ ids'
-                           -- drop all the prefixed args that are just wf_theta + stupid_theta
+                           -- drop all the prefixed args that are just wd_theta + stupid_theta
                            Nothing -> dropList (conLikeStupidTheta con) ids')
                            -- we force newtypes to have stupidTheta so drop those, for pat syn stupid_theta is 0
                    else ids'

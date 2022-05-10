@@ -951,24 +951,24 @@ getLocalNonValBinders fixity_env
                          -> if isWiredInName (fst main_name) || not (genWDMirror (snd main_name))
                             then return [(availTC (fst main_name) (map fst names) flds', fld_env)]
                             else do { m <- getModule
-                                    ; wf_name <- newWFGlobalBinder m (fst main_name)
+                                    ; wd_name <- newWDGlobalBinder m (fst main_name)
                                     ; return [ (availTC (fst main_name) (map fst names) flds', fld_env)
-                                             , ((availTC wf_name [wf_name] []), []) ]
+                                             , ((availTC wd_name [wd_name] []), []) ]
                                     }
                        ClassDecl {}                 -- pick out each of the sub_names
                                                     -- that look like a tycon and
-                                                    -- generate a wf'* name for them
+                                                    -- generate a $wd:* name for them
                          -> do { m <- getModule
                                ; let ats_names = filter (genWDMirror . snd) sub_names 
-                               ; wf_names <- mapM (newWFGlobalBinder m) (map fst ats_names)
-                               ; return [(availTC (fst main_name) ((map fst names) ++ wf_names) (flds'), fld_env)]
+                               ; wd_names <- mapM (newWDGlobalBinder m) (map fst ats_names)
+                               ; return [(availTC (fst main_name) ((map fst names) ++ wd_names) (flds'), fld_env)]
                                }
                        _          -> return $ [(availTC (fst main_name) (map fst names) flds', fld_env)]
                else return $ [(availTC (fst main_name) (map fst names) flds', fld_env)]
              }
 
-    newWFGlobalBinder :: Module -> Name -> RnM Name
-    newWFGlobalBinder m main_name
+    newWDGlobalBinder :: Module -> Name -> RnM Name
+    newWDGlobalBinder m main_name
           = do { let occ = mkWDTyConOcc $ nameOccName main_name
                ; newGlobalBinder m occ (nameSrcSpan main_name) }
 
