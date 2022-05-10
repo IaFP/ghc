@@ -2915,10 +2915,10 @@ tcFamDecl1 parent wdname (FamilyDecl { fdInfo = fam_info
                                  ClosedTypeFamilyFlavour
 
                ; branches <- mapAndReportM (tcTyFamInstEqn tc_fam_tc NotAssociated) eqns
-               ; co_ax_name <- newdamInstAxiomName tc_lname []
+               ; co_ax_name <- newFamInstAxiomName tc_lname []
 
                ; wd_branches <- mapM (tcWDTyFamInstEqn tc_fam_tc) eqns
-               ; wd_co_ax_name <- newdamInstAxiomName (L src_span wd_name) []
+               ; wd_co_ax_name <- newFamInstAxiomName (L src_span wd_name) []
 
                ; let mb_co_ax
                        | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
@@ -2951,7 +2951,7 @@ tcFamDecl1 parent wdname (FamilyDecl { fdInfo = fam_info
                -- Example: tc265
 
                -- Create a CoAxiom, with the correct src location.
-               ; co_ax_name <- newdamInstAxiomName tc_lname []
+               ; co_ax_name <- newFamInstAxiomName tc_lname []
 
                ; let mb_co_ax
                        | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
