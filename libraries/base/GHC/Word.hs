@@ -58,6 +58,13 @@ import GHC.Real
 import GHC.Ix
 import GHC.Show
 
+
+
+instance Unboxable Word8
+instance Unboxable Word16
+instance Unboxable Word32
+instance Unboxable Word64
+
 ------------------------------------------------------------------------
 -- type Word8
 ------------------------------------------------------------------------

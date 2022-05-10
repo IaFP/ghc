@@ -38,9 +38,13 @@ import GHC.Base
 import GHC.List ( length )
 import GHC.ST
 import GHC.Ptr
+import GHC.Ix (Ix)
 
-data ByteArray ix              = ByteArray        ix ix ByteArray#
-data MutableByteArray s ix     = MutableByteArray ix ix (MutableByteArray# s)
+data Ix ix => ByteArray ix              = ByteArray        ix ix ByteArray#
+data Ix ix => MutableByteArray s ix     = MutableByteArray ix ix (MutableByteArray# s)
+
+instance Unboxable (ByteArray ix)
+instance Unboxable (MutableByteArray ix)
 
 unpackCString :: Ptr a -> [Char]
 unpackCString a@(Ptr addr)

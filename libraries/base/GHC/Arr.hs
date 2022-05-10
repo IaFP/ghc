@@ -54,7 +54,7 @@ default ()
 
 -- | The type of immutable non-strict (boxed) arrays
 -- with indices in @i@ and elements in @e@.
-data Array i e
+data Ix i => Array i e
    = Array            !i         -- the lower bound, l
                       !i         -- the upper bound, u
        {-# UNPACK #-} !Int       -- A cache of (rangeSize (l,u))
@@ -71,7 +71,7 @@ data Array i e
 --
 --  * @e@: the element type of the array.
 --
-data STArray s i e
+data Ix i => STArray s i e
   = STArray           !i               -- the lower bound, l
                       !i               -- the upper bound, u
       {-# UNPACK #-}  !Int             -- A cache of (rangeSize (l,u))

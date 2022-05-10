@@ -38,7 +38,7 @@ import GHC.Arr
 --
 --
 
-newtype IOArray i e = IOArray (STArray RealWorld i e)
+newtype Ix i => IOArray i e = IOArray (STArray RealWorld i e)
 
 -- index type should have a nominal role due to Ix class. See also #9220.
 type role IOArray nominal representational

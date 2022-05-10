@@ -52,6 +52,12 @@ import GHC.Read
 import GHC.Arr
 import GHC.Show
 
+
+instance Unboxable Int8
+instance Unboxable Int16
+instance Unboxable Int32
+instance Unboxable Int64
+
 ------------------------------------------------------------------------
 -- type Int8
 ------------------------------------------------------------------------

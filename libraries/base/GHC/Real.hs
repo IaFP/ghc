@@ -1,5 +1,5 @@
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE CPP, NoImplicitPrelude, MagicHash, UnboxedTuples, BangPatterns #-}
+{-# LANGUAGE CPP, NoImplicitPrelude, MagicHash, UnboxedTuples, BangPatterns, FlexibleContexts #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
@@ -73,7 +73,7 @@ underflowError = raise# underflowException
 -- Note that `Ratio`'s instances inherit the deficiencies from the type
 -- parameter's. For example, @Ratio Natural@'s 'Num' instance has similar
 -- problems to `Numeric.Natural.Natural`'s.
-data  Ratio a = !a :% !a  deriving Eq -- ^ @since 2.01
+data  Integral a => Ratio a = !a :% !a  deriving Eq -- ^ @since 2.01
 
 -- | Arbitrary-precision rational numbers, represented as a ratio of
 -- two 'Integer' values.  A rational number may be constructed using

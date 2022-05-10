@@ -48,6 +48,7 @@ data Ptr a = Ptr Addr#
   deriving ( Eq  -- ^ @since 2.01
            , Ord -- ^ @since 2.01
            )
+instance Unboxable (Ptr a)
 -- ^ A value of type @'Ptr' a@ represents a pointer to an object, or an
 -- array of objects, which may be marshalled to or from Haskell values
 -- of type @a@.
@@ -94,6 +95,7 @@ minusPtr (Ptr a1) (Ptr a2) = I# (minusAddr# a1 a2)
 -- 'FunPtr' has a phantom role for similar reasons to 'Ptr'.
 type role FunPtr phantom
 data FunPtr a = FunPtr Addr# deriving (Eq, Ord)
+instance Unboxable (FunPtr a)
 -- ^ A value of type @'FunPtr' a@ is a pointer to a function callable
 -- from foreign code.  The type @a@ will normally be a /foreign type/,
 -- a function type with zero or more arguments where

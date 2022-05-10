@@ -38,7 +38,12 @@ module GHC.Types (
         type (~~), Coercible,
         TYPE, Levity(..), RuntimeRep(..),
         LiftedRep, UnliftedRep,
+        -- Things for representing well-defined constraints
         type (@), WDT, Total, Total2,
+        -- Things that are Unboxable
+        -- Int, Double, Float etc. and have a bare machine representation and not via a pointer
+        Unboxable,
+
         Type, UnliftedType, Constraint,
           -- The historical type * should ideally be written as
           -- `type *`, without the parentheses. But that's a true
@@ -374,6 +379,15 @@ instance (f @ a, f a @ b) => Cheat2 (f::k''-> k' -> k) (a::k'') (b:: k')
 
 type Total (f::k' -> k) = forall (a:: k'). Cheat f a
 type Total2 (f:: k'' -> k' -> k) = forall (a::k'') (b::k'). Cheat2 f a b
+
+-- Things that aren't represented as a pointer
+class Unboxable a
+instance Unboxable Bool
+instance Unboxable Char
+instance Unboxable Int
+instance Unboxable Word
+instance Unboxable Double
+instance Unboxable Float
 
 
 {- *********************************************************************

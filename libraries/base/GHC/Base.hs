@@ -208,10 +208,6 @@ build = errorWithoutStackTrace "urk"
 foldr = errorWithoutStackTrace "urk"
 #endif
 
--- #if __GLASGOW_HASKELL__ >= 910
--- instance Total IO
--- instance Total []
--- instance Total NonEmpty
 type instance IO @ a = ()
 
 type instance [] @ a = ()
@@ -272,8 +268,6 @@ type instance (,,,,,,,,) i h g f e d c b @ a = ()
 
 type instance (->) @ a = ()
 type instance (->) b @ a = ()
-
-
 
 infixr 6 <>
 

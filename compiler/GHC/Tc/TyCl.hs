@@ -4509,7 +4509,7 @@ checkNewTypeThetaEntailment tc
        ; let wd_ct = thetaToCnstTy wd_theta
        ; traceTc "wdelab newtype theta entailment" (vcat [ text "theta"  <+> ppr ctxt
                                                          , text "wd ct" <+> ppr wd_ct ] )
-       ; _ <- addErrCtxtM (newTypeCtxt (tyConName tc) ctxt wd_ct) $
+       ; _ <- addErrCtxtM (newTypeCtxt (tyConName tc) ctxt wd_ct) $ -- TODO set the right src span for error generation
                     tcSubTypeSigma (DataTyCtxt $ tyConName tc)
                                    (attachConstraints wd_theta rhs_ty)
                                    (attachConstraints tc_th rhs_ty)

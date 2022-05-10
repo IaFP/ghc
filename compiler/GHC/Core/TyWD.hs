@@ -435,7 +435,7 @@ flatten_atat_constraint isTyConPhase ty
   , not isTyConPhase
   = reduceType ty
   | (TyConApp tc ((TyConApp tc2 _):_)) <- ty
-  , isWFMirrorTyCon tc
+  , isWDMirrorTyCon tc
   , tc2 `hasKey` ioTyConKey
     || tc2 `hasKey` listTyConKey
     -- || tc2 `hasKey` maybeTyConKey -- ANI Causes problems in specializer no idea why.
