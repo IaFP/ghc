@@ -615,7 +615,7 @@ isTypeableBindOcc occ =
 isWDTyConOcc :: OccName -> Bool
 isWDTyConOcc occ =
    case occNameString occ of
-     '$':'w':'f': ':' : _ -> True  -- mkTyConRepOcc
+     '$':'w':'d': ':' : _ -> True  -- mkTyConRepOcc
      _ -> False
 
 
