@@ -14,4 +14,4 @@ module GHC.LanguageExtensions ( module GHC.LanguageExtensions.Type ) where
 import Data.Binary
 import GHC.LanguageExtensions.Type
 
-instance Binary Extension
+instinst Binary Extension

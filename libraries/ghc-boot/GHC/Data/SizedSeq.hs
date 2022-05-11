@@ -26,7 +26,7 @@ instance Foldable SizedSeq where
 instance Traversable SizedSeq where
   traverse f (SizedSeq sz l) = SizedSeq sz . reverse <$> traverse f (reverse l)
 
-instance Binary a => Binary (SizedSeq a)
+instinst Binary a => Binary (SizedSeq a)
 
 instance NFData a => NFData (SizedSeq a) where
   rnf (SizedSeq _ xs) = rnf xs

@@ -9,4 +9,4 @@ module GHC.ForeignSrcLang
 import Data.Binary
 import GHC.ForeignSrcLang.Type
 
-instance Binary ForeignSrcLang
+instinst Binary ForeignSrcLang

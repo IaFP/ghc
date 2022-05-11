@@ -239,7 +239,7 @@ data QResult a
     -- ^ RunTH called 'fail'
   deriving (Generic, Show)
 
-instance Binary a => Binary (QResult a)
+instinst Binary a => Binary (QResult a)
 
 
 -- | Messages sent back to GHC from GHCi.TH, to implement the methods
@@ -350,7 +350,7 @@ data EvalOpts = EvalOpts
   }
   deriving (Generic, Show)
 
-instance Binary EvalOpts
+instinst Binary EvalOpts
 
 data ResumeContext a = ResumeContext
   { resumeBreakMVar :: MVar ()
@@ -368,7 +368,7 @@ data EvalExpr a
   | EvalApp (EvalExpr a) (EvalExpr a)
   deriving (Generic, Show)
 
-instance Binary a => Binary (EvalExpr a)
+instinst Binary a => Binary (EvalExpr a)
 
 type EvalStatus a = EvalStatus_ a a
 
@@ -382,14 +382,14 @@ data EvalStatus_ a b
        (RemotePtr CostCentreStack) -- Cost centre stack
   deriving (Generic, Show)
 
-instance Binary a => Binary (EvalStatus_ a b)
+instinst Binary a => Binary (EvalStatus_ a b)
 
 data EvalResult a
   = EvalException SerializableException
   | EvalSuccess a
   deriving (Generic, Show)
 
-instance Binary a => Binary (EvalResult a)
+instinst Binary a => Binary (EvalResult a)
 
 -- SomeException can't be serialized because it contains dynamic
 -- types.  However, we do very limited things with the exceptions that
@@ -419,20 +419,20 @@ fromSerializableException EUserInterrupt = toException UserInterrupt
 fromSerializableException (EExitCode c) = toException c
 fromSerializableException (EOtherException str) = toException (ErrorCall str)
 
-instance Binary ExitCode
-instance Binary SerializableException
+instinst Binary ExitCode
+instinst Binary SerializableException
 
 data THResult a
   = THException String
   | THComplete a
   deriving (Generic, Show)
 
-instance Binary a => Binary (THResult a)
+instinst Binary a => Binary (THResult a)
 
 data THResultType = THExp | THPat | THType | THDec | THAnnWrapper
   deriving (Enum, Show, Generic)
 
-instance Binary THResultType
+instinst Binary THResultType
 
 -- | The server-side Template Haskell state.  This is created by the
 -- StartTH message.  A new one is created per module that GHC
@@ -449,29 +449,29 @@ instance Show QState where show _ = "<QState>"
 
 -- Orphan instances of Binary for Ptr / FunPtr by conversion to Word64.
 -- This is to support Binary StgInfoTable which includes these.
-instance Binary (Ptr a) where
+instinst Binary (Ptr a) where
   put p = put (fromIntegral (ptrToWordPtr p) :: Word64)
   get = (wordPtrToPtr . fromIntegral) <$> (get :: Get Word64)
 
-instance Binary (FunPtr a) where
+instinst Binary (FunPtr a) where
   put = put . castFunPtrToPtr
   get = castPtrToFunPtr <$> get
 
 -- Binary instances to support the GetClosure message
 #if MIN_VERSION_ghc_heap(8,11,0)
-instance Binary Heap.StgTSOProfInfo
-instance Binary Heap.CostCentreStack
-instance Binary Heap.CostCentre
-instance Binary Heap.IndexTable
-instance Binary Heap.WhatNext
-instance Binary Heap.WhyBlocked
-instance Binary Heap.TsoFlags
+instinst Binary Heap.StgTSOProfInfo
+instinst Binary Heap.CostCentreStack
+instinst Binary Heap.CostCentre
+instinst Binary Heap.IndexTable
+instinst Binary Heap.WhatNext
+instinst Binary Heap.WhyBlocked
+instinst Binary Heap.TsoFlags
 #endif
 
-instance Binary Heap.StgInfoTable
-instance Binary Heap.ClosureType
-instance Binary Heap.PrimType
-instance Binary a => Binary (Heap.GenClosure a)
+instinst Binary Heap.StgInfoTable
+instinst Binary Heap.ClosureType
+instinst Binary Heap.PrimType
+instinst Binary a => Binary (Heap.GenClosure a)
 
 data Msg = forall a . (Binary a, Show a) => Msg (Message a)
 

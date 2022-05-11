@@ -1,0 +1,11 @@
+/home/alex/PTC/ghc/compiler/GHC/HsToCore/Quote.hs:1
+/home/alex/PTC/ghc/compiler/GHC/Hs/Decls.hs:1
+/home/alex/PTC/ghc/compiler/GHC/Hs/Binds.hs:2
+/home/alex/PTC/ghc/compiler/GHC/Data/TrieMap.hs:3
+/home/alex/PTC/ghc/compiler/GHC/Data/Bag.hs:3
+/home/alex/PTC/ghc/compiler/GHC/Data/Stream.hs:2
+/home/alex/PTC/ghc/compiler/GHC/StgToCmm/Foreign.hs:4
+/home/alex/PTC/ghc/compiler/GHC/StgToCmm/Monad.hs:1
+/home/alex/PTC/ghc/compiler/GHC/Types/Id.hs:2
+/home/alex/PTC/ghc/compiler/GHC/Utils/Misc.hs:1
+/home/alex/PTC/ghc/compiler/GHC/Cmm/BlockId.hs:1
