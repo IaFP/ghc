@@ -70,7 +70,7 @@ module GHC.Core.Type (
         mkCharLitTy, isCharLitTy,
         isLitTy,
 
-        isPredTy, isWfPredTy,
+        isPredTy, isWdPredTy,
         
         getRuntimeRep_maybe, kindRep_maybe, kindRep,
 
@@ -919,7 +919,7 @@ mapTyCoX (TyCoMapper { tcm_tyvar = tyvar
            ; return (ty { ft_mult = w', ft_arg = arg', ft_res = res' }) }
 
     -- go_ty _ ty@(TyConApp tc _) -- skip zonking if its a wft tyconapp as they are special
-    --   | isTcTyCon tc-- , tc `hasKey` wfTyConKey
+    --   | isTcTyCon tc-- , tc `hasKey` wdTyConKey
     --   = return ty
       
     go_ty env ty@(TyConApp tc tys)
@@ -3096,9 +3096,9 @@ isPredTy :: HasDebugCallStack => Type -> Bool
 isPredTy ty = tcIsConstraintKind (tcTypeKind ty)
 
 -- True if this is a predicate that classifies TyCon apps as wf predicates 
-isWfPredTy :: HasDebugCallStack => Type -> Bool
-isWfPredTy ty@(TyConApp tc _) = isPredTy ty && (tc `hasKey` wfTyConKey || isWFMirrorTyCon tc)
-isWfPredTy _ = False
+isWdPredTy :: HasDebugCallStack => Type -> Bool
+isWdPredTy ty@(TyConApp tc _) = isPredTy ty && (tc `hasKey` wdTyConKey || isWDMirrorTyCon tc)
+isWdPredTy _ = False
 
 -- tcIsConstraintKind stuff only makes sense in the typechecker
 -- After that Constraint = Type

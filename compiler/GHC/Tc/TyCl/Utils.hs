@@ -46,7 +46,7 @@ import GHC.Core.Predicate
 import GHC.Core.Make( rEC_SEL_ERROR_ID )
 import GHC.Core.Class
 import GHC.Core.Type
-import GHC.Core.TyWF
+import GHC.Core.TyWD
 import GHC.Core.TyCon
 import GHC.Core.ConLike
 import GHC.Core.DataCon
@@ -941,8 +941,8 @@ mkOneRecordSelector all_cons idDetails fl has_sel
                            _                -> False 
        ; sel_ty <- if partyCtrs
                    then if isNTTyCon
-                        then elabWfTypeTcM False sel_ty' -- reduce if its a newtype
-                        else if isVTyCon then elabWfTypeTcM True sel_ty' else return sel_ty'
+                        then elabWdTypeTcM False sel_ty' -- reduce if its a newtype
+                        else if isVTyCon then elabWdTypeTcM True sel_ty' else return sel_ty'
                    else return sel_ty' 
              -- Make the binding: sel (C2 { fld = x }) = x
              --                   sel (C7 { fld = x }) = x

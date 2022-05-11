@@ -1142,7 +1142,7 @@ check_quant_pred env dflags ctxt pred theta head_pred
                                -- in check_pred_ty
             IrredPred {}      | hasTyVarHead head_pred
                                 || (xopt LangExt.PartialTypeConstructors dflags -- make an exception for f @ t predicates
-                                    && isWfPred head_pred) -> return ()
+                                    && isWdPred head_pred) -> return ()
             _                 -> failWithTcM (env, TcRnBadQuantPredHead (tidyType env pred))
 
          -- Check for termination

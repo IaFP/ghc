@@ -27,8 +27,8 @@ module GHC.Core.Predicate (
   getClassPredTys, getClassPredTys_maybe,
   classMethodTy, classMethodInstTy,
 
-  -- WF predicate
-  isWfPred,
+  -- WD predicate
+  isWdPred,
   
   -- Implicit parameters
   isIPLikePred, hasIPSuperClasses, isIPTyCon, isIPClass,
@@ -254,7 +254,7 @@ isEqPredClass :: Class -> Bool
 isEqPredClass cls =  cls `hasKey` eqTyConKey
                   || cls `hasKey` heqTyConKey
 
-isClassPred, isEqPred, isEqPrimPred, isWfPred :: PredType -> Bool
+isClassPred, isEqPred, isEqPrimPred, isWdPred :: PredType -> Bool
 isClassPred ty = case tyConAppTyCon_maybe ty of
     Just tyCon | isClassTyCon tyCon -> True
     _                               -> False
@@ -270,8 +270,8 @@ isEqPred ty  -- True of (a ~ b) and (a ~~ b)
 isEqPrimPred ty = isCoVarType ty
   -- True of (a ~# b) (a ~R# b)
 
-isWfPred ty = case tyConAppTyCon_maybe ty of
-    Just tyCon | tyCon `hasKey` wfTyConKey -> True
+isWdPred ty = case tyConAppTyCon_maybe ty of
+    Just tyCon | tyCon `hasKey` wdTyConKey -> True
     _                                   -> False
 
 isCTupleClass :: Class -> Bool

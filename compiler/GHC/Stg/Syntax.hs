@@ -93,7 +93,7 @@ import GHC.Core.Type     ( Type )
 import GHC.Types.RepType ( typePrimRep1 )
 import GHC.Utils.Panic.Plain
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 {-
@@ -678,7 +678,7 @@ type OutputablePass pass =
   , Outputable (XRhsClosure pass)
   , OutputableBndr (BinderP pass)
 #if MIN_VERSION_base(4,16,0)
-  , WFT (BinderP pass)
+  , WDT (BinderP pass)
 #endif
   )
 
@@ -708,7 +708,7 @@ shortStgPprOpts = StgPprOpts
 
 pprGenStgTopBinding :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (BinderP pass),
+  WDT (BinderP pass),
 #endif
   OutputablePass pass) => StgPprOpts -> GenStgTopBinding pass -> SDoc
 pprGenStgTopBinding opts b = case b of
@@ -717,7 +717,7 @@ pprGenStgTopBinding opts b = case b of
 
 pprGenStgBinding :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (BinderP pass),
+  WDT (BinderP pass),
 #endif
   OutputablePass pass) => StgPprOpts -> GenStgBinding pass -> SDoc
 pprGenStgBinding opts b = case b of
@@ -732,7 +732,7 @@ pprGenStgBinding opts b = case b of
 
 pprGenStgTopBindings :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (BinderP pass),
+  WDT (BinderP pass),
 #endif
   OutputablePass pass) => StgPprOpts -> [GenStgTopBinding pass] -> SDoc
 pprGenStgTopBindings opts binds
@@ -756,7 +756,7 @@ pprStgArg (StgLitArg con) = ppr con
 
 pprStgExpr :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (BinderP pass),
+  WDT (BinderP pass),
 #endif
   OutputablePass pass) => StgPprOpts -> GenStgExpr pass -> SDoc
 pprStgExpr opts e = case e of
@@ -864,7 +864,7 @@ instance Outputable AltType where
 
 pprStgRhs :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (BinderP pass),
+  WDT (BinderP pass),
 #endif
   OutputablePass pass) => StgPprOpts -> GenStgRhs pass -> SDoc
 pprStgRhs opts rhs = case rhs of

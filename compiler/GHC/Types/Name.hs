@@ -58,7 +58,7 @@ module GHC.Types.Name (
         nameSrcLoc, nameSrcSpan, pprNameDefnLoc, pprDefinedAt,
 
         -- ** Predicates on 'Name's
-        isSystemName, isInternalName, isExternalName, isWFName,
+        isSystemName, isInternalName, isExternalName, isWDName,
         isTyVarName, isTyConName, isDataConName,
         isValName, isVarName, isDynLinkName,
         isWiredInName, isWiredIn, isBuiltInSyntax,
@@ -261,7 +261,7 @@ isInternalName    :: Name -> Bool
 isExternalName    :: Name -> Bool
 isSystemName      :: Name -> Bool
 isWiredInName     :: Name -> Bool
-isWFName          :: Name -> Bool
+isWDName          :: Name -> Bool
 
 isWiredInName (Name {n_sort = WiredIn _ _ _}) = True
 isWiredInName _                               = False
@@ -406,7 +406,7 @@ isVarName = isVarOcc . nameOccName
 isSystemName (Name {n_sort = System}) = True
 isSystemName _                        = False
 
-isWFName n = isWFTyConOcc $ nameOccName n
+isWDName n = isWDTyConOcc $ nameOccName n
 
 {-
 ************************************************************************

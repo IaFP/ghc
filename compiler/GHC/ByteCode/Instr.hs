@@ -30,7 +30,7 @@ import GHC.Stack.CCS (CostCentre)
 
 import GHC.Stg.Syntax
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 -- ----------------------------------------------------------------------------
@@ -212,7 +212,7 @@ instance Outputable a => Outputable (ProtoBCO a) where
 
 pprStgExprShort :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (BinderP pass),
+  WDT (BinderP pass),
 #endif
   OutputablePass pass) => StgPprOpts -> GenStgExpr pass -> SDoc
 pprStgExprShort _ (StgCase _expr var _ty _alts) =
@@ -226,7 +226,7 @@ pprStgExprShort opts e = pprStgExpr opts e
 
 pprStgBindShort :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (BinderP pass),
+  WDT (BinderP pass),
 #endif
   OutputablePass pass) => GenStgBinding pass -> SDoc
 pprStgBindShort (StgNonRec x _) =
@@ -236,7 +236,7 @@ pprStgBindShort (StgRec bs) =
 
 pprStgAltShort :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (BinderP pass),
+  WDT (BinderP pass),
 #endif
   OutputablePass pass) => StgPprOpts -> GenStgAlt pass -> SDoc
 pprStgAltShort opts (con, args, expr) =
@@ -244,7 +244,7 @@ pprStgAltShort opts (con, args, expr) =
 
 pprStgRhsShort :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (BinderP pass),
+  WDT (BinderP pass),
 #endif
   OutputablePass pass) => StgPprOpts -> GenStgRhs pass -> SDoc
 pprStgRhsShort opts (StgRhsClosure _ext _cc upd_flag args body) =

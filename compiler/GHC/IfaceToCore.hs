@@ -739,19 +739,19 @@ tc_iface_decl parent b (IfaceFamily {ifName = tc_name,
                                      ifResKind = res_kind,
                                      ifResVar = res,
                                      ifFamInj = inj,
-                                     ifWFMirror = mirror
+                                     ifWDMirror = mirror
                                     })
    = bindIfaceTyConBinders_AT binders $ \ binders' -> do
      { res_kind' <- tcIfaceType res_kind    -- Note [Synonym kind loop]
      ; rhs      <- forkM (mk_doc tc_name) $
                    tc_fam_flav tc_name fam_flav
      ; res_name <- traverse (newIfaceName . mkTyVarOccFS) res
-     ; tycon <- do { wf'tc <- mapM (tc_iface_decl parent b) mirror
-                   ; if isWFName tc_name
-                     then return $ mkWFFamilyTyCon tc_name binders'
+     ; tycon <- do { wd'tc <- mapM (tc_iface_decl parent b) mirror
+                   ; if isWDName tc_name
+                     then return $ mkWDFamilyTyCon tc_name binders'
                             res_kind' res_name rhs parent
                      else return $ mkFamilyTyCon tc_name binders'
-                            res_kind' res_name rhs parent inj (fmap tyThingTyCon wf'tc)
+                            res_kind' res_name rhs parent inj (fmap tyThingTyCon wd'tc)
                    }
      ; return (ATyCon tycon) }
    where
@@ -849,8 +849,8 @@ tc_iface_decl _parent ignore_prags
                   -- e.g.   type AT a; type AT b = AT [b]   #8002
                      ; let tc_ati = ATI tc mb_def
                      ; return [tc_ati] }
-            else if not (isWFMirrorTyCon tc)
-                 then do { let wf_tc = wfMirrorTyCon "tc_at" tc -- this better not fail as we know this is not a mirror
+            else if not (isWDMirrorTyCon tc)
+                 then do { let wd_tc = wdMirrorTyCon "tc_at" tc -- this better not fail as we know this is not a mirror
                          ; mb_def <- case if_def of
                                 Nothing  -> return Nothing
                                 Just def -> forkM (mk_at_doc tc)           $
@@ -860,14 +860,14 @@ tc_iface_decl _parent ignore_prags
                   -- Must be done lazily in case the RHS of the defaults mention
                   -- the type constructor being defined here
                   -- e.g.   type AT a; type AT b = AT [b]   #8002
-                         ; let wf_tc_ati = ATI wf_tc Nothing
+                         ; let wd_tc_ati = ATI wd_tc Nothing
                                tc_ati = ATI tc mb_def
-                         ; return $ [tc_ati , wf_tc_ati] }
+                         ; return $ [tc_ati , wd_tc_ati] }
                  else return []
    
    mk_sc_doc pred = text "Superclass" <+> ppr pred
    mk_at_doc tc = text "Associated type " <+> ppr tc
-                  <+> text "WF type" <+> ppr (wfMirrorTyCon_maybe tc)
+                  <+> text "WD type" <+> ppr (wdMirrorTyCon_maybe tc)
    mk_op_doc op_name op_ty = text "Class op" <+> sep [ppr op_name, ppr op_ty]
 
 tc_iface_decl _ _ (IfaceAxiom { ifName = tc_name, ifTyCon = tc
@@ -936,7 +936,7 @@ tc_iface_decl_fingerprint ignore_prags (_version, decl)
                 -- the names associated with the decl
           let main_name = ifName decl
 
-        -- If decl is a family decl, then we know that there's a hidden wf_tc in there.
+        -- If decl is a family decl, then we know that there's a hidden wd_tc in there.
         -- We would also want to fish that out in to this name -> tything mapping
         
         -- Typecheck the thing, lazily

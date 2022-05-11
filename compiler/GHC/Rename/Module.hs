@@ -78,7 +78,7 @@ import Data.Maybe ( isNothing, fromMaybe, mapMaybe )
 import qualified Data.Set as Set ( difference, fromList, toList, null )
 import Data.Function ( on )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 {- | @rnSourceDecl@ "renames" declarations.
@@ -2628,7 +2628,7 @@ add_kisig d (tycls@(TyClGroup { group_kisigs = kisigs }) : rest)
 
 add_bind ::
 #if MIN_VERSION_base(4,16,0)
-            (WFT (XValBinds a a), WFT (XRec a (Sig a))) =>
+            (WDT (XValBinds a a), WDT (XRec a (Sig a))) =>
 #endif
             LHsBind a -> HsValBinds a -> HsValBinds a
 add_bind b (ValBinds x bs sigs) = ValBinds x (bs `snocBag` b) sigs

@@ -6,7 +6,7 @@ module GHC.Driver.Hooks where
 
 import GHC.Prelude ()
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@), WFT)
+import GHC.Types (type(@), WDT)
 import qualified Data.Kind
 #endif
 
@@ -19,7 +19,7 @@ data Hooks
 
 emptyHooks ::
 #if MIN_VERSION_base(4,16,0)
-              WFT (DsForeignsHook) =>
+              WDT (DsForeignsHook) =>
 #endif
               Hooks
 

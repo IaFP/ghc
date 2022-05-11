@@ -141,7 +141,7 @@ import Data.List (intercalate)
 import Control.Monad
 import GHC.Driver.Env.KnotVars
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total, WFT)
+import GHC.Types (Total, WDT)
 #endif
 
 
@@ -1053,12 +1053,12 @@ data InstBindings a
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass a)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass a))),  
-  WFT (Anno (IdGhcP a)),
-  WFT (Anno (IdGhcP (NoGhcTcPass a))),
-  WFT (SyntaxExprGhc a),
-  WFT (SyntaxExprGhc (NoGhcTcPass a)),  
+  WDT (XOverLit (GhcPass a)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass a))),  
+  WDT (Anno (IdGhcP a)),
+  WDT (Anno (IdGhcP (NoGhcTcPass a))),
+  WDT (SyntaxExprGhc a),
+  WDT (SyntaxExprGhc (NoGhcTcPass a)),  
 #endif
   OutputableBndrId a)
        => Outputable (InstInfo (GhcPass a)) where
@@ -1066,12 +1066,12 @@ instance (
 
 pprInstInfoDetails :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass a)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass a))),  
-  WFT (Anno (IdGhcP a)),
-  WFT (Anno (IdGhcP (NoGhcTcPass a))),
-  WFT (SyntaxExprGhc a),
-  WFT (SyntaxExprGhc (NoGhcTcPass a)),
+  WDT (XOverLit (GhcPass a)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass a))),  
+  WDT (Anno (IdGhcP a)),
+  WDT (Anno (IdGhcP (NoGhcTcPass a))),
+  WDT (SyntaxExprGhc a),
+  WDT (SyntaxExprGhc (NoGhcTcPass a)),
 #endif
   OutputableBndrId a)
                    => InstInfo (GhcPass a) -> SDoc

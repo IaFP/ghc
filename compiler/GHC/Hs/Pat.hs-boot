@@ -21,7 +21,7 @@ import GHC.Hs.Extension (
 
 import Language.Haskell.Syntax.Pat
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 import Language.Haskell.Syntax.Extension
 import {-# Source #-} Language.Haskell.Syntax.Expr (HsExpr)
 import {-# SOURCE #-} GHC.Hs.Expr ( SyntaxExprGhc )
@@ -29,27 +29,27 @@ import {-# SOURCE #-} GHC.Hs.Expr ( SyntaxExprGhc )
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),  
-  WFT (Anno (HsExpr GhcRn)),
-  WFT (Anno (HsExpr (GhcPass p))),  
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),  
+  WDT (Anno (HsExpr GhcRn)),
+  WDT (Anno (HsExpr (GhcPass p))),  
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => Outputable (Pat (GhcPass p))
 
 pprLPat :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (Anno (HsExpr GhcRn)),
-  WFT (Anno (HsExpr (GhcPass p))),  
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (Anno (HsExpr GhcRn)),
+  WDT (Anno (HsExpr (GhcPass p))),  
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => LPat (GhcPass p) -> SDoc
 

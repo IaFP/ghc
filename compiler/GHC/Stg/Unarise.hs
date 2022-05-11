@@ -270,7 +270,7 @@ import Data.Bifunctor (second)
 import Data.Maybe (mapMaybe)
 import qualified Data.IntMap as IM
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 --------------------------------------------------------------------------------
@@ -849,14 +849,14 @@ mkDefaultLitAlt alts = pprPanic "mkDefaultLitAlt" (text "Not a lit alt:" <+> ppr
 
 pprPanicAlts :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (BinderP pass),
+  WDT (BinderP pass),
 #endif
   Outputable a, Outputable b, OutputablePass pass) => [(a,b,GenStgExpr pass)] -> SDoc
 pprPanicAlts alts = ppr (map pprPanicAlt alts)
 
 pprPanicAlt :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (BinderP pass),
+  WDT (BinderP pass),
 #endif
   Outputable a, Outputable b, OutputablePass pass) => (a,b,GenStgExpr pass) -> SDoc
 pprPanicAlt (c,b,e) = ppr (c,b,pprStgExpr panicStgPprOpts e)

@@ -18,7 +18,7 @@ import GHC.Core.InstEnv         ( DFunInstType )
 import GHC.Types.Var
 import GHC.Tc.Errors.Types
 import GHC.Tc.Utils.TcType
-import GHC.Builtin.Names ( coercibleTyConKey, heqTyConKey, eqTyConKey, ipClassKey, wfTyConKey )
+import GHC.Builtin.Names ( coercibleTyConKey, heqTyConKey, eqTyConKey, ipClassKey, wdTyConKey )
 import GHC.Core.Coercion.Axiom ( CoAxBranch (..), CoAxiom (..), TypeEqn, fromBranches, sfInteractInert, sfInteractTop )
 import GHC.Core.Class
 import GHC.Core.TyCon
@@ -1098,7 +1098,7 @@ shortCutSolver dflags ev_w ev_i
                        , cir_mk_ev     = mk_ev
                        , cir_what      = what }
                  | safeOverlap what
-                 , all isTyFamFree (filter (\ x -> not (isWfPred x)) preds) -- all the preds that don't mention @ are ty fam free
+                 , all isTyFamFree (filter (\ x -> not (isWdPred x)) preds) -- all the preds that don't mention @ are ty fam free
                  -- Note [Shortcut solving: type families]
                  -> do { let solved_dicts' = addDict solved_dicts cls tys ev
                              -- solved_dicts': it is important that we add our goal
@@ -2300,7 +2300,7 @@ naturallyCoherentClass cls
     || cls `hasKey` heqTyConKey
     || cls `hasKey` eqTyConKey
     || cls `hasKey` coercibleTyConKey
-    || cls `hasKey` wfTyConKey
+    || cls `hasKey` wdTyConKey
 
 
 {- Note [Instance and Given overlap]

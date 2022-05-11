@@ -1167,7 +1167,7 @@ tidyTopName mod name_cache maybe_ref occ_env id
 -- TopTidyEnv: when tidying we need to know
 --   * name_cache: The NameCache, containing a unique supply and any pre-ordained Names.
 --        These may have arisen because the
---        renamer read in an interface file mentioning M.$wf, say,
+--        renamer read in an interface file mentioning M.$wd, say,
 --        and assigned it unique r77.  If, on this compilation, we've
 --        invented an Id whose name is $wf (but with a different unique)
 --        we want to rename it to have unique r77, so that we can do easy

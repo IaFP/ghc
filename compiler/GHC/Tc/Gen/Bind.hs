@@ -81,7 +81,7 @@ import GHC.Types.Unique.DSet
 import GHC.Types.Unique.Set
 import qualified GHC.LanguageExtensions as LangExt
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 import Control.Monad
@@ -1782,12 +1782,12 @@ isClosedBndrGroup type_env binds
 -- and on RHS, when pat is TcId and grhss is still Name
 patMonoBindsCtxt :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
                  => LPat (GhcPass p) -> GRHSs GhcRn (LHsExpr GhcRn) -> SDoc

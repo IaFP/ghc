@@ -69,7 +69,7 @@ import GHC.Core.Coercion.Axiom
 import GHC.Core.TyCon
 import GHC.Core.DataCon
 import GHC.Core.Unify
-import GHC.Core.TyWF
+import GHC.Core.TyWD
 
 import GHC.Types.Error
 import GHC.Types.Id
@@ -220,7 +220,7 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
        ; isBootFile <- tcIsHsBootOrSig
        ; (gbl_env, th_bndrs) <-
            if partyCtrs
-           then do { traceTc "---- start wf constraints generation ---- { " empty
+           then do { traceTc "---- start wd constraints generation ---- { " empty
 
                    ; let locs :: [SrcSpan] = map (locA . getLoc) tyclds
                          locsAndTcs = zip locs tyclss
@@ -230,18 +230,18 @@ tcTyClGroup (TyClGroup { group_tyclds = tyclds
                                   else concatMapM (\(l, tc) -> mk_atat_fam l tc) locsAndTcs
                    ; let (open, rest1)   = partition (isOpenTypeFamilyTyCon . snd) locsAndTcs
                          (closed, rest2) = partition (isClosedTypeFamilyTyCon . snd) rest1
-                         wf_mirrors = concatMap (maybeToList . wfMirrorTyCon_maybe . snd) (open ++ closed)
+                         wd_mirrors = concatMap (maybeToList . wdMirrorTyCon_maybe . snd) (open ++ closed)
                      
-                   ; traceTc "wfelab partition"
+                   ; traceTc "wdelab partition"
                        (vcat [ text "Open TFs:" <+> (vcat $ fmap (pprtc . snd) open)
                              , text "Closed TFs:" <+> (vcat $ fmap (pprtc . snd) closed)
                              , text "Others:" <+> (vcat $ fmap (ppr . snd) rest2)
                              ])
 
-                   ; traceTc "---- end wf wf constraints generation ---- }" empty
+                   ; traceTc "---- end wd wd constraints generation ---- }" empty
 
                    ; tcExtendLocalFamInstEnv fam_insts (addTyConsToGblEnv $
-                                                       (fmap snd locsAndTcs) ++ wf_mirrors)
+                                                       (fmap snd locsAndTcs) ++ wd_mirrors)
                    }
            else addTyConsToGblEnv tyclss
 
@@ -293,7 +293,7 @@ pprtc tc
     <+> text "isFamFree" <+> ppr (isFamFreeTyCon tc)
   | isTypeFamilyTyCon tc
   = text "tyfam tycon=" <> ppr tc
-    <+> text "mirror tycon=" <> ppr (wfMirrorTyCon_maybe tc)
+    <+> text "mirror tycon=" <> ppr (wdMirrorTyCon_maybe tc)
   | otherwise =
     text "tycon=" <> ppr tc
 
@@ -311,7 +311,7 @@ tcTyClDecls tyclds kisig_env role_annots
             -- See Note [Kind checking for type and class decls]
          (tc_tycons', kindless) <- kcTyClGroup kisig_env tyclds
 
-       ; let tc_tycons = tc_tycons' ++ catMaybes (fmap wfMirrorTyCon_maybe tc_tycons')
+       ; let tc_tycons = tc_tycons' ++ catMaybes (fmap wdMirrorTyCon_maybe tc_tycons')
        
        ; traceTc "tcTyAndCl generalized kinds" (vcat (map ppr_tc_tycon tc_tycons))
 
@@ -350,7 +350,7 @@ tcTyClDecls tyclds kisig_env role_annots
                                   , ppr (tyConBinders tc) <> comma
                                   , ppr (tyConResKind tc)
                                   , ppr (isTcTyCon tc)
-                                  , ppr (wfMirrorTyCon_maybe tc)])
+                                  , ppr (wdMirrorTyCon_maybe tc)])
 
     -- Map each class TcTyCon to their tcTyConScopedTyVars. This is ultimately
     -- meant to be passed to GHC.Tc.TyCl.Class.tcClassDecl2, which consults
@@ -373,8 +373,8 @@ zipRecTyClss :: [TcTyCon]
 zipRecTyClss tc_tycons' rec_tycons'
   = [ (name, ATyCon (get name)) | tc_tycon <- tc_tycons, let name = getName tc_tycon ]
   where
-    tc_tycons = tc_tycons' ++ catMaybes (fmap wfMirrorTyCon_maybe tc_tycons')
-    rec_tycons = rec_tycons' ++ catMaybes (fmap wfMirrorTyCon_maybe rec_tycons')
+    tc_tycons = tc_tycons' ++ catMaybes (fmap wdMirrorTyCon_maybe tc_tycons')
+    rec_tycons = rec_tycons' ++ catMaybes (fmap wdMirrorTyCon_maybe rec_tycons')
 
     rec_tc_env :: NameEnv TyCon
     rec_tc_env = foldr add_tc emptyNameEnv rec_tycons
@@ -809,7 +809,7 @@ kcTyClGroup kisig_env decls
         ; return (poly_tcs, kindless_names) }
   where
     ppr_tc_kinds tcs = vcat (map pp_tc tcs)
-    pp_tc tc = ppr (tyConName tc) <+> dcolon <+> ppr (tyConKind tc) <+> ppr (wfMirrorTyCon_maybe tc)
+    pp_tc tc = ppr (tyConName tc) <+> dcolon <+> ppr (tyConKind tc) <+> ppr (wdMirrorTyCon_maybe tc)
 
 type ScopedPairs = [(Name, TcTyVar)]
   -- The ScopedPairs for a TcTyCon are precisely
@@ -819,7 +819,7 @@ type ScopedPairs = [(Name, TcTyVar)]
 generaliseTyClDecl :: NameEnv TcTyCon -> LTyClDecl GhcRn -> TcM [TcTyCon]
 -- See Note [Swizzling the tyvars before generaliseTcTyCon]
 generaliseTyClDecl inferred_tc_env (L _ decl)
-  = do { names_in_this_decl:: [(GenerateWFMirrorFlag, Name)] <- tycld_names decl
+  = do { names_in_this_decl:: [(GenerateWDMirrorFlag, Name)] <- tycld_names decl
 
        -- Extract the specified/required binders and skolemise them
        ; tc_with_tvs  <- mapM skolemise_tc_tycon names_in_this_decl
@@ -837,17 +837,17 @@ generaliseTyClDecl inferred_tc_env (L _ decl)
        -- And finally generalise
        ; mapAndReportM generaliseTcTyCon swizzled_infos }
   where
-    tycld_names :: TyClDecl GhcRn -> TcM [(GenerateWFMirrorFlag, Name)]
+    tycld_names :: TyClDecl GhcRn -> TcM [(GenerateWDMirrorFlag, Name)]
     tycld_names decl = do let declName = tcdName decl
                           more_names <- at_names decl
                           return $ (decl_m_flag decl, declName):more_names
 
-    at_names :: TyClDecl GhcRn -> TcM [(GenerateWFMirrorFlag, Name)]
+    at_names :: TyClDecl GhcRn -> TcM [(GenerateWDMirrorFlag, Name)]
     at_names (ClassDecl { tcdATs = ats }) = return $ (map (\ d -> (fam_decl_m_flag $ unLoc d
                                                                   , familyDeclName . unLoc $ d) ) ats)
     at_names _                            = return []  -- Only class decls have associated types
 
-    skolemise_tc_tycon :: (GenerateWFMirrorFlag, Name) -> TcM (GenerateWFMirrorFlag, TcTyCon, ScopedPairs)
+    skolemise_tc_tycon :: (GenerateWDMirrorFlag, Name) -> TcM (GenerateWDMirrorFlag, TcTyCon, ScopedPairs)
     -- Zonk and skolemise the Specified and Required binders
     skolemise_tc_tycon (mflag, tc_name)
       = do { let tc = lookupNameEnv_NF inferred_tc_env tc_name
@@ -855,8 +855,8 @@ generaliseTyClDecl inferred_tc_env (L _ decl)
            ; scoped_prs <- mapSndM zonkAndSkolemise (tcTyConScopedTyVars tc)
            ; return (mflag, tc, scoped_prs) }
 
-    zonk_tc_tycon :: (GenerateWFMirrorFlag, TcTyCon, ScopedPairs)
-                  -> TcM (GenerateWFMirrorFlag, TcTyCon, ScopedPairs, TcKind)
+    zonk_tc_tycon :: (GenerateWDMirrorFlag, TcTyCon, ScopedPairs)
+                  -> TcM (GenerateWDMirrorFlag, TcTyCon, ScopedPairs, TcKind)
     zonk_tc_tycon (mflag, tc, scoped_prs)
       = do { scoped_prs <- mapSndM zonkTcTyVarToTyVar scoped_prs
                            -- We really have to do this again, even though
@@ -874,8 +874,8 @@ generaliseTyClDecl inferred_tc_env (L _ decl)
                          | otherwise
                          = GenerateMirror
 
-swizzleTcTyConBndrs :: [(GenerateWFMirrorFlag, TcTyCon, ScopedPairs, TcKind)]
-                -> TcM [(GenerateWFMirrorFlag, TcTyCon, ScopedPairs, TcKind)]
+swizzleTcTyConBndrs :: [(GenerateWDMirrorFlag, TcTyCon, ScopedPairs, TcKind)]
+                -> TcM [(GenerateWDMirrorFlag, TcTyCon, ScopedPairs, TcKind)]
 swizzleTcTyConBndrs tc_infos
   | all no_swizzle swizzle_prs
     -- This fast path happens almost all the time
@@ -974,7 +974,7 @@ swizzleTcTyConBndrs tc_infos
     swizzle_ty ty = runIdentity (map_type ty)
 
 
-generaliseTcTyCon :: (GenerateWFMirrorFlag, TcTyCon, ScopedPairs, TcKind) -> TcM TcTyCon
+generaliseTcTyCon :: (GenerateWDMirrorFlag, TcTyCon, ScopedPairs, TcKind) -> TcM TcTyCon
 generaliseTcTyCon (mflag, tc, scoped_prs, tc_res_kind)
   -- See Note [Required, Specified, and Inferred for types]
   = setSrcSpan (getSrcSpan tc) $
@@ -1000,7 +1000,7 @@ generaliseTcTyCon (mflag, tc, scoped_prs, tc_res_kind)
        ; inferred <- quantifyTyVars DefaultNonStandardTyVars dvs2
 
        ; traceTc "generaliseTcTyCon: pre zonk"
-           (vcat [ text "tycon =" <+> ppr tc <+> ppr (wfMirrorTyCon_maybe tc)
+           (vcat [ text "tycon =" <+> ppr tc <+> ppr (wdMirrorTyCon_maybe tc)
                  , text "spec_req_tvs =" <+> pprTyVars spec_req_tvs
                  , text "tc_res_kind =" <+> ppr tc_res_kind
                  , text "dvs1 =" <+> ppr dvs1
@@ -1015,7 +1015,7 @@ generaliseTcTyCon (mflag, tc, scoped_prs, tc_res_kind)
        ; tc_res_kind           <- zonkTcTypeToTypeX ze tc_res_kind
 
        ; traceTc "generaliseTcTyCon: post zonk" $
-         vcat [ text "tycon =" <+> ppr tc <+> ppr (wfMirrorTyCon_maybe tc)
+         vcat [ text "tycon =" <+> ppr tc <+> ppr (wdMirrorTyCon_maybe tc)
               , text "inferred =" <+> pprTyVars inferred
               , text "spec_req_tvs =" <+> pprTyVars spec_req_tvs
               , text "sorted_spec_tvs =" <+> pprTyVars sorted_spec_tvs
@@ -1034,12 +1034,12 @@ generaliseTcTyCon (mflag, tc, scoped_prs, tc_res_kind)
                                  , required_tcbs ]
 
        -- Step 5.5: (optional)
-       -- check if we have a (wf'tc) pair for this, and add that to this. We should have
+       -- check if we have a $wd:tc pair for this, and add that to this. We should have
        -- already added it to the context.
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; mb_wf_tc <- if partyCtrs && (genWFMirror mflag)
-                     then do let wf_tycon_name = tyConName $ wfMirrorTyCon "generaliseTcTyCon" tc -- this better exist
-                             return (Just $ mkWFTcTyCon (wf_tycon_name) final_tcbs tc_res_kind
+       ; mb_wd_tc <- if partyCtrs && (genWDMirror mflag)
+                     then do let wd_tycon_name = tyConName $ wdMirrorTyCon "generaliseTcTyCon" tc -- this better exist
+                             return (Just $ mkWDTcTyCon (wd_tycon_name) final_tcbs tc_res_kind
                                       (mkTyVarNamePairs (sorted_spec_tvs ++ req_tvs))
                                       True
                                       (tyConFlavour tc))
@@ -1051,10 +1051,10 @@ generaliseTcTyCon (mflag, tc, scoped_prs, tc_res_kind)
                             (mkTyVarNamePairs (sorted_spec_tvs ++ req_tvs))
                             True {- it's generalised now -}
                             (tyConFlavour tc)
-                            mb_wf_tc
+                            mb_wd_tc
          
        ; traceTc "generaliseTcTyCon done" $
-         vcat [ text "tycon =" <+> ppr tc <+> ppr (wfMirrorTyCon_maybe tycon)
+         vcat [ text "tycon =" <+> ppr tc <+> ppr (wdMirrorTyCon_maybe tycon)
               , text "tc_res_kind =" <+> ppr tc_res_kind
               , text "dep_fv_set =" <+> ppr dep_fv_set
               , text "inferred_tcbs =" <+> ppr inferred_tcbs
@@ -1504,8 +1504,8 @@ getInitialKind (InitialKindCheck msig) (FamDecl { tcdFam =
                    case msig of
                      CUSK -> return (TheKind liftedTypeKind)
                      SAKS _ -> return AnyKind
-       ; let wf_tc_mb = maybeToList $ wfMirrorTyCon_maybe tc
-       ; return $ tc:wf_tc_mb }
+       ; let wd_tc_mb = maybeToList $ wdMirrorTyCon_maybe tc
+       ; return $ tc:wd_tc_mb }
 
 getInitialKind strategy
     (SynDecl { tcdLName = L _ name
@@ -2499,10 +2499,10 @@ tcTyClDecl1 parent _roles_info decl@(FamDecl { tcdFam = fd })
   = fmap noDerivInfos $
     do let fd_name = (unLoc . fdLName) fd
        partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       wf_name_mb <- if partyCtrs && not (isDataFamilyDecl decl)
-                     then Just <$> mk_wf_name fd_name
+       wd_name_mb <- if partyCtrs && not (isDataFamilyDecl decl)
+                     then Just <$> mk_wd_name fd_name
                      else return Nothing
-       tcFamDecl1 parent wf_name_mb fd
+       tcFamDecl1 parent wd_name_mb fd
        
   -- "type" synonym declaration
 tcTyClDecl1 _parent roles_info
@@ -2652,19 +2652,19 @@ tcClassATs class_name cls ats at_defs
                                   = True
                                   | otherwise
                                   = False
-                  ; wf_at_name_mb <- if (partyCtrs && not isDataFam)
-                                     then Just <$> mk_wf_name (at_fam_name at)
+                  ; wd_at_name_mb <- if (partyCtrs && not isDataFam)
+                                     then Just <$> mk_wd_name (at_fam_name at)
                                      else return Nothing
-                  ; fam_tc <- addLocMA (tcFamDecl1 (Just cls) wf_at_name_mb) at -- each at gives us a WF_ats for free
+                  ; fam_tc <- addLocMA (tcFamDecl1 (Just cls) wd_at_name_mb) at -- each at gives us a WD_ats for free
                   ; let at_defs = lookupNameEnv at_defs_map (at_fam_name at)
                                   `orElse` []
                   ; atd <- tcDefaultAssocDecl fam_tc at_defs
-                  -- ANI TODO: if there's a default definition, we might as well generate a WF for it?
+                  -- ANI TODO: if there's a default definition, we might as well generate a WD for it?
                   
-                  ; traceTc "wfelab tc_at" (ppr fam_tc <+> ppr (wfMirrorTyCon_maybe fam_tc))
-                  ; let wf_mirror_at = if (isWFMirrorTyCon fam_tc || not partyCtrs || isDataFam)
-                                       then [] else [ATI (wfMirrorTyCon "tc_at" fam_tc) Nothing]
-                  ; return $ (ATI fam_tc atd):wf_mirror_at }
+                  ; traceTc "wdelab tc_at" (ppr fam_tc <+> ppr (wdMirrorTyCon_maybe fam_tc))
+                  ; let wd_mirror_at = if (isWDMirrorTyCon fam_tc || not partyCtrs || isDataFam)
+                                       then [] else [ATI (wdMirrorTyCon "tc_at" fam_tc) Nothing]
+                  ; return $ (ATI fam_tc atd):wd_mirror_at }
 
 -------------------------
 tcDefaultAssocDecl ::
@@ -2831,7 +2831,7 @@ any damage is done.
 ********************************************************************* -}
 
 tcFamDecl1 :: Maybe Class -> Maybe Name -> FamilyDecl GhcRn -> TcM TyCon
-tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
+tcFamDecl1 parent wdname (FamilyDecl { fdInfo = fam_info
                               , fdLName = tc_lname@(L src_span tc_name)
                               , fdResultSig = L _ sig
                               , fdInjectivityAnn = inj })
@@ -2868,13 +2868,13 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
           ; checkFamFlag tc_name
           ; inj' <- tcInjectivity binders inj
           ; checkResultSigFlag tc_name sig  -- check after injectivity for better errors
-          ; let wf_tycon_mb = if partyCtrs && isJust wfname -- do this only for associated types for now.
-                              then Just $ mkWFFamilyTyCon (fromJust wfname) binders constraintKind
+          ; let wd_tycon_mb = if partyCtrs && isJust wdname -- do this only for associated types for now.
+                              then Just $ mkWDFamilyTyCon (fromJust wdname) binders constraintKind
                                              Nothing OpenSynFamilyTyCon parent
                               else Nothing
           ; let tycon = mkFamilyTyCon tc_name binders res_kind
                                     (resultVariableName sig) OpenSynFamilyTyCon
-                                    parent inj' wf_tycon_mb
+                                    parent inj' wd_tycon_mb
           ; return tycon }
 
   | ClosedTypeFamily mb_eqns <- fam_info
@@ -2901,15 +2901,15 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
                                       (resultVariableName sig)
                                       AbstractClosedSynFamilyTyCon parent
                                       inj' Nothing
-           Just eqns -> if partyCtrs && isJust wfname
+           Just eqns -> if partyCtrs && isJust wdname
              then do {
-               ; let wf_name = fromJust wfname
+               ; let wd_name = fromJust wdname
                      tc_fam_tc = mkTcTyCon tc_name binders res_kind
                                  noTcTyConScopedTyVars
                                  False 
                                  ClosedTypeFamilyFlavour
-                                 (Just tc_wf_fam_tc)
-                     tc_wf_fam_tc = mkWFTcTyCon wf_name binders constraintKind
+                                 (Just tc_wd_fam_tc)
+                     tc_wd_fam_tc = mkWDTcTyCon wd_name binders constraintKind
                                  noTcTyConScopedTyVars
                                  False 
                                  ClosedTypeFamilyFlavour
@@ -2917,21 +2917,21 @@ tcFamDecl1 parent wfname (FamilyDecl { fdInfo = fam_info
                ; branches <- mapAndReportM (tcTyFamInstEqn tc_fam_tc NotAssociated) eqns
                ; co_ax_name <- newFamInstAxiomName tc_lname []
 
-               ; wf_branches <- mapM (tcWFTyFamInstEqn tc_fam_tc) eqns
-               ; wf_co_ax_name <- newFamInstAxiomName (L src_span wf_name) []
+               ; wd_branches <- mapM (tcWDTyFamInstEqn tc_fam_tc) eqns
+               ; wd_co_ax_name <- newFamInstAxiomName (L src_span wd_name) []
 
                ; let mb_co_ax
                        | null eqns = Nothing   -- mkBranchedCoAxiom fails on empty list
                        | otherwise = Just (mkBranchedCoAxiom co_ax_name fam_tc branches)
 
                      fam_tc = mkFamilyTyCon tc_name binders res_kind (resultVariableName sig)
-                       (ClosedSynFamilyTyCon mb_co_ax) parent inj' (Just wf_tycon)
+                       (ClosedSynFamilyTyCon mb_co_ax) parent inj' (Just wd_tycon)
 
-                     wf_tycon = mkWFFamilyTyCon wf_name binders constraintKind
-                                (resultVariableName sig) (ClosedSynFamilyTyCon mb_wf_co_ax)
+                     wd_tycon = mkWDFamilyTyCon wd_name binders constraintKind
+                                (resultVariableName sig) (ClosedSynFamilyTyCon mb_wd_co_ax)
                                 parent
 
-                     mb_wf_co_ax = Just (mkBranchedCoAxiom wf_co_ax_name wf_tycon wf_branches)
+                     mb_wd_co_ax = Just (mkBranchedCoAxiom wd_co_ax_name wd_tycon wd_branches)
 
                
                ; return fam_tc }
@@ -3181,14 +3181,14 @@ kcTyFamInstEqn tc_fam_tc
 
 --------------------------
 
-tcWFTyFamInstEqn :: TcTyCon -> LTyFamInstEqn GhcRn -> TcM (KnotTied CoAxBranch)
-tcWFTyFamInstEqn fam_tc
+tcWDTyFamInstEqn :: TcTyCon -> LTyFamInstEqn GhcRn -> TcM (KnotTied CoAxBranch)
+tcWDTyFamInstEqn fam_tc
     (L loc (FamEqn { feqn_bndrs  = outer_bndrs
                    , feqn_pats   = hs_pats
                    , feqn_rhs    = hs_rhs_ty }))
-  = do { let wf_fam_tc = wfMirrorTyCon "tcWFTyFamInstEqn" fam_tc
+  = do { let wd_fam_tc = wdMirrorTyCon "tcWDTyFamInstEqn" fam_tc
        ; (qtvs, pats, rhs_ty) <- tcTyFamInstEqnGuts fam_tc NotAssociated
-                                      outer_bndrs hs_pats hs_rhs_ty (Just wf_fam_tc)
+                                      outer_bndrs hs_pats hs_rhs_ty (Just wd_fam_tc)
        ; return (mkCoAxBranch qtvs [] [] pats rhs_ty
                               (map (const Nominal) qtvs)
                               (locA loc))
@@ -3306,10 +3306,10 @@ tcTyFamInstEqnGuts :: TyCon -> AssocInstInfo
                    -> HsOuterFamEqnTyVarBndrs GhcRn     -- Implicit and explicit binders
                    -> HsTyPats GhcRn                    -- Patterns
                    -> LHsType GhcRn                     -- RHS
-                   -> Maybe TyCon                       -- WF Mirror
+                   -> Maybe TyCon                       -- WD Mirror
                    -> TcM ([TyVar], [TcType], TcType)   -- (tyvars, pats, rhs)
 -- Used only for type families, not data families
-tcTyFamInstEqnGuts fam_tc mb_clsinfo outer_hs_bndrs hs_pats hs_rhs_ty wf_fam_tc
+tcTyFamInstEqnGuts fam_tc mb_clsinfo outer_hs_bndrs hs_pats hs_rhs_ty wd_fam_tc
   = do { traceTc "tcTyFamInstEqnGuts {" (ppr fam_tc)
 
        -- By now, for type families (but not data families) we should
@@ -3354,8 +3354,8 @@ tcTyFamInstEqnGuts fam_tc mb_clsinfo outer_hs_bndrs hs_pats hs_rhs_ty wf_fam_tc
                                    , ppr rhs_ty ] ) }
        ; doNotQuantifyTyVars dvs_rhs mk_doc
 
-       ; rhs_ty <- case wf_fam_tc of
-                     Just _  -> genWFFamInstConstraint rhs_ty
+       ; rhs_ty <- case wd_fam_tc of
+                     Just _  -> genWDFamInstConstraint rhs_ty
                      Nothing -> return rhs_ty
        ; ze         <- mkEmptyZonkEnv NoFlexi
        ; (ze, qtvs) <- zonkTyBndrsX      ze qtvs
@@ -3458,7 +3458,7 @@ Simple! No casting on the RHS, because we can affect the kind parameter
 to F.
 
 If we ever introduce local type families, this all gets a lot more
-complicated, and will end up looking awfully like term-level GADT
+complicated, and will end up looking aw f ully like term-level GADT
 pattern-matching.
 
 
@@ -4497,21 +4497,21 @@ checkPartialNewTypes tcs = recoverM (return ())
 -- When we are in a partial type constructor world
 -- we need to check if the constraints scribed by the user in the type context,
 -- say C, entails the well formed constraints on the RHS, say T.
--- eg. newtype C => NT a = NT { unNT :: T } then C => wft (T)
+-- eg. newtype C => NT a = NT { unNT :: T } then C => wdt (T)
 -- restriction: always call this function on a new type tycon
 checkNewTypeThetaEntailment :: TyCon -> TcM ()
 checkNewTypeThetaEntailment tc
   = do { let tc_th' = tyConStupidTheta tc
-       ; tc_th  <- foldl mergeAtAtConstraints tc_th' <$> mapM (\t -> genWfConstraintsTcM False t []) tc_th'
+       ; tc_th  <- foldl mergeAtAtConstraints tc_th' <$> mapM (\t -> genWdConstraintsTcM False t []) tc_th'
        ; let ctxt  = thetaToCnstTy tc_th
              (_, rhs_ty) = newTyConRhs tc
-       ; wf_theta <- genWfConstraintsTcM False rhs_ty []
-       ; let wf_ct = thetaToCnstTy wf_theta
-       ; traceTc "wfelab newtype theta entailment" (vcat [ text "theta"  <+> ppr ctxt
-                                                         , text "wf ct" <+> ppr wf_ct ] )
-       ; _ <- addErrCtxtM (newTypeCtxt (tyConName tc) ctxt wf_ct) $
+       ; wd_theta <- genWdConstraintsTcM False rhs_ty []
+       ; let wd_ct = thetaToCnstTy wd_theta
+       ; traceTc "wdelab newtype theta entailment" (vcat [ text "theta"  <+> ppr ctxt
+                                                         , text "wd ct" <+> ppr wd_ct ] )
+       ; _ <- addErrCtxtM (newTypeCtxt (tyConName tc) ctxt wd_ct) $
                     tcSubTypeSigma (DataTyCtxt $ tyConName tc)
-                                   (attachConstraints wf_theta rhs_ty)
+                                   (attachConstraints wd_theta rhs_ty)
                                    (attachConstraints tc_th rhs_ty)
 
        ; return ()

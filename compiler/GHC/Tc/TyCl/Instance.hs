@@ -607,10 +607,10 @@ tcTyFamInstDecl mb_clsinfo (L loc decl@(TyFamInstDecl { tfid_eqn = eqn }))
        ; let axiom = mkUnbranchedCoAxiom rep_tc_name fam_tc co_ax_branch
        ; fam_inst <- newFamInst SynFamilyInst axiom
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; wf_fam_insts <- if (partyCtrs && not (isWFMirrorTyCon fam_tc))
-         -- we can have @ fam instances in src we do not want to build a wf'@ instance for it. 
-                         then genWFTyFamInst fam_inst else return []
-       ; return $ fam_inst:wf_fam_insts
+       ; wd_fam_insts <- if (partyCtrs && not (isWDMirrorTyCon fam_tc))
+         -- we can have @ fam instances in src we do not want to build a $wd:@ instance for it. 
+                         then genWDTyFamInst fam_inst else return []
+       ; return $ fam_inst:wd_fam_insts
        }
 
 
@@ -799,9 +799,9 @@ tcDataFamInstDecl mb_clsinfo tv_skol_env
 
        ; fam_inst <- newFamInst (DataFamilyInst rep_tc) axiom
        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       ; wf_fam_inst <- if partyCtrs then mk_atat_fam (locA loc) rep_tc else return []
-       ; df_fam_inst <- if partyCtrs then mk_datafam_wfs (locA loc) fam_tc all_pats rep_tc else return []
-       ; return (fam_inst:(wf_fam_inst ++ df_fam_inst), m_deriv_info) }
+       ; wd_fam_inst <- if partyCtrs then mk_atat_fam (locA loc) rep_tc else return []
+       ; df_fam_inst <- if partyCtrs then mk_datafam_wds (locA loc) fam_tc all_pats rep_tc else return []
+       ; return (fam_inst:(wd_fam_inst ++ df_fam_inst), m_deriv_info) }
   where
     eta_reduce :: TyCon -> [Type] -> ([Type], [TyConBinder])
     -- See Note [Eta reduction for data families] in GHC.Core.Coercion.Axiom

@@ -129,7 +129,7 @@ import {-# SOURCE #-} GHC.Builtin.Types
   , int64ElemRepDataConTy, word8ElemRepDataConTy, word16ElemRepDataConTy
   , word32ElemRepDataConTy, word64ElemRepDataConTy, floatElemRepDataConTy
   , doubleElemRepDataConTy
-  , mkPromotedListTy, multiplicityTy, wfTyCon )
+  , mkPromotedListTy, multiplicityTy, wdTyCon )
 
 import GHC.Types.Var    ( TyVarBinder, TyVar
                         , mkTyVar, mkTyVarBinder, mkTyVarBinders )
@@ -214,7 +214,7 @@ exposedPrimTyCons
 
     , tYPETyCon
     , funTyCon
-    , wfTyCon
+    , wdTyCon
 
 #include "primop-vector-tycons.hs-incl"
     ]

@@ -8,7 +8,7 @@ module GHC.Iface.Env (
         lookupIfaceTop,
         lookupOrig, lookupOrigIO, lookupOrigNameCache,
         newIfaceName, newIfaceNames,
-        newWFIfaceName,
+        newWDIfaceName,
         extendIfaceIdEnv, extendIfaceTyVarEnv,
         tcIfaceLclId, tcIfaceTyVar, lookupIfaceVar,
         lookupIfaceTyVar, extendIfaceEnvs,
@@ -280,5 +280,5 @@ trace_hi_diffs :: Logger -> SDoc -> IO ()
 trace_hi_diffs logger doc = when (logHasDumpFlag logger Opt_D_dump_hi_diffs) $ putMsg logger doc
 
 
-newWFIfaceName :: OccName -> IfL Name
-newWFIfaceName n = newIfaceName $ mkWFTyConOcc n
+newWDIfaceName :: OccName -> IfL Name
+newWDIfaceName n = newIfaceName $ mkWDTyConOcc n

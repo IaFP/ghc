@@ -330,7 +330,7 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
         = return [(acc, (L loc new_ie, []))]
 
         | otherwise
-        = do ((new_ie, avail):wf_stuff) <- lookup_ie ie
+        = do ((new_ie, avail):wd_stuff) <- lookup_ie ie
              partyCtrs <- xoptM LangExt.PartialTypeConstructors
              if isUnboundName (ieName new_ie) 
                   then do 
@@ -338,32 +338,32 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                        return []    -- Avoid error cascade
                   else do
                        traceRn "exports_from_item bounded" (ppr (ieName new_ie)
-                                                            $$ ppr wf_stuff)
+                                                            $$ ppr wd_stuff)
                        occs' <- check_occs ie occs [avail]
-                       if length wf_stuff == 1 && partyCtrs
-                       then do let (wf_ie, wf_avail) = head wf_stuff
-                               occs'' <- check_occs ie occs' [wf_avail]
+                       if length wd_stuff == 1 && partyCtrs
+                       then do let (wd_ie, wd_avail) = head wd_stuff
+                               occs'' <- check_occs ie occs' [wd_avail]
                                return [(ExportAccum occs' mods
                                        , (L loc new_ie, [avail]))
                                       , (ExportAccum occs'' mods
-                                       , (L loc wf_ie, [wf_avail]))]
+                                       , (L loc wd_ie, [wd_avail]))]
                        else return [(ExportAccum occs' mods
                                     , (L loc new_ie, [avail]))]
 
       
      ----
-    -- ANI TODO: This is not quite right. We don't want to exprt wf'Tc names
-    lookup_wf_ie :: LIEWrappedName (IdP GhcPs) -> RnM [(IE GhcRn, AvailInfo)]
-    lookup_wf_ie (L l rdr)
+    -- ANI TODO: This is not quite right. We don't want to exprt $wd:Tc names
+    lookup_wd_ie :: LIEWrappedName (IdP GhcPs) -> RnM [(IE GhcRn, AvailInfo)]
+    lookup_wd_ie (L l rdr)
         = do { (name, _) <- lookupGreAvailRn $ ieWrappedName rdr
-             ; let wf_name = if isTyConName name
-                             then [mkWFTyConOcc $ nameOccName name]
+             ; let wd_name = if isTyConName name
+                             then [mkWDTyConOcc $ nameOccName name]
                              else []
              ; m <- getModule
-             ; n::[Name] <- mapM (lookupOrig m) wf_name
-             ; let wf_rdr_name = fmap nukeExact n
-             ; grenames <- mapM lookupGlobalOccRn wf_rdr_name
-                 ; traceRn "lookup_wf_ie" (ppr grenames $$ ppr n)
+             ; n::[Name] <- mapM (lookupOrig m) wd_name
+             ; let wd_rdr_name = fmap nukeExact n
+             ; grenames <- mapM lookupGlobalOccRn wd_rdr_name
+                 ; traceRn "lookup_wd_ie" (ppr grenames $$ ppr n)
              ; if length grenames > 0 && length n > 0
                then return [ (IEThingAbs noAnn (L l (replaceWrappedName rdr (head n)))
                            , availTC (head n) n []) ]
@@ -380,8 +380,8 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
         = do (name, avail) <- lookupGreAvailRn $ ieWrappedName rdr
              traceRn "lookup_ie IEThingsAbs" (ppr $ name)
              partyCtrs <- xoptM LangExt.PartialTypeConstructors
-             wf_stuff <- if partyCtrs then lookup_wf_ie iew else return []
-             return ((IEThingAbs noAnn (L l (replaceWrappedName rdr name)), avail):wf_stuff)
+             wd_stuff <- if partyCtrs then lookup_wd_ie iew else return []
+             return ((IEThingAbs noAnn (L l (replaceWrappedName rdr name)), avail):wd_stuff)
 
     lookup_ie ie@(IEThingAll _ n')
         = do
@@ -699,8 +699,8 @@ check_occs ie occs avails
             | greNameMangledName child == greNameMangledName child'   -- Duplicate export
             -- But we don't want to warn if the same thing is exported
             -- by two different module exports. See ticket #4478.
-            || isWFTyConOcc (nameOccName $ greNameMangledName child)
-            -- get away with a warning if you see that WF_* is bing exported twice.
+            || isWDTyConOcc (nameOccName $ greNameMangledName child)
+            -- get away with a warning if you see that $wd: is being exported twice.
             -> do { warnIf (not (dupExport_ok child ie ie')) (TcRnDuplicateExport child ie ie')
                   ; return occs }
 

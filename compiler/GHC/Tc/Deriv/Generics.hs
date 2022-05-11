@@ -27,7 +27,7 @@ import GHC.Core.Type
 import GHC.Tc.Utils.TcType
 import GHC.Tc.Deriv.Generate
 import GHC.Tc.Deriv.Functor
-import GHC.Tc.Deriv.WF (genWFTyFamInst)
+import GHC.Tc.Deriv.WD (genWDTyFamInst)
 import GHC.Tc.Errors.Types
 import GHC.Core.DataCon
 import GHC.Core.TyCon
@@ -409,7 +409,7 @@ tc_mkRepFamInsts gk inst_tys dit@(DerivInstTys{dit_rep_tc = tycon}) =
      ; fam_tc <- case gk of
          Gen0 -> tcLookupTyCon repTyConName
          Gen1 -> tcLookupTyCon rep1TyConName
-     ; traceTc "tc_mkRepFamInsts" (ppr fam_tc <+> ppr (wfMirrorTyCon_maybe fam_tc))
+     ; traceTc "tc_mkRepFamInsts" (ppr fam_tc <+> ppr (wdMirrorTyCon_maybe fam_tc))
      ; let -- If the derived instance is
            --   instance Generic (Foo x)
            -- then:
@@ -459,8 +459,8 @@ tc_mkRepFamInsts gk inst_tys dit@(DerivInstTys{dit_rep_tc = tycon}) =
                                         fam_tc inst_tys repTy'
 
      ; fam_inst <- newFamInst SynFamilyInst axiom
-     ; wf_insts <- if partyCtrs then genWFTyFamInst fam_inst else return []
-     ; return $ fam_inst:wf_insts
+     ; wd_insts <- if partyCtrs then genWDTyFamInst fam_inst else return []
+     ; return $ fam_inst:wd_insts
      }
 
 --------------------------------------------------------------------------------

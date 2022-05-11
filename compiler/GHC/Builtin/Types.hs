@@ -91,7 +91,7 @@ module GHC.Builtin.Types (
         anyTyCon, anyTy, anyTypeOfKind,
 
         -- * Well formed or @ predicates
-        wfTyCon, wfTyConName, -- wfRepTyCon, wfRep1TyCon,
+        wdTyCon, wdTyConName, -- wfRepTyCon, wfRep1TyCon,
    
 
         -- * Recovery TyCon
@@ -302,7 +302,7 @@ wiredInTyCons = [ -- Units are not treated like other tuples, because they
                 , maybeTyCon
                 , heqTyCon
                 , eqTyCon
-                , wfTyCon
+                , wdTyCon
                 -- , wfRepTyCon
                 -- , wfRep1TyCon
                 , coercibleTyCon
@@ -510,12 +510,12 @@ anyTypeOfKind kind = mkTyConApp anyTyCon [kind]
 
 
 {- Wired in representation of @ type family instance -}
-wfTyConName :: Name
-wfTyConName =
-    mkWiredInTyConName BuiltInSyntax gHC_TYPES (fsLit "@") wfTyConKey wfTyCon
+wdTyConName :: Name
+wdTyConName =
+    mkWiredInTyConName BuiltInSyntax gHC_TYPES (fsLit "@") wdTyConKey wdTyCon
 
-wfTyCon  :: TyCon -- This is a special mirror as only one exists for data & newtype tycons
-wfTyCon = mkWFFamilyTyCon wfTyConName binders constraintKind (Just wfTyConName)
+wdTyCon  :: TyCon -- This is a special mirror as only one exists for data & newtype tycons
+wdTyCon = mkWDFamilyTyCon wdTyConName binders constraintKind (Just wdTyConName)
             OpenSynFamilyTyCon
             Nothing
   where
@@ -922,7 +922,7 @@ isBuiltInOcc_maybe occ =
       "~"    -> Just eqTyConName
 
      -- wf @ tycon
-      "@"   -> Just wfTyConName
+      "@"   -> Just wdTyConName
 
       -- function tycon
       "FUN"  -> Just funTyConName

@@ -35,7 +35,7 @@ import GHC.Parser.Annotation
 
 import Data.Void
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 {-
@@ -223,10 +223,10 @@ type OutputableBndrId pass =
   , Outputable (GenLocated (Anno (IdGhcP (NoGhcTcPass pass))) (IdGhcP (NoGhcTcPass pass)))
   , IsPass pass
 #if MIN_VERSION_base(4,16,0)
-  , WFT (XOverLit (GhcPass pass))
-  , WFT (XOverLit (GhcPass (NoGhcTcPass pass)))
-  , WFT (Anno (IdGhcP pass))
-  , WFT (Anno (IdGhcP (NoGhcTcPass pass)))
+  , WDT (XOverLit (GhcPass pass))
+  , WDT (XOverLit (GhcPass (NoGhcTcPass pass)))
+  , WDT (Anno (IdGhcP pass))
+  , WDT (Anno (IdGhcP (NoGhcTcPass pass)))
 #endif
   )
 

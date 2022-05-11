@@ -139,7 +139,7 @@ import GHC.Data.Bag
 import GHC.Data.Maybe
 import Data.Data (Data)
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT, type (@))
+import GHC.Types (WDT, type (@))
 import {-# SOURCE #-} Language.Haskell.Syntax.Pat (Pat)
 import {-# SOURCE #-} Language.Haskell.Syntax.Expr (HsExpr, MatchGroup, GRHSs, HsSplice)
 #endif
@@ -179,11 +179,11 @@ type instance XXHsDecl    (GhcPass _) = NoExtCon
 partitionBindsAndSigs
   ::
 #if MIN_VERSION_base(4,16,0)
-  (WFT (Anno (Pat GhcPs)),
-   Pat @ GhcPs, WFT (Anno (HsExpr GhcPs)),
+  (WDT (Anno (Pat GhcPs)),
+   Pat @ GhcPs, WDT (Anno (HsExpr GhcPs)),
    HsExpr @ GhcPs,
-   WFT (XOverLit GhcPs),
-   WFT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
+   WDT (XOverLit GhcPs),
+   WDT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
    MatchGroup @ GhcPs,
    MatchGroup GhcPs
     @ GenLocated (Anno (HsExpr GhcPs)) (HsExpr GhcPs),
@@ -288,12 +288,12 @@ appendGroups
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (Anno (Pat (GhcPass p))),
-  WFT (Anno (HsExpr (GhcPass p))),
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
+  WDT (Anno (Pat (GhcPass p))),
+  WDT (Anno (HsExpr (GhcPass p))),
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
   Pat @ GhcPass p, HsExpr @ GhcPass p,
   MatchGroup @ GhcPass p,
   MatchGroup (GhcPass p)
@@ -302,10 +302,10 @@ instance (
   GRHSs (GhcPass p)
                          @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
   HsSplice @ GhcPass p,
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => Outputable (HsDecl (GhcPass p)) where
     ppr (TyClD _ dcl)             = ppr dcl
@@ -325,25 +325,25 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
- WFT (Anno (Pat (GhcPass p))),
+ WDT (Anno (Pat (GhcPass p))),
  Pat @ GhcPass p,
- WFT (Anno (HsExpr (GhcPass p))),
+ WDT (Anno (HsExpr (GhcPass p))),
  HsExpr @ GhcPass p,
- WFT (XOverLit GhcPs),-- ANI TODO Why?
- WFT (XOverLit GhcRn), -- this is stupid
- WFT (XOverLit (GhcPass p)),
- WFT (XOverLit (GhcPass (NoGhcTcPass p))),
- WFT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
+ WDT (XOverLit GhcPs),-- ANI TODO Why?
+ WDT (XOverLit GhcRn), -- this is stupid
+ WDT (XOverLit (GhcPass p)),
+ WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+ WDT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
  MatchGroup @ GhcPass p,
  MatchGroup (GhcPass p)
    @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
  GRHSs @ GhcPass p,
  GRHSs (GhcPass p)
   @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),  
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),  
 #endif
   OutputableBndrId p) => Outputable (HsGroup (GhcPass p)) where
     ppr (HsGroup { hs_valds  = val_decls,
@@ -384,14 +384,14 @@ type instance XXSpliceDecl     (GhcPass _) = NoExtCon
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
   HsSplice @ GhcPass p,
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
        => Outputable (SpliceDecl (GhcPass p)) where
@@ -470,24 +470,24 @@ hsDeclHasCusk (ClassDecl { tcdTyVars = tyvars }) = hsTvbAllKinded tyvars
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (Pat (GhcPass p))),
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (Pat (GhcPass p))),
   Pat @ GhcPass p,
-  WFT (Anno (HsExpr (GhcPass p))),
+  WDT (Anno (HsExpr (GhcPass p))),
   HsExpr @ GhcPass p,
-  WFT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
+  WDT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
   MatchGroup @ GhcPass p,
   MatchGroup (GhcPass p)
                          @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
   GRHSs @ GhcPass p,
   GRHSs (GhcPass p)
                          @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),    
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),    
 #endif
   OutputableBndrId p) => Outputable (TyClDecl (GhcPass p)) where
 
@@ -522,24 +522,24 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (Pat (GhcPass p))),
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (Pat (GhcPass p))),
   Pat @ GhcPass p,
-  WFT (Anno (HsExpr (GhcPass p))),
+  WDT (Anno (HsExpr (GhcPass p))),
   HsExpr @ GhcPass p,
-  WFT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
+  WDT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
   MatchGroup @ GhcPass p,
   MatchGroup (GhcPass p)
     @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
   GRHSs @ GhcPass p,
   GRHSs (GhcPass p)
     @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),    
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),    
 #endif
   OutputableBndrId p)
        => Outputable (TyClGroup (GhcPass p)) where
@@ -557,12 +557,12 @@ instance (
 
 pp_vanilla_decl_head :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
    => XRec (GhcPass p) (IdP (GhcPass p))
@@ -641,7 +641,7 @@ familyDeclLName (FamilyDecl { fdLName = n }) = n
 
 familyDeclName ::
 #if MIN_VERSION_base(4,16,0)
-  WFT (Anno (IdGhcP p)) =>
+  WDT (Anno (IdGhcP p)) =>
 #endif
   FamilyDecl (GhcPass p) -> IdP (GhcPass p)
 familyDeclName = unLoc . familyDeclLName
@@ -666,13 +666,13 @@ type instance XXInjectivityAnn  (GhcPass _) = NoExtCon
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)), -- THIS SHOULD GO AWAY
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)), -- THIS SHOULD GO AWAY
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
        => Outputable (FamilyDecl (GhcPass p)) where
@@ -723,13 +723,13 @@ type instance XXHsDerivingClause    (GhcPass _) = NoExtCon
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
        => Outputable (HsDerivingClause (GhcPass p)) where
@@ -753,12 +753,12 @@ type instance XXDerivClauseTys (GhcPass _) = NoExtCon
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => Outputable (DerivClauseTys (GhcPass p)) where
   ppr (DctSingle _ ty) = ppr ty
@@ -800,13 +800,13 @@ hsConDeclTheta (Just (L _ theta)) = theta
 
 pp_data_defn :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),  
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),  
 #endif
   OutputableBndrId p)
                   => (Maybe (LHsContext (GhcPass p)) -> SDoc)   -- Printing the header
@@ -834,13 +834,13 @@ pp_data_defn pp_hdr (HsDataDefn { dd_ND = new_or_data, dd_ctxt = context
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),    
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),    
 #endif
   OutputableBndrId p)
        => Outputable (HsDataDefn (GhcPass p)) where
@@ -848,13 +848,13 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
        => Outputable (StandaloneKindSig (GhcPass p)) where
@@ -863,13 +863,13 @@ instance (
 
 pp_condecls :: forall p. (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => [LConDecl (GhcPass p)] -> SDoc
 pp_condecls cs
@@ -885,26 +885,26 @@ pp_condecls cs
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => Outputable (ConDecl (GhcPass p)) where
     ppr = pprConDecl
 
 pprConDecl :: forall p. (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => ConDecl (GhcPass p) -> SDoc
 pprConDecl (ConDeclH98 { con_name = L _ con
@@ -982,13 +982,13 @@ type instance XXInstDecl    (GhcPass _) = NoExtCon
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
        => Outputable (TyFamInstDecl (GhcPass p)) where
@@ -996,13 +996,13 @@ instance (
 
 pprTyFamInstDecl :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
                  => TopLevelFlag -> TyFamInstDecl (GhcPass p) -> SDoc
@@ -1015,13 +1015,13 @@ ppr_instance_keyword NotTopLevel = empty
 
 pprTyFamDefltDecl :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
                   => TyFamDefltDecl (GhcPass p) -> SDoc
@@ -1029,13 +1029,13 @@ pprTyFamDefltDecl = pprTyFamInstDecl NotTopLevel
 
 ppr_fam_inst_eqn :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
                  => TyFamInstEqn (GhcPass p) -> SDoc
@@ -1048,13 +1048,13 @@ ppr_fam_inst_eqn (FamEqn { feqn_tycon  = L _ tycon
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),    
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),    
 #endif
   OutputableBndrId p)
        => Outputable (DataFamInstDecl (GhcPass p)) where
@@ -1062,13 +1062,13 @@ instance (
 
 pprDataFamInstDecl :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),      
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),      
 #endif
   OutputableBndrId p)
                    => TopLevelFlag -> DataFamInstDecl (GhcPass p) -> SDoc
@@ -1091,13 +1091,13 @@ pprDataFamInstFlavour (DataFamInstDecl { dfid_eqn =
 
 pprHsFamInstLHS :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
    => IdP (GhcPass p)
@@ -1113,12 +1113,12 @@ pprHsFamInstLHS thing bndrs typats fixity mb_ctxt
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (Pat (GhcPass p))), Pat @ GhcPass p,
-  WFT (Anno (HsExpr (GhcPass p))), HsExpr @ GhcPass p,
-  WFT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (Pat (GhcPass p))), Pat @ GhcPass p,
+  WDT (Anno (HsExpr (GhcPass p))), HsExpr @ GhcPass p,
+  WDT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
   HsExpr @ GhcPass p,
   MatchGroup @ GhcPass p,
   MatchGroup (GhcPass p)
@@ -1126,10 +1126,10 @@ instance (
   GRHSs @ GhcPass p,
   GRHSs (GhcPass p)
                     @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),      
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),      
 #endif
   OutputableBndrId p)
        => Outputable (ClsInstDecl (GhcPass p)) where
@@ -1152,9 +1152,9 @@ instance (
 
 ppDerivStrategy :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (XOverLit GhcPs),
 #endif
   OutputableBndrId p)
                 => Maybe (LDerivStrategy (GhcPass p)) -> SDoc
@@ -1179,24 +1179,24 @@ ppOverlapPragma mb =
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (Pat (GhcPass p))),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (Pat (GhcPass p))),
   Pat @ GhcPass p,
-  WFT (Anno (HsExpr (GhcPass p))),
+  WDT (Anno (HsExpr (GhcPass p))),
   HsExpr @ GhcPass p,
-  WFT (XOverLit GhcPs),
-  WFT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
+  WDT (XOverLit GhcPs),
+  WDT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
   MatchGroup @ GhcPass p,
   MatchGroup (GhcPass p)
                        @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
   GRHSs @ GhcPass p,
   GRHSs (GhcPass p)
                    @ GenLocated (Anno (HsExpr (GhcPass p))) (HsExpr (GhcPass p)),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),      
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),      
 #endif
   OutputableBndrId p) => Outputable (InstDecl (GhcPass p)) where
     ppr (ClsInstD     { cid_inst  = decl }) = ppr decl
@@ -1230,13 +1230,13 @@ type instance Anno OverlapMode = SrcSpanAnnP
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit GhcPs),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit GhcPs),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
        => Outputable (DerivDecl (GhcPass p)) where
@@ -1277,9 +1277,9 @@ data XViaStrategyPs = XViaStrategyPs (EpAnn [AddEpAnn]) (LHsSigType GhcPs)
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (XOverLit GhcPs), -- WHY?
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (XOverLit GhcPs), -- WHY?
 #endif
            OutputableBndrId p)
         => Outputable (DerivStrategy (GhcPass p)) where
@@ -1293,7 +1293,7 @@ instance (
 
 instance
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit GhcPs) =>
+  WDT (XOverLit GhcPs) =>
 #endif
   Outputable XViaStrategyPs where
     ppr (XViaStrategyPs _ t) = ppr t
@@ -1330,12 +1330,12 @@ type instance XXDefaultDecl    (GhcPass _) = NoExtCon
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
        => Outputable (DefaultDecl (GhcPass p)) where
@@ -1362,12 +1362,12 @@ type instance XXForeignDecl    (GhcPass _) = NoExtCon
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p)
        => Outputable (ForeignDecl (GhcPass p)) where
@@ -1420,13 +1420,13 @@ type instance XXRuleBndr    (GhcPass _) = NoExtCon
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
   HsExpr @ GhcPass p,
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),  
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),  
 #endif
   OutputableBndrId p) => Outputable (RuleDecls (GhcPass p)) where
   ppr (HsRules { rds_src = st
@@ -1436,13 +1436,13 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
   HsExpr @ GhcPass p,
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => Outputable (RuleDecl (GhcPass p)) where
   ppr (HsRule { rd_name = name
@@ -1463,12 +1463,12 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)),
-  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),  
+  WDT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),  
 #endif
   OutputableBndrId p) => Outputable (RuleBndr (GhcPass p)) where
    ppr (RuleBndr _ name) = ppr name
@@ -1517,13 +1517,13 @@ type instance XXAnnDecl     (GhcPass _) = NoExtCon
 
 instance (
 #if MIN_VERSION_base(4,16,0)
- WFT (XOverLit (GhcPass p)),
- WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+ WDT (XOverLit (GhcPass p)),
+ WDT (XOverLit (GhcPass (NoGhcTcPass p))),
  HsExpr @ GhcPass p,
-  WFT (Anno (IdGhcP p)),
-  WFT (Anno (IdGhcP (NoGhcTcPass p))),
-  WFT (SyntaxExprGhc p),
-  WFT (SyntaxExprGhc (NoGhcTcPass p)),
+  WDT (Anno (IdGhcP p)),
+  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (SyntaxExprGhc p),
+  WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
   OutputableBndrId p) => Outputable (AnnDecl (GhcPass p)) where
     ppr (HsAnnotation _ _ provenance expr)

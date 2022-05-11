@@ -63,7 +63,7 @@ import GHC.Types.Id.Info
 import GHC.Core.PatSyn( PatSyn )
 import GHC.Core.ConLike( ConLike(..) )
 import GHC.Core.DataCon
-import GHC.Core.TyWF
+import GHC.Core.TyWD
 import GHC.Types.Name
 import GHC.Types.Name.Reader
 import GHC.Core.TyCon
@@ -83,7 +83,7 @@ import GHC.Utils.Panic.Plain
 import Control.Monad
 
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 import Data.Function
@@ -363,12 +363,12 @@ countHsWrapperInvisArgs = go
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass (XPass p))),
-  WFT (XOverLit (GhcPass (NoGhcTcPass (XPass p)))),
-  WFT (Anno (IdGhcP (XPass p))),
-  WFT (Anno (IdGhcP (NoGhcTcPass (XPass p)))),
-  WFT (SyntaxExprGhc (XPass p)),
-  WFT (SyntaxExprGhc (NoGhcTcPass (XPass p))),
+  WDT (XOverLit (GhcPass (XPass p))),
+  WDT (XOverLit (GhcPass (NoGhcTcPass (XPass p)))),
+  WDT (Anno (IdGhcP (XPass p))),
+  WDT (Anno (IdGhcP (NoGhcTcPass (XPass p)))),
+  WDT (SyntaxExprGhc (XPass p)),
+  WDT (SyntaxExprGhc (NoGhcTcPass (XPass p))),
 #endif
   OutputableBndrId (XPass p)) => Outputable (HsExprArg p) where
   ppr (EValArg { eva_arg = arg })      = text "EValArg" <+> ppr arg
@@ -383,12 +383,12 @@ instance Outputable EWrap where
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass (XPass p))),
-  WFT (XOverLit (GhcPass (NoGhcTcPass (XPass p)))),
-  WFT (Anno (IdGhcP (XPass p))),
-  WFT (Anno (IdGhcP (NoGhcTcPass (XPass p)))),
-  WFT (SyntaxExprGhc (XPass p)),
-  WFT (SyntaxExprGhc (NoGhcTcPass (XPass p))),
+  WDT (XOverLit (GhcPass (XPass p))),
+  WDT (XOverLit (GhcPass (NoGhcTcPass (XPass p)))),
+  WDT (Anno (IdGhcP (XPass p))),
+  WDT (Anno (IdGhcP (NoGhcTcPass (XPass p)))),
+  WDT (SyntaxExprGhc (XPass p)),
+  WDT (SyntaxExprGhc (NoGhcTcPass (XPass p))),
 #endif
   OutputableBndrId (XPass p)) => Outputable (EValArg p) where
   ppr (ValArg e) = ppr e
@@ -837,11 +837,11 @@ tcInferDataCon con
        -- that each of the type arguments are also well formed.
        -- For now just worry about H98 data cons
        -- GADTs are a bit tricky due to the extra existentials 
-       ; wf_theta <- if not (isNewDataCon con)
+       ; wd_theta <- if not (isNewDataCon con)
                      then foldl mergeAtAtConstraints [] <$>
-                          mapM (\t -> genWfConstraintsTcM False (scaledThing t) []) args
+                          mapM (\t -> genWdConstraintsTcM False (scaledThing t) []) args
                      else return []
-       ; let full_theta  = wf_theta ++ stupid_theta ++ theta -- It is important to ++ them and not mergeAtAt them
+       ; let full_theta  = wd_theta ++ stupid_theta ++ theta -- It is important to ++ them and not mergeAtAt them
              all_arg_tys = map unrestricted full_theta ++ scaled_arg_tys
                 -- stupid-theta must come first
                 -- See Note [Instantiating stupid theta]

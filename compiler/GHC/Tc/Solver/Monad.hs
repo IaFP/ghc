@@ -2302,7 +2302,7 @@ breakTyVarCycle_maybe ev cte_result (TyVarLHS lhs_tv) rhs
     go ty | Just ty' <- rewriterView ty = go ty'
     go (Rep.TyConApp tc tys)
       | isTypeFamilyTyCon tc
-      , not(isWfTyCon tc)     -- don't do this if we have a magic (@) tyfam as it is regular
+      , not(isWdTyCon tc)     -- don't do this if we have a magic (@) tyfam as it is regular
                               -- worried about whether this type family is not actually
                               -- causing trouble? See Detail (5) of Note.
       = do { let (fun_args, extra_args) = splitAt (tyConArity tc) tys

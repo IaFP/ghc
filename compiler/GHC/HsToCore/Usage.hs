@@ -284,12 +284,12 @@ mk_mod_usage_info pit hsc_env this_mod direct_imports used_names
         ent_hashs = Map.fromList $ catMaybes (map lookup_occ used_occs)
       
         lookup_occ :: OccName -> Maybe (OccName, Fingerprint)
-        -- There migh be names that don't have occurances due to building of WF_*
+        -- There migh be names that don't have occurances due to building of WD_*
         lookup_occ occ
           | isJust ochs 
           = ochs
           | Nothing <- ochs
-          , isWFTyConOcc occ
+          , isWDTyConOcc occ
           = Nothing
           | otherwise
           = pprPanic "mkUsage" (ppr mod <+> ppr occ <+> ppr used_names)

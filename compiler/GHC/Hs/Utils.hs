@@ -39,7 +39,7 @@ just attach noSrcSpan to everything.
 {-# OPTIONS_GHC -Wno-incomplete-record-updates #-}
 
 module GHC.Hs.Utils(
-  GenerateWFMirrorFlag (..), genWFMirror, 
+  GenerateWDMirrorFlag (..), genWDMirror, 
   
   -- * Terms
   mkHsPar, mkHsApp, mkHsAppWith, mkHsApps, mkHsAppsWith,
@@ -159,7 +159,7 @@ import Data.Function
 import Data.List ( partition, deleteBy )
 import Data.Proxy
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 {-
 ************************************************************************
@@ -214,9 +214,9 @@ type AnnoBody p body
 
 mkMatchGroup :: (
 #if MIN_VERSION_base(4,16,0)
-                 WFT (XMG (GhcPass p) (LocatedA (body (GhcPass p)))),
-                 WFT (Anno (Match (GhcPass p) (LocatedA (body (GhcPass p))))),
-                 WFT (Anno [GenLocated SrcSpanAnnA (Match (GhcPass p) (LocatedA (body (GhcPass p))))]),
+                 WDT (XMG (GhcPass p) (LocatedA (body (GhcPass p)))),
+                 WDT (Anno (Match (GhcPass p) (LocatedA (body (GhcPass p))))),
+                 WDT (Anno [GenLocated SrcSpanAnnA (Match (GhcPass p) (LocatedA (body (GhcPass p))))]),
 #endif
                 AnnoBody p body)
              => Origin
@@ -329,7 +329,7 @@ mkNPlusKPat :: LocatedN RdrName -> LocatedAn NoEpAnns (HsOverLit GhcPs) -> EpAnn
 --     will not work with rebindable syntax if used after the renamer
 mkLastStmt :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (SyntaxExprGhc idR),
+  WDT (SyntaxExprGhc idR),
 #endif
   IsPass idR)
   => LocatedA (bodyR (GhcPass idR)) -> StmtLR (GhcPass idL) (GhcPass idR) (LocatedA (bodyR (GhcPass idR)))
@@ -344,7 +344,7 @@ mkTcBindStmt :: LPat GhcTc -> LocatedA (bodyR GhcTc)
 
 emptyRecStmt     :: (
 #if MIN_VERSION_base(4,16,0)
-                     WFT (Anno (StmtLR (GhcPass idL) GhcPs bodyR)),
+                     WDT (Anno (StmtLR (GhcPass idL) GhcPs bodyR)),
 #endif
                           Anno [GenLocated
                              (Anno (StmtLR (GhcPass idL) GhcPs bodyR))
@@ -353,7 +353,7 @@ emptyRecStmt     :: (
                  => StmtLR (GhcPass idL) GhcPs bodyR
 emptyRecStmtName :: (
 #if MIN_VERSION_base(4,16,0)
-                     WFT (Anno (StmtLR GhcRn GhcRn bodyR)),
+                     WDT (Anno (StmtLR GhcRn GhcRn bodyR)),
 #endif
                      Anno [GenLocated
                              (Anno (StmtLR GhcRn GhcRn bodyR))
@@ -436,10 +436,10 @@ mkTcBindStmt pat body = BindStmt (XBindStmtTc { xbstc_bindOp = noSyntaxExpr,
 
 emptyRecStmt' :: forall idL idR body . (
 #if MIN_VERSION_base(4,16,0)
-    WFT (Anno [GenLocated (Anno (StmtLR (GhcPass idL) (GhcPass idR) body))
+    WDT (Anno [GenLocated (Anno (StmtLR (GhcPass idL) (GhcPass idR) body))
                              (StmtLR (GhcPass idL) (GhcPass idR) body)]),
-    WFT (SyntaxExprGhc idR),
-    WFT (IdGhcP idR),
+    WDT (SyntaxExprGhc idR),
+    WDT (IdGhcP idR),
 #endif
   WrapXRec (GhcPass idR) [LStmtLR (GhcPass idL) (GhcPass idR) body], IsPass idR)
               => XRecStmt (GhcPass idL) (GhcPass idR) body
@@ -510,7 +510,7 @@ mkConLikeTc con = XExpr (ConLikeTc con [] [])
 
 nlHsVar :: (
 #if MIN_VERSION_base(4,16,0)
-             WFT (Anno (IdGhcP p)),
+             WDT (Anno (IdGhcP p)),
 #endif
              IsSrcSpanAnn p a)
         => IdP (GhcPass p) -> LHsExpr (GhcPass p)
@@ -518,7 +518,7 @@ nlHsVar n = noLocA (HsVar noExtField (noLocA n))
 
 nl_HsVar :: (
 #if MIN_VERSION_base(4,16,0)
-           WFT (Anno (IdGhcP p)),
+           WDT (Anno (IdGhcP p)),
 #endif
            IsSrcSpanAnn p a)
         => IdP (GhcPass p) -> HsExpr (GhcPass p)
@@ -536,7 +536,7 @@ nlHsIntLit n = noLocA (HsLit noComments (HsInt noExtField (mkIntegralLit n)))
 
 nlVarPat :: (
 #if MIN_VERSION_base(4,16,0)
-           WFT (Anno (IdGhcP p)),
+           WDT (Anno (IdGhcP p)),
 #endif
            IsSrcSpanAnn p a)
         => IdP (GhcPass p) -> LPat (GhcPass p)
@@ -561,7 +561,7 @@ nlHsSyntaxApps NoSyntaxExprTc args = pprPanic "nlHsSyntaxApps" (ppr args)
 
 nlHsApps :: (
 #if MIN_VERSION_base(4,16,0)
-            WFT (Anno (IdGhcP p)),
+            WDT (Anno (IdGhcP p)),
 #endif
             IsSrcSpanAnn p a)
          => IdP (GhcPass p) -> [LHsExpr (GhcPass p)] -> LHsExpr (GhcPass p)
@@ -569,7 +569,7 @@ nlHsApps f xs = foldl' nlHsApp (nlHsVar f) xs
 
 nlHsVarApps :: (
 #if MIN_VERSION_base(4,16,0)
-                WFT (Anno (IdGhcP p)),
+                WDT (Anno (IdGhcP p)),
 #endif
                 IsSrcSpanAnn p a)
             => IdP (GhcPass p) -> [IdP (GhcPass p)] -> LHsExpr (GhcPass p)
@@ -659,7 +659,7 @@ nlList exprs          = noLocA (ExplicitList noAnn exprs)
 nlHsAppTy :: LHsType (GhcPass p) -> LHsType (GhcPass p) -> LHsType (GhcPass p)
 nlHsTyVar :: (
 #if MIN_VERSION_base(4,16,0)
-              WFT (Anno (IdGhcP p)),
+              WDT (Anno (IdGhcP p)),
 #endif
              IsSrcSpanAnn p a)
           => IdP (GhcPass p)                            -> LHsType (GhcPass p)
@@ -673,7 +673,7 @@ nlHsParTy t   = noLocA (HsParTy noAnn t)
 
 nlHsTyConApp :: (
 #if MIN_VERSION_base(4,16,0)
-                WFT (Anno (IdGhcP p)),
+                WDT (Anno (IdGhcP p)),
 #endif
                 IsSrcSpanAnn p a)
              => LexicalFixity -> IdP (GhcPass p)
@@ -711,7 +711,7 @@ mkLHsTupleExpr es ext
 
 mkLHsVarTuple :: (
 #if MIN_VERSION_base(4,16,0)
-                   WFT (Anno (IdGhcP p)),
+                   WDT (Anno (IdGhcP p)),
 #endif
                   IsSrcSpanAnn p a)
                => [IdP (GhcPass p)]  -> XExplicitTuple (GhcPass p)
@@ -732,7 +732,7 @@ mkLHsPatTup lpats  = L (getLoc (head lpats)) $ TuplePat noExtField lpats Boxed
 -- | The Big equivalents for the source tuple expressions
 mkBigLHsVarTup :: (
 #if MIN_VERSION_base(4,16,0)
-                   WFT (Anno (IdGhcP p)),
+                   WDT (Anno (IdGhcP p)),
 #endif
                    IsSrcSpanAnn p a)
                => [IdP (GhcPass p)] -> XExplicitTuple (GhcPass p)
@@ -939,8 +939,8 @@ mkPatSynBind name details lpat dir anns = PatSynBind noExtField psb
 -- considered infix.
 isInfixFunBind :: forall id1 id2. (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XRec id2 (Match id2 (XRec id2 (HsExpr id2)))),
-  WFT (XRec id2 [XRec id2 (Match id2 (XRec id2 (HsExpr id2)))]),
+  WDT (XRec id2 (Match id2 (XRec id2 (HsExpr id2)))),
+  WDT (XRec id2 [XRec id2 (Match id2 (XRec id2 (HsExpr id2)))]),
 #endif
   UnXRec id2) => HsBindLR id1 id2 -> Bool
 isInfixFunBind (FunBind { fun_matches = MG _ matches _ })
@@ -1083,8 +1083,8 @@ isBangedHsBind _
 
 collectLocalBinders :: (
 #if MIN_VERSION_base(4,16,0)
-                      WFT (Anno (IdGhcP idL)),
-                      WFT (XXPat (GhcPass idL)),  
+                      WDT (Anno (IdGhcP idL)),
+                      WDT (XXPat (GhcPass idL)),  
 #endif
                        CollectPass (GhcPass idL))
                     => CollectFlag (GhcPass idL)
@@ -1098,8 +1098,8 @@ collectLocalBinders flag = \case
 
 collectHsIdBinders :: (
 #if MIN_VERSION_base(4,16,0)
-                      WFT (Anno (IdGhcP idL)),
-                      WFT (XXPat (GhcPass idL)),  
+                      WDT (Anno (IdGhcP idL)),
+                      WDT (XXPat (GhcPass idL)),  
 #endif
                       CollectPass (GhcPass idL))
                    => CollectFlag (GhcPass idL)
@@ -1110,8 +1110,8 @@ collectHsIdBinders flag = collect_hs_val_binders True flag
 
 collectHsValBinders :: (
 #if MIN_VERSION_base(4,16,0)
-                      WFT (Anno (IdGhcP idL)),
-                      WFT (XXPat (GhcPass idL)),
+                      WDT (Anno (IdGhcP idL)),
+                      WDT (XXPat (GhcPass idL)),
 #endif
                        CollectPass (GhcPass idL))
                     => CollectFlag (GhcPass idL)
@@ -1121,10 +1121,10 @@ collectHsValBinders flag = collect_hs_val_binders False flag
 
 collectHsBindBinders :: (
 #if MIN_VERSION_base(4,16,0)
-                          WFT (XRec p (Pat p)), WFT (XRec p (IdP p)),
-                          WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
-                          WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
-                          WFT (XXPat p),
+                          WDT (XRec p (Pat p)), WDT (XRec p (IdP p)),
+                          WDT (NoGhcTc p), WDT (XRec p (FieldOcc p)),
+                          WDT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+                          WDT (XXPat p),
 #endif
                         CollectPass p)
                      => CollectFlag p
@@ -1135,10 +1135,10 @@ collectHsBindBinders flag b = collect_bind False flag b []
 
 collectHsBindsBinders :: (
 #if MIN_VERSION_base(4,16,0)
-                          WFT (XRec p (Pat p)), WFT (XRec p (IdP p)),
-                          WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
-                          WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
-                          WFT (XXPat p),
+                          WDT (XRec p (Pat p)), WDT (XRec p (IdP p)),
+                          WDT (NoGhcTc p), WDT (XRec p (FieldOcc p)),
+                          WDT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+                          WDT (XXPat p),
 #endif
                          CollectPass p)
                       => CollectFlag p
@@ -1148,10 +1148,10 @@ collectHsBindsBinders flag binds = collect_binds False flag binds []
 
 collectHsBindListBinders :: forall p idR. (
 #if MIN_VERSION_base(4,16,0)
-                            WFT (XRec p (Pat p)), WFT (XRec p (IdP p)),
-                            WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
-                            WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
-                            WFT (XXPat p),
+                            WDT (XRec p (Pat p)), WDT (XRec p (IdP p)),
+                            WDT (NoGhcTc p), WDT (XRec p (FieldOcc p)),
+                            WDT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+                            WDT (XXPat p),
 #endif
                             CollectPass p)
                          => CollectFlag p
@@ -1162,8 +1162,8 @@ collectHsBindListBinders flag = foldr (collect_bind False flag . unXRec @p) []
 
 collect_hs_val_binders :: (
 #if MIN_VERSION_base(4,16,0)
-                          WFT (Anno (IdGhcP idL)),
-                          WFT (XXPat (GhcPass idL)),
+                          WDT (Anno (IdGhcP idL)),
+                          WDT (XXPat (GhcPass idL)),
 #endif
                           CollectPass (GhcPass idL))
                        => Bool
@@ -1176,10 +1176,10 @@ collect_hs_val_binders ps flag = \case
 
 collect_out_binds :: forall p. (
 #if MIN_VERSION_base(4,16,0)
-                     WFT (XRec p (Pat p)), WFT (XRec p (IdP p)),
-                     WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
-                     WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
-                     WFT (XXPat p),
+                     WDT (XRec p (Pat p)), WDT (XRec p (IdP p)),
+                     WDT (NoGhcTc p), WDT (XRec p (FieldOcc p)),
+                     WDT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+                     WDT (XXPat p),
 #endif
                      CollectPass p)
                   => Bool
@@ -1190,10 +1190,10 @@ collect_out_binds ps flag = foldr (collect_binds ps flag . snd) []
 
 collect_binds :: forall p idR. (
 #if MIN_VERSION_base(4,16,0)
-                WFT (XRec p (Pat p)), WFT (XRec p (IdP p)),
-                WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
-                WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
-                WFT (XXPat p),
+                WDT (XRec p (Pat p)), WDT (XRec p (IdP p)),
+                WDT (NoGhcTc p), WDT (XRec p (FieldOcc p)),
+                WDT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+                WDT (XXPat p),
 #endif
                  CollectPass p)
               => Bool
@@ -1206,10 +1206,10 @@ collect_binds ps flag binds acc = foldr (collect_bind ps flag . unXRec @p) acc b
 
 collect_bind :: forall p idR. (
 #if MIN_VERSION_base(4,16,0)
-                WFT (XRec p (Pat p)), WFT (XRec p (IdP p)),
-                WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
-                WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
-                WFT (XXPat p),
+                WDT (XRec p (Pat p)), WDT (XRec p (IdP p)),
+                WDT (NoGhcTc p), WDT (XRec p (FieldOcc p)),
+                WDT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+                WDT (XXPat p),
 #endif
                 CollectPass p)
              => Bool
@@ -1244,9 +1244,9 @@ collectMethodBinders binds = foldr (get . unXRec @idL) [] binds
 collectLStmtsBinders
   :: (
 #if MIN_VERSION_base(4,16,0)
-     WFT (Anno (StmtLR (GhcPass idL) (GhcPass idR) body)),
-     WFT (Anno (IdGhcP idL)),
-     WFT (XXPat (GhcPass idL)),
+     WDT (Anno (StmtLR (GhcPass idL) (GhcPass idR) body)),
+     WDT (Anno (IdGhcP idL)),
+     WDT (XXPat (GhcPass idL)),
 #endif
     CollectPass (GhcPass idL))
   => CollectFlag (GhcPass idL)
@@ -1257,8 +1257,8 @@ collectLStmtsBinders flag = concatMap (collectLStmtBinders flag)
 collectStmtsBinders
   :: (
 #if MIN_VERSION_base(4,16,0)
-     WFT (Anno (StmtLR (GhcPass idL) (GhcPass idR) body)),
-     WFT (Anno (IdGhcP idL)), WFT (XXPat (GhcPass idL)),  
+     WDT (Anno (StmtLR (GhcPass idL) (GhcPass idR) body)),
+     WDT (Anno (IdGhcP idL)), WDT (XXPat (GhcPass idL)),  
 #endif
      CollectPass (GhcPass idL))
   => CollectFlag (GhcPass idL)
@@ -1269,8 +1269,8 @@ collectStmtsBinders flag = concatMap (collectStmtBinders flag)
 collectLStmtBinders
   :: (
 #if MIN_VERSION_base(4,16,0)
-     WFT (Anno (StmtLR (GhcPass idL) (GhcPass idR) body)),
-     WFT (Anno (IdGhcP idL)), WFT (XXPat (GhcPass idL)),
+     WDT (Anno (StmtLR (GhcPass idL) (GhcPass idR) body)),
+     WDT (Anno (IdGhcP idL)), WDT (XXPat (GhcPass idL)),
 #endif
      CollectPass (GhcPass idL))
   => CollectFlag (GhcPass idL)
@@ -1281,8 +1281,8 @@ collectLStmtBinders flag = collectStmtBinders flag . unLoc
 collectStmtBinders
   :: (
 #if MIN_VERSION_base(4,16,0)
-     WFT (Anno (StmtLR (GhcPass idL) (GhcPass idR) body)),
-     WFT (Anno (IdGhcP idL)), WFT (XXPat (GhcPass idL)),
+     WDT (Anno (StmtLR (GhcPass idL) (GhcPass idR) body)),
+     WDT (Anno (IdGhcP idL)), WDT (XXPat (GhcPass idL)),
 #endif
      CollectPass (GhcPass idL))
   => CollectFlag (GhcPass idL)
@@ -1309,10 +1309,10 @@ collectStmtBinders flag = \case
 collectPatBinders
     :: (
 #if MIN_VERSION_base(4,16,0)
-         WFT (XRec p (IdP p)), 
-         WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
-         WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
-         WFT (XXPat p), WFT(XRec p (Pat p)),
+         WDT (XRec p (IdP p)), 
+         WDT (NoGhcTc p), WDT (XRec p (FieldOcc p)),
+         WDT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+         WDT (XXPat p), WDT(XRec p (Pat p)),
 #endif
        CollectPass p)
     => CollectFlag p
@@ -1323,10 +1323,10 @@ collectPatBinders flag pat = collect_lpat flag pat []
 collectPatsBinders
     :: (
 #if MIN_VERSION_base(4,16,0)
-         WFT (XRec p (IdP p)), 
-         WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
-         WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
-         WFT (XXPat p), WFT(XRec p (Pat p)),         
+         WDT (XRec p (IdP p)), 
+         WDT (NoGhcTc p), WDT (XRec p (FieldOcc p)),
+         WDT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+         WDT (XXPat p), WDT(XRec p (Pat p)),         
 #endif
        CollectPass p)
     => CollectFlag p
@@ -1352,10 +1352,10 @@ data CollectFlag p where
 
 collect_lpat :: forall p. (
 #if MIN_VERSION_base(4,16,0)
-                WFT (XRec p (IdP p)),
-                WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
-                WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
-                WFT (XXPat p), WFT(XRec p (Pat p)),                
+                WDT (XRec p (IdP p)),
+                WDT (NoGhcTc p), WDT (XRec p (FieldOcc p)),
+                WDT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+                WDT (XXPat p), WDT(XRec p (Pat p)),                
 #endif
                 CollectPass p)
              => CollectFlag p
@@ -1366,10 +1366,10 @@ collect_lpat flag pat bndrs = collect_pat flag (unXRec @p pat) bndrs
 
 collect_pat :: forall p. (
 #if MIN_VERSION_base(4,16,0)
-               WFT (XRec p (IdP p)),
-               WFT (NoGhcTc p), WFT (XRec p (FieldOcc p)),
-               WFT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
-               WFT (XXPat p), WFT(XRec p (Pat p)),
+               WDT (XRec p (IdP p)),
+               WDT (NoGhcTc p), WDT (XRec p (FieldOcc p)),
+               WDT (XRec p (HsFieldBind (XRec p (FieldOcc p)) (XRec p (Pat p)))),
+               WDT (XXPat p), WDT(XRec p (Pat p)),
 #endif
                CollectPass p)
             => CollectFlag p
@@ -1419,7 +1419,7 @@ add_ev_bndr (EvBind { eb_lhs = b }) bs | isId b    = b:bs
 -- it can reuse the code in GHC for collecting binders.
 class (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XXPat p),
+  WDT (XXPat p),
 #endif
   UnXRec p) => CollectPass p where
   collectXXPat :: Proxy p -> CollectFlag p -> XXPat p -> [IdP p] -> [IdP p]
@@ -1523,24 +1523,24 @@ hsTyClForeignBinders tycl_decls foreign_decls
      ++ getSelectorNames2
          (foldMap (foldMap hsLInstDeclBinders . group_instds) tycl_decls)
   where
-    getSelectorNames1 :: ([(LocatedA Name, GenerateWFMirrorFlag)], [LFieldOcc GhcRn]) -> [Name]
+    getSelectorNames1 :: ([(LocatedA Name, GenerateWDMirrorFlag)], [LFieldOcc GhcRn]) -> [Name]
     getSelectorNames1 (ns, fs) = map (unLoc . fst) ns ++ map (foExt . unLoc) fs
 
     getSelectorNames2 :: ([LocatedA Name], [LFieldOcc GhcRn]) -> [Name]
     getSelectorNames2 (ns, fs) = map unLoc ns ++ map (foExt . unLoc) fs
 
-data GenerateWFMirrorFlag = GenerateMirror -- ^ generates a mirror tycon
+data GenerateWDMirrorFlag = GenerateMirror -- ^ generates a mirror tycon
                           | NoMirror       -- ^ skips on the mirror tycon generation
                   
 
-genWFMirror :: GenerateWFMirrorFlag -> Bool
-genWFMirror GenerateMirror = True
-genWFMirror _              = False
+genWDMirror :: GenerateWDMirrorFlag -> Bool
+genWDMirror GenerateMirror = True
+genWDMirror _              = False
 
 -------------------
 hsLTyClDeclBinders :: IsPass p
                    => LocatedA (TyClDecl (GhcPass p))
-                   -> ([(LocatedA (IdP (GhcPass p)), GenerateWFMirrorFlag)], [LFieldOcc (GhcPass p)])
+                   -> ([(LocatedA (IdP (GhcPass p)), GenerateWDMirrorFlag)], [LFieldOcc (GhcPass p)])
 -- ^ Returns all the /binding/ names of the decl.  The first one is
 -- guaranteed to be the name of the decl. The first component
 -- represents all binding names except record fields; the second
@@ -1740,7 +1740,7 @@ easier.
 
 lStmtsImplicits ::
 #if MIN_VERSION_base(4,16,0)
-                WFT (Anno (StmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR))))) =>
+                WDT (Anno (StmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR))))) =>
 #endif
                    [LStmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR)))]
                 -> [(SrcSpan, [Name])]
@@ -1748,7 +1748,7 @@ lStmtsImplicits = hs_lstmts
   where
     hs_lstmts ::
 #if MIN_VERSION_base(4,16,0)
-                WFT (Anno (StmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR))))) =>
+                WDT (Anno (StmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR))))) =>
 #endif
                  [LStmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR)))]
               -> [(SrcSpan, [Name])]
@@ -1756,7 +1756,7 @@ lStmtsImplicits = hs_lstmts
 
     hs_stmt ::
 #if MIN_VERSION_base(4,16,0)
-                WFT (Anno (StmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR))))) =>
+                WDT (Anno (StmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR))))) =>
 #endif
                 StmtLR GhcRn (GhcPass idR) (LocatedA (body (GhcPass idR)))
             -> [(SrcSpan, [Name])]

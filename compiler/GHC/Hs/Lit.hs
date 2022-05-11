@@ -40,7 +40,7 @@ import Language.Haskell.Syntax.Expr ( HsExpr )
 import Language.Haskell.Syntax.Extension
 import GHC.Hs.Extension
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types(WFT)
+import GHC.Types(WDT)
 #endif
 {-
 ************************************************************************
@@ -166,7 +166,7 @@ pp_st_suffix (SourceText st) suffix _   = text st <> suffix
 -- in debug mode, print the expression that it's resolved to, too
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XOverLit (GhcPass p)),
+  WDT (XOverLit (GhcPass p)),
 #endif
   OutputableBndrId p)
        => Outputable (HsOverLit (GhcPass p)) where

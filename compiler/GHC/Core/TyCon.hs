@@ -46,17 +46,17 @@ module GHC.Core.TyCon(
         mkLevPolyDataTyConRhs,
         mkSynonymTyCon,
         mkFamilyTyCon,
-        mkWFFamilyTyCon,
+        mkWDFamilyTyCon,
         mkPromotedDataCon,
         mkTcTyCon,
-        mkWFTcTyCon,
+        mkWDTcTyCon,
         noTcTyConScopedTyVars,
 
         -- ** Predicates on TyCons
         isAlgTyCon, isVanillaAlgTyCon, isConstraintKindCon,
         isClassTyCon, isClassTyConWithATs, isFamInstTyCon,
         isFunTyCon,
-        isWFMirrorTyCon,
+        isWDMirrorTyCon,
         isPrimTyCon,
         isTupleTyCon, isUnboxedTupleTyCon, isBoxedTupleTyCon,
         isUnboxedSumTyCon, isPromotedTupleTyCon,
@@ -71,7 +71,7 @@ module GHC.Core.TyCon(
         isNewTyCon, isAbstractTyCon,
         isFamilyTyCon, isOpenFamilyTyCon, isOpenTypeFamilyTyCon,
         isTypeFamilyTyCon, isDataFamilyTyCon, isDataFamFlav,
-        isWfTyCon,
+        isWdTyCon,
         isClosedTypeFamilyTyCon, isClosedSynFamilyTyConWithAxiom_maybe,
         tyConInjectivityInfo,
         isBuiltInSynFamTyCon_maybe,
@@ -107,9 +107,9 @@ module GHC.Core.TyCon(
         synTyConDefn_maybe, synTyConRhs_maybe,
         famTyConFlav_maybe, famTcResVar,
         algTyConRhs,
-        wfMirrorTyCon_maybe,
-        hasWfMirrorTyCon,
-        wfMirrorTyCon,
+        wdMirrorTyCon_maybe,
+        hasWdMirrorTyCon,
+        wdMirrorTyCon,
         newTyConRhs, newTyConEtadArity, newTyConEtadRhs,
         unwrapNewTyCon_maybe, unwrapNewTyConEtad_maybe,
         newTyConDataCon_maybe,
@@ -908,7 +908,7 @@ data TyCon
                                       -- its type variables? Nothing if no
                                       -- injectivity annotation was given
 
-        tyConWfRef  :: Maybe TyCon,   -- ^ Mirror type family tycon to simulate partial type families
+        tyConWdRef  :: Maybe TyCon,   -- ^ Mirror type family tycon to simulate partial type families
         isMirror    :: Bool           -- ^ is this a mirror tycon for another tcTyCon?
     }
 
@@ -990,7 +990,7 @@ data TyCon
         tcTyConFlavour :: TyConFlavour,
                            -- ^ What sort of 'TyCon' this represents.
 
-        tyConWfRef  :: Maybe TyCon, -- ^ if this is a type family tycon then we attach a WF tycon with it
+        tyConWdRef  :: Maybe TyCon, -- ^ if this is a type family tycon then we attach a WD tycon with it
 
         isMirror :: Bool            -- ^ is this a mirror tycon for another tcTyCon?
 
@@ -2001,12 +2001,12 @@ mkTcTyCon name binders res_kind scoped_tvs poly flav wfref_mb
                   , tcTyConScopedTyVars = scoped_tvs
                   , tcTyConIsPoly       = poly
                   , tcTyConFlavour      = flav
-                  , tyConWfRef          = wfref_mb
+                  , tyConWdRef          = wfref_mb
                   , isMirror = False }
     in tc
 
 
-mkWFTcTyCon :: Name
+mkWDTcTyCon :: Name
           -> [TyConBinder]
           -> Kind                -- ^ /result/ kind only
           -> [(Name,TcTyVar)]    -- ^ Scoped type variables;
@@ -2014,7 +2014,7 @@ mkWFTcTyCon :: Name
           -> Bool                -- ^ Is this TcTyCon generalised already?
           -> TyConFlavour        -- ^ What sort of 'TyCon' this represents
           -> TyCon
-mkWFTcTyCon name binders res_kind scoped_tvs poly flav
+mkWDTcTyCon name binders res_kind scoped_tvs poly flav
   = let tc =
           TcTyCon { tyConUnique  = getUnique name
                   , tyConName    = name
@@ -2027,7 +2027,7 @@ mkWFTcTyCon name binders res_kind scoped_tvs poly flav
                   , tcTyConScopedTyVars = scoped_tvs
                   , tcTyConIsPoly       = poly
                   , tcTyConFlavour      = flav
-                  , tyConWfRef          = Nothing
+                  , tyConWdRef          = Nothing
                   , isMirror = True }
     in tc
 
@@ -2126,17 +2126,17 @@ mkFamilyTyCon name binders res_kind resVar flav parent inj wfm
             , famTcFlav    = flav
             , famTcParent  = classTyCon <$> parent
             , famTcInj     = inj
-            , tyConWfRef   = wfm
+            , tyConWdRef   = wfm
             , isMirror     = False
             }
     in tc
 
 
 -- | Create a well formed type family 'TyCon'
-mkWFFamilyTyCon :: Name -> [TyConBinder] -> Kind  -- ^ /result/ kind
+mkWDFamilyTyCon :: Name -> [TyConBinder] -> Kind  -- ^ /result/ kind
               -> Maybe Name -> FamTyConFlav
               -> Maybe Class -> TyCon
-mkWFFamilyTyCon name binders res_kind resVar flav parent
+mkWDFamilyTyCon name binders res_kind resVar flav parent
   = let tc =
           FamilyTyCon
             { tyConUnique  = nameUnique name
@@ -2151,7 +2151,7 @@ mkWFFamilyTyCon name binders res_kind resVar flav parent
             , famTcFlav    = flav
             , famTcParent  = classTyCon <$> parent
             , famTcInj     = NotInjective
-            , tyConWfRef   = Nothing
+            , tyConWdRef   = Nothing
             , isMirror     = True
             }
     in tc
@@ -2220,10 +2220,10 @@ isVanillaAlgTyCon (AlgTyCon { algTcFlavour = VanillaAlgTyCon _ }) = True
 isVanillaAlgTyCon _                                              = False
 
 -- | Returns true if this tycon is a mirror tycon to some other type family or tctycon
-isWFMirrorTyCon :: TyCon -> Bool
-isWFMirrorTyCon (TcTyCon {isMirror = m}) = m
-isWFMirrorTyCon (FamilyTyCon {isMirror = m}) = m
-isWFMirrorTyCon tc = (tc `hasKey` wfTyConKey) || (isWFName $ tyConName tc)
+isWDMirrorTyCon :: TyCon -> Bool
+isWDMirrorTyCon (TcTyCon {isMirror = m}) = m
+isWDMirrorTyCon (FamilyTyCon {isMirror = m}) = m
+isWDMirrorTyCon tc = (tc `hasKey` wdTyConKey) || (isWDName $ tyConName tc)
 
 -- | Returns @True@ for the 'TyCon' of the 'Constraint' kind.
 {-# INLINE isConstraintKindCon #-} -- See Note [Inlining coreView] in GHC.Core.Type
@@ -2383,8 +2383,8 @@ isFamilyTyCon :: TyCon -> Bool
 isFamilyTyCon (FamilyTyCon {}) = True
 isFamilyTyCon _                = False
 
-isWfTyCon :: TyCon -> Bool
-isWfTyCon tc = tc `hasKey` wfTyConKey
+isWdTyCon :: TyCon -> Bool
+isWdTyCon tc = tc `hasKey` wdTyConKey
 
 -- | Is this a 'TyCon', synonym or otherwise, that defines a family with
 -- instances?
@@ -2458,20 +2458,20 @@ tyConFlavourAssoc_maybe (OpenTypeFamilyFlavour mb_parent) = mb_parent
 tyConFlavourAssoc_maybe _                                 = Nothing
 
 -- | Gets the mirror tycon for well formedness check
-wfMirrorTyCon_maybe :: TyCon -> Maybe TyCon
-wfMirrorTyCon_maybe (FamilyTyCon {tyConWfRef=m})   = m
-wfMirrorTyCon_maybe (TcTyCon {tyConWfRef = m})     = m
-wfMirrorTyCon_maybe _                              = Nothing
+wdMirrorTyCon_maybe :: TyCon -> Maybe TyCon
+wdMirrorTyCon_maybe (FamilyTyCon {tyConWdRef=m})   = m
+wdMirrorTyCon_maybe (TcTyCon {tyConWdRef = m})     = m
+wdMirrorTyCon_maybe _                              = Nothing
 
-hasWfMirrorTyCon :: TyCon -> Bool
-hasWfMirrorTyCon (FamilyTyCon {tyConWfRef = m}) = isJust m
-hasWfMirrorTyCon (TcTyCon {tyConWfRef = m}) = isJust m
-hasWfMirrorTyCon _ = False
+hasWdMirrorTyCon :: TyCon -> Bool
+hasWdMirrorTyCon (FamilyTyCon {tyConWdRef = m}) = isJust m
+hasWdMirrorTyCon (TcTyCon {tyConWdRef = m}) = isJust m
+hasWdMirrorTyCon _ = False
 
-wfMirrorTyCon :: String -> TyCon -> TyCon
-wfMirrorTyCon _ (FamilyTyCon { tyConWfRef=(Just m) }) = m
-wfMirrorTyCon _ (TcTyCon { tyConWfRef=(Just m) }) = m
-wfMirrorTyCon s tc
+wdMirrorTyCon :: String -> TyCon -> TyCon
+wdMirrorTyCon _ (FamilyTyCon { tyConWdRef=(Just m) }) = m
+wdMirrorTyCon _ (TcTyCon { tyConWdRef=(Just m) }) = m
+wdMirrorTyCon s tc
   = pprPanic ("Called from " ++ s ++ " No entry for a mirror tycon for: ") (ppr tc)
   
 -- The unit tycon didn't used to be classed as a tuple tycon

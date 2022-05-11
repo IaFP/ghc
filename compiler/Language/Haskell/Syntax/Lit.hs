@@ -35,7 +35,7 @@ import Language.Haskell.Syntax.Extension
 import Data.ByteString (ByteString)
 import Data.Data hiding ( Fixity )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 {-
@@ -106,7 +106,7 @@ instance Eq (HsLit x) where
 data HsOverLit p
   =
 #if MIN_VERSION_base(4,16,0)
-    WFT (XOverLit p) => 
+    WDT (XOverLit p) => 
 #endif
     OverLit {
       ol_ext :: (XOverLit p),
@@ -114,7 +114,7 @@ data HsOverLit p
 
   |
 #if MIN_VERSION_base(4,16,0)
-    WFT (XXOverLit p) => 
+    WDT (XXOverLit p) => 
 #endif
     XOverLit
       !(XXOverLit p)

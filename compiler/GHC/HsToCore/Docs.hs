@@ -42,7 +42,7 @@ import Data.Maybe
 import Data.Semigroup
 import GHC.IORef (readIORef)
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total, WFT)
+import GHC.Types (Total, WDT)
 #endif
 
 -- | Extract docs from renamer output.
@@ -148,7 +148,7 @@ user-written. This lets us relate Names (from ClsInsts) to comments
 -}
 getMainDeclBinder :: (
 #if MIN_VERSION_base(4,16,0)
-                     WFT (XXPat (GhcPass p)),
+                     WDT (XXPat (GhcPass p)),
 #endif
                      Anno (IdGhcP p) ~ SrcSpanAnnN, CollectPass (GhcPass p))
                   => HsDecl (GhcPass p) -> [IdP (GhcPass p)]
@@ -165,7 +165,7 @@ getMainDeclBinder _ = []
 
 sigNameNoLoc :: forall pass. (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XRec pass (IdP pass)),
+  WDT (XRec pass (IdP pass)),
 #endif
   UnXRec pass) => Sig pass -> [IdP pass]
 sigNameNoLoc (TypeSig    _   ns _)         = map (unXRec @pass) ns

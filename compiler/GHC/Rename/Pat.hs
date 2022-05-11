@@ -87,7 +87,7 @@ import Data.Maybe
 import Data.Ratio
 import GHC.Types.FieldLabel (DuplicateRecordFields(..))
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT, type (@))
+import GHC.Types (WDT, type (@))
 import GHC.Types.Unique.Set (UniqSet)
 #endif
 
@@ -933,8 +933,8 @@ getFieldIds flds = map (hsRecFieldSel . unLoc) flds
 
 getFieldLbls :: forall p arg . (
 #if MIN_VERSION_base(4,16,0)
-   WFT (XRec p RdrName),
-   WFT (XRec p (FieldOcc p)),
+   WDT (XRec p RdrName),
+   WDT (XRec p (FieldOcc p)),
 #endif
   UnXRec p) => [LHsRecField p arg] -> [RdrName]
 getFieldLbls flds

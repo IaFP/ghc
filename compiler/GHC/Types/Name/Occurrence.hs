@@ -58,12 +58,12 @@ module GHC.Types.Name.Occurrence (
         mkDataConWrapperOcc, mkWorkerOcc,
         mkMatcherOcc, mkBuilderOcc,
         mkDefaultMethodOcc, isDefaultMethodOcc, isTypeableBindOcc,
-        isWFTyConOcc,
+        isWDTyConOcc,
         mkNewTyCoOcc, mkClassOpAuxOcc,
         mkCon2TagOcc, mkTag2ConOcc, mkMaxTagOcc,
         mkClassDataConOcc, mkDictOcc, mkIPOcc,
         mkSpecOcc, mkForeignExportOcc, mkRepEqOcc,
-        mkGenR, mkGen1R, mkWFTyConOcc,
+        mkGenR, mkGen1R, mkWDTyConOcc,
         mkDataTOcc, mkDataCOcc, mkDataConWorkerOcc,
         mkSuperDictSelOcc, mkSuperDictAuxOcc,
         mkLocalOcc, mkMethodOcc, mkInstTyTcOcc,
@@ -612,10 +612,10 @@ isTypeableBindOcc occ =
      '$':'t':'r':_ -> True  -- Module binding
      _ -> False
 
-isWFTyConOcc :: OccName -> Bool
-isWFTyConOcc occ =
+isWDTyConOcc :: OccName -> Bool
+isWDTyConOcc occ =
    case occNameString occ of
-     '$':'w':'f': ':' : _ -> True  -- mkTyConRepOcc
+     '$':'w':'d': ':' : _ -> True  -- mkTyConRepOcc
      _ -> False
 
 
@@ -625,7 +625,7 @@ mkDataConWrapperOcc, mkWorkerOcc,
         mkDefaultMethodOcc,
         mkClassDataConOcc, mkDictOcc,
         mkIPOcc, mkSpecOcc, mkForeignExportOcc, mkRepEqOcc,
-        mkGenR, mkGen1R, mkWFTyConOcc,
+        mkGenR, mkGen1R, mkWDTyConOcc,
         mkDataConWorkerOcc, mkNewTyCoOcc,
         mkInstTyCoOcc, mkEqPredCoOcc, mkClassOpAuxOcc,
         mkCon2TagOcc, mkTag2ConOcc, mkMaxTagOcc, mkDataTOcc, mkDataCOcc,
@@ -648,7 +648,7 @@ mkClassDataConOcc   = mk_simple_deriv dataName "C:"   -- Data con for a class
 mkNewTyCoOcc        = mk_simple_deriv tcName   "N:"   -- Coercion for newtypes
 mkInstTyCoOcc       = mk_simple_deriv tcName   "D:"   -- Coercion for type functions
 mkEqPredCoOcc       = mk_simple_deriv tcName   "$co"
-mkWFTyConOcc        = mk_simple_deriv tcName   "$wf:" -- ANI TODO use this 
+mkWDTyConOcc        = mk_simple_deriv tcName   "$wd:" -- ANI TODO use this 
 
 -- Used in derived instances for the names of auxiliary bindings.
 -- See Note [Auxiliary binders] in GHC.Tc.Deriv.Generate.

@@ -97,7 +97,7 @@ import Control.Monad
 import Data.List  ( partition )
 import Control.Arrow ( second )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 {- *********************************************************************
@@ -679,8 +679,8 @@ zonkLTcSpecPrags env ps
 
 zonkMatchGroup :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (Anno (Match GhcTc (LocatedA (body GhcTc)))),
-  WFT (Anno [GenLocated(Anno (Match GhcTc (LocatedA (body GhcTc))))
+  WDT (Anno (Match GhcTc (LocatedA (body GhcTc)))),
+  WDT (Anno [GenLocated(Anno (Match GhcTc (LocatedA (body GhcTc))))
               (Match GhcTc (LocatedA (body GhcTc)))]),
 #endif
   Anno (GRHS GhcTc (LocatedA (body GhcTc))) ~ SrcAnn NoEpAnns)

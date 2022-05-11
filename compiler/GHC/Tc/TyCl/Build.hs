@@ -13,7 +13,7 @@ module GHC.Tc.TyCl.Build (
         TcMethInfo, MethInfo, buildClass,
         mkNewTyConRhs,
         newImplicitBinder, newTyConRepName,
-        mk_wf_name        
+        mk_wd_name        
     ) where
 
 import GHC.Prelude
@@ -462,9 +462,9 @@ newTyConRepName tc_name
   = newImplicitBinder tc_name mkTyConRepOcc
 
 
-mk_wf_name :: Name -> TcRnIf gbl lcl Name
-mk_wf_name n = do { let m = nameModule n
-                  ; let wf_occ = mkWFTyConOcc (nameOccName n)
-                  ; wf_name <- lookupOrig m wf_occ
-                  ; return wf_name
+mk_wd_name :: Name -> TcRnIf gbl lcl Name
+mk_wd_name n = do { let m = nameModule n
+                  ; let wd_occ = mkWDTyConOcc (nameOccName n)
+                  ; wd_name <- lookupOrig m wd_occ
+                  ; return wd_name
                   }

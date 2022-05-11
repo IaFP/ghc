@@ -1752,7 +1752,7 @@ canTyConApp ev eq_rel tc1 tys1 tc2 tys2
      -- See Note [Decomposing equality]
     can_decompose inerts
       =  isInjectiveTyCon tc1 (eqRelRole eq_rel)
-      || isWfTyCon tc1
+      || isWdTyCon tc1
       || (ctEvFlavour ev /= Given && isEmptyBag (matchableGivens loc pred inerts))
 
 {-
@@ -3280,7 +3280,7 @@ unifyWanted loc role orig_ty1 orig_ty2
 
     -- go (TyConApp tc1 tys1) (TyConApp tc2 tys2)
     --   | tc1 == tc2, tys1 `equalLength` tys2
-    --   , tc1 `hasKey` wfTyConKey -- @'s are special
+    --   , tc1 `hasKey` wdTyConKey -- @'s are special
     --   = do { cos <- zipWith3M (unifyWanted loc)
     --                           (tyConRolesX Representational tc1) tys1 tys2
     --        ; return (mkTyConAppCo role tc1 cos) }
@@ -3332,7 +3332,7 @@ unify_derived loc role    orig_ty1 orig_ty2
 
     -- go (TyConApp tc1 tys1) (TyConApp tc2 tys2)
     --   | tc1 == tc2, tys1 `equalLength` tys2
-    --   , tc1 `hasKey` wfTyConKey -- @'s are special
+    --   , tc1 `hasKey` wdTyConKey -- @'s are special
     --   = unifyDeriveds loc (tyConRolesX role tc1) tys1 tys2
 
     go (TyConApp tc1 tys1) (TyConApp tc2 tys2)

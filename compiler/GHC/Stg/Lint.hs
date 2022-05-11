@@ -71,7 +71,7 @@ import GHC.Data.Bag         ( Bag, emptyBag, isEmptyBag, snocBag, bagToList )
 import Control.Applicative ((<|>))
 import Control.Monad
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 lintStgTopBindings :: forall a . (OutputablePass a, BinderP a ~ Id)
@@ -401,7 +401,7 @@ checkInScope id = LintM $ \mod _lf diag_opts _opts loc scope errs
 
 mkUnliftedTyMsg :: (
 #if MIN_VERSION_base(4,16,0)
-  WFT (BinderP a),
+  WDT (BinderP a),
 #endif
   OutputablePass a) => StgPprOpts -> Id -> GenStgRhs a -> SDoc
 mkUnliftedTyMsg opts binder rhs

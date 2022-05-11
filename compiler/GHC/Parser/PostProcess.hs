@@ -164,7 +164,7 @@ import Data.Char
 import Data.Data       ( dataTypeOf, fromConstr, dataTypeConstrs )
 import Data.Kind       ( Type )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@), WFT)
+import GHC.Types (type(@), WDT)
 #endif
 {- **********************************************************************
 
@@ -1466,31 +1466,31 @@ type AnnoBody b
 class (
 #if MIN_VERSION_base(4,16,0)
  Body b @ GhcPs,
- WFT (Body (Body b GhcPs)),
+ WDT (Body (Body b GhcPs)),
 
- WFT (Body (FunArg (Body b GhcPs))),
- WFT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
+ WDT (Body (FunArg (Body b GhcPs))),
+ WDT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
  
- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ WDT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
+ WDT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
 
- WFT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ WDT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
+ WDT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
 
- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
+ WDT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
+ WDT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
 
- WFT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
+ WDT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
+ WDT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
  
- -- WFT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
- -- WFT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
- -- WFT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
- -- WFT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
+ -- WDT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
+ -- WDT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
+ -- WDT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WDT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
  -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
- -- WFT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
- -- WFT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
- -- WFT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
+ -- WDT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WDT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
+ -- WDT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
 #endif
   (b ~ (Body b) GhcPs), AnnoBody b) => DisambECP b where
   -- | See Note [Body in DisambECP]

@@ -416,7 +416,7 @@ so we may need to split up a single Avail into multiple ones.
 tyThingToIfaceDecl :: Bool -> TyThing -> [IfaceDecl]
 tyThingToIfaceDecl _ (AnId id)      = [idToIfaceDecl id]
 tyThingToIfaceDecl _ (ATyCon tycon) = snd (tyConToIfaceDecl emptyTidyEnv tycon)
-                                      : (maybeToList $ fmap (snd . (tyConToIfaceDecl emptyTidyEnv)) (wfMirrorTyCon_maybe tycon))
+                                      : (maybeToList $ fmap (snd . (tyConToIfaceDecl emptyTidyEnv)) (wdMirrorTyCon_maybe tycon))
 tyThingToIfaceDecl _ (ACoAxiom ax)  = [coAxiomToIfaceDecl ax]
 tyThingToIfaceDecl show_linear_types (AConLike cl)  = case cl of
     RealDataCon dc -> [dataConToIfaceDecl show_linear_types dc] -- for ppr purposes only
@@ -664,13 +664,13 @@ tyFamToIfaceDecl env fam_flav tycon =
                   ifBinders = if_binders,
                   ifResKind = if_res_kind,
                   ifFamInj  = tyConInjectivityInfo tycon,
-                  ifWFMirror = mb_if_wf_mirror
+                  ifWDMirror = mb_if_wd_mirror
                 })
   where
-    mb_if_wf_mirror =
-      do { wf_mirror <- wfMirrorTyCon_maybe tycon
-         ; flav <- famTyConFlav_maybe wf_mirror
-         ; return . snd $ tyFamToIfaceDecl env flav wf_mirror
+    mb_if_wd_mirror =
+      do { wd_mirror <- wdMirrorTyCon_maybe tycon
+         ; flav <- famTyConFlav_maybe wd_mirror
+         ; return . snd $ tyFamToIfaceDecl env flav wd_mirror
          }
     
     (tc_env1, tc_binders) = tidyTyConBinders env (tyConBinders tycon)

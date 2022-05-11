@@ -72,7 +72,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NEL
 import qualified Data.Map as Map
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 {-
@@ -796,7 +796,7 @@ matchWrapper ctxt mb_scr (MG { mg_alts = L _ matches
 
     initNablasMatches ::
 #if MIN_VERSION_base(4,16,0)
-                         WFT (Anno (GRHS GhcTc b)) => 
+                         WDT (Anno (GRHS GhcTc b)) => 
 #endif
                         [LMatch GhcTc b] -> [(Nablas, NonEmpty Nablas)]
     initNablasMatches ms
@@ -804,7 +804,7 @@ matchWrapper ctxt mb_scr (MG { mg_alts = L _ matches
 
     initNablasGRHSs ::
 #if MIN_VERSION_base(4,16,0)
-      WFT (Anno (GRHS GhcTc b)) => 
+      WDT (Anno (GRHS GhcTc b)) => 
 #endif
       GRHSs GhcTc b -> NonEmpty Nablas
     initNablasGRHSs m = expectJust "GRHSs non-empty"

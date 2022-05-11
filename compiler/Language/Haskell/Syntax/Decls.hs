@@ -122,7 +122,7 @@ import GHC.Data.Maybe
 import Data.Data        hiding (TyCon,Fixity, Infix)
 import Data.Void
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 {-
@@ -1795,7 +1795,7 @@ data AnnProvenance pass = ValueAnnProvenance (LIdP pass)
 
 annProvenanceName_maybe :: forall p. (
 #if MIN_VERSION_base(4,16,0)
-  WFT (XRec p (IdP p)),
+  WDT (XRec p (IdP p)),
 #endif
    UnXRec p) => AnnProvenance p -> Maybe (IdP p)
 annProvenanceName_maybe (ValueAnnProvenance (unXRec @p -> name)) = Just name

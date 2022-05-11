@@ -27,7 +27,7 @@ import Data.Foldable
 import GHC.Parser.Annotation
 import Language.Haskell.Syntax
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (WFT)
+import GHC.Types (WDT)
 #endif
 
 data SumOrTuple b
@@ -67,8 +67,8 @@ data PatBuilder p
 
 instance
 #if MIN_VERSION_base(4,16,0)
-  (WFT (Anno (HsExpr GhcRn)),
-   WFT (Anno (HsExpr GhcPs))) => 
+  (WDT (Anno (HsExpr GhcRn)),
+   WDT (Anno (HsExpr GhcPs))) => 
 #endif
   Outputable (PatBuilder GhcPs) where
   ppr (PatBuilderPat p) = ppr p
