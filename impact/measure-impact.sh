@@ -1,28 +1,24 @@
 #!/bin/bash
 
+## EDIT ME!
+GHC_PATH="~/PTC/ghc"
+
+# keywords and patterns
 ANY="(\w|,|\(|\s|\n|\#|\)|\@)"
 INSTANCE="^instance"
 CLASS="^class"
 TERM="^(\w+\s+::)"
-
-function measure () {
-  PATTERN="$2$ANY+#if MIN_VERSION_base\(4,16,0\)(.|\n)+?#endif"
-  echo $PATTERN;
-  pcregrep --include "\.hs$" -Mr "$PATTERN" ~/PTC/ghc/$1 > "$3"
-}
-
 AT=" \@ "
 TOTAL="Total"
 WDT="WDT"
 
 function measure2 () {
   PATTERN="$2$ANY+?$3"
-  echo $PATTERN;
-  pcregrep --include "\.hs$" -Mrc "$PATTERN" ~/PTC/ghc/$1 | grep -v ":0" > "$4"
+  pcregrep --include "\.hs$" -Mrc "$PATTERN" "GHC_PATH/$1" | grep -v ":0" > "$4"
 }
 
 ## --------------------------------------------------------------------------------
-## TODO: this should be abstracted.
+## Counting annotations in compiler/GHC/
 ## --------------------------------------------------------------------------------
 
 measure2 compiler/GHC "$INSTANCE" "$WDT" ./compiler/instances/wdt.raw
@@ -38,6 +34,7 @@ measure2 compiler/GHC "$TERM" "$TOTAL" ./compiler/terms/total.raw
 measure2 compiler/GHC "$TERM" "$AT" ./compiler/terms/at.raw
 
 ## --------------------------------------------------------------------------------
+## Count annotations in libraries/
 ## --------------------------------------------------------------------------------
 
 
