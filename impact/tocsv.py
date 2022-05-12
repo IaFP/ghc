@@ -36,9 +36,21 @@ with open("./report.csv", "w") as report:
                                 'full_path': full_path,
                                 'package'  : package,
                                 'module'   : module,
-                                'classes'  : counts,
-                                'instances': counts,
-                                'terms'    : counts,
+                                'classes'  : {
+                                    "ats": 0,
+                                    "totals": 0,
+                                    "WDTs"  : 0
+                                },
+                                'instances': {
+                                    "ats": 0,
+                                    "totals": 0,
+                                    "WDTs"  : 0
+                                },
+                                'terms'    : {
+                                    "ats": 0,
+                                    "totals": 0,
+                                    "WDTs"  : 0
+                                }
                             }
                         
                         interm[full_path][f][name] = count
