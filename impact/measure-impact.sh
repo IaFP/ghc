@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ANY="(\w|,|\(|\s|\n|\#|\))"
+ANY="(\w|,|\(|\s|\n|\#|\)|\@)"
 INSTANCE="^instance"
 CLASS="^class"
 TERM="^(\w+\s+::)"
