@@ -16,67 +16,67 @@ import qualified Language.Haskell.TH        as TH
 import qualified Language.Haskell.TH.Syntax as TH
 -- Put these in a separate module because they take ages to compile
 
-instance Binary TH.Loc
-instance Binary TH.Name
-instance Binary TH.ModName
-instance Binary TH.NameFlavour
-instance Binary TH.PkgName
-instance Binary TH.NameSpace
-instance Binary TH.Module
-instance Binary TH.Info
-instance Binary TH.Type
-instance Binary TH.TyLit
-instance Binary TH.Specificity
-instance Binary flag => Binary (TH.TyVarBndr flag)
-instance Binary TH.Role
-instance Binary TH.Lit
-instance Binary TH.Range
-instance Binary TH.Stmt
-instance Binary TH.Pat
-instance Binary TH.Exp
-instance Binary TH.Dec
-instance Binary TH.Overlap
-instance Binary TH.DerivClause
-instance Binary TH.DerivStrategy
-instance Binary TH.Guard
-instance Binary TH.Body
-instance Binary TH.Match
-instance Binary TH.Fixity
-instance Binary TH.TySynEqn
-instance Binary TH.FunDep
-instance Binary TH.AnnTarget
-instance Binary TH.RuleBndr
-instance Binary TH.Phases
-instance Binary TH.RuleMatch
-instance Binary TH.Inline
-instance Binary TH.Pragma
-instance Binary TH.Safety
-instance Binary TH.Callconv
-instance Binary TH.Foreign
-instance Binary TH.Bang
-instance Binary TH.SourceUnpackedness
-instance Binary TH.SourceStrictness
-instance Binary TH.DecidedStrictness
-instance Binary TH.FixityDirection
-instance Binary TH.OccName
-instance Binary TH.Con
-instance Binary TH.AnnLookup
-instance Binary TH.ModuleInfo
-instance Binary TH.Clause
-instance Binary TH.InjectivityAnn
-instance Binary TH.FamilyResultSig
-instance Binary TH.TypeFamilyHead
-instance Binary TH.PatSynDir
-instance Binary TH.PatSynArgs
-instance Binary TH.DocLoc
+instinst Binary TH.Loc
+instinst Binary TH.Name
+instinst Binary TH.ModName
+instinst Binary TH.NameFlavour
+instinst Binary TH.PkgName
+instinst Binary TH.NameSpace
+instinst Binary TH.Module
+instinst Binary TH.Info
+instinst Binary TH.Type
+instinst Binary TH.TyLit
+instinst Binary TH.Specificity
+instinst Binary flag => Binary (TH.TyVarBndr flag)
+instinst Binary TH.Role
+instinst Binary TH.Lit
+instinst Binary TH.Range
+instinst Binary TH.Stmt
+instinst Binary TH.Pat
+instinst Binary TH.Exp
+instinst Binary TH.Dec
+instinst Binary TH.Overlap
+instinst Binary TH.DerivClause
+instinst Binary TH.DerivStrategy
+instinst Binary TH.Guard
+instinst Binary TH.Body
+instinst Binary TH.Match
+instinst Binary TH.Fixity
+instinst Binary TH.TySynEqn
+instinst Binary TH.FunDep
+instinst Binary TH.AnnTarget
+instinst Binary TH.RuleBndr
+instinst Binary TH.Phases
+instinst Binary TH.RuleMatch
+instinst Binary TH.Inline
+instinst Binary TH.Pragma
+instinst Binary TH.Safety
+instinst Binary TH.Callconv
+instinst Binary TH.Foreign
+instinst Binary TH.Bang
+instinst Binary TH.SourceUnpackedness
+instinst Binary TH.SourceStrictness
+instinst Binary TH.DecidedStrictness
+instinst Binary TH.FixityDirection
+instinst Binary TH.OccName
+instinst Binary TH.Con
+instinst Binary TH.AnnLookup
+instinst Binary TH.ModuleInfo
+instinst Binary TH.Clause
+instinst Binary TH.InjectivityAnn
+instinst Binary TH.FamilyResultSig
+instinst Binary TH.TypeFamilyHead
+instinst Binary TH.PatSynDir
+instinst Binary TH.PatSynArgs
+instinst Binary TH.DocLoc
 
 -- We need Binary TypeRep for serializing annotations
 
-instance Binary Serialized where
+instinst Binary Serialized where
     put (Serialized tyrep wds) = put tyrep >> put (B.pack wds)
     get = Serialized <$> get <*> (B.unpack <$> get)
 
-instance Binary TH.Bytes where
+instinst Binary TH.Bytes where
    put (TH.Bytes ptr off sz) = put bs
       where bs = B.PS ptr (fromIntegral off) (fromIntegral sz)
    get = do

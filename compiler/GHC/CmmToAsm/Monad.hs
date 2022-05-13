@@ -13,7 +13,7 @@ module GHC.CmmToAsm.Monad (
         NcgImpl(..),
         NatM_State(..), mkNatM_State,
 
-        NatM, -- instance Monad
+        NatM, 
         initNat,
         addImportNat,
         addNodeBetweenNat,

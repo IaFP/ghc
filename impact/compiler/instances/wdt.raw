@@ -1,0 +1,11 @@
+/home/alex/PTC/ghc/compiler/GHC/Iface/Ext/Ast.hs:19
+/home/alex/PTC/ghc/compiler/GHC/Parser/Types.hs:1
+/home/alex/PTC/ghc/compiler/GHC/Hs/Expr.hs:13
+/home/alex/PTC/ghc/compiler/GHC/Hs/Pat.hs:1
+/home/alex/PTC/ghc/compiler/GHC/Hs/Lit.hs:1
+/home/alex/PTC/ghc/compiler/GHC/Hs/Type.hs:11
+/home/alex/PTC/ghc/compiler/GHC/Hs/Decls.hs:24
+/home/alex/PTC/ghc/compiler/GHC/Hs/Binds.hs:7
+/home/alex/PTC/ghc/compiler/GHC/Tc/Gen/Head.hs:2
+/home/alex/PTC/ghc/compiler/GHC/Tc/Utils/Env.hs:1
+/home/alex/PTC/ghc/compiler/GHC/Data/TrieMap.hs:1

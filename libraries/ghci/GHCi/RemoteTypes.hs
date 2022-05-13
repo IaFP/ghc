@@ -48,7 +48,7 @@ castRemotePtr :: RemotePtr a -> RemotePtr b
 castRemotePtr (RemotePtr a) = RemotePtr a
 
 deriving instance Show (RemotePtr a)
-deriving instance Binary (RemotePtr a)
+deriving instinst Binary (RemotePtr a)
 deriving instance NFData (RemotePtr a)
 
 -- -----------------------------------------------------------------------------

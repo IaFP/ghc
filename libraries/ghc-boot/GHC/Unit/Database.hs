@@ -538,7 +538,7 @@ writeFileAtomic targetPath content = do
         set_metadata tmpPath
         renameFile tmpPath targetPath)
 
-instance Binary DbUnitInfo where
+instinst Binary DbUnitInfo where
   put (GenericUnitInfo
          unitId unitInstanceOf unitInstantiations
          unitPackageId
@@ -635,7 +635,7 @@ instance Binary DbUnitInfo where
               unitHiddenModules
               unitIsIndefinite unitIsExposed unitIsTrusted)
 
-instance Binary DbModule where
+instinst Binary DbModule where
   put (DbModule dbModuleUnitId dbModuleName) = do
     putWord8 0
     put dbModuleUnitId
@@ -649,7 +649,7 @@ instance Binary DbModule where
       0 -> DbModule <$> get <*> get
       _ -> DbModuleVar <$> get
 
-instance Binary DbInstUnitId where
+instinst Binary DbInstUnitId where
   put (DbUnitId uid) = do
     putWord8 0
     put uid

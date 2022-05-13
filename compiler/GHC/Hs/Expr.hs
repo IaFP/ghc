@@ -2374,19 +2374,6 @@ pprMatchInCtxt match  = hang (text "In" <+> pprMatchContext (m_ctxt match)
 pprStmtInCtxt :: (
 #if MIN_VERSION_base(4,16,0)
     WDT (XOverLit (GhcPass idR)),
-    WDT (XOverLit (GhcPass idL)),
-    WDT (XOverLit (GhcPass (NoGhcTcPass idL))),
-    WDT (XOverLit (GhcPass (NoGhcTcPass idR))),    
-    WDT (Anno (IdGhcP ctx)),
-    WDT (Anno (IdGhcP (NoGhcTcPass ctx))),
-    WDT (Anno (IdGhcP idL)),
-    WDT (Anno (IdGhcP (NoGhcTcPass idL))),
-    WDT (Anno (IdGhcP idR)),
-    WDT (SyntaxExprGhc idL),
-    WDT (SyntaxExprGhc idR),
-    WDT (Anno (IdGhcP (NoGhcTcPass idR))),
-    WDT (SyntaxExprGhc (NoGhcTcPass idL)),
-    WDT (SyntaxExprGhc (NoGhcTcPass idR)),
 #endif
                   OutputableBndrId idL,
                   OutputableBndrId idR,

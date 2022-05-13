@@ -50,7 +50,7 @@ data ResolvedBCO
 -- Note, that we do encode the endianness, however there is no support for mixed
 -- endianness setups.  This is primarily to ensure that ghc and iserv share the
 -- same endianness.
-instance Binary ResolvedBCO where
+instinst Binary ResolvedBCO where
   put ResolvedBCO{..} = do
     put resolvedBCOIsLE
     put resolvedBCOArity
@@ -74,4 +74,4 @@ data ResolvedBCOPtr
       -- ^ Resolves to the MutableArray# inside the BreakArray
   deriving (Generic, Show)
 
-instance Binary ResolvedBCOPtr
+instinst Binary ResolvedBCOPtr
