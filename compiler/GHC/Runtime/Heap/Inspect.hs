@@ -76,9 +76,6 @@ import qualified Data.Sequence as Seq
 import Data.Sequence (viewl, ViewL(..))
 import Foreign hiding (shiftL, shiftR)
 import System.IO.Unsafe
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
-#endif
 ---------------------------------------------
 -- * A representation of semi evaluated Terms
 ---------------------------------------------
@@ -176,11 +173,7 @@ foldTerm tf (NewtypeWrap ty dc t)  = fNewtypeWrap tf ty dc (foldTerm tf t)
 foldTerm tf (RefWrap ty t)         = fRefWrap tf ty (foldTerm tf t)
 
 
-foldTermM :: (
-#if MIN_VERSION_base(4,16,0)
-    Total m,
-#endif
-  Monad m) => TermFoldM m a -> Term -> m a
+foldTermM :: (Applicative m, Monad m) => TermFoldM m a -> Term -> m a
 foldTermM tf (Term ty dc v tt) = mapM (foldTermM tf) tt >>= fTermM tf ty dc v
 foldTermM tf (Prim ty    v   ) = fPrimM tf ty v
 foldTermM tf (Suspension ct ty v b) = fSuspensionM tf ct ty v b
@@ -204,11 +197,7 @@ mapTermType f = foldTerm idTermFold {
           fNewtypeWrap= \ty dc t -> NewtypeWrap (f ty) dc t,
           fRefWrap    = \ty t -> RefWrap (f ty) t}
 
-mapTermTypeM :: (
-#if MIN_VERSION_base(4,16,0)
-    Total m,
-#endif
-  Monad m) =>  (RttiType -> m Type) -> Term -> m Term
+mapTermTypeM :: (Applicative m, Monad m) =>  (RttiType -> m Type) -> Term -> m Term
 mapTermTypeM f = foldTermM TermFoldM {
           fTermM       = \ty dc hval tt -> f ty >>= \ty' -> return $ Term ty'  dc hval tt,
           fPrimM       = (return.) . Prim,
@@ -239,11 +228,7 @@ max_prec  = 10
 app_prec  = max_prec
 cons_prec = 5 -- TODO Extract this info from GHC itself
 
-pprTermM, ppr_termM, pprNewtypeWrap :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  Monad m) => TermPrinterM m -> TermPrinterM m
+pprTermM, ppr_termM, pprNewtypeWrap :: (Applicative m, Monad m) => TermPrinterM m -> TermPrinterM m
 pprTermM y p t = pprDeeper `liftM` ppr_termM y p t
 
 ppr_termM y p Term{dc=Left dc_tag, subTerms=tt} = do
@@ -317,11 +302,7 @@ type CustomTermPrinter m = TermPrinterM m
 
 -- | Takes a list of custom printers with a explicit recursion knot and a term,
 -- and returns the output of the first successful printer, or the default printer
-cPprTerm :: (
-#if MIN_VERSION_base(4,16,0)
-    Total m,
-#endif
-  Monad m) => CustomTermPrinter m -> Term -> m SDoc
+cPprTerm :: (Applicative m, Monad m) => CustomTermPrinter m -> Term -> m SDoc
 cPprTerm printers_ = go 0 where
   printers = printers_ go
   go prec t = do
@@ -336,11 +317,7 @@ cPprTerm printers_ = go 0 where
   firstJustM [] = return Nothing
 
 -- Default set of custom printers. Note that the recursion knot is explicit
-cPprTermBase :: forall m. (
-#if MIN_VERSION_base(4,16,0)
-    Total m,
-#endif
-  Monad m) => CustomTermPrinter m
+cPprTermBase :: forall m. (Applicative m, Monad m) => CustomTermPrinter m
 cPprTermBase y =
   [ ifTerm (isTupleTy.ty) (\_p -> liftM (parens . hcat . punctuate comma)
                                       . mapM (y (-1))

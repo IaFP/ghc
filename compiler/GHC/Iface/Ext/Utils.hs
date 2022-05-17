@@ -47,9 +47,6 @@ import Data.Coerce
 import GHC.Utils.Monad.State.Strict hiding (get)
 import Control.Monad.Trans.Reader
 import qualified Data.Tree as Tree
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
-#endif
 
 type RefMap a = M.Map Identifier [(Span, IdentifierDetails a)]
 
@@ -525,11 +522,7 @@ mergeSortAsts = go . map pure
 simpleNodeInfo :: FastString -> FastString -> NodeInfo a
 simpleNodeInfo cons typ = NodeInfo (S.singleton (NodeAnnotation cons typ)) [] M.empty
 
-locOnly :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  Monad m) => SrcSpan -> ReaderT NodeOrigin m [HieAST a]
+locOnly :: (Applicative m, Monad m) => SrcSpan -> ReaderT NodeOrigin m [HieAST a]
 locOnly (RealSrcSpan span _) = do
   org <- ask
   let e = mkSourcedNodeInfo org $ emptyNodeInfo
@@ -565,11 +558,7 @@ mkSourcedNodeInfo org ni = SourcedNodeInfo $ M.singleton org ni
 
 {-# INLINEABLE makeNodeA #-}
 makeNodeA
-  :: (
-#if MIN_VERSION_base(4,16,0)
-    Total m,
-#endif
-    Monad m, Data a)
+  :: (Applicative m, Monad m, Data a)
   => a                       -- ^ helps fill in 'nodeAnnotations' (with 'Data')
   -> SrcSpanAnn' ann         -- ^ return an empty list if this is unhelpful
   -> ReaderT NodeOrigin m [HieAST b]
@@ -577,11 +566,7 @@ makeNodeA x spn = makeNode x (locA spn)
 
 {-# INLINEABLE makeNode #-}
 makeNode
-  :: (
-#if MIN_VERSION_base(4,16,0)
-    Total m,
-#endif
-    Monad m, Data a)
+  :: (Applicative m, Monad m, Data a)
   => a                       -- ^ helps fill in 'nodeAnnotations' (with 'Data')
   -> SrcSpan                 -- ^ return an empty list if this is unhelpful
   -> ReaderT NodeOrigin m [HieAST b]
@@ -596,11 +581,7 @@ makeNode x spn = do
 
 {-# INLINEABLE makeTypeNodeA #-}
 makeTypeNodeA
-  :: (
-#if MIN_VERSION_base(4,16,0)
-    Total m,
-#endif
-    Monad m, Data a)
+  :: (Applicative m, Monad m, Data a)
   => a                       -- ^ helps fill in 'nodeAnnotations' (with 'Data')
   -> SrcSpanAnnA             -- ^ return an empty list if this is unhelpful
   -> Type                    -- ^ type to associate with the node
@@ -609,11 +590,7 @@ makeTypeNodeA x spn etyp = makeTypeNode x (locA spn) etyp
 
 {-# INLINEABLE makeTypeNode #-}
 makeTypeNode
-  :: (
-#if MIN_VERSION_base(4,16,0)
-    Total m,
-#endif
-    Monad m, Data a)
+  :: (Applicative m, Monad m, Data a)
   => a                       -- ^ helps fill in 'nodeAnnotations' (with 'Data')
   -> SrcSpan                 -- ^ return an empty list if this is unhelpful
   -> Type                    -- ^ type to associate with the node

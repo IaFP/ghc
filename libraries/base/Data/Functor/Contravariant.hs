@@ -59,7 +59,7 @@ import Data.Functor.Compose
 import Data.Monoid (Alt(..), All(..))
 import Data.Proxy
 import GHC.Generics
-import GHC.Types (type (@), Total)
+import GHC.Types (type (@))
 
 import Prelude hiding ((.), id)
 
@@ -135,9 +135,9 @@ infixl 4 >$, $<, >$<, >$$<
 (>$$<) :: Contravariant f => f b -> (a -> b) -> f a
 (>$$<) = flip contramap
 
-deriving newtype instance (Total f, Contravariant f) => Contravariant (Alt f)
-deriving newtype instance (Total f, Contravariant f) => Contravariant (Rec1 f)
-deriving newtype instance (Total f, Contravariant f) => Contravariant (M1 i c f)
+deriving newtype instance (Contravariant f) => Contravariant (Alt f)
+deriving newtype instance (Contravariant f) => Contravariant (Rec1 f)
+deriving newtype instance (Contravariant f) => Contravariant (M1 i c f)
 
 instance Contravariant V1 where
   contramap :: (a' -> a) -> (V1 a -> V1 a')
@@ -151,25 +151,25 @@ instance Contravariant (K1 i c) where
   contramap :: (a' -> a) -> (K1 i c a -> K1 i c a')
   contramap _ (K1 c) = K1 c
 
-instance (Total f, Total g, Contravariant f, Contravariant g) => Contravariant (f :*: g) where
+instance (Contravariant f, Contravariant g) => Contravariant (f :*: g) where
   contramap :: (a' -> a) -> ((f :*: g) a -> (f :*: g) a')
   contramap f (xs :*: ys) = contramap f xs :*: contramap f ys
 
-instance (Total f, Total g, Functor f, Contravariant g) => Contravariant (f :.: g) where
+instance (Functor f, Contravariant g) => Contravariant (f :.: g) where
   contramap :: (a' -> a) -> ((f :.: g) a -> (f :.: g) a')
   contramap f (Comp1 fg) = Comp1 (fmap (contramap f) fg)
 
-instance (Total f, Total g, Contravariant f, Contravariant g) => Contravariant (f :+: g) where
+instance (Contravariant f, Contravariant g) => Contravariant (f :+: g) where
   contramap :: (a' -> a) -> ((f :+: g) a -> (f :+: g) a')
   contramap f (L1 xs) = L1 (contramap f xs)
   contramap f (R1 ys) = R1 (contramap f ys)
 
-instance (Total f, Total g, Contravariant f, Contravariant g) => Contravariant (Sum f g) where
+instance (Contravariant f, Contravariant g) => Contravariant (Sum f g) where
   contramap :: (a' -> a) -> (Sum f g a -> Sum f g a')
   contramap f (InL xs) = InL (contramap f xs)
   contramap f (InR ys) = InR (contramap f ys)
 
-instance (Total f, Total g, Contravariant f, Contravariant g)
+instance (Contravariant f, Contravariant g)
       => Contravariant (Product f g) where
   contramap :: (a' -> a) -> (Product f g a -> Product f g a')
   contramap f (Pair a b) = Pair (contramap f a) (contramap f b)
@@ -178,7 +178,7 @@ instance Contravariant (Const a) where
   contramap :: (b' -> b) -> (Const a b -> Const a b')
   contramap _ (Const a) = Const a
 
-instance (Total f, Total g, Functor f, Contravariant g) => Contravariant (Compose f g) where
+instance (Functor f, Contravariant g) => Contravariant (Compose f g) where
   contramap :: (a' -> a) -> (Compose f g a -> Compose f g a')
   contramap f (Compose fga) = Compose (fmap (contramap f) fga)
 

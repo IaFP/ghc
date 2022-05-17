@@ -914,6 +914,7 @@ instance Applicative CtsM where
     (<*>) = ap
 
 instance Monad CtsM where
+    return = returnCts
     (>>=)  = thenCts
 
 instance HasDynFlags CtsM where

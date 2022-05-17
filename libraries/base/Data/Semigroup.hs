@@ -203,7 +203,8 @@ instance Applicative Min where
 instance Monad Min where
   (>>) = (*>)
   Min a >>= f = f a
-
+  return = Min
+  
 -- | @since 4.9.0.0
 instance MonadFix Min where
   mfix f = fix (f . getMin)
@@ -277,7 +278,8 @@ instance Applicative Max where
 instance Monad Max where
   (>>) = (*>)
   Max a >>= f = f a
-
+  return = Max
+  
 -- | @since 4.9.0.0
 instance MonadFix Max where
   mfix f = fix (f . getMax)
@@ -409,7 +411,8 @@ instance Applicative First where
 instance Monad First where
   (>>) = (*>)
   First a >>= f = f a
-
+  return = First
+  
 -- | @since 4.9.0.0
 instance MonadFix First where
   mfix f = fix (f . getFirst)
@@ -466,7 +469,8 @@ instance Applicative Last where
 instance Monad Last where
   (>>) = (*>)
   Last a >>= f = f a
-
+  return = Last
+  
 -- | @since 4.9.0.0
 instance MonadFix Last where
   mfix f = fix (f . getLast)

@@ -27,9 +27,6 @@ import Control.Monad.IO.Class
 import qualified Data.Map as Map
 import System.FilePath
 import System.Directory
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
-#endif
 
 data SettingsError
   = SettingsError_MissingData String
@@ -37,11 +34,7 @@ data SettingsError
 
 initSettings
   :: forall m
-  .  (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  MonadIO m)
+  .  (MonadIO m)
   => String -- ^ TopDir path
   -> ExceptT SettingsError m Settings
 initSettings top_dir = do

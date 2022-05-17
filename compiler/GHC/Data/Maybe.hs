@@ -114,6 +114,7 @@ instance Applicative (MaybeErr err) where
   (<*>) = ap
 
 instance Monad (MaybeErr err) where
+  return  = Succeeded
   Succeeded v >>= k = k v
   Failed e    >>= _ = Failed e
 

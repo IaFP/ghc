@@ -67,10 +67,6 @@ import Data.List        ( genericLength )
 import Data.Map.Strict (Map)
 import Data.Maybe (fromMaybe)
 import qualified Data.Map.Strict as Map
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
-import Data.ByteString (ByteString)
-#endif
 
 -- -----------------------------------------------------------------------------
 -- Unlinked BCOs
@@ -138,16 +134,13 @@ mallocStrings interp ulbcos = do
   return (evalState (mapM splice ulbcos) ptrs, ptrs)
  where
 #if MIN_VERSION_base(4,16,0)
-  splice :: (Total m, Monad m) => UnlinkedBCO -> StateT [RemotePtr a] m UnlinkedBCO
+  splice :: (Applicative m, Monad m) => UnlinkedBCO -> StateT [RemotePtr a] m UnlinkedBCO
 #endif
   splice bco@UnlinkedBCO{..} = do
     lits <- mapM spliceLit unlinkedBCOLits
     ptrs <- mapM splicePtr unlinkedBCOPtrs
     return bco { unlinkedBCOLits = lits, unlinkedBCOPtrs = ptrs }
 
-#if MIN_VERSION_base(4,16,0)
-  spliceLit :: (Total m, Monad m) => BCONPtr -> StateT [RemotePtr a] m BCONPtr
-#endif
   spliceLit (BCONPtrStr _) = do
     rptrs <- get
     case rptrs of
@@ -157,29 +150,17 @@ mallocStrings interp ulbcos = do
       _ -> panic "mallocStrings:spliceLit"
   spliceLit other = return other
 
-#if MIN_VERSION_base(4,16,0)
-  splicePtr :: (Total m, Monad m) => BCOPtr -> StateT [RemotePtr a] m BCOPtr
-#endif
   splicePtr (BCOPtrBCO bco) = BCOPtrBCO <$> splice bco
   splicePtr other = return other
 
-#if MIN_VERSION_base(4,16,0)
-  collect :: (Total m, Monad m) => UnlinkedBCO -> StateT [ByteString] m ()
-#endif
   collect UnlinkedBCO{..} = do
     mapM_ collectLit unlinkedBCOLits
     mapM_ collectPtr unlinkedBCOPtrs
 
-#if MIN_VERSION_base(4,16,0)
-  collectLit :: (Total m, Monad m) => BCONPtr -> StateT [ByteString] m ()
-#endif
   collectLit (BCONPtrStr bs) = do
     strs <- get
     put (bs:strs)
   collectLit _ = return ()
-#if MIN_VERSION_base(4,16,0)
-  collectPtr :: (Total m, Monad m) => BCOPtr -> StateT [ByteString] m ()
-#endif
   collectPtr (BCOPtrBCO bco) = collect bco
   collectPtr _ = return ()
 
@@ -274,6 +255,7 @@ instance Applicative Assembler where
     (<*>) = ap
 
 instance Monad Assembler where
+  return = NullAsm
   NullAsm x >>= f = f x
   AllocPtr p k >>= f = AllocPtr p (k >=> f)
   AllocLit l k >>= f = AllocLit l (k >=> f)

@@ -155,6 +155,7 @@ instance Applicative (Either e) where
 
 -- | @since 4.4.0.0
 instance Monad (Either e) where
+    return = Right
     Left  l >>= _ = Left l
     Right r >>= k = k r
 

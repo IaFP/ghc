@@ -2679,6 +2679,7 @@ instance Applicative LintM where
       (<*>) = ap
 
 instance Monad LintM where
+  return x = LintM $ \ _ errs -> (Just x, errs)
   m >>= k  = LintM (\ env errs ->
                        let (res, errs') = unLintM m env errs in
                          case res of

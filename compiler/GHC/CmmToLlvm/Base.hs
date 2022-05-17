@@ -331,6 +331,7 @@ instance Applicative LlvmM where
     (<*>) = ap
 
 instance Monad LlvmM where
+    return x = LlvmM $ \env -> return (x, env)
     m >>= f  = LlvmM $ \env -> do (x, env') <- runLlvmM m env
                                   runLlvmM (f x) env'
 

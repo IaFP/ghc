@@ -102,6 +102,7 @@ unIOEnv :: IOEnv env a -> (env -> IO a)
 unIOEnv (IOEnv m) = m
 
 instance Monad (IOEnv m) where
+    return = pure
     (>>=)  = thenM
     (>>)   = (*>)
 

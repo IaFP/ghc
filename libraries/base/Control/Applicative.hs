@@ -77,17 +77,7 @@ newtype m @ a => WrappedMonad m a = WrapMonad { unwrapMonad :: m a }
                                   , Monad        -- ^ @since 4.7.0.0
                                   )
 -- | @since 2.01
--- instance (Total m, Monad m) => Functor (WrappedMonad m) where
---     fmap f (WrapMonad v) = WrapMonad (liftM f v)
-
--- -- | @since 2.01
--- instance (Total m, Monad m) => Applicative (WrappedMonad m) where
---     pure = WrapMonad . pure
---     WrapMonad f <*> WrapMonad v = WrapMonad (f `ap` v)
---     liftA2 f (WrapMonad x) (WrapMonad y) = WrapMonad (liftM2 f x y)
-
--- | @since 2.01
-instance (Total m, MonadPlus m) => Alternative (WrappedMonad m) where
+instance (MonadPlus m) => Alternative (WrappedMonad m) where
     empty = WrapMonad mzero
     WrapMonad u <|> WrapMonad v = WrapMonad (u `mplus` v)
 

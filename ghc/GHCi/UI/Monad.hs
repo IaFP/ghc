@@ -286,6 +286,7 @@ instance Applicative GHCi where
     (<*>) = ap
 
 instance Monad GHCi where
+  return a = GHCi $ \_ -> return a
   (GHCi m) >>= k  =  GHCi $ \s -> m s >>= \a -> unGHCi (k a) s
 
 class GhcMonad m => GhciMonad m where

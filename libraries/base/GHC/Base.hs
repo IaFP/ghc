@@ -72,10 +72,8 @@ Other Prelude modules are much easier with fewer complex dependencies.
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE Unsafe #-}
--- #if __GLASGOW_HASKELL__ >= 910
 {-# LANGUAGE TypeFamilies,
-             TypeOperators, DefaultSignatures #-}
--- #endif
+             TypeOperators, DefaultSignatures, QuantifiedConstraints #-}
 
 -- -Wno-orphans is needed for things like:
 -- Orphan rule: "x# -# x#" ALWAYS forall x# :: Int# -# x# x# = 0
@@ -540,11 +538,13 @@ instance Monoid a => Applicative ((,) a) where
 -- | @since 4.15
 instance Monad Solo where
   Solo x >>= f = f x
+  return = Solo
 
 -- | @since 4.9.0.0
 instance Monoid a => Monad ((,) a) where
     (u, a) >>= k = case k a of (v, b) -> (u <> v, b)
-
+    return x = (mempty, x)
+    
 -- | @since 4.14.0.0
 instance Functor ((,,) a b) where
     fmap f (a, b, c) = (a, b, f c)
@@ -557,7 +557,7 @@ instance (Monoid a, Monoid b) => Applicative ((,,) a b) where
 -- | @since 4.14.0.0
 instance (Monoid a, Monoid b) => Monad ((,,) a b) where
     (u, v, a) >>= k = case k a of (u', v', b) -> (u <> u', v <> v', b)
-
+    return x = (mempty, mempty, x)
 -- | @since 4.14.0.0
 instance Functor ((,,,) a b c) where
     fmap f (a, b, c, d) = (a, b, c, f d)
@@ -570,6 +570,7 @@ instance (Monoid a, Monoid b, Monoid c) => Applicative ((,,,) a b c) where
 -- | @since 4.14.0.0
 instance (Monoid a, Monoid b, Monoid c) => Monad ((,,,) a b c) where
     (u, v, w, a) >>= k = case k a of (u', v', w', b) -> (u <> u', v <> v', w <> w', b)
+    return x = (mempty, mempty, mempty, x)
 
 -- | @since 4.10.0.0
 instance Semigroup a => Semigroup (IO a) where
@@ -716,7 +717,7 @@ class Functor f where
 --
 -- (which implies that 'pure' and '<*>' satisfy the applicative functor laws).
 
-class Functor f => Applicative f where
+class (Total f, Functor f) => Applicative f where
     {-# MINIMAL pure, ((<*>) | liftA2) #-}
     -- | Lift a value.
     pure :: a -> f a
@@ -756,7 +757,6 @@ class Functor f => Applicative f where
     -- Just (3,5)
 
     liftA2 :: (a -> b -> c) -> f a -> f b -> f c
-    default liftA2 :: f @ (b -> c) => (a -> b -> c) -> f a -> f b -> f c
     liftA2 f x = (<*>) (fmap f x)
 
     -- | Sequence actions, discarding the value of the first argument.
@@ -782,7 +782,6 @@ class Functor f => Applicative f where
     -- [("Simon","")]
 
     (*>) :: f a -> f b -> f b
-    default (*>) :: f @ (b -> b) => f a -> f b -> f b
     a1 *> a2 = (id <$ a1) <*> a2
 
     -- This is essentially the same as liftA2 (flip const), but if the
@@ -797,7 +796,6 @@ class Functor f => Applicative f where
     -- | Sequence actions, discarding the value of the second argument.
     --
     (<*) :: f a -> f b -> f a
-    default (<*) :: f @ (a -> b) => f a -> f b -> f a
     (<*) = liftA2 const
 
 -- | A variant of '<*>' with the arguments reversed.
@@ -824,14 +822,14 @@ class Functor f => Applicative f where
 -- >>> liftA (+1) (Just 3)
 -- Just 4
 
-liftA :: (Applicative f, f @ (a -> b)) => (a -> b) -> f a -> f b
+liftA :: (Applicative f) => (a -> b) -> f a -> f b
 liftA f a = pure f <*> a
 -- Caution: since this may be used for `fmap`, we can't use the obvious
 -- definition of liftA = fmap.
 
 -- | Lift a ternary function to actions.
 
-liftA3 :: (Applicative f, f @ (c -> d)) => (a -> b -> c -> d) -> f a -> f b -> f c -> f d
+liftA3 :: (Applicative f) => (a -> b -> c -> d) -> f a -> f b -> f c -> f d
 liftA3 f a b c = liftA2 f a b <*> c
 
 
@@ -912,7 +910,7 @@ and that 'pure' and ('<*>') satisfy the applicative functor laws.
 The instances of 'Monad' for lists, 'Data.Maybe.Maybe' and 'System.IO.IO'
 defined in the "Prelude" satisfy these laws.
 -}
-class Applicative m => Monad m where
+class Functor m => Monad m where
     -- | Sequentially compose two actions, passing any value produced
     -- by the first as an argument to the second.
     --
@@ -940,7 +938,7 @@ class Applicative m => Monad m where
 
     -- | Inject a value into the monadic type.
     return      :: a -> m a
-    return      = pure
+    -- return      = pure
 
 {- Note [Recursive bindings for Applicative/Monad]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1092,7 +1090,8 @@ instance Applicative ((->) r) where
 -- | @since 2.01
 instance Monad ((->) r) where
     f >>= k = \ r -> k (f r) r
-
+    return = const
+    
 -- | @since 4.15
 instance Functor Solo where
   fmap f (Solo a) = Solo (f a)
@@ -1130,7 +1129,7 @@ instance  Monad Maybe  where
     Nothing  >>= _      = Nothing
 
     (>>) = (*>)
-
+    return = Just
 -- -----------------------------------------------------------------------------
 -- The Alternative class definition
 
@@ -1230,7 +1229,7 @@ instance Monad NonEmpty where
     where b :| bs = f a
           bs' = as >>= toList . f
           toList ~(c :| cs) = c : cs
-
+  return a = a :| []
 ----------------------------------------------
 -- The list type
 
@@ -1258,7 +1257,7 @@ instance Monad []  where
     xs >>= f             = [y | x <- xs, y <- f x]
     {-# INLINE (>>) #-}
     (>>) = (*>)
-
+    return x = [x]
 -- | @since 2.01
 instance Alternative [] where
     empty = []
@@ -1646,7 +1645,8 @@ instance  Monad IO  where
     {-# INLINE (>>=)  #-}
     (>>)      = (*>)
     (>>=)     = bindIO
-
+    return = returnIO
+    
 -- | @since 4.9.0.0
 instance Alternative IO where
     empty = failIO "mzero"

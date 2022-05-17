@@ -162,10 +162,10 @@ deriving instance Generic (Kleisli m a b)
 deriving instance Generic1 (Kleisli m a)
 
 -- | @since 4.14.0.0
-deriving instance (Total m, Functor m) => Functor (Kleisli m a)
+deriving instance Functor m => Functor (Kleisli m a)
 
 -- | @since 4.14.0.0
-instance (Total m, Applicative m) => Applicative (Kleisli m a) where
+instance Applicative m => Applicative (Kleisli m a) where
   pure = Kleisli . const . pure
   {-# INLINE pure #-}
   Kleisli f <*> Kleisli g = Kleisli $ \x -> f x <*> g x
@@ -176,19 +176,20 @@ instance (Total m, Applicative m) => Applicative (Kleisli m a) where
   {-# INLINE (<*) #-}
 
 -- | @since 4.14.0.0
-instance (Total m, Alternative m) => Alternative (Kleisli m a) where
+instance Alternative m => Alternative (Kleisli m a) where
   empty = Kleisli $ const empty
   {-# INLINE empty #-}
   Kleisli f <|> Kleisli g = Kleisli $ \x -> f x <|> g x
   {-# INLINE (<|>) #-}
 
 -- | @since 4.14.0.0
-instance (Total m, Monad m) => Monad (Kleisli m a) where
+instance Monad m => Monad (Kleisli m a) where
   Kleisli f >>= k = Kleisli $ \x -> f x >>= \a -> runKleisli (k a) x
+  return = Kleisli . const . return 
   {-# INLINE (>>=) #-}
 
 -- | @since 4.14.0.0
-instance (Total m, MonadPlus m) => MonadPlus (Kleisli m a) where
+instance MonadPlus m => MonadPlus (Kleisli m a) where
   mzero = Kleisli $ const mzero
   {-# INLINE mzero #-}
   Kleisli f `mplus` Kleisli g = Kleisli $ \x -> f x `mplus` g x
@@ -210,26 +211,26 @@ returnA :: Arrow a => a b b
 returnA = id
 
 -- | Precomposition with a pure function.
-(^>>) :: (Arrow a,  a b @ c) => (b -> c) -> a c d -> a b d
+(^>>) :: (Arrow a) => (b -> c) -> a c d -> a b d
 f ^>> a = arr f >>> a
 
 -- | Postcomposition with a pure function.
-(>>^) :: (Arrow a,  a c @ d, a @ c) => a b c -> (c -> d) -> a b d
+(>>^) :: (Arrow a) => a b c -> (c -> d) -> a b d
 a >>^ f = a >>> arr f
 
 -- | Precomposition with a pure function (right-to-left variant).
-(<<^) :: (Arrow a,  a b @ c) => a c d -> (b -> c) -> a b d
+(<<^) :: (Arrow a) => a c d -> (b -> c) -> a b d
 a <<^ f = a <<< arr f
 
 -- | Postcomposition with a pure function (right-to-left variant).
-(^<<) :: (Arrow a,  a @ c, a c @ d) => (c -> d) -> a b c -> a b d
+(^<<) :: (Arrow a) => (c -> d) -> a b c -> a b d
 f ^<< a = arr f <<< a
 
 class Arrow a => ArrowZero a where
     zeroArrow :: a b c
 
 -- | @since 2.01
-instance (Total m, MonadPlus m) => ArrowZero (Kleisli m) where
+instance MonadPlus m => ArrowZero (Kleisli m) where
     zeroArrow = Kleisli (\_ -> mzero)
 
 -- | A monoid on arrows.
@@ -238,7 +239,7 @@ class ArrowZero a => ArrowPlus a where
     (<+>) :: a b c -> a b c -> a b c
 
 -- | @since 2.01
-instance (Total m, MonadPlus m) => ArrowPlus (Kleisli m) where
+instance MonadPlus m => ArrowPlus (Kleisli m) where
     Kleisli f <+> Kleisli g = Kleisli (\x -> f x `mplus` g x)
 
 -- | Choice, for arrows that support it.  This class underlies the
@@ -265,7 +266,7 @@ instance (Total m, MonadPlus m) => ArrowPlus (Kleisli m) where
 -- The other combinators have sensible default definitions, which may
 -- be overridden for efficiency.
 
-class (Total2 a, Arrow a) => ArrowChoice a where
+class Arrow a => ArrowChoice a where
     {-# MINIMAL (left | (+++)) #-}
 
     -- | Feed marked inputs through the argument arrow, passing the
@@ -373,7 +374,8 @@ instance Arrow a => Applicative (ArrowMonad a) where
 instance ArrowApply a => Monad (ArrowMonad a) where
     ArrowMonad m >>= f = ArrowMonad $
         m >>> arr (\x -> let ArrowMonad h = f x in (h, ())) >>> app
-
+    return x = ArrowMonad (arr (const x))
+    
 -- | @since 4.6.0.0
 instance ArrowPlus a => Alternative (ArrowMonad a) where
    empty = ArrowMonad zeroArrow

@@ -291,9 +291,6 @@ import GHC.Data.FastString
 import GHC.Data.Pair
 import GHC.Data.List.SetOps
 import GHC.Types.Unique ( nonDetCmpUnique )
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
-#endif 
 
 import GHC.Data.Maybe   ( orElse, expectJust )
 import Data.Maybe       ( isJust )
@@ -874,11 +871,7 @@ data TyCoMapper env m
       }
 
 {-# INLINE mapTyCo #-}  -- See Note [Specialising mappers]
-mapTyCo :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  Monad m) => TyCoMapper () m
+mapTyCo :: (Applicative m, Monad m) => TyCoMapper () m
          -> ( Type       -> m Type
             , [Type]     -> m [Type]
             , Coercion   -> m Coercion
@@ -889,11 +882,7 @@ mapTyCo mapper
         -> (go_ty (), go_tys (), go_co (), go_cos ())
 
 {-# INLINE mapTyCoX #-}  -- See Note [Specialising mappers]
-mapTyCoX :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  Monad m) => TyCoMapper env m
+mapTyCoX :: (Applicative m, Monad m) => TyCoMapper env m
          -> ( env -> Type       -> m Type
             , env -> [Type]     -> m [Type]
             , env -> Coercion   -> m Coercion

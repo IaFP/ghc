@@ -44,9 +44,7 @@ import GHC.Tc.Utils.Monad
 import GHC.Types.ForeignCall ( CCallTarget(..) )
 import GHC.Unit
 import GHC.Unit.Module.Warnings
-import GHC.Builtin.Names( applicativeClassName, pureAName, thenAName
-                        , monadClassName, returnMName, thenMName
-                        , semigroupClassName, sappendName
+import GHC.Builtin.Names( semigroupClassName, sappendName
                         , monoidClassName, mappendName
                         )
 import GHC.Types.Name
@@ -437,9 +435,9 @@ rnSrcInstDecl (ClsInstD { cid_inst = cid })
 -- 'checkCanonicalMonoidInstances'
 checkCanonicalInstances :: Name -> LHsSigType GhcRn -> LHsBinds GhcRn -> RnM ()
 checkCanonicalInstances cls poly_ty mbinds = do
-    whenWOptM Opt_WarnNonCanonicalMonadInstances
-        $ checkCanonicalMonadInstances
-        "https://gitlab.haskell.org/ghc/ghc/-/wikis/proposal/monad-of-no-return"
+    -- whenWOptM Opt_WarnNonCanonicalMonadInstances
+    --     $ checkCanonicalMonadInstances
+    --     "https://gitlab.haskell.org/ghc/ghc/-/wikis/proposal/monad-of-no-return"
 
     whenWOptM Opt_WarnNonCanonicalMonoidInstances
         $ checkCanonicalMonoidInstances
@@ -459,38 +457,38 @@ checkCanonicalInstances cls poly_ty mbinds = do
     --  * Warn if 'pure' is defined backwards (i.e. @pure = return@).
     --  * Warn if '(*>)' is defined backwards (i.e. @(*>) = (>>)@).
     --
-    checkCanonicalMonadInstances refURL
-      | cls == applicativeClassName =
-          forM_ (bagToList mbinds) $ \(L loc mbind) -> setSrcSpanA loc $
-              case mbind of
-                  FunBind { fun_id = L _ name
-                          , fun_matches = mg }
-                      | name == pureAName, isAliasMG mg == Just returnMName
-                      -> addWarnNonCanonicalMethod1 refURL
-                            Opt_WarnNonCanonicalMonadInstances "pure" "return"
+    -- checkCanonicalMonadInstances refURL
+    --   | cls == applicativeClassName =
+    --       forM_ (bagToList mbinds) $ \(L loc mbind) -> setSrcSpanA loc $
+    --           case mbind of
+    --               FunBind { fun_id = L _ name
+    --                       , fun_matches = mg }
+    --                   | name == pureAName, isAliasMG mg == Just returnMName
+    --                   -> addWarnNonCanonicalMethod1 refURL
+    --                         Opt_WarnNonCanonicalMonadInstances "pure" "return"
 
-                      | name == thenAName, isAliasMG mg == Just thenMName
-                      -> addWarnNonCanonicalMethod1 refURL
-                            Opt_WarnNonCanonicalMonadInstances "(*>)" "(>>)"
+    --                   | name == thenAName, isAliasMG mg == Just thenMName
+    --                   -> addWarnNonCanonicalMethod1 refURL
+    --                         Opt_WarnNonCanonicalMonadInstances "(*>)" "(>>)"
 
-                  _ -> return ()
+    --               _ -> return ()
 
-      | cls == monadClassName =
-          forM_ (bagToList mbinds) $ \(L loc mbind) -> setSrcSpanA loc $
-              case mbind of
-                  FunBind { fun_id = L _ name
-                          , fun_matches = mg }
-                      | name == returnMName, isAliasMG mg /= Just pureAName
-                      -> addWarnNonCanonicalMethod2 refURL
-                            Opt_WarnNonCanonicalMonadInstances "return" "pure"
+      -- | cls == monadClassName =
+      --     forM_ (bagToList mbinds) $ \(L loc mbind) -> setSrcSpanA loc $
+      --         case mbind of
+      --             FunBind { fun_id = L _ name
+      --                     , fun_matches = mg }
+      --                 | name == returnMName, isAliasMG mg /= Just pureAName
+      --                 -> addWarnNonCanonicalMethod2 refURL
+      --                       Opt_WarnNonCanonicalMonadInstances "return" "pure"
 
-                      | name == thenMName, isAliasMG mg /= Just thenAName
-                      -> addWarnNonCanonicalMethod2 refURL
-                            Opt_WarnNonCanonicalMonadInstances "(>>)" "(*>)"
+      --                 | name == thenMName, isAliasMG mg /= Just thenAName
+      --                 -> addWarnNonCanonicalMethod2 refURL
+      --                       Opt_WarnNonCanonicalMonadInstances "(>>)" "(*>)"
 
-                  _ -> return ()
+      --             _ -> return ()
 
-      | otherwise = return ()
+      -- | otherwise = return ()
 
     -- | Check whether Monoid(mappend) is defined in terms of
     -- Semigroup((<>)) (and not the other way round). Specifically,

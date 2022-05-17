@@ -141,7 +141,8 @@ instance Applicative Dual where
 -- | @since 4.8.0.0
 instance Monad Dual where
     m >>= k  = k (getDual m)
-
+    return = Dual
+    
 -- | The monoid of endomorphisms under composition.
 --
 -- >>> let computation = Endo ("Hello, " ++) <> Endo (++ "!")
@@ -250,6 +251,7 @@ instance Applicative Sum where
 -- | @since 4.8.0.0
 instance Monad Sum where
     m >>= k  = k (getSum m)
+    return = Sum
 
 -- | Monoid under multiplication.
 --
@@ -292,7 +294,7 @@ instance Applicative Product where
 -- | @since 4.8.0.0
 instance Monad Product where
     m >>= k  = k (getProduct m)
-
+    return = Product
 
 -- | Monoid under '<|>'.
 --

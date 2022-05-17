@@ -59,9 +59,6 @@ import GHC.Builtin.Types.Prim
 import GHC.Utils.Misc (zipEqual)
 
 import Control.Monad
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@))
-#endif
 
 -----------------------------------------------------------------------------
 -- Code generation for Foreign Calls
@@ -299,11 +296,7 @@ emitSaveThreadState = do
   emit code
 
 -- | Produce code to save the current thread state to @CurrentTSO@
-saveThreadState :: (
-#if MIN_VERSION_base(4,16,0)
-  m @ LocalReg, m @ CmmReg,
-#endif
-  MonadUnique m) => Profile -> m CmmAGraph
+saveThreadState :: (Applicative m, MonadUnique m) => Profile -> m CmmAGraph
 saveThreadState profile = do
   let platform = profilePlatform profile
   tso <- newTemp (gcWord platform)
@@ -441,11 +434,7 @@ Closing the nursery corresponds to the following code:
   cn->free = Hp + WDS(1);
 @
 -}
-closeNursery :: (
-#if MIN_VERSION_base(4,16,0)
- m @ CmmReg, m @ LocalReg,
-#endif
-  MonadUnique m) => Profile -> LocalReg -> m CmmAGraph
+closeNursery :: (Applicative m, MonadUnique m) => Profile -> LocalReg -> m CmmAGraph
 closeNursery profile tso = do
   let tsoreg   = CmmLocal tso
       platform = profilePlatform profile
@@ -478,11 +467,7 @@ emitLoadThreadState = do
   emit code
 
 -- | Produce code to load the current thread state from @CurrentTSO@
-loadThreadState :: (
-#if MIN_VERSION_base(4,16,0)
-  m @ CmmReg, m @ LocalReg,
-#endif
-  MonadUnique m) => Profile -> m CmmAGraph
+loadThreadState :: (Applicative m, MonadUnique m) => Profile -> m CmmAGraph
 loadThreadState profile = do
   let platform = profilePlatform profile
   tso <- newTemp (gcWord platform)
@@ -548,11 +533,7 @@ Opening the nursery corresponds to the following code:
    HpLim = bdstart + CurrentNursery->blocks*BLOCK_SIZE_W - 1;
 @
 -}
-openNursery :: (
-#if MIN_VERSION_base(4,16,0)
-  m @ LocalReg, m @ CmmReg,
-#endif
-  MonadUnique m) => Profile -> LocalReg -> m CmmAGraph
+openNursery :: (Applicative m, MonadUnique m) => Profile -> LocalReg -> m CmmAGraph
 openNursery profile tso = do
   let tsoreg   = CmmLocal tso
       platform = profilePlatform profile

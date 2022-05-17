@@ -127,7 +127,8 @@ instance Applicative Identity where
 -- | @since 4.8.0.0
 instance Monad Identity where
     m >>= k  = k (runIdentity m)
-
+    return = Identity
+    
 -- | @since 4.8.0.0
 instance MonadFix Identity where
     mfix f   = Identity (fix (runIdentity . f))

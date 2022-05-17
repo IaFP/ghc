@@ -667,9 +667,12 @@ instance Applicative STM where
 -- | @since 4.3.0.0
 instance  Monad STM  where
     {-# INLINE (>>=)  #-}
+    {-# INLINE return #-}
     m >>= k     = bindSTM m k
     (>>) = (*>)
-
+    return = returnSTM
+    
+    
 bindSTM :: STM a -> (a -> STM b) -> STM b
 bindSTM (STM m) k = STM ( \s ->
   case m s of

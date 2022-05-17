@@ -2034,6 +2034,7 @@ instance Applicative BcM where
     (*>) = thenBc_
 
 instance Monad BcM where
+  return = returnBc
   (>>=) = thenBc
   (>>)  = (*>)
 

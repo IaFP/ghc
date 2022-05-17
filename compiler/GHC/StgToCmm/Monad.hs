@@ -95,9 +95,6 @@ import GHC.Exts (oneShot)
 
 import Control.Monad
 import Data.List (mapAccumL)
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@))
-#endif
 
 
 --------------------------------------------------------
@@ -153,6 +150,7 @@ instance Applicative FCode where
     (<*>) = ap
 
 instance Monad FCode where
+    return = pure
     FCode m >>= k = FCode $
         \info_down state ->
             case m info_down state of
@@ -488,11 +486,7 @@ newUnique = do
         setState $ state { cgs_uniqs = us' }
         return u
 
-newTemp :: (
-#if MIN_VERSION_base(4,16,0)
-  m @ Unique,
-#endif
-  MonadUnique m) => CmmType -> m LocalReg
+newTemp :: MonadUnique m => CmmType -> m LocalReg
 newTemp rep = do { uniq <- getUniqueM
                  ; return (LocalReg uniq rep) }
 

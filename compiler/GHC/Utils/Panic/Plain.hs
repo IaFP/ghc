@@ -147,6 +147,6 @@ massert :: (HasCallStack, Applicative m) => Bool -> m ()
 {-# INLINE massert #-}
 massert cond = withFrozenCallStack (assert cond (pure ()))
 
-assertM :: (HasCallStack, Monad m) => m Bool -> m ()
+assertM :: (HasCallStack, Applicative m, Monad m) => m Bool -> m ()
 {-# INLINE assertM #-}
 assertM mcond = withFrozenCallStack (mcond >>= massert)

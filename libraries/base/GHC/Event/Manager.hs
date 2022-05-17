@@ -519,5 +519,5 @@ nullToNothing :: [a] -> Maybe [a]
 nullToNothing []       = Nothing
 nullToNothing xs@(_:_) = Just xs
 
-unless :: Monad m => Bool -> m () -> m ()
+unless :: (Monad m, Applicative m) => Bool -> m () -> m ()
 unless p = when (not p)

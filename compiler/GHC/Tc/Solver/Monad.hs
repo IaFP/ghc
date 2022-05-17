@@ -1222,6 +1222,7 @@ instance Applicative TcS where
   (<*>) = ap
 
 instance Monad TcS where
+  return x = mkTcS $ \_ -> return x
   m >>= k   = mkTcS $ \ebs -> do
     unTcS m ebs >>= (\r -> unTcS (k r) ebs)
 

@@ -74,9 +74,6 @@ import GHC.Utils.Monad.State.Strict
 import Data.List (mapAccumL, groupBy, partition)
 import Data.Maybe
 import Data.IntSet              (IntSet)
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
-#endif
 
 -----------------------------------------------------------------------------
 type RegSet = UniqSet Reg
@@ -287,11 +284,7 @@ mapBlockTop f cmm
 -- | map a function across all the basic blocks in this code (monadic version)
 --
 mapBlockTopM
-        :: (
-#if MIN_VERSION_base(4,16,0)
-         Total m,
-#endif
-          Monad m)
+        :: (Applicative m, Monad m)
         => (LiveBasicBlock instr -> m (LiveBasicBlock instr))
         -> LiveCmmDecl statics instr -> m (LiveCmmDecl statics instr)
 
@@ -302,11 +295,7 @@ mapBlockTopM f (CmmProc header label live sccs)
  = do   sccs'   <- mapM (mapSCCM f) sccs
         return  $ CmmProc header label live sccs'
 
-mapSCCM :: (
-#if MIN_VERSION_base(4,16,0)
-    Total m,
-#endif
-    Monad m) => (a -> m b) -> SCC a -> m (SCC b)
+mapSCCM :: (Applicative m, Monad m) => (a -> m b) -> SCC a -> m (SCC b)
 mapSCCM f (AcyclicSCC x)
  = do   x'      <- f x
         return  $ AcyclicSCC x'
@@ -327,11 +316,7 @@ mapGenBlockTop f cmm
 
 -- | map a function across all the basic blocks in this code (monadic version)
 mapGenBlockTopM
-        :: (
-#if MIN_VERSION_base(4,16,0)
-          Total m,
-#endif
-          Monad m)
+        :: (Applicative m, Monad m)
         => (GenBasicBlock            i  -> m (GenBasicBlock            i))
         -> (GenCmmDecl d h (ListGraph i) -> m (GenCmmDecl d h (ListGraph i)))
 

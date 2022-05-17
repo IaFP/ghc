@@ -43,6 +43,7 @@ instance Applicative PD where
   (<*>) = ap
 
 instance Monad PD where
+  return = returnPD
   (>>=) = thenPD
 
 liftP :: P a -> PD a

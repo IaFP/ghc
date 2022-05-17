@@ -428,9 +428,6 @@ import System.IO.Error  ( isDoesNotExistError )
 import System.Environment ( getEnv, getProgName )
 import System.Directory
 import Data.List (isPrefixOf)
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
-#endif
 
 
 -- %************************************************************************
@@ -483,20 +480,12 @@ defaultErrorHandler fm (FlushOut flushOut) inner =
             ) $
   inner
 
--- -- | This function is no longer necessary, cleanup is now done by
--- -- runGhc/runGhcT.
+-- | This function is no longer necessary, cleanup is now done by
+-- runGhc/runGhcT.
 -- {-# DEPRECATED defaultCleanupHandler "Cleanup is now done by runGhc/runGhcT" #-}
--- defaultCleanupHandler :: (
--- #if MIN_VERSION_base(4,16,0)
---     Total m,
--- #endif
---   ExceptionMonad m) => DynFlags -> m a -> m a
+-- defaultCleanupHandler :: (Applicative m,ExceptionMonad m) => DynFlags -> m a -> m a
 -- defaultCleanupHandler _ m = m
---  where
--- #if MIN_VERSION_base(4,16,0)
---    _warning_suppression :: Total m => m a
--- #endif
---    _warning_suppression = m `MC.onException` undefined
+--  where  _warning_suppression = m `MC.onException` undefined
 
 
 -- %************************************************************************
@@ -530,11 +519,7 @@ runGhc mb_top_dir ghc = do
 -- to this function will create a new session which should not be shared among
 -- several threads.
 
-runGhcT :: (
-#if MIN_VERSION_base(4,16,0)
-    Total m,
-#endif
-    ExceptionMonad m) =>
+runGhcT :: (ExceptionMonad m) =>
            Maybe FilePath  -- ^ See argument to 'initGhcMonad'.
         -> GhcT m a        -- ^ The action to perform.
         -> m a
@@ -595,11 +580,7 @@ initGhcMonad mb_top_dir
 -- version where this bug is fixed.
 -- See https://sourceware.org/bugzilla/show_bug.cgi?id=16177 and
 -- https://gitlab.haskell.org/ghc/ghc/issues/4210#note_78333
-checkBrokenTablesNextToCode :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  MonadIO m) => Logger -> DynFlags -> m ()
+checkBrokenTablesNextToCode :: (MonadIO m) => Logger -> DynFlags -> m ()
 checkBrokenTablesNextToCode logger dflags
   = do { broken <- checkBrokenTablesNextToCode' logger dflags
        ; when broken 
@@ -612,11 +593,7 @@ checkBrokenTablesNextToCode logger dflags
                    text "when using binutils ld (please see:" <+>
                    text "https://sourceware.org/bugzilla/show_bug.cgi?id=16177)"
 
-checkBrokenTablesNextToCode' :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  MonadIO m) => Logger -> DynFlags -> m Bool
+checkBrokenTablesNextToCode' :: (MonadIO m) => Logger -> DynFlags -> m Bool
 checkBrokenTablesNextToCode' logger dflags
   | not (isARM arch)               = return False
   | ways dflags `hasNotWay` WayDyn = return False
@@ -833,11 +810,7 @@ getInteractiveDynFlags = withSession $ \h -> return (ic_dflags (hsc_IC h))
 
 
 parseDynamicFlags
-    :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-      MonadIO m)
+    :: (MonadIO m)
     => Logger
     -> DynFlags
     -> [Located String]
@@ -936,11 +909,7 @@ normalise_hyp fp
 -- | Checks the set of new DynFlags for possibly erroneous option
 -- combinations when invoking 'setSessionDynFlags' and friends, and if
 -- found, returns a fixed copy (if possible).
-checkNewDynFlags :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  MonadIO m) => Logger -> DynFlags -> m DynFlags
+checkNewDynFlags :: (MonadIO m) => Logger -> DynFlags -> m DynFlags
 checkNewDynFlags logger dflags = do
   -- See Note [DynFlags consistency]
   let (dflags', warnings) = makeDynFlagsConsistent dflags
@@ -948,11 +917,7 @@ checkNewDynFlags logger dflags = do
   liftIO $ handleFlagWarnings logger diag_opts (map (Warn WarningWithoutFlag) warnings)
   return dflags'
 
-checkNewInteractiveDynFlags :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  MonadIO m) => Logger -> DynFlags -> m DynFlags
+checkNewInteractiveDynFlags :: (MonadIO m) => Logger -> DynFlags -> m DynFlags
 checkNewInteractiveDynFlags logger dflags0 = do
   -- We currently don't support use of StaticPointers in expressions entered on
   -- the REPL. See #12356.

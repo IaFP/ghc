@@ -27,9 +27,6 @@ import Control.Monad.Fail
 import qualified Data.ByteString as BS
 import GHC.Platform.Host (hostPlatformArch)
 import GHC.Platform.ArchOS
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (type (@))
-#endif
 
 -- NOTE: Must return a pointer acceptable for use in the header of a closure.
 -- If tables_next_to_code is enabled, then it must point the 'code' field.
@@ -70,7 +67,7 @@ mkConInfoTable tables_next_to_code ptr_words nonptr_words tag ptrtag con_desc = 
 funPtrToInt :: FunPtr a -> Int
 funPtrToInt (FunPtr a) = I## (addr2Int## a)
 
-mkJumpToAddr :: MonadFail m => EntryFunPtr-> m ItblCodes
+mkJumpToAddr :: (Applicative m, MonadFail m) => EntryFunPtr-> m ItblCodes
 mkJumpToAddr a = case hostPlatformArch of
     ArchSPARC -> pure $
         -- After some consideration, we'll try this, where
@@ -320,11 +317,7 @@ pokeConItbl tables_next_to_code wr_ptr _ex_ptr itbl = do
       pokeByteOff wr_ptr itblSize (conDesc itbl)
   pokeItbl (wr_ptr `plusPtr` (#offset StgConInfoTable, i)) (infoTable itbl)
 
-sizeOfEntryCode :: (
-#if MIN_VERSION_base(4,16,0)
-  m @ ItblCodes, 
-#endif
-  MonadFail m) => Bool -> m Int
+sizeOfEntryCode :: (Applicative m, MonadFail m) => Bool -> m Int
 sizeOfEntryCode tables_next_to_code
   | not tables_next_to_code = pure 0
   | otherwise = do

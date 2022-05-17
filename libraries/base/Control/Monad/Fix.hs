@@ -37,7 +37,6 @@ import GHC.List ( head, tail )
 import GHC.Tuple (Solo (..))
 import Control.Monad.ST.Imp
 import System.IO
-import GHC.Types (Total, Type)
 
 -- | Monads having fixed points with a \'knot-tying\' semantics.
 -- Instances of 'MonadFix' should satisfy the following laws:
@@ -57,7 +56,7 @@ import GHC.Types (Total, Type)
 --
 -- This class is used in the translation of the recursive @do@ notation
 -- supported by GHC and Hugs.
-class (Monad m) => MonadFix m where
+class Monad m => MonadFix m where
         -- | The fixed point of a monadic computation.
         -- @'mfix' f@ executes the action @f@ only once, with the eventual
         -- output fed back as the input.  Hence @f@ should not be strict,
@@ -153,12 +152,10 @@ instance MonadFix f => MonadFix (M1 i c f) where
     mfix f = M1 (mfix (unM1. f))
 
 -- | @since 4.9.0.0
-instance (Total f, Total g, MonadFix f, MonadFix g) => MonadFix (f :*: g) where
+instance (MonadFix f, MonadFix g) => MonadFix (f :*: g) where
     mfix f = (mfix (fstP . f)) :*: (mfix (sndP . f))
       where
-        fstP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p::k'). (Total f', Total g') => (f' :*: g') p -> f' p
         fstP (a :*: _) = a
-        sndP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p ::k'). (Total f', Total g') => (f' :*: g') p -> g' p
         sndP (_ :*: b) = b
 
 -- Instances for Data.Ord

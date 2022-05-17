@@ -22,9 +22,6 @@ import GHC.Prelude
 import GHC.Types.Unique
 import GHC.Types.Unique.DFM
 import GHC.Utils.Outputable
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
-#endif
 
 -- | Either @Indirect x@, meaning the value is represented by that of @x@, or
 -- an @Entry@ containing containing the actual value it represents.
@@ -110,11 +107,7 @@ addToUSDFM :: Uniquable key => UniqSDFM key ele -> key -> ele -> UniqSDFM key el
 addToUSDFM usdfm@(USDFM env) x v =
   USDFM $ addToUDFM env (fst (lookupReprAndEntryUSDFM usdfm x)) (Entry v)
 
-traverseUSDFM :: forall key a b f. (
-#if MIN_VERSION_base(4,16,0)
-  Total f, 
-#endif
-  Applicative f) => (a -> f b) -> UniqSDFM key a -> f (UniqSDFM key b)
+traverseUSDFM :: forall key a b f. (Applicative f) => (a -> f b) -> UniqSDFM key a -> f (UniqSDFM key b)
 traverseUSDFM f = fmap (USDFM . listToUDFM_Directly) . traverse g . udfmToList . unUSDFM
   where
     g :: (Unique, Shared key a) -> f (Unique, Shared key b)

@@ -251,7 +251,8 @@ instance Applicative Complex where
 -- | @since 4.9.0.0
 instance Monad Complex where
   a :+ b >>= f = realPart (f a) :+ imagPart (f b)
-
+  return a = a :+ a
+  
 -- | @since 4.15.0.0
 instance MonadZip Complex where
   mzipWith = liftA2

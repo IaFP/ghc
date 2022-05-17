@@ -180,6 +180,7 @@ instance Applicative Ghc where
   g <*> m = do f <- g; a <- m; return (f a)
 
 instance Monad Ghc where
+  return a = Ghc $ \_ -> return a
   m >>= g  = Ghc $ \s -> do a <- unGhc m s; unGhc (g a) s
 
 instance MonadIO Ghc where
@@ -261,19 +262,12 @@ instance (Total m, MonadMask m) => MonadMask (GhcT m) where
 liftGhcT :: m a -> GhcT m a
 liftGhcT m = GhcT $ \_ -> m
 
-instance (
-#if MIN_VERSION_base(4,16,0)
-    Total m,
-#endif
-  Applicative m) => Applicative (GhcT m) where
+instance Applicative m => Applicative (GhcT m) where
   pure x  = GhcT $ \_ -> pure x
   g <*> m = GhcT $ \s -> unGhcT g s <*> unGhcT m s
 
-instance (
-#if MIN_VERSION_base(4,16,0)
-    Total m,
-#endif
-  Monad m) => Monad (GhcT m) where
+instance (Monad m) => Monad (GhcT m) where
+  return x  = GhcT $ \_ -> return x
   m >>= k  = GhcT $ \s -> do a <- unGhcT m s; unGhcT (k a) s
 
 instance (
@@ -316,11 +310,8 @@ printException err = do
   liftIO $ printMessages logger diag_opts (srcErrorMessages err)
 
 -- | A function called to log warnings and errors.
-type WarnErrLogger = forall m. (
-#if MIN_VERSION_base(4,16,0)
-    Total m,
-#endif
-  HasDynFlags m , MonadIO m, HasLogger m) => Maybe SourceError -> m ()
+type WarnErrLogger = forall m. (Applicative m, HasDynFlags m , MonadIO m, HasLogger m)
+                               => Maybe SourceError -> m ()
 
 defaultWarnErrLogger :: WarnErrLogger
 defaultWarnErrLogger Nothing  = return ()

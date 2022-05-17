@@ -192,7 +192,7 @@ recompileRequired _ = True
 recompThen :: Monad m => m RecompileRequired -> m RecompileRequired -> m RecompileRequired
 recompThen ma mb = ma >>= \case
   UpToDate -> mb
-  mc       -> pure mc
+  mc       -> return mc
 
 -- | Top level function to check if the version of an old interface file
 -- is equivalent to the current source file the user asked us to compile.

@@ -310,6 +310,7 @@ mkUniqSM f = USM (oneShot f)
 {-# INLINE mkUniqSM #-}
 
 instance Monad UniqSM where
+  return = returnUs
   (>>=) = thenUs
   (>>)  = (*>)
 

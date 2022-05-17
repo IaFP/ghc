@@ -140,6 +140,7 @@ instance Applicative SimplM where
     (*>)  = thenSmpl_
 
 instance Monad SimplM where
+   return = returnSmpl
    (>>)   = (*>)
    (>>=)  = thenSmpl
 

@@ -85,6 +85,7 @@ instance Applicative ReadPrec where
 
 -- | @since 2.01
 instance Monad ReadPrec where
+  return x  = P (\_ -> return x)
   P f >>= k = P (\n -> do a <- f n; let P f' = k a in f' n)
 
 -- | @since 4.9.0.0

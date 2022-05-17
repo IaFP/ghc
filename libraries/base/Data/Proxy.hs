@@ -132,6 +132,8 @@ instance Alternative Proxy where
 instance Monad Proxy where
     _ >>= _ = Proxy
     {-# INLINE (>>=) #-}
+    return _ = Proxy
+    {-# INLINE return #-}
 
 -- | @since 4.9.0.0
 instance MonadPlus Proxy

@@ -22,7 +22,7 @@ import GHC.Prelude hiding (map,mapM)
 import Control.Monad hiding (mapM)
 import Control.Monad.IO.Class
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types(type (@), Total)
+import GHC.Types(type (@))
 #endif
 
 -- |
@@ -61,50 +61,52 @@ import GHC.Types(type (@), Total)
 -- the "ManyConstructors" test which called the 'cg' function many times in
 -- @StgToCmm.hs@
 --
-newtype Stream m a b =
-          Stream { runStreamInternal :: forall r' r .
+newtype
 #if MIN_VERSION_base(4,16,0)
-                                        m @ r' =>
+   (Applicative m, Monad m) => 
 #endif
+  Stream m a b =
+          Stream { runStreamInternal :: forall r' r .
                                         (a -> m r') -- For fusing calls to `map` and `mapM`
                                      -> (b -> StreamS m r' r)  -- For fusing `>>=`
                                      -> StreamS m r' r }
 
-runStream :: (
-#if MIN_VERSION_base(4,16,0)
-  m @ r',
-#endif  
-  Applicative m) => Stream m r' r -> StreamS m r' r
+runStream ::
+#if !MIN_VERSION_base(4,16,0)
+  (Applicative m) => 
+#endif
+  Stream m r' r -> StreamS m r' r
 runStream st = runStreamInternal st pure Done
 
-data StreamS m a b = Yield a (StreamS m a b)
+data
+#if MIN_VERSION_base(4,16,0)
+  (m @ StreamS m a b, Applicative m, Monad m) => 
+#endif
+  StreamS m a b = Yield a (StreamS m a b)
                    | Done b
-                   |
-#if MIN_VERSION_base(4,16,0)
-                     m @ StreamS m a b =>
-#endif  
-                     Effect (m (StreamS m a b))
+                   | Effect (m (StreamS m a b))
 
-instance (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif  
-  Monad m) => Functor (StreamS m a) where
+instance
+#if !MIN_VERSION_base(4,16,0)
+  Monad m => 
+#endif
+  Functor (StreamS m a) where
   fmap = liftM
 
-instance (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif  
-  Monad m) => Applicative (StreamS m a) where
+instance
+#if !MIN_VERSION_base(4,16,0)
+  Monad m => 
+#endif
+  Applicative (StreamS m a) where
   pure = Done
   (<*>) = ap
 
-instance (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif  
-  Monad m) => Monad (StreamS m a) where
+instance
+#if !MIN_VERSION_base(4,16,0)
+  Monad m => 
+#endif
+  Monad (StreamS m a) where
+  return = Done
   a >>= k = case a of
                       Done r -> k r
                       Yield a s -> Yield a (s >>= k)
@@ -118,42 +120,25 @@ instance Applicative (Stream m a) where
   (<*>) = ap
 
 instance Monad (Stream m a) where
+  return = pure
   Stream m >>= k = Stream $ \f h -> m f (\a -> runStreamInternal (k a) f h)
 
-instance (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif  
-  MonadIO m) => MonadIO (Stream m b) where
+instance (MonadIO m) => MonadIO (Stream m b) where
   liftIO io = Stream $ \_f g -> Effect (g <$> liftIO io)
 
-yield :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif  
-  Monad m) => a -> Stream m a ()
+yield :: (Monad m) => a -> Stream m a ()
 yield a = Stream $ \f rest -> Effect (flip Yield (rest ())  <$> f a)
 
 -- | Turn a Stream into an ordinary list, by demanding all the elements.
-collect :: (
-#if MIN_VERSION_base(4,16,0)
-  m @ a, 
-#endif  
-  Monad m) => Stream m a () -> m [a]
+collect :: (Monad m) => Stream m a () -> m [a]
 collect str = go [] (runStream str)
  where
-#if MIN_VERSION_base(4,16,0)
-  go :: Monad m => [a] -> StreamS m a () -> m [a]
-#endif  
   go acc (Done ()) = return (reverse acc)
   go acc (Effect m) = m >>= go acc
   go acc (Yield a k) = go (a:acc) k
 
-consume :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m, Total n,
-#endif  
-  Monad m, Monad n) => Stream m a b -> (forall a . m a -> n a) -> (a -> n ()) -> n b
+consume :: (Applicative m, Applicative n, Monad m, Monad n)
+        => Stream m a b -> (forall a . m a -> n a) -> (a -> n ()) -> n b
 consume str l f = go (runStream str)
   where
     go (Done r) = return r
@@ -161,11 +146,7 @@ consume str l f = go (runStream str)
     go (Effect m)  = l m >>= go
 
 -- | Turn a list into a 'Stream', by yielding each element in turn.
-fromList :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif  
-  Monad m) => [a] -> Stream m a ()
+fromList :: (Monad m) => [a] -> Stream m a ()
 fromList = mapM_ yield
 
 -- | Apply a function to each element of a 'Stream', lazily
@@ -173,22 +154,14 @@ map :: Monad m => (a -> b) -> Stream m a x -> Stream m b x
 map f str = Stream $ \g h -> runStreamInternal str (g . f) h
 
 -- | Apply a monadic operation to each element of a 'Stream', lazily
-mapM :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif  
-  Monad m) => (a -> m b) -> Stream m a x -> Stream m b x
+mapM :: (Monad m) => (a -> m b) -> Stream m a x -> Stream m b x
 mapM f str = Stream $ \g h -> runStreamInternal str (g <=< f) h
 
 -- | Note this is not very efficient because it traverses the whole stream
 -- before rebuilding it, avoid using it if you can. mapAccumL used to
 -- implemented but it wasn't used anywhere in the compiler and has similar
 -- effiency problems.
-mapAccumL_ :: forall m a b c r . (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif  
-  Monad m) => (c -> a -> m (c,b)) -> c -> Stream m a r
+mapAccumL_ :: forall m a b c r . (Applicative m, Monad m) => (c -> a -> m (c,b)) -> c -> Stream m a r
            -> Stream m b (c, r)
 mapAccumL_ f c str = Stream $ \f h -> go c f h (runStream str)
 

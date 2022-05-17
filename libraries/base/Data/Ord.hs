@@ -151,4 +151,5 @@ instance Applicative Down where
 
 -- | @since 4.11.0.0
 instance Monad Down where
+    return = Down
     Down a >>= k = k a

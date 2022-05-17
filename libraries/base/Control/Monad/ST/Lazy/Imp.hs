@@ -180,7 +180,7 @@ instance Applicative (ST s) where
 -- | @since 2.01
 instance Monad (ST s) where
     (>>) = (*>)
-
+    return = pure
     m >>= k = ST $ \ s ->
        let
          -- See Note [Lazy ST and multithreading]

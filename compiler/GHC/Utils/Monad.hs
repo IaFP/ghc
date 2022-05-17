@@ -39,9 +39,6 @@ import Control.Monad.Fix
 import Control.Monad.IO.Class
 import Data.Foldable (sequenceA_, foldlM, foldrM)
 import Data.List (unzip4, unzip5, zipWith4)
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
-#endif
 
 -------------------------------------------------------------------------------
 -- Common functions
@@ -74,34 +71,26 @@ functions below as well.
 
 -}
 
-zipWith3M :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  Monad m) => (a -> b -> c -> m d) -> [a] -> [b] -> [c] -> m [d]
+zipWith3M :: (Applicative m, Monad m) => (a -> b -> c -> m d) -> [a] -> [b] -> [c] -> m [d]
 {-# INLINE zipWith3M #-}
 -- Inline so that fusion with 'zipWith3' and 'sequenceA' has a chance to fire.
 -- See Note [Inline @zipWithNM@ functions] above.
 zipWith3M f xs ys zs = sequenceA (zipWith3 f xs ys zs)
 
-zipWith3M_ :: Monad m => (a -> b -> c -> m d) -> [a] -> [b] -> [c] -> m ()
+zipWith3M_ :: (Applicative m, Monad m) => (a -> b -> c -> m d) -> [a] -> [b] -> [c] -> m ()
 {-# INLINE zipWith3M_ #-}
 -- Inline so that fusion with 'zipWith4' and 'sequenceA' has a chance to fire.
 -- See  Note [Inline @zipWithNM@ functions] above.
 zipWith3M_ f xs ys zs = sequenceA_ (zipWith3 f xs ys zs)
 
-zipWith4M :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  Monad m) => (a -> b -> c -> d -> m e)
+zipWith4M :: (Applicative m, Monad m) => (a -> b -> c -> d -> m e)
           -> [a] -> [b] -> [c] -> [d] -> m [e]
 {-# INLINE zipWith4M #-}
 -- Inline so that fusion with 'zipWith5' and 'sequenceA' has a chance to fire.
 -- See  Note [Inline @zipWithNM@ functions] above.
 zipWith4M f xs ys ws zs = sequenceA (zipWith4 f xs ys ws zs)
 
-zipWithAndUnzipM :: Monad m
+zipWithAndUnzipM :: (Applicative m, Monad m)
                  => (a -> b -> m (c, d)) -> [a] -> [b] -> m ([c], [d])
 {-# INLINABLE zipWithAndUnzipM #-}  -- this allows specialization to a given monad
 zipWithAndUnzipM f (x:xs) (y:ys)
@@ -134,31 +123,19 @@ pragma should be replicated in the @mapAndUnzipNM@ functions below as well.
 -}
 
 -- | mapAndUnzipM for triples
-mapAndUnzip3M :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  Monad m) => (a -> m (b,c,d)) -> [a] -> m ([b],[c],[d])
+mapAndUnzip3M :: (Applicative m, Monad m) => (a -> m (b,c,d)) -> [a] -> m ([b],[c],[d])
 {-# INLINE mapAndUnzip3M #-}
 -- Inline so that fusion with 'unzip3' and 'traverse' has a chance to fire.
 -- See Note [Inline @mapAndUnzipNM@ functions] above.
 mapAndUnzip3M f xs =  unzip3 <$> traverse f xs
 
-mapAndUnzip4M :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  Monad m) => (a -> m (b,c,d,e)) -> [a] -> m ([b],[c],[d],[e])
+mapAndUnzip4M :: (Applicative m, Monad m) => (a -> m (b,c,d,e)) -> [a] -> m ([b],[c],[d],[e])
 {-# INLINE mapAndUnzip4M #-}
 -- Inline so that fusion with 'unzip4' and 'traverse' has a chance to fire.
 -- See Note [Inline @mapAndUnzipNM@ functions] above.
 mapAndUnzip4M f xs =  unzip4 <$> traverse f xs
 
-mapAndUnzip5M :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  Monad m) => (a -> m (b,c,d,e,f)) -> [a] -> m ([b],[c],[d],[e],[f])
+mapAndUnzip5M :: (Applicative m, Monad m) => (a -> m (b,c,d,e,f)) -> [a] -> m ([b],[c],[d],[e],[f])
 {-# INLINE mapAndUnzip5M #-}
 -- Inline so that fusion with 'unzip5' and 'traverse' has a chance to fire.
 -- See Note [Inline @mapAndUnzipNM@ functions] above.
@@ -197,11 +174,7 @@ liftSndM :: Monad m => (a -> b) -> m (r, a) -> m (r, b)
 liftSndM f thing = do { (r,a) <- thing; return (r, f a) }
 
 -- | Monadic version of concatMap
-concatMapM :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  Monad m) => (a -> m [b]) -> [a] -> m [b]
+concatMapM :: (Applicative m, Monad m) => (a -> m [b]) -> [a] -> m [b]
 concatMapM f xs = liftM concat (mapM f xs)
 
 -- | Applicative version of mapMaybe
@@ -249,12 +222,12 @@ maybeMapM _ Nothing  = return Nothing
 maybeMapM m (Just x) = liftM Just $ m x
 
 -- | Monadic version of @when@, taking the condition in the monad
-whenM :: Monad m => m Bool -> m () -> m ()
+whenM :: (Applicative m, Monad m) => m Bool -> m () -> m ()
 whenM mb thing = do { b <- mb
                     ; when b thing }
 
 -- | Monadic version of @unless@, taking the condition in the monad
-unlessM :: Monad m => m Bool -> m () -> m ()
+unlessM :: (Applicative m, Monad m) => m Bool -> m () -> m ()
 unlessM condM acc = do { cond <- condM
                        ; unless cond acc }
 

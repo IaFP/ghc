@@ -47,9 +47,6 @@ import GHC.Types.Id.Make (coerceId)
 import GHC.Builtin.Types (true_RDR, false_RDR)
 
 import Data.Maybe (catMaybes, isJust)
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
-#endif
 
 {-
 ************************************************************************
@@ -251,11 +248,7 @@ gen_Functor_binds loc dit@(DerivInstTys{ dit_rep_tc = tycon
                  , ft_co_var = panic "contravariant in ft_replace" }
 
     -- Con a1 a2 ... -> Con (f1 a1) (f2 a2) ...
-    match_for_con :: (
-#if MIN_VERSION_base(4,16,0)
-      Total m,
-#endif
-      Monad m)
+    match_for_con :: (Applicative m, Monad m)
                   => HsMatchContext GhcPs
                   -> [LPat GhcPs] -> DataCon
                   -> [LHsExpr GhcPs -> m (LHsExpr GhcPs)]
@@ -893,11 +886,7 @@ gen_Foldable_binds loc dit@(DerivInstTys{ dit_rep_tc = tycon
            , ft_fun     = panic "function in ft_foldr"
            , ft_bad_app = panic "in other argument in ft_foldr" }
 
-    match_foldr :: (
-#if MIN_VERSION_base(4,16,0)
-     Total m,
-#endif
-      Monad m)
+    match_foldr :: (Applicative m, Monad m)
                 => LHsExpr GhcPs
                 -> [LPat GhcPs]
                 -> DataCon
@@ -928,11 +917,7 @@ gen_Foldable_binds loc dit@(DerivInstTys{ dit_rep_tc = tycon
            , ft_fun = panic "function in ft_foldMap"
            , ft_bad_app = panic "in other argument in ft_foldMap" }
 
-    match_foldMap :: (
-#if MIN_VERSION_base(4,16,0)
-                     Total m,
-#endif
-                     Monad m)
+    match_foldMap :: (Applicative m, Monad m)
                   => [LPat GhcPs]
                   -> DataCon
                   -> [Maybe (LHsExpr GhcPs)]
@@ -981,11 +966,7 @@ gen_Foldable_binds loc dit@(DerivInstTys{ dit_rep_tc = tycon
            , ft_fun = panic "function in ft_null"
            , ft_bad_app = panic "in other argument in ft_null" }
 
-    match_null :: (
-#if MIN_VERSION_base(4,16,0)
-                  Total m,
-#endif
-                  Monad m)
+    match_null :: (Applicative m, Monad m)
                => [LPat GhcPs]
                -> DataCon
                -> [Maybe (LHsExpr GhcPs)]
@@ -1100,11 +1081,7 @@ gen_Traversable_binds loc dit@(DerivInstTys{ dit_rep_tc = tycon
 
     -- Con a1 a2 ... -> liftA2 (\b1 b2 ... -> Con b1 b2 ...) (g1 a1)
     --                    (g2 a2) <*> ...
-    match_for_con :: (
-#if MIN_VERSION_base(4,16,0)
-      Total m,
-#endif
-      Monad m)
+    match_for_con :: (Applicative m, Monad m)
                   => [LPat GhcPs]
                   -> DataCon
                   -> [Maybe (LHsExpr GhcPs)]

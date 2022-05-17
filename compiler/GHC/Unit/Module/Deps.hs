@@ -157,13 +157,13 @@ mkDependencies home_unit mod imports plugin_mods =
 dep_orphs_update :: Monad m => Dependencies -> ([Module] -> m [Module]) -> m Dependencies
 dep_orphs_update deps f = do
   r <- f (dep_orphs deps)
-  pure (deps { dep_orphs = sortBy stableModuleCmp r })
+  return (deps { dep_orphs = sortBy stableModuleCmp r })
 
 -- | Update module dependencies containing family instances (used by Backpack)
 dep_finsts_update :: Monad m => Dependencies -> ([Module] -> m [Module]) -> m Dependencies
 dep_finsts_update deps f = do
   r <- f (dep_finsts deps)
-  pure (deps { dep_finsts = sortBy stableModuleCmp r })
+  return (deps { dep_finsts = sortBy stableModuleCmp r })
 
 
 instance Binary Dependencies where

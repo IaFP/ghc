@@ -252,6 +252,7 @@ instance Applicative CmmLint where
       (<*>) = ap
 
 instance Monad CmmLint where
+  return = pure
   CmmLint m >>= k = CmmLint $ \platform ->
                                 case m platform of
                                 Left e -> Left e

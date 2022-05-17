@@ -167,7 +167,7 @@ class (Functor t, Foldable t) => Traversable t where
     -- >>> traverse id [Right 1, Right 2, Right 3, Right 4, Left 0]
     -- Left 0
     --
-    traverse :: (t @ f b, Total f, Applicative f) => (a -> f b) -> t a -> f (t b)
+    traverse :: (t @ f b, Applicative f) => (a -> f b) -> t a -> f (t b)
     {-# INLINE traverse #-}  -- See Note [Inline default methods]
     traverse f = sequenceA . fmap f
 
@@ -198,7 +198,7 @@ class (Functor t, Foldable t) => Traversable t where
     -- >>> sequenceA [Right 1, Right 2, Right 3, Left 4]
     -- Left 4
     --
-    sequenceA :: (Total f, Applicative f) => t (f a) -> f (t a)
+    sequenceA :: Applicative f => t (f a) -> f (t a)
     {-# INLINE sequenceA #-}  -- See Note [Inline default methods]
     sequenceA = traverse id
 
@@ -212,7 +212,7 @@ class (Functor t, Foldable t) => Traversable t where
     -- to 'Monad'. Its implementation may be more efficient due to additional
     -- power of 'Monad'.
     --
-    mapM :: (Total m, t @ m b, Monad m) => (a -> m b) -> t a -> m (t b)
+    mapM :: (t @ m b, Monad m, Applicative m) => (a -> m b) -> t a -> m (t b)
     {-# INLINE mapM #-}  -- See Note [Inline default methods]
     mapM = traverse
 
@@ -242,7 +242,7 @@ class (Functor t, Foldable t) => Traversable t where
     -- >>> sequence $ [Left 0, Right 1,Right 2,Right 3,Right 4]
     -- Left 0
     --
-    sequence :: (Total m, Monad m) => t (m a) -> m (t a)
+    sequence :: Applicative m => t (m a) -> m (t a)
     {-# INLINE sequence #-}  -- See Note [Inline default methods]
     sequence = sequenceA
 
@@ -399,13 +399,13 @@ deriving instance Traversable (K1 i c)
 deriving instance Traversable f => Traversable (M1 i c f)
 
 -- | @since 4.9.0.0
-deriving instance (Total f, Total g, Traversable f, Traversable g) => Traversable (f :+: g)
+deriving instance (Traversable f, Traversable g) => Traversable (f :+: g)
 
 -- | @since 4.9.0.0
-deriving instance (Total f, Total g, Traversable f, Traversable g) => Traversable (f :*: g)
+deriving instance (Traversable f, Traversable g) => Traversable (f :*: g)
 
 -- | @since 4.9.0.0
-deriving instance (Total f, Total g, Traversable f, Traversable g) => Traversable (f :.: g)
+deriving instance (Total f, Traversable f, Traversable g) => Traversable (f :.: g)
 
 -- | @since 4.9.0.0
 deriving instance Traversable UAddr
@@ -433,13 +433,13 @@ deriving instance Traversable Down
 
 -- | 'for' is 'traverse' with its arguments flipped. For a version
 -- that ignores the results see 'Data.Foldable.for_'.
-for :: (Traversable t, Applicative f, Total f, t @ f b) => t a -> (a -> f b) -> f (t b)
+for :: (Traversable t, Applicative f, t @ f b) => t a -> (a -> f b) -> f (t b)
 {-# INLINE for #-}
 for = flip traverse
 
 -- | 'forM' is 'mapM' with its arguments flipped. For a version that
 -- ignores the results see 'Data.Foldable.forM_'.
-forM :: (Traversable t, Monad m, Total m, t @ m b) => t a -> (a -> m b) -> m (t b)
+forM :: (Traversable t, Applicative m, Monad m, t @ m b) => t a -> (a -> m b) -> m (t b)
 {-# INLINE forM #-}
 forM = flip mapM
 

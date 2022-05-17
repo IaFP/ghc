@@ -105,6 +105,7 @@ instance Applicative CvtM where
     (<*>) = ap
 
 instance Monad CvtM where
+  return x = CvtM $ \_ loc -> Right (loc,x)
   (CvtM m) >>= k = CvtM $ \origin loc -> case m origin loc of
     Left err -> Left err
     Right (loc',v) -> unCvtM (k v) origin loc'

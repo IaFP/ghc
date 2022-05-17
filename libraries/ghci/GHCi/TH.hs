@@ -138,6 +138,7 @@ instance Applicative GHCiQ where
   pure x = GHCiQ (\s -> return (x,s))
 
 instance Monad GHCiQ where
+  return = pure
   m >>= f = GHCiQ $ \s ->
     do (m', s')  <- runGHCiQ m s
        (a,  s'') <- runGHCiQ (f m') s'

@@ -1101,6 +1101,7 @@ instance Applicative TM where
     (<*>) = ap
 
 instance Monad TM where
+  return a = TM $ \ _env st -> (a,noFVs,st)
   (TM m) >>= k = TM $ \ env st ->
                                 case m env st of
                                   (r1,fv1,st1) ->

@@ -42,7 +42,7 @@ import Data.List.NonEmpty ( NonEmpty(..) )
 import qualified Data.Foldable as Foldable
 import qualified Data.Semigroup ( (<>) )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@), Total)
+import GHC.Types (type(@))
 #endif
 
 infixr 3 `consBag`
@@ -107,11 +107,7 @@ filterBag pred (TwoBags b1 b2) = sat1 `unionBags` sat2
           sat2 = filterBag pred b2
 filterBag pred (ListBag vs)    = listToBag (filter pred vs)
 
-filterBagM :: (
-#if MIN_VERSION_base(4,16,0)
-  m @ [a],
-#endif
-  Monad m) => (a -> m Bool) -> Bag a -> m (Bag a)
+filterBagM :: (Applicative m, Monad m) => (a -> m Bool) -> Bag a -> m (Bag a)
 filterBagM _    EmptyBag = return EmptyBag
 filterBagM pred b@(UnitBag val) = do
   flag <- pred val
@@ -233,11 +229,7 @@ mapMaybeBag f (UnitBag x)     = case f x of
 mapMaybeBag f (TwoBags b1 b2) = unionBags (mapMaybeBag f b1) (mapMaybeBag f b2)
 mapMaybeBag f (ListBag xs)    = ListBag (mapMaybe f xs)
 
-mapBagM :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  Monad m) => (a -> m b) -> Bag a -> m (Bag b)
+mapBagM :: (Applicative m, Monad m) => (a -> m b) -> Bag a -> m (Bag b)
 mapBagM _ EmptyBag        = return EmptyBag
 mapBagM f (UnitBag x)     = do r <- f x
                                return (UnitBag r)
@@ -278,11 +270,7 @@ flatMapBagPairM f (ListBag    xs) = foldrM k (EmptyBag, EmptyBag) xs
     k x (r2,s2) = do { (r1,s1) <- f x
                      ; return (r1 `unionBags` r2, s1 `unionBags` s2) }
 
-mapAndUnzipBagM :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  Monad m) => (a -> m (b,c)) -> Bag a -> m (Bag b, Bag c)
+mapAndUnzipBagM :: (Applicative m, Monad m) => (a -> m (b,c)) -> Bag a -> m (Bag b, Bag c)
 mapAndUnzipBagM _ EmptyBag        = return (EmptyBag, EmptyBag)
 mapAndUnzipBagM f (UnitBag x)     = do (r,s) <- f x
                                        return (UnitBag r, UnitBag s)

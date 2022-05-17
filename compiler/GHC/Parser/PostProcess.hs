@@ -2853,6 +2853,7 @@ instance Applicative PV where
   (<*>) = ap
 
 instance Monad PV where
+  return a = a `seq` PV (\_ acc -> PV_Ok acc a)
   m >>= f = PV $ \ctx acc ->
     case unPV m ctx acc of
       PV_Ok acc' a -> unPV (f a) ctx acc'

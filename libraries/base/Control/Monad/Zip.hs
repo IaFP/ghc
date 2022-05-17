@@ -26,7 +26,7 @@ import Data.Proxy
 import qualified Data.List.NonEmpty as NE
 import GHC.Generics
 import GHC.Tuple (Solo (..))
-import GHC.Types (type (@), Total)
+import GHC.Types (type (@))
 
 -- | Instances should satisfy the laws:
 --
@@ -130,7 +130,7 @@ instance MonadZip f => MonadZip (M1 i c f) where
     mzipWith f (M1 fa) (M1 fb) = M1 (mzipWith f fa fb)
 
 -- | @since 4.9.0.0
-instance (Total f, Total g, MonadZip f, MonadZip g) => MonadZip (f :*: g) where
+instance (MonadZip f, MonadZip g) => MonadZip (f :*: g) where
     mzipWith f (x1 :*: y1) (x2 :*: y2) = mzipWith f x1 x2 :*: mzipWith f y1 y2
 
 -- instances for Data.Ord

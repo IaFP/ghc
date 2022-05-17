@@ -308,6 +308,7 @@ instance Applicative LintM where
       (*>)  = thenL_
 
 instance Monad LintM where
+    return a = LintM $ \_mod _lf _df _opts _loc _scope errs -> (a, errs)
     (>>=) = thenL
     (>>)  = (*>)
 

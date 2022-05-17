@@ -567,6 +567,7 @@ instance Applicative UnifyResultM where
   (<*>) = ap
 
 instance Monad UnifyResultM where
+  return = Unifiable
   SurelyApart  >>= _ = SurelyApart
   MaybeApart r1 x >>= f = case f x of
                             Unifiable y     -> MaybeApart r1 y
@@ -1409,6 +1410,7 @@ instance Applicative UM where
 instance Monad UM where
   {-# INLINE (>>=) #-}
   -- See Note [INLINE pragmas and (>>)] in GHC.Utils.Monad
+  return a = UM (\s -> return (s, a))
   m >>= k  = UM (\state ->
                   do { (state', v) <- unUM m state
                      ; unUM (k v) state' })

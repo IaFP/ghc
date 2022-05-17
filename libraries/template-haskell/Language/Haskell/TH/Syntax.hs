@@ -77,11 +77,7 @@ import GHC.Types ( type (@), Total )
 --
 -----------------------------------------------------
 
-class (
-#if MIN_VERSION_base(4,16,0)
-      Total m, 
-#endif
-      MonadIO m, MonadFail m) => Quasi m where
+class (Applicative m, MonadIO m, MonadFail m) => Quasi m where
   qNewName :: String -> m Name
         -- ^ Fresh names
 
@@ -200,14 +196,7 @@ counter = unsafePerformIO (newIORef 0)
 --
 -----------------------------------------------------
 
-newtype Q a = Q { unQ :: forall m. (
-#if MIN_VERSION_base(4,16,0)
-                                    Total m,
-#endif
-                                    Quasi m) => m a }
-#if MIN_VERSION_base(4,16,0)
-type instance Q @ a = ()
-#endif
+newtype Q a = Q { unQ :: forall m. (Quasi m) => m a }
 
 -- \"Runs\" the 'Q' monad. Normal users of Template Haskell
 -- should not need this function, as the splice brackets @$( ... )@
@@ -220,22 +209,15 @@ type instance Q @ a = ()
 -- queries, are not supported when running 'Q' in 'IO'; these operations
 -- simply fail at runtime. Indeed, the only operations guaranteed to succeed
 -- are 'newName', 'runIO', 'reportError' and 'reportWarning'.
-runQ :: (
-#if MIN_VERSION_base(4,16,0)
-         Total m,
-#endif
-         Quasi m) => Q a -> m a
+runQ :: (Quasi m) => Q a -> m a
 runQ (Q m) = m
 
 instance Monad Q where
   Q m >>= k  = Q (m >>= \x -> unQ (k x))
   (>>) = (*>)
+  return = pure
 
-instance
-#if MIN_VERSION_base(4,16,0)
-  Total Q => 
-#endif
-  MonadFail Q where
+instance MonadFail Q where
   fail s     = report True s >> Q (fail "Q monad failure")
 
 instance Functor Q where
@@ -292,11 +274,7 @@ instance MonadFix Q where
 -- For many years the type of a quotation was fixed to be `Q Exp` but by
 -- more precisely specifying the minimal interface it enables the `Exp` to
 -- be extracted purely from the quotation without interacting with `Q`.
-class (
-#if MIN_VERSION_base(4,16,0)
-       Total m,
-#endif
-       Monad m) => Quote m where
+class (Applicative m, Monad m) => Quote m where
   {- |
   Generate a fresh name, which cannot be captured.
 
@@ -458,21 +436,13 @@ hoistCode f (Code a) = Code (f a)
 
 -- | Variant of (>>=) which allows effectful computations to be injected
 -- into code generation.
-bindCode :: forall m a (r :: RuntimeRep) (b :: TYPE r) . (
-#if MIN_VERSION_base(4,16,0)
-  m @ TExp b,
-#endif
-  Monad m)
+bindCode :: forall m a (r :: RuntimeRep) (b :: TYPE r) . (Monad m)
          => m a -> (a -> Code m b) -> Code m b
 bindCode q k = liftCode (q >>= examineCode . k)
 
 -- | Variant of (>>) which allows effectful computations to be injected
 -- into code generation.
-bindCode_ :: forall m a (r :: RuntimeRep) (b :: TYPE r) . (
-#if MIN_VERSION_base(4,16,0)
-  m @ TExp b,
-#endif
-  Monad m)
+bindCode_ :: forall m a (r :: RuntimeRep) (b :: TYPE r) . (Monad m)
           => m a -> Code m b -> Code m b
 bindCode_ q c = liftCode ( q >> examineCode c)
 
@@ -483,11 +453,7 @@ bindCode_ q c = liftCode ( q >> examineCode c)
 --   x <- someSideEffect
 --   return (makeCodeWith x)
 -- @
-joinCode :: forall m (r :: RuntimeRep) (a :: TYPE r) . (
-#if MIN_VERSION_base(4,16,0)
-  m @ TExp a,
-#endif
-  Monad m)
+joinCode :: forall m (r :: RuntimeRep) (a :: TYPE r) . (Monad m)
          => m (Code m a) -> Code m a
 joinCode = flip bindCode id
 
@@ -926,11 +892,7 @@ instance Quasi Q where
 -- desugaring brackets. They are not necessary for the user, who can use
 -- ordinary return and (>>=) etc
 
-sequenceQ :: forall m a. (
-#if __GLASGOW_HASKELL__ >= 903
-  Total m,
-#endif
-  Monad m) => [m a] -> m [a]
+sequenceQ :: forall m a. (Applicative m, Monad m) => [m a] -> m [a]
 sequenceQ = sequence
 
 
@@ -970,14 +932,8 @@ sequenceQ = sequence
 class Lift (t :: TYPE r) where
   -- | Turn a value into a Template Haskell expression, suitable for use in
   -- a splice.
-  lift :: (
-#if __GLASGOW_HASKELL__ >= 903
-          Total m,
-#endif
-          Quote m) => t -> m Exp
-#if __GLASGOW_HASKELL__ >= 903
-  default lift :: (r ~ ('BoxedRep 'Lifted), Quote m, Total m) => t -> m Exp
-#elif __GLASGOW_HASKELL__ >= 901 && __GLASGOW_HASKELL__ < 903
+  lift :: (Quote m) => t -> m Exp
+#if __GLASGOW_HASKELL__ >= 901
   default lift :: (r ~ ('BoxedRep 'Lifted), Quote m) => t -> m Exp
 #else
   default lift :: (r ~ 'LiftedRep, Quote m) => t -> m Exp
@@ -988,11 +944,7 @@ class Lift (t :: TYPE r) where
   -- in a typed splice.
   --
   -- @since 2.16.0.0
-  liftTyped :: (
-#if __GLASGOW_HASKELL__ >= 903
-                Total m,
-#endif
-                Quote m) => t -> Code m t
+  liftTyped :: (Quote m) => t -> Code m t
 
 
 -- If you add any instances here, consider updating test th/TH_Lift
@@ -1455,19 +1407,12 @@ liftData = dataToExpQ (const Nothing)
 -- | 'dataToPatQ' converts a value to a 'Pat' representation of the same
 -- value, in the SYB style. It takes a function to handle type-specific cases,
 -- alternatively, pass @const Nothing@ to get default behavior.
-dataToPatQ  ::  (
-#if __GLASGOW_HASKELL__ >= 903
-                Total m,
-#endif
-                Quote m, Data a)
+dataToPatQ  ::  (Quote m, Data a)
             =>  (forall b . Data b => b -> Maybe (m Pat))
             ->  a
             ->  m Pat
 dataToPatQ = dataToQa id litP conP
     where litP l = return (LitP l)
-#if __GLASGOW_HASKELL__ >= 903
-          conP :: (Total m, Monad m) => Name -> [m Pat] -> m Pat
-#endif
           conP n ps =
             case nameSpace n of
                 Just DataName -> do

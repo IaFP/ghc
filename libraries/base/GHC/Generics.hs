@@ -820,7 +820,8 @@ instance Alternative U1 where
 -- | @since 4.9.0.0
 instance Monad U1 where
   _ >>= _ = U1
-
+  return _ = U1
+  
 -- | @since 4.9.0.0
 instance MonadPlus U1
 
@@ -852,7 +853,8 @@ instance Applicative Par1 where
 -- | @since 4.9.0.0
 instance Monad Par1 where
   Par1 x >>= f = f x
-
+  return = Par1
+  
 -- | @since 4.12.0.0
 deriving instance Semigroup p => Semigroup (Par1 p)
 
@@ -879,11 +881,12 @@ deriving instance (Applicative f) => Applicative (Rec1 f)
 deriving instance (Alternative f) => Alternative (Rec1 f)
 
 -- | @since 4.9.0.0
-instance (Monad f) => Monad (Rec1 f) where
+instance Monad f => Monad (Rec1 f) where
   Rec1 x >>= f = Rec1 (x >>= \a -> unRec1 (f a))
-
+  return x = Rec1 (return x)
+  
 -- | @since 4.9.0.0
-deriving instance (Total f, MonadPlus f) => MonadPlus (Rec1 f)
+deriving instance MonadPlus f => MonadPlus (Rec1 f)
 
 -- | @since 4.12.0.0
 deriving instance Semigroup (f p) => Semigroup (Rec1 f p)
@@ -969,27 +972,26 @@ data (f @ p, g @ p) => (:*:) (f :: k -> Type) (g :: k -> Type) (p :: k) = f p :*
            )
 
 -- | @since 4.9.0.0
-instance (Total f, Total g, Applicative f, Applicative g) => Applicative (f :*: g) where
+instance (Applicative f, Applicative g) => Applicative (f :*: g) where
   pure a = pure a :*: pure a
   (f :*: g) <*> (x :*: y) = (f <*> x) :*: (g <*> y)
   liftA2 f (a :*: b) (x :*: y) = liftA2 f a x :*: liftA2 f b y
 
 -- | @since 4.9.0.0
-instance (Total f, Total g, Alternative f, Alternative g) => Alternative (f :*: g) where
+instance (Alternative f, Alternative g) => Alternative (f :*: g) where
   empty = empty :*: empty
   (x1 :*: y1) <|> (x2 :*: y2) = (x1 <|> x2) :*: (y1 <|> y2)
 
 -- | @since 4.9.0.0
-instance (Total f, Total g, Monad f, Monad g) => Monad (f :*: g) where
+instance (Monad f, Monad g) => Monad (f :*: g) where
+  return a = return a :*: return a
   (m :*: n) >>= f = (m >>= \a -> fstP (f a)) :*: (n >>= \a -> sndP (f a))
     where
-      fstP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p::k'). (Total f', Total g') => (f' :*: g') p -> f' p
       fstP (a :*: _) = a
-      sndP :: forall k' (f' :: k' -> Type) (g' :: k' -> Type) (p ::k'). (Total f', Total g') => (f' :*: g') p -> g' p
       sndP (_ :*: b) = b
 
 -- | @since 4.9.0.0
-instance (Total f, Total g, MonadPlus f, MonadPlus g) => MonadPlus (f :*: g)
+instance (MonadPlus f, MonadPlus g) => MonadPlus (f :*: g)
 
 -- | @since 4.12.0.0
 instance (Semigroup (f p), Semigroup (g p)) => Semigroup ((f :*: g) p) where
@@ -1013,13 +1015,13 @@ newtype (f @ g p, g @ p) => (:.:) (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) =
            )
 
 -- | @since 4.9.0.0
-instance (Total f, Total g, Applicative f, Applicative g) => Applicative (f :.: g) where
+instance (Applicative f, Applicative g) => Applicative (f :.: g) where
   pure x = Comp1 (pure (pure x))
   Comp1 f <*> Comp1 x = Comp1 (liftA2 (<*>) f x)
   liftA2 f (Comp1 x) (Comp1 y) = Comp1 (liftA2 (liftA2 f) x y)
 
 -- | @since 4.9.0.0
-instance (Total f, Total g, Alternative f, Applicative g) => Alternative (f :.: g) where
+instance (Alternative f, Applicative g) => Alternative (f :.: g) where
   empty = Comp1 empty
   (<|>) = coerce ((<|>) :: f (g a) -> f (g a) -> f (g a)) ::
     forall a . (f :.: g) a -> (f :.: g) a -> (f :.: g) a

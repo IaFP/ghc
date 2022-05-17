@@ -95,6 +95,7 @@ instance Applicative CmmParse where
       (<*>) = ap
 
 instance Monad CmmParse where
+  return = returnExtFC
   (>>=) = thenExtFC
 
 instance MonadUnique CmmParse where

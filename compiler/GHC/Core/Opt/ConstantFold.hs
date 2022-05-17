@@ -1466,6 +1466,7 @@ instance Applicative RuleM where
     (<*>) = ap
 
 instance Monad RuleM where
+  return x = RuleM $ \_ _ _ _ -> Just x
   RuleM f >>= g
     = RuleM $ \env iu fn args ->
               case f env iu fn args of

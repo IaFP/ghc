@@ -148,6 +148,7 @@ instance Applicative NatM where
       (<*>) = ap
 
 instance Monad NatM where
+  return = returnNat
   (>>=) = thenNat
 
 instance MonadUnique NatM where

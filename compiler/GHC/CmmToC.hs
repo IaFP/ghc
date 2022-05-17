@@ -1140,6 +1140,7 @@ instance Applicative TE where
       (<*>) = ap
 
 instance Monad TE where
+   return a = TE $ \s -> (a, s)
    TE m >>= k  = TE $ \s -> case m s of (a, s') -> unTE (k a) s'
 
 te_lbl :: CLabel -> TE ()

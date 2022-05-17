@@ -93,9 +93,6 @@ import Data.List (stripPrefix, isInfixOf, partition)
 import Data.Maybe
 import Data.Word
 import Debug.Trace (trace)
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total)
-#endif
 import GHC.Data.EnumSet as EnumSet
 
 -- ghc-boot
@@ -2428,6 +2425,7 @@ instance Applicative P where
   (<*>) = ap
 
 instance Monad P where
+  return = returnP
   (>>=) = thenP
 
 returnP :: a -> P a
@@ -2913,11 +2911,7 @@ initParserState options buf loc =
 -- MonadP grants us convenient overloading. The other option is to have separate operations
 -- for each monad: addErrorP vs addErrorPV, getBitP vs getBitPV, and so on.
 --
-class (
-#if MIN_VERSION_base(4,16,0)
- Total m,
-#endif
-  Monad m) => MonadP m where
+class (Applicative m, Monad m) => MonadP m where
   -- | Add a non-fatal error. Use this when the parser can produce a result
   --   despite the error.
   --

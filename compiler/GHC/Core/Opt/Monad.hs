@@ -603,6 +603,7 @@ newtype CoreM a = CoreM { unCoreM :: CoreIOEnv (a, CoreWriter) }
     deriving (Functor)
 
 instance Monad CoreM where
+    return x = CoreM $ nop x
     mx >>= f = CoreM $ do
             (x, w1) <- unCoreM mx
             (y, w2) <- unCoreM (f x)

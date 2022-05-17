@@ -75,6 +75,7 @@ instance Applicative (RegM freeRegs) where
       (<*>) = ap
 
 instance Monad (RegM freeRegs) where
+  return a = mkRegM $ \s -> RA_Result s a
   m >>= k   =  mkRegM $ \s -> case unReg m s of { RA_Result s a -> unReg (k a) s }
 
 -- | Get native code generator configuration

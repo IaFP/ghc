@@ -991,6 +991,7 @@ instance Applicative CmmOptM where
     (<*>) = ap
 
 instance Monad CmmOptM where
+  return x = CmmOptM $ \_ imports -> OptMResult x imports
   (CmmOptM f) >>= g =
     CmmOptM $ \config imports0 ->
                 case f config imports0 of

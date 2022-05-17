@@ -12,17 +12,17 @@
 	path = libraries/Cabal
 	url = git@github.com:IaFP/Cabal.git
 	ignore = untracked
-	branch = wip/party-ctrs-ghc-9	
+	branch = wip/party-ctrs-break-FAM
 [submodule "libraries/containers"]
 	path = libraries/containers
 	url = git@github.com:IaFP/containers.git
 	ignore = untracked
-	branch = wip/party-ctrs-ghc-9
+	branch = wip/party-ctrs-break-FAM
 [submodule "libraries/haskeline"]
 	path = libraries/haskeline
 	url = git@github.com:IaFP/haskeline.git
 	ignore = untracked
-	branch = wip/party-ctrs-ghc-9
+	branch = wip/party-ctrs-break-FAM
 [submodule "libraries/pretty"]
 	path = libraries/pretty
 	url = git@github.com:IaFP/pretty.git
@@ -32,12 +32,12 @@
 	path = libraries/terminfo
 	url = git@github.com:IaFP/terminfo.git
 	ignore = untracked
-	branch = wip/party-ctrs-ghc-9	
+	branch = wip/party-ctrs-break-FAM
 [submodule "libraries/transformers"]
 	path = libraries/transformers
 	url = git@github.com:IaFP/transformers.git
 	ignore = untracked
-	branch = wip/party-ctrs-ghc-9	
+	branch = wip/party-ctrs-break-FAM
 [submodule "libraries/xhtml"]
 	path = libraries/xhtml
 	url = git@github.com:IaFP/xhtml.git
@@ -51,17 +51,17 @@
 	path = libraries/time
 	url = git@github.com:IaFP/time.git
 	ignore = untracked
-	branch = wip/party-ctrs-ghc-9	
+	branch = wip/party-ctrs-break-FAM
 [submodule "libraries/array"]
 	path = libraries/array
 	url = git@github.com:IaFP/array.git
 	ignore = untracked
-	branch = wip/party-ctrs-ghc-9	
+	branch = wip/party-ctrs-break-FAM
 [submodule "libraries/deepseq"]
 	path = libraries/deepseq
 	url = git@github.com:IaFP/deepseq.git
 	ignore = untracked
-	branch = wip/party-ctrs-ghc-9	
+	branch = wip/party-ctrs-break-FAM
 [submodule "libraries/directory"]
 	path = libraries/directory
 	url = git@github.com:IaFP/directory.git
@@ -81,7 +81,7 @@
 	path = libraries/parsec
 	url = git@github.com:IaFP/parsec.git
 	ignore = untracked
-	branch = wip/party-ctrs-ghc-9	
+	branch = wip/party-ctrs-break-FAM
 [submodule "libraries/text"]
 	path = libraries/text
 	url = git@github.com:IaFP/text.git
@@ -91,7 +91,7 @@
 	path = libraries/mtl
 	url = git@github.com:IaFP/mtl.git
 	ignore = untracked
-	branch = wip/party-ctrs-ghc-9	
+	branch = wip/party-ctrs-break-FAM
 [submodule "libraries/process"]
 	path = libraries/process
 	url = git@github.com:IaFP/process.git
@@ -110,7 +110,7 @@
 	path = utils/haddock
 	url = git@github.com:IaFP/haddock.git
 	ignore = untracked
-	branch = wip/party-ctrs-ghc-9	
+	branch = wip/party-ctrs-break-FAM
 [submodule "nofib"]
 	path = nofib
 	url = git@github.com:IaFP/nofib.git
@@ -131,4 +131,4 @@
 [submodule "libraries/exceptions"]
 	path = libraries/exceptions
 	url = git@github.com:IaFP/exceptions.git
-	branch = wip/party-ctrs-ghc-9	
+	branch = wip/party-ctrs-break-FAM

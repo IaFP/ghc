@@ -79,7 +79,7 @@ import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Class  ( lift )
 import Control.Applicative        ( (<|>) )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (Total, WDT)
+import GHC.Types (WDT)
 #endif
 
 {- Note [Updating HieAst for changes in the GHC AST]
@@ -281,11 +281,7 @@ modifyState = foldr go id
 type HieM = ReaderT NodeOrigin (State HieState)
 
 -- | Construct an 'HieFile' from the outputs of the typechecker.
-mkHieFile :: (
-#if MIN_VERSION_base(4,16,0)
-    Total m,
-#endif
-  MonadIO m)
+mkHieFile :: (MonadIO m)
           => ModSummary
           -> TcGblEnv
           -> RenamedSource -> m HieFile
@@ -420,11 +416,7 @@ bindingsOnly (C c n : xs) = do
             info = mempty{identInfo = S.singleton c}
     _ -> rest
 
-concatM :: (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
-#endif
-  Monad m) => [m [a]] -> m [a]
+concatM :: (Applicative m, Monad m) => [m [a]] -> m [a]
 concatM xs = concat <$> sequence xs
 
 {- Note [Capturing Scopes and other non local information]

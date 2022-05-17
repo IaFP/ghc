@@ -180,6 +180,7 @@ instance Applicative SynCycleM where
     (<*>) = ap
 
 instance Monad SynCycleM where
+    return x = SynCycleM $ \state -> Right (x, state)
     m >>= f = SynCycleM $ \state ->
         case runSynCycleM m state of
             Right (x, state') ->
@@ -704,6 +705,7 @@ instance Applicative RoleM where
     (<*>) = ap
 
 instance Monad RoleM where
+  return x = RM $ \_ _ _ state -> (x, state)
   a >>= f  = RM $ \m_info vps nvps state ->
                   let (a', state') = unRM a m_info vps nvps state in
                   unRM (f a') m_info vps nvps state'

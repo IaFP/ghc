@@ -43,7 +43,7 @@ import Data.List (sortBy, intercalate, stripPrefix)
 
 import Control.Monad (liftM, ap)
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@), Total)
+import GHC.Types (type(@))
 #endif
 
 --------------------------------------------------------
@@ -124,32 +124,33 @@ type Warns = Bag Warn
 -- transformer for m that adds an (err, warn) state
 newtype
 #if MIN_VERSION_base(4,16,0)
- m @ (Errs, Warns, a) =>
+ (m @ (Errs, Warns, a), Monad m) =>
 #endif
   EwM m a = EwM { unEwM :: Located String -- Current parse arg
                               -> Errs -> Warns
                               -> m (Errs, Warns, a) }
 
-instance (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
+instance
+#if !MIN_VERSION_base(4,16,0)
+  Monad m => 
 #endif
-  Monad m) => Functor (EwM m) where
+  Functor (EwM m) where
     fmap = liftM
 
 instance (
-#if MIN_VERSION_base(4,16,0)
-  Total m,
+#if !MIN_VERSION_base(4,16,0)
+  Monad m,
 #endif
-  Monad m) => Applicative (EwM m) where
+  Applicative m) => Applicative (EwM m) where
     pure v = EwM (\_ e w -> return (e, w, v))
     (<*>) = ap
 
-instance (
-#if MIN_VERSION_base(4,16,0)
-  Total m, 
+instance 
+#if !MIN_VERSION_base(4,16,0)
+  Monad m => 
 #endif
-  Monad m) => Monad (EwM m) where
+  Monad (EwM m) where
+    return v = EwM (\_ e w -> return (e, w, v))
     (EwM f) >>= k = EwM (\l e w -> do (e', w', r) <- f l e w
                                       unEwM (k r) l e' w')
 
@@ -192,6 +193,7 @@ instance Applicative (CmdLineP s) where
     (<*>) = ap
 
 instance Monad (CmdLineP s) where
+    return = pure
     m >>= k = CmdLineP $ \s ->
                   let (a, s') = runCmdLine m s
                   in runCmdLine (k a) s'
@@ -207,11 +209,7 @@ putCmdLineState s = CmdLineP $ \_ -> ((),s)
 --         Processing arguments
 --------------------------------------------------------
 
-processArgs :: (
-#if MIN_VERSION_base(4,16,0)
-                 Total m,
-#endif
-                 Monad m)
+processArgs :: (Applicative m, Monad m)
             => [Flag m]               -- cmdline parser spec
             -> [Located String]       -- args
             -> m ( [Located String],  -- spare args

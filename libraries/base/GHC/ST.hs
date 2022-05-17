@@ -71,6 +71,7 @@ instance Applicative (ST s) where
 -- | @since 2.01
 instance Monad (ST s) where
     {-# INLINE (>>=)  #-}
+    return = pure
     (>>) = (*>)
     (ST m) >>= k
       = ST (\ s ->
