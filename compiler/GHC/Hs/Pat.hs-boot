@@ -29,12 +29,8 @@ import {-# SOURCE #-} GHC.Hs.Expr ( SyntaxExprGhc )
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XOverLit (GhcPass p)),
-  WDT (XOverLit (GhcPass (NoGhcTcPass p))),  
   WDT (Anno (HsExpr GhcRn)),
-  WDT (Anno (HsExpr (GhcPass p))),  
-  WDT (Anno (IdGhcP p)),
-  WDT (Anno (IdGhcP (NoGhcTcPass p))),
+  WDT (Anno (HsExpr (GhcPass p))),
   WDT (SyntaxExprGhc p),
   WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
@@ -44,10 +40,6 @@ pprLPat :: (
 #if MIN_VERSION_base(4,16,0)
   WDT (Anno (HsExpr GhcRn)),
   WDT (Anno (HsExpr (GhcPass p))),  
-  WDT (XOverLit (GhcPass p)),
-  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WDT (Anno (IdGhcP p)),
-  WDT (Anno (IdGhcP (NoGhcTcPass p))),
   WDT (SyntaxExprGhc p),
   WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif

@@ -259,8 +259,12 @@ tyConGenAtsTcM :: Bool
                -> TcM ThetaType
 tyConGenAtsTcM isTyConPhase eTycons ts tycon args
   | isWDMirrorTyCon tycon -- leave the wdtycons untouched
-  = do { traceTc "wdelab mirrorTyCon" (ppr tycon); return [] }
+  = do { traceTc "wdelab mirrorTyCon" (ppr tycon)
+       ; css <- fmap newPreds <$> mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
+       ; return $ foldl mergeAtAtConstraints [] css
+       }
   | isTyConInternal tycon || isClassTyCon tycon || tyConResKind tycon `tcEqType` constraintKind
+  , not (isTypeSynonymTyCon tycon)
   = do { traceTc "wdelab internalTyCon/ClassTyCon/ConstraintKind tycon" (ppr tycon)
        ; css <- fmap newPreds <$> mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
        ; return $ foldl mergeAtAtConstraints [] css

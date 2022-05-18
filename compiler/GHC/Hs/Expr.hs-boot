@@ -43,20 +43,12 @@ import qualified Data.Kind
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XOverLit (GhcPass p)),
-  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WDT (Anno (IdGhcP p)),
-  WDT (Anno (IdGhcP (NoGhcTcPass p))),
   WDT (SyntaxExprGhc p),
   WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
     OutputableBndrId p) => Outputable (HsExpr (GhcPass p))
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XOverLit (GhcPass p)),
-  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WDT (Anno (IdGhcP p)),
-  WDT (Anno (IdGhcP (NoGhcTcPass p))),
   WDT (SyntaxExprGhc p),
   WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
@@ -64,10 +56,6 @@ instance (
 
 pprLExpr :: (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XOverLit (GhcPass p)),
-  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WDT (Anno (IdGhcP p)),
-  WDT (Anno (IdGhcP (NoGhcTcPass p))),
   WDT (SyntaxExprGhc p),
   WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
@@ -75,10 +63,6 @@ pprLExpr :: (
 
 pprExpr :: (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XOverLit (GhcPass p)),
-  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WDT (Anno (IdGhcP p)),
-  WDT (Anno (IdGhcP (NoGhcTcPass p))),
   WDT (SyntaxExprGhc p),
   WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
@@ -86,10 +70,6 @@ pprExpr :: (
 
 pprSplice :: (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XOverLit (GhcPass p)),
-  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WDT (Anno (IdGhcP p)),
-  WDT (Anno (IdGhcP (NoGhcTcPass p))),
   WDT (SyntaxExprGhc p),
   WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
@@ -97,10 +77,6 @@ pprSplice :: (
 
 pprSpliceDecl ::  (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XOverLit (GhcPass p)),
-  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WDT (Anno (IdGhcP p)),
-  WDT (Anno (IdGhcP (NoGhcTcPass p))),
   WDT (SyntaxExprGhc p),
   WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
@@ -109,14 +85,6 @@ pprSpliceDecl ::  (
 
 pprPatBind :: forall bndr p . (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XOverLit (GhcPass p)),
-  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WDT (Anno (IdGhcP p)),
-  WDT (Anno (IdGhcP (NoGhcTcPass p))),                      
-  WDT (XOverLit (GhcPass bndr)),  
-  WDT (XOverLit (GhcPass (NoGhcTcPass bndr))),
-  WDT (Anno (IdGhcP bndr)),
-  WDT (Anno (IdGhcP (NoGhcTcPass bndr))),
   WDT (SyntaxExprGhc p),
   WDT (SyntaxExprGhc bndr),
   WDT (SyntaxExprGhc (NoGhcTcPass bndr)),
@@ -128,10 +96,6 @@ pprPatBind :: forall bndr p . (
 
 pprFunBind :: (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XOverLit (GhcPass idR)),
-  WDT (XOverLit (GhcPass (NoGhcTcPass idR))),
-  WDT (Anno (IdGhcP idR)),
-  WDT (Anno (IdGhcP (NoGhcTcPass idR))),
   WDT (SyntaxExprGhc idR),
   WDT (SyntaxExprGhc (NoGhcTcPass idR)),
 #endif

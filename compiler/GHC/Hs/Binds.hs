@@ -361,36 +361,29 @@ Specifically,
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-           WDT (XOverLit (GhcPass pr)),
-           WDT (XOverLit (GhcPass (NoGhcTcPass pr))),
-           WDT (XOverLit GhcRn),-- ANI YUCK!
-           WDT (IdGhcP pl),
-           WDT (Anno (Pat (GhcPass pl))), Pat @ GhcPass pl,
-           WDT (Anno (HsExpr (GhcPass pr))), HsExpr @ GhcPass pr,
-           WDT (XOverLit (GhcPass pl)), WDT (XOverLit (GhcPass (NoGhcTcPass pl))),
-           WDT (Anno (Pat (GhcPass pr))), Pat @ GhcPass pr,
-           WDT (Anno (HsExpr (GhcPass pl))), HsExpr @ GhcPass pl, 
-           WDT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
-           MatchGroup @ GhcPass pl,
-           MatchGroup (GhcPass pl)
-                         @ GenLocated (Anno (HsExpr (GhcPass pl))) (HsExpr (GhcPass pl)),
-           GRHSs @ GhcPass pl,
-           GRHSs (GhcPass pl)
-                         @ GenLocated (Anno (HsExpr (GhcPass pl))) (HsExpr (GhcPass pl)),
-           MatchGroup @ GhcPass pr,
-           MatchGroup (GhcPass pr)
-                         @ GenLocated (Anno (HsExpr (GhcPass pr))) (HsExpr (GhcPass pr)),
-           GRHSs @ GhcPass pr,
-           GRHSs (GhcPass pr)
-                         @ GenLocated (Anno (HsExpr (GhcPass pr))) (HsExpr (GhcPass pr)),
-                      WDT (Anno (IdGhcP pr)),
-                      WDT (Anno (IdGhcP (NoGhcTcPass pr))),
-                      WDT (Anno (IdGhcP pl)),
-                      WDT (Anno (IdGhcP (NoGhcTcPass pl))),
-                      WDT (SyntaxExprGhc pr),
-                      WDT (SyntaxExprGhc (NoGhcTcPass pr)),
-                      WDT (SyntaxExprGhc pl),
-                      WDT (SyntaxExprGhc (NoGhcTcPass pl)),
+  Pat @ GhcPass pl,
+  HsExpr @ GhcPass pr,
+  Pat @ GhcPass pr,
+  HsExpr @ GhcPass pl, 
+  HsExpr @ GhcRn,
+  MatchGroup @ GhcPass pl,
+  MatchGroup (GhcPass pl) @ GenLocated (Anno (HsExpr (GhcPass pl))) (HsExpr (GhcPass pl)),
+  GRHSs @ GhcPass pl,
+  GRHSs (GhcPass pl) @ GenLocated (Anno (HsExpr (GhcPass pl))) (HsExpr (GhcPass pl)),
+  MatchGroup @ GhcPass pr,
+  MatchGroup (GhcPass pr) @ GenLocated (Anno (HsExpr (GhcPass pr))) (HsExpr (GhcPass pr)),
+  GRHSs @ GhcPass pr,
+  GRHSs (GhcPass pr) @ GenLocated (Anno (HsExpr (GhcPass pr))) (HsExpr (GhcPass pr)),
+  WDT (XOverLit GhcRn),
+  WDT (Anno (Pat (GhcPass pl))),
+  WDT (Anno (Pat (GhcPass pr))),
+  WDT (Anno (HsExpr (GhcPass pl))),
+  WDT (Anno (HsExpr (GhcPass pr))),
+  WDT (Anno (HsExpr GhcRn)),
+  WDT (SyntaxExprGhc pr),
+  WDT (SyntaxExprGhc (NoGhcTcPass pr)),
+  WDT (SyntaxExprGhc pl),
+  WDT (SyntaxExprGhc (NoGhcTcPass pl)),
 #endif
            OutputableBndrId pl, OutputableBndrId pr)
         => Outputable (HsLocalBindsLR (GhcPass pl) (GhcPass pr)) where
@@ -400,37 +393,25 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XOverLit (GhcPass pr)),
-  WDT (XOverLit (GhcPass (NoGhcTcPass pr))),
-  WDT (XOverLit (GhcRn)), -- ANI HUH?
-  WDT (IdGhcP pl),
-  WDT (Anno (Pat (GhcPass pl))),
   Pat @ GhcPass pl,
-  WDT (Anno (HsExpr (GhcPass pr))),
   HsExpr @ GhcPass pr,
-  WDT (XOverLit (GhcPass pl)),
-  WDT (XOverLit (GhcPass (NoGhcTcPass pl))),
-  WDT (Anno (Pat (GhcPass pr))),
   Pat @ GhcPass pr,
-  WDT (Anno (HsExpr (GhcPass pl))),
   HsExpr @ GhcPass pl,
-  WDT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
+  HsExpr @ GhcRn,
   MatchGroup @ GhcPass pl,
-  MatchGroup (GhcPass pl)
-    @ GenLocated (Anno (HsExpr (GhcPass pl))) (HsExpr (GhcPass pl)),
+  MatchGroup (GhcPass pl) @ GenLocated (Anno (HsExpr (GhcPass pl))) (HsExpr (GhcPass pl)),
   GRHSs @ GhcPass pl,
-  GRHSs (GhcPass pl)
-    @ GenLocated (Anno (HsExpr (GhcPass pl))) (HsExpr (GhcPass pl)),
+  GRHSs (GhcPass pl) @ GenLocated (Anno (HsExpr (GhcPass pl))) (HsExpr (GhcPass pl)),
   MatchGroup @ GhcPass pr,
-  MatchGroup (GhcPass pr)
-    @ GenLocated (Anno (HsExpr (GhcPass pr))) (HsExpr (GhcPass pr)),
+  MatchGroup (GhcPass pr) @ GenLocated (Anno (HsExpr (GhcPass pr))) (HsExpr (GhcPass pr)),
   GRHSs @ GhcPass pr,
-  GRHSs (GhcPass pr)
-    @ GenLocated (Anno (HsExpr (GhcPass pr))) (HsExpr (GhcPass pr)),
-  WDT (Anno (IdGhcP pr)),
-  WDT (Anno (IdGhcP (NoGhcTcPass pr))),
-  WDT (Anno (IdGhcP pl)),
-  WDT (Anno (IdGhcP (NoGhcTcPass pl))),
+  GRHSs (GhcPass pr) @ GenLocated (Anno (HsExpr (GhcPass pr))) (HsExpr (GhcPass pr)),
+  WDT (XOverLit GhcRn),
+  WDT (Anno (Pat (GhcPass pl))),
+  WDT (Anno (Pat (GhcPass pr))),  
+  WDT (Anno (HsExpr (GhcPass pr))),
+  WDT (Anno (HsExpr (GhcPass pl))),
+  WDT (Anno (HsExpr GhcRn)),
   WDT (SyntaxExprGhc pr),
   WDT (SyntaxExprGhc pl),
   WDT (SyntaxExprGhc (NoGhcTcPass pr)),
@@ -453,92 +434,64 @@ instance (
 
 pprLHsBinds :: (
 #if MIN_VERSION_base(4,16,0)
-           WDT (XOverLit (GhcPass idR)),
-           WDT (XOverLit (GhcPass (NoGhcTcPass idR))),
-           WDT (Anno (Pat (GhcPass idL))),
-           WDT (IdGhcP idL),
-           Pat @ GhcPass idL,
-           WDT (Anno (HsExpr (GhcPass idR))),
-           HsExpr @ GhcPass idR, WDT (XOverLit (GhcPass idL)),
-           WDT (XOverLit (GhcPass (NoGhcTcPass idL))),
-           WDT (Anno (Pat (GhcPass idR))),
-           Pat @ GhcPass idR,
-           WDT (Anno (HsExpr (GhcPass idL))),
-           HsExpr @ GhcPass idL,
-           WDT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
-           MatchGroup @ GhcPass idR,
-           MatchGroup (GhcPass idR)
-                         @ GenLocated (Anno (HsExpr (GhcPass idR))) (HsExpr (GhcPass idR)),
-           GRHSs @ GhcPass idR,
-           GRHSs (GhcPass idR)
-                         @ GenLocated (Anno (HsExpr (GhcPass idR))) (HsExpr (GhcPass idR)),
-           MatchGroup @ GhcPass idL,
-                         MatchGroup (GhcPass idL)
-                         @ GenLocated (Anno (HsExpr (GhcPass idL))) (HsExpr (GhcPass idL)),
-                         GRHSs @ GhcPass idL,
-                         GRHSs (GhcPass idL)
-                         @ GenLocated (Anno (HsExpr (GhcPass idL))) (HsExpr (GhcPass idL)),
-                      WDT (Anno (IdGhcP idR)),
-                      WDT (Anno (IdGhcP (NoGhcTcPass idR))),
-                      WDT (Anno (IdGhcP idL)),
-                      WDT (Anno (IdGhcP (NoGhcTcPass idL))),
-                      WDT (SyntaxExprGhc idR),
-                      WDT (SyntaxExprGhc idL),
-                      WDT (SyntaxExprGhc (NoGhcTcPass idR)),
-                      WDT (SyntaxExprGhc (NoGhcTcPass idL)),                      
-                      
+  Pat @ GhcPass idL,
+  HsExpr @ GhcPass idR,
+  Pat @ GhcPass idR,
+  HsExpr @ GhcPass idL,
+  HsExpr @ GhcRn,
+  MatchGroup @ GhcPass idR,
+  MatchGroup (GhcPass idR) @ GenLocated (Anno (HsExpr (GhcPass idR))) (HsExpr (GhcPass idR)),
+  GRHSs @ GhcPass idR,
+  GRHSs (GhcPass idR) @ GenLocated (Anno (HsExpr (GhcPass idR))) (HsExpr (GhcPass idR)),
+  MatchGroup @ GhcPass idL,
+  MatchGroup (GhcPass idL) @ GenLocated (Anno (HsExpr (GhcPass idL))) (HsExpr (GhcPass idL)),
+  GRHSs @ GhcPass idL,
+  GRHSs (GhcPass idL) @ GenLocated (Anno (HsExpr (GhcPass idL))) (HsExpr (GhcPass idL)),
+  WDT (Anno (Pat (GhcPass idL))),
+  WDT (Anno (Pat (GhcPass idR))),
+  WDT (Anno (HsExpr (GhcPass idL))),
+  WDT (Anno (HsExpr (GhcPass idR))),  
+  WDT (Anno (HsExpr GhcRn)),
+  WDT (SyntaxExprGhc idR),
+  WDT (SyntaxExprGhc idL),
+  WDT (SyntaxExprGhc (NoGhcTcPass idR)),
+  WDT (SyntaxExprGhc (NoGhcTcPass idL)),                      
 #endif
-             OutputableBndrId idL, OutputableBndrId idR)
-          => LHsBindsLR (GhcPass idL) (GhcPass idR) -> SDoc
+  OutputableBndrId idL, OutputableBndrId idR) => LHsBindsLR (GhcPass idL) (GhcPass idR) -> SDoc
 pprLHsBinds binds
   | isEmptyLHsBinds binds = empty
   | otherwise = pprDeclList (map ppr (bagToList binds))
 
 pprLHsBindsForUser :: (
 #if MIN_VERSION_base(4,16,0)
-           WDT (XOverLit (GhcPass id2)),
-           WDT (XOverLit (GhcPass (NoGhcTcPass id2))),
-           WDT (Anno (Pat (GhcPass idL))),
-           WDT (IdGhcP idL),
-           Pat @ GhcPass idL, WDT (Anno (HsExpr (GhcPass idR))),
-           HsExpr @ GhcPass idR, WDT (XOverLit (GhcPass idR)),
-           WDT (XOverLit (GhcPass idL)),
-           WDT (XOverLit (GhcPass (NoGhcTcPass idR))),
-           WDT (XOverLit (GhcPass (NoGhcTcPass idL))),
-           WDT (Anno (Pat (GhcPass idR))),
-           Pat @ GhcPass idR,
-           WDT (Anno (HsExpr (GhcPass idL))),
-           HsExpr @ GhcPass idL,
-           WDT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
-           MatchGroup @ GhcPass idR,
-           MatchGroup (GhcPass idR)
-                         @ GenLocated (Anno (HsExpr (GhcPass idR))) (HsExpr (GhcPass idR)),
-           GRHSs @ GhcPass idR,
-           GRHSs (GhcPass idR)
-                         @ GenLocated (Anno (HsExpr (GhcPass idR))) (HsExpr (GhcPass idR)),
-           MatchGroup @ GhcPass idL,
-                         MatchGroup (GhcPass idL)
-                         @ GenLocated (Anno (HsExpr (GhcPass idL))) (HsExpr (GhcPass idL)),
-                         GRHSs @ GhcPass idL,
-                         GRHSs (GhcPass idL)
-                         @ GenLocated (Anno (HsExpr (GhcPass idL))) (HsExpr (GhcPass idL)),
-                      WDT (Anno (IdGhcP idR)),
-                      WDT (Anno (IdGhcP (NoGhcTcPass idR))),
-                      WDT (Anno (IdGhcP idL)),
-                      WDT (Anno (IdGhcP (NoGhcTcPass idL))),
-                      WDT (Anno (IdGhcP id2)),
-                      WDT (Anno (IdGhcP (NoGhcTcPass id2))),
-                      WDT (SyntaxExprGhc idR),
-                      WDT (SyntaxExprGhc id2),
-                      WDT (SyntaxExprGhc (NoGhcTcPass id2)),
-                      WDT (SyntaxExprGhc idL),
-                      WDT (SyntaxExprGhc (NoGhcTcPass idR)),
-                      WDT (SyntaxExprGhc (NoGhcTcPass idL)),
+  Pat @ GhcPass idL,
+  HsExpr @ GhcPass idR,
+  Pat @ GhcPass idR,
+  HsExpr @ GhcPass idL,
+  HsExpr @ GhcRn,
+  MatchGroup @ GhcPass idR,
+  MatchGroup (GhcPass idR) @ GenLocated (Anno (HsExpr (GhcPass idR))) (HsExpr (GhcPass idR)),
+  GRHSs @ GhcPass idR,
+  GRHSs (GhcPass idR) @ GenLocated (Anno (HsExpr (GhcPass idR))) (HsExpr (GhcPass idR)),
+  MatchGroup @ GhcPass idL,
+  MatchGroup (GhcPass idL) @ GenLocated (Anno (HsExpr (GhcPass idL))) (HsExpr (GhcPass idL)),
+  GRHSs @ GhcPass idL,
+  GRHSs (GhcPass idL) @ GenLocated (Anno (HsExpr (GhcPass idL))) (HsExpr (GhcPass idL)),
+  WDT (Anno (Pat (GhcPass idL))),
+  WDT (Anno (Pat (GhcPass idR))),
+  WDT (Anno (HsExpr (GhcPass idL))),
+  WDT (Anno (HsExpr (GhcPass idR))),
+  WDT (Anno (HsExpr GhcRn)),
+  WDT (SyntaxExprGhc idR),
+  WDT (SyntaxExprGhc id2),
+  WDT (SyntaxExprGhc (NoGhcTcPass id2)),
+  WDT (SyntaxExprGhc idL),
+  WDT (SyntaxExprGhc (NoGhcTcPass idR)),
+  WDT (SyntaxExprGhc (NoGhcTcPass idL)),
 #endif
-           OutputableBndrId idL,
-           OutputableBndrId idR,
-           OutputableBndrId id2)
-     => LHsBindsLR (GhcPass idL) (GhcPass idR) -> [LSig (GhcPass id2)] -> [SDoc]
+  OutputableBndrId idL,
+  OutputableBndrId idR,
+  OutputableBndrId id2) => LHsBindsLR (GhcPass idL) (GhcPass idR) -> [LSig (GhcPass id2)] -> [SDoc]
 --  pprLHsBindsForUser is different to pprLHsBinds because
 --  a) No braces: 'let' and 'where' include a list of HsBindGroups
 --     and we don't want several groups of bindings each
@@ -601,84 +554,58 @@ plusHsValBinds _ _
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-                  WDT (Anno (Pat (GhcPass pl))),
-                  WDT (Anno (HsExpr (GhcPass pr))),
-                  WDT (XOverLit (GhcPass pr)),
-                  WDT (XOverLit (GhcPass pl)),
-                  WDT (XOverLit (GhcPass (NoGhcTcPass pr))),
-                  WDT (XOverLit (GhcPass (NoGhcTcPass pl))),
-                  WDT (Anno (Pat (GhcPass pr))),
-                  WDT (IdGhcP pl),
-                  Pat @ GhcPass pr,
-                  Pat @ GhcPass pl,
-                  WDT (Anno (HsExpr (GhcPass pl))),
-                  HsExpr @ GhcPass pl,
-                  WDT (Anno (HsExpr GhcRn)), HsExpr @ GhcRn,
-                  MatchGroup @ GhcPass pr,
-                  MatchGroup (GhcPass pr)
-                         @ GenLocated (Anno (HsExpr (GhcPass pr))) (HsExpr (GhcPass pr)),
-                  GRHSs @ GhcPass pr,
-                  GRHSs (GhcPass pr)
-                         @ GenLocated (Anno (HsExpr (GhcPass pr))) (HsExpr (GhcPass pr)),
-                  MatchGroup @ GhcPass pl,
-                         MatchGroup (GhcPass pl)
-                         @ GenLocated (Anno (HsExpr (GhcPass pl))) (HsExpr (GhcPass pl)),
-                         GRHSs @ GhcPass pl,
-                         GRHSs (GhcPass pl)
-                         @ GenLocated (Anno (HsExpr (GhcPass pl))) (HsExpr (GhcPass pl)),
-                      WDT (Anno (IdGhcP pr)),
-                      WDT (Anno (IdGhcP (NoGhcTcPass pr))),
-                      WDT (Anno (IdGhcP pl)),
-                      WDT (Anno (IdGhcP (NoGhcTcPass pl))),
-                      WDT (SyntaxExprGhc pr),
-                      WDT (SyntaxExprGhc pl),
-                      WDT (SyntaxExprGhc (NoGhcTcPass pr)),
-                      WDT (SyntaxExprGhc (NoGhcTcPass pl)),
-                      
+  Pat @ GhcPass pr,
+  Pat @ GhcPass pl,
+  HsExpr @ GhcPass pl,
+  HsExpr @ GhcRn,
+  MatchGroup @ GhcPass pr,
+  MatchGroup (GhcPass pr) @ GenLocated (Anno (HsExpr (GhcPass pr))) (HsExpr (GhcPass pr)),
+  GRHSs @ GhcPass pr,
+  GRHSs (GhcPass pr) @ GenLocated (Anno (HsExpr (GhcPass pr))) (HsExpr (GhcPass pr)),
+  MatchGroup @ GhcPass pl,
+  MatchGroup (GhcPass pl) @ GenLocated (Anno (HsExpr (GhcPass pl))) (HsExpr (GhcPass pl)),
+  GRHSs @ GhcPass pl,
+  GRHSs (GhcPass pl) @ GenLocated (Anno (HsExpr (GhcPass pl))) (HsExpr (GhcPass pl)),
+  HsExpr @ GhcPass pr,
+  WDT (Anno (Pat (GhcPass pl))),
+  WDT (Anno (Pat (GhcPass pr))),
+  WDT (Anno (HsExpr (GhcPass pr))),
+  WDT (Anno (HsExpr (GhcPass pl))),
+  WDT (Anno (HsExpr GhcRn)),
+  WDT (SyntaxExprGhc pr),
+  WDT (SyntaxExprGhc pl),
+  WDT (SyntaxExprGhc (NoGhcTcPass pr)),
+  WDT (SyntaxExprGhc (NoGhcTcPass pl)),
 #endif
-            OutputableBndrId pl, OutputableBndrId pr)
-         => Outputable (HsBindLR (GhcPass pl) (GhcPass pr)) where
+  OutputableBndrId pl, OutputableBndrId pr) => Outputable (HsBindLR (GhcPass pl) (GhcPass pr)) where
     ppr mbind = ppr_monobind mbind
 
-ppr_monobind :: forall idL idR.
-                (
+ppr_monobind :: forall idL idR. (
 #if MIN_VERSION_base(4,16,0)
-                  WDT (Anno (Pat (GhcPass idL))),
-                  WDT (Anno (HsExpr (GhcPass idR))),
-                  WDT (XOverLit (GhcPass idR)),
-                  WDT (XOverLit (GhcPass idL)),
-                  WDT (XOverLit (GhcPass (NoGhcTcPass idR))),
-                  WDT (XOverLit (GhcPass (NoGhcTcPass idL))),
-                  WDT (Anno (Pat (GhcPass idR))),
-                  WDT (IdGhcP idL),
-                  Pat @ GhcPass idR,
-                  Pat @ GhcPass idL,                  
-                  WDT (Anno (HsExpr (GhcPass idL))),
-                  HsExpr @ GhcPass idL,                  
-                  WDT (Anno (HsExpr GhcRn)),
-                  HsExpr @ GhcRn,
-                  MatchGroup @ GhcPass idR,
-                  MatchGroup (GhcPass idR)
-                    @ GenLocated (Anno (HsExpr (GhcPass idR))) (HsExpr (GhcPass idR)),
-                 GRHSs @ GhcPass idR,
-                 GRHSs (GhcPass idR) @ GenLocated (Anno (HsExpr (GhcPass idR))) (HsExpr (GhcPass idR)),
-                 MatchGroup @ GhcPass idL,
-                 MatchGroup (GhcPass idL)
-                         @ GenLocated (Anno (HsExpr (GhcPass idL))) (HsExpr (GhcPass idL)),
-                 GRHSs @ GhcPass idL,
-                 GRHSs (GhcPass idL)
-                         @ GenLocated (Anno (HsExpr (GhcPass idL))) (HsExpr (GhcPass idL)),
-                      WDT (Anno (IdGhcP idR)),
-                      WDT (Anno (IdGhcP (NoGhcTcPass idR))),                      
-                      WDT (Anno (IdGhcP idL)),
-                      WDT (Anno (IdGhcP (NoGhcTcPass idL))),
-                      WDT (SyntaxExprGhc idL),
-                      WDT (SyntaxExprGhc idR),
-                      WDT (SyntaxExprGhc (NoGhcTcPass idR)),
-                      WDT (SyntaxExprGhc (NoGhcTcPass idL)),
+  Pat @ GhcPass idR,
+  Pat @ GhcPass idL,                  
+  HsExpr @ GhcPass idL,                  
+  HsExpr @ GhcRn,
+  MatchGroup @ GhcPass idR,
+  MatchGroup (GhcPass idR) @ GenLocated (Anno (HsExpr (GhcPass idR))) (HsExpr (GhcPass idR)),
+  GRHSs @ GhcPass idR,
+  GRHSs (GhcPass idR) @ GenLocated (Anno (HsExpr (GhcPass idR))) (HsExpr (GhcPass idR)),
+  MatchGroup @ GhcPass idL,
+  MatchGroup (GhcPass idL) @ GenLocated (Anno (HsExpr (GhcPass idL))) (HsExpr (GhcPass idL)),
+  GRHSs @ GhcPass idL,
+  GRHSs (GhcPass idL) @ GenLocated (Anno (HsExpr (GhcPass idL))) (HsExpr (GhcPass idL)),
+  HsExpr @ GhcPass idR,
+  WDT (Anno (Pat (GhcPass idL))),
+  WDT (Anno (Pat (GhcPass idR))),
+  WDT (Anno (HsExpr (GhcPass idR))),
+  WDT (Anno (HsExpr (GhcPass idL))),
+  WDT (Anno (HsExpr GhcRn)),
+  WDT (SyntaxExprGhc idL),
+  WDT (SyntaxExprGhc idR),
+  WDT (SyntaxExprGhc (NoGhcTcPass idR)),
+  WDT (SyntaxExprGhc (NoGhcTcPass idL)),
 #endif
-                  OutputableBndrId idL, OutputableBndrId idR)
-             => HsBindLR (GhcPass idL) (GhcPass idR) -> SDoc
+  OutputableBndrId idL, OutputableBndrId idR) => HsBindLR (GhcPass idL) (GhcPass idR) -> SDoc
 
 ppr_monobind (PatBind { pat_lhs = pat, pat_rhs = grhss })
   = pprPatBind pat grhss
@@ -721,18 +648,16 @@ instance OutputableBndrId p => Outputable (ABExport (GhcPass p)) where
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-          WDT (Anno (Pat (GhcPass r))),
-          WDT (XOverLit (GhcPass r)),
-          WDT (Anno (HsExpr (GhcPass r))),
-          WDT (XOverLit (GhcPass (NoGhcTcPass r))),
-          WDT (Anno (HsExpr GhcRn)),
-          HsExpr @ GhcRn,
-          MatchGroup @ GhcPass r,
-          MatchGroup (GhcPass r) @ GenLocated (Anno (HsExpr (GhcPass r))) (HsExpr (GhcPass r)),
-          WDT (Anno (IdGhcP r)),
-          WDT (Anno (IdGhcP (NoGhcTcPass r))),
-          WDT (SyntaxExprGhc r),
-          WDT (SyntaxExprGhc (NoGhcTcPass r)),
+  HsExpr @ GhcRn,
+  MatchGroup @ GhcPass r,
+  MatchGroup (GhcPass r) @ GenLocated (Anno (HsExpr (GhcPass r))) (HsExpr (GhcPass r)),
+  HsExpr @ GhcPass r,
+  Pat @ GhcPass r,
+  WDT (Anno (HsExpr (GhcPass r))),
+  WDT (Anno (HsExpr GhcRn)),
+  WDT (Anno (Pat (GhcPass r))),
+  WDT (SyntaxExprGhc r),
+  WDT (SyntaxExprGhc (NoGhcTcPass r)),
 #endif
          OutputableBndrId l, OutputableBndrId r)
           => Outputable (PatSynBind (GhcPass l) (GhcPass r)) where
@@ -809,11 +734,7 @@ type instance XXIPBind    (GhcPass p) = NoExtCon
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WDT (XOverLit (GhcPass p)),
   HsExpr @ GhcPass p,
-  WDT (Anno (IdGhcP p)),
-  WDT (Anno (IdGhcP (NoGhcTcPass p))),
   WDT (SyntaxExprGhc p),
   WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
@@ -824,11 +745,7 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WDT (XOverLit (GhcPass p)),
   HsExpr @ GhcPass p,
-  WDT (Anno (IdGhcP p)),
-  WDT (Anno (IdGhcP (NoGhcTcPass p))),
   WDT (SyntaxExprGhc p),
   WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
@@ -872,10 +789,6 @@ data AnnSig
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WDT (XOverLit (GhcPass p)),
-  WDT (Anno (IdGhcP p)),
-  WDT (Anno (IdGhcP (NoGhcTcPass p))),
   WDT (SyntaxExprGhc p),
   WDT (SyntaxExprGhc (NoGhcTcPass p)),
 #endif
@@ -884,10 +797,6 @@ instance (
 
 ppr_sig :: forall p. (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XOverLit (GhcPass (NoGhcTcPass p))),
-  WDT (XOverLit (GhcPass p)),
-  WDT (Anno (IdGhcP p)),
-  WDT (Anno (IdGhcP (NoGhcTcPass p))),
   WDT (SyntaxExprGhc p),
   WDT (SyntaxExprGhc (NoGhcTcPass p)),  
 #endif
