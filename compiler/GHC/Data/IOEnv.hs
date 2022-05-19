@@ -1,4 +1,4 @@
-
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE PatternSynonyms #-}
 --
@@ -37,6 +37,7 @@ import GHC.Prelude
 import GHC.Driver.Session
 import {-# SOURCE #-} GHC.Driver.Hooks
 import GHC.IO (catchException)
+-- import qualified GHC.IO (mask, bracket, uninterruptibleMask)
 import GHC.Utils.Exception
 import GHC.Unit.Module
 import GHC.Utils.Panic
@@ -47,7 +48,7 @@ import System.IO.Unsafe ( unsafeInterleaveIO )
 import System.IO        ( fixIO )
 import Control.Monad
 import Control.Monad.Trans.Reader
-import Control.Monad.Catch (MonadCatch, MonadMask, MonadThrow)
+import Control.Monad.Catch (MonadCatch, MonadMask (..), MonadThrow)
 import GHC.Utils.Monad
 import GHC.Utils.Logger
 import Control.Applicative (Alternative(..))
@@ -61,7 +62,26 @@ import Control.Concurrent (forkIO, killThread)
 
 
 newtype IOEnv env a = IOEnv' (env -> IO a)
+#if MIN_VERSION_base(4,16,0)
+    deriving (MonadThrow, MonadCatch) via (ReaderT env IO)
+
+instance MonadMask (IOEnv env) where
+    mask a = IOEnv' $ \e -> GHC.Utils.Exception.mask $ \u -> unIOEnv (a $ q u) e
+      where q :: (IO a -> IO a) -> IOEnv e a -> IOEnv e a
+            q u (IOEnv' b) = IOEnv' (u . b)
+    uninterruptibleMask a =
+      IOEnv $ \e -> GHC.Utils.Exception.uninterruptibleMask $ \u -> unIOEnv (a $ q u) e
+        where q :: (IO  a -> IO a) -> IOEnv env a -> IOEnv env a
+              q u (IOEnv' b) = IOEnv' (u . b);
+
+    generalBracket acquire release use = IOEnv $ \r ->
+      generalBracket (unIOEnv acquire r)
+        (\resource exitCase -> unIOEnv (release resource exitCase) r)
+        (\resource -> unIOEnv (use resource) r)
+#else
   deriving (MonadThrow, MonadCatch, MonadMask) via (ReaderT env IO)
+#endif
+
 
 -- See Note [The one-shot state monad trick] in GHC.Utils.Monad
 instance Functor (IOEnv env) where
@@ -180,7 +200,7 @@ safeTry :: IO a -> IO (Either SomeException a)
 safeTry act = do
   var <- newEmptyMVar
   -- uninterruptible because we want to mask around 'killThread', which is interruptible.
-  uninterruptibleMask $ \restore -> do
+  GHC.Utils.Exception.uninterruptibleMask $ \restore -> do
     -- Fork, so that 'act' is safe from all asynchronous exceptions other than the ones we send it
     t <- forkIO $ try (restore act) >>= putMVar var
     restore (readMVar var)

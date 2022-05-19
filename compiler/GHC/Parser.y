@@ -99,9 +99,6 @@ import GHC.Builtin.Types ( unitTyCon, unitDataCon, tupleTyCon, tupleDataCon, nil
                            listTyCon_RDR, consDataCon_RDR, eqTyCon_RDR)
 
 import qualified Data.Semigroup as Semi
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@))
-#endif
 
 }
 
@@ -3035,7 +3032,7 @@ texp :: { ECP }
 -- Though this can parse just commas (without any expressions), it won't
 -- in practice, because (,,,) is parsed as a name. See Note [ExplicitTuple]
 -- in GHC.Hs.Expr.
-tup_exprs :: { forall b. (DisambECP b) => PV (SumOrTuple b) }
+tup_exprs :: { forall b. DisambECP b => PV (SumOrTuple b) }
            : texp commas_tup_tail
                            { unECP $1 >>= \ $1 ->
                              $2 >>= \ $2 ->
@@ -3246,11 +3243,7 @@ alts1   :: { forall b. DisambECP b => PV (Located ([AddEpAnn],[LMatch GhcPs (Loc
                                          return (sLL $1 $> (fst $ unLoc $1, h' : t)) }
         | alt                   { $1 >>= \ $1 -> return $ sL1 (reLoc $1) ([],[$1]) }
 
-alt     :: { forall b. (
-#if MIN_VERSION_base(4,16,0)
-  Body b @ GhcPs,
-#endif
-               DisambECP b) => PV (LMatch GhcPs (LocatedA b)) }
+alt     :: { forall b. DisambECP b => PV (LMatch GhcPs (LocatedA b)) }
            : pat alt_rhs  { $2 >>= \ $2 ->
                             acsA (\cs -> sLL (reLoc $1) $>
                                            (Match { m_ext = (EpAnn (glAR $1) [] cs)
@@ -3258,20 +3251,12 @@ alt     :: { forall b. (
                                                   , m_pats = [$1]
                                                   , m_grhss = unLoc $2 }))}
 
-alt_rhs :: { forall b. (
-#if MIN_VERSION_base(4,16,0)
-  Body b @ GhcPs,
-#endif
-               DisambECP b) => PV (Located (GRHSs GhcPs (LocatedA b))) }
+alt_rhs :: { forall b. DisambECP b => PV (Located (GRHSs GhcPs (LocatedA b))) }
         : ralt wherebinds           { $1 >>= \alt ->
                                       do { let {L l (bs, csw) = adaptWhereBinds $2}
                                          ; acs (\cs -> sLL alt (L l bs) (GRHSs (cs Semi.<> csw) (unLoc alt) bs)) }}
 
-ralt :: { forall b. (
-#if MIN_VERSION_base(4,16,0)
- Body b @ GhcPs,
-#endif
-            DisambECP b) => PV (Located [LGRHS GhcPs (LocatedA b)]) }
+ralt :: { forall b. DisambECP b => PV (Located [LGRHS GhcPs (LocatedA b)]) }
         : '->' exp            { unECP $2 >>= \ $2 ->
                                 acs (\cs -> sLLlA $1 $> (unguardedRHS (EpAnn (glR $1) (GrhsAnn Nothing (mu AnnRarrow $1)) cs) (comb2 $1 (reLoc $2)) $2)) }
         | gdpats              { $1 >>= \gdpats ->
@@ -3369,11 +3354,7 @@ stmt  :: { forall b. DisambECP b => PV (LStmt GhcPs (LocatedA b)) }
                                                  (EpAnn (glR $1) (hsDoAnn $1 $2 AnnRec) cs)
                                                   $2)) }
 
-qual  :: { forall b. (
-#if MIN_VERSION_base(4,16,0)
-             Body b @ GhcPs,
-#endif
-             DisambECP b) => PV (LStmt GhcPs (LocatedA b)) }
+qual  :: { forall b. DisambECP b => PV (LStmt GhcPs (LocatedA b)) }
     : bindpat '<-' exp                   { unECP $3 >>= \ $3 ->
                                            acsA (\cs -> sLLlA (reLoc $1) $>
                                             $ mkPsBindStmt (EpAnn (glAR $1) [mu AnnLarrow $2] cs) $1 $3) }

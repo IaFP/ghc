@@ -1412,11 +1412,7 @@ checkMonadComp = do
 --    P (forall b. DisambECP b => PV (Located b))
 --
 newtype ECP =
-  ECP { unECP :: forall b. (
-#if MIN_VERSION_base(4,16,0)
- -- forall x. (Body b) @ x, -- make it fail on mightEqualLater finds an unbound cbv
-#endif
-                    DisambECP b) => PV (LocatedA b) }
+  ECP { unECP :: forall b. (DisambECP b) => PV (LocatedA b) }
 
 ecpFromExp :: LHsExpr GhcPs -> ECP
 ecpFromExp a = ECP (ecpFromExp' a)
@@ -1458,41 +1454,16 @@ type AnnoBody b
     , Anno (StmtLR GhcPs GhcPs (LocatedA (Body (Body b GhcPs) GhcPs))) ~ SrcSpanAnnA
     , Anno [LocatedA (StmtLR GhcPs GhcPs
                        (LocatedA (Body (Body (Body b GhcPs) GhcPs) GhcPs)))] ~ SrcSpanAnnL
+#if MIN_VERSION_base(4,16,0)
+    , Body b @ GhcPs
+    , WDT (Body (Body b GhcPs))
+#endif
     )
 
 -- | Disambiguate constructs that may appear when we do not know ahead of time whether we are
 -- parsing an expression, a command, or a pattern.
 -- See Note [Ambiguous syntactic categories]
-class (
-#if MIN_VERSION_base(4,16,0)
- Body b @ GhcPs,
- WDT (Body (Body b GhcPs)),
-
- WDT (Body (FunArg (Body b GhcPs))),
- WDT (Body (Body (FunArg (Body b GhcPs)) GhcPs)),
- 
- WDT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body b GhcPs)))),
- WDT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
-
- WDT (Anno (Match GhcPs (LocatedA (Body b GhcPs)))),
- WDT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
-
- WDT (Anno [LocatedA (Match GhcPs (LocatedA (Body b GhcPs)))]),
- WDT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))]),
-
- WDT (Anno (GRHS GhcPs (LocatedA (Body b GhcPs)))),
- WDT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body b GhcPs)) GhcPs)))),
- 
- -- WDT (Body (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)),
- -- WDT (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)),
- -- WDT (Anno (StmtLR GhcPs GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
- -- WDT (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs))),
- -- Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) @ GhcPs,
- -- WDT (Anno (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
- -- WDT (Anno (GRHS GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))),
- -- WDT (Anno [LocatedA (Match GhcPs (LocatedA (Body (FunArg (Body (FunArg (Body b GhcPs)) GhcPs)) GhcPs)))]),
-#endif
-  (b ~ (Body b) GhcPs), AnnoBody b) => DisambECP b where
+class ((b ~ (Body b) GhcPs), AnnoBody b) => DisambECP b where
   -- | See Note [Body in DisambECP]
   type Body b :: Type -> Type
   -- | Return a command without ambiguity, or fail in a non-command context.

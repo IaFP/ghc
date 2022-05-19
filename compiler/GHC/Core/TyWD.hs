@@ -11,7 +11,8 @@ module GHC.Core.TyWD (
   ------------------------------
   -- well definedness constraint generation
   WdElabTypeDetails (..)
-  , genWdConstraints -- lifted version of genWdConstraintsTcM needed for DerivM 
+  , genWdConstraints -- lifted version of genWdConstraintsTcM needed for DerivM
+  , elabWdType
   , predTyArgs, predTyVars
   , attachConstraints, mergeAtAtConstraints
   , saneTyConForElab -- This function is no longer sane..
@@ -141,7 +142,7 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
   -- recursively build @ constraints for type constructor
   | (TyConApp tyc tycargs) <- ty =
       if tyc `hasKey` typeRepTyConKey  -- this is supposed to save us from sometyperep, typerep nonsense.
-      || isWDMirrorTyCon tyc
+      -- || isWDMirrorTyCon tyc
       || any (== tyc) tycons
         then return $ elabDetails ty []
         else if tyConResKind tyc `tcEqType` constraintKind
@@ -491,3 +492,10 @@ genWdConstraints isTyConPhase ty stys = lift $ do eTy <- genWdConstraintsTcM isT
                                                                                 , text "wdcts:" <+> ppr eTy
                                                                                 ])
                                                   return eTy
+
+elabWdType :: MonadTrans t => Bool -> Type -> t TcM Type
+elabWdType isTyConPhase ty = lift $ do eTy <- elabWdTypeTcM isTyConPhase ty
+                                       traceTc "wdelab elabType" (vcat [ text "Type:" <+> ppr ty
+                                                                       , text "etype:" <+> ppr eTy
+                                                                       ])
+                                       return eTy
