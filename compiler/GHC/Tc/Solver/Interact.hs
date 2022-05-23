@@ -2469,7 +2469,7 @@ matchLocalInst pred loc
              -- superclass depths
            (matches, unifs)
              | [(dfun_ev, inst_tys)] <- best_matches
-             , maybe True (> min_sc_depth) unifs
+             , maybe True (> min_sc_depth) unifs || isWdPred pred
              -> do { let dfun_id = ctEvEvId dfun_ev
                    ; (tys, theta) <- instDFunType dfun_id inst_tys
                    ; let result = OneInst { cir_new_theta = theta
