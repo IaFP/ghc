@@ -10,7 +10,8 @@ import GHC.Types
 
 foo :: Int -> Int -> IO Int
 foo = \i j -> sfoldl' (+) 0 $ xs i j +++ ys i j
-  where xs k l = senumFromStepN k l 200000
+  where xs, ys :: (Total m, Monad m, Num a) => a -> a -> Stream m a
+        xs k l = senumFromStepN k l 200000
         ys k l = senumFromStepN k l 300000
         {-# Inline xs #-}
         {-# Inline ys #-}
@@ -40,7 +41,7 @@ data Step s a where
   Skip  :: s -> Step s a
   Done  :: Step s a
 
-senumFromStepN :: (Num a, Monad m) => a -> a -> Int -> Stream m a
+senumFromStepN :: (Total m, Num a, Monad m) => a -> a -> Int -> Stream m a
 {-# INLINE_FUSED senumFromStepN #-}
 senumFromStepN x y n = x `seq` y `seq` n `seq` Stream step (x,n)
   where
@@ -48,11 +49,11 @@ senumFromStepN x y n = x `seq` y `seq` n `seq` Stream step (x,n)
     step (w,m) | m > 0     = return $ Yield w (w+y,m-1)
                | otherwise = return $ Done
 
-sfoldl' :: Monad m => (a -> b -> a) -> a -> Stream m b -> m a
+sfoldl' :: (Total m, Monad m) => (a -> b -> a) -> a -> Stream m b -> m a
 {-# INLINE sfoldl' #-}
 sfoldl' f = sfoldlM' (\a b -> return (f a b))
 
-sfoldlM' :: Monad m => (a -> b -> m a) -> a -> Stream m b -> m a
+sfoldlM' :: (Total m, Monad m) => (a -> b -> m a) -> a -> Stream m b -> m a
 {-# INLINE_FUSED sfoldlM' #-}
 sfoldlM' m w (Stream step t) = foldlM'_loop SPEC w t
   where
@@ -66,7 +67,7 @@ sfoldlM' m w (Stream step t) = foldlM'_loop SPEC w t
             Done       -> return z
 
 infixr 5 +++
-(+++) :: Monad m => Stream m a -> Stream m a -> Stream m a
+(+++) :: (Total m, Monad m) => Stream m a -> Stream m a -> Stream m a
 {-# INLINE_FUSED (+++) #-}
 Stream stepa ta +++ Stream stepb tb = Stream step (Left ta)
   where

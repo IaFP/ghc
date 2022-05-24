@@ -365,9 +365,9 @@ class Coercible (a :: k) (b :: k)
 
 type family (@) (t :: k' -> k) (u :: k') :: Constraint
 
-type WDT t = t ~ t
--- class WDT a
--- instance a ~ a => WDT a
+-- type WDT t = t ~ t
+class WDT a
+instance WDT a
 
 -- type Total a = forall a. f @ a -- ideally but can't do this.
 class f @ a => Cheat (f :: k' -> k) (a :: k')

@@ -1186,6 +1186,16 @@ can_eq_nc' _rewritten _rdr_env _envs ev eq_rel ty1 _ ty2 _
   , not (isTypeFamilyTyCon tc2)
   = canTyConApp ev eq_rel tc1 tys1 tc2 tys2
 
+can_eq_nc' _rewritten _rdr_env _envs ev NomEq ty1 _ ty2 _
+  | Just (tc1, tys1) <- tcSplitTyConApp_maybe ty1
+  , Just (tc2, tys2) <- tcSplitTyConApp_maybe ty2
+   -- we want to catch e.g. Maybe Int ~ (Int -> Int) here for better
+   -- error messages rather than decomposing into AppTys;
+   -- hence no direct match on TyConApp
+  , isWdTyCon tc1
+  , isWdTyCon tc2
+  = canTyConApp ev NomEq tc1 tys1 tc2 tys2
+
 can_eq_nc' _rewritten _rdr_env _envs ev eq_rel
            s1@(ForAllTy (Bndr _ vis1) _) _
            s2@(ForAllTy (Bndr _ vis2) _) _
@@ -3330,10 +3340,10 @@ unify_derived loc role    orig_ty1 orig_ty2
            ; unify_derived loc role t1 t2
            ; unify_derived loc Nominal w1 w2 }
 
-    -- go (TyConApp tc1 tys1) (TyConApp tc2 tys2)
-    --   | tc1 == tc2, tys1 `equalLength` tys2
-    --   , tc1 `hasKey` wdTyConKey -- @'s are special
-    --   = unifyDeriveds loc (tyConRolesX role tc1) tys1 tys2
+    go (TyConApp tc1 tys1) (TyConApp tc2 tys2)
+      | tc1 == tc2, tys1 `equalLength` tys2
+      , isWdTyCon tc1 -- @'s are special
+      = unifyDeriveds loc (tyConRolesX role tc1) tys1 tys2
 
     go (TyConApp tc1 tys1) (TyConApp tc2 tys2)
       | tc1 == tc2, tys1 `equalLength` tys2

@@ -3,7 +3,7 @@
 
 module NewType where
 
-import GHC.Types (type (@), WFT)
+import GHC.Types (type (@), WDT, Total)
 -- simple examples 
 data Ord a => T a = T | B a (T a) (T a)
 data M a b = M a b
@@ -21,7 +21,7 @@ newtype TreeMap a b = TreeMap (M a (Maybe b, TreeMap a b)) -- also okay as M is 
 
 newtype Ord a => OTreeMap a b = OTreeMap (M [a] (Maybe b, OTreeMap a b)) -- mmm this? .. also okay
 
-newtype WFT (MaybeReduce a) => NTWithTyFam a = NTWithTyFam [MaybeReduce a] -- elaborate WFT and we are okay
+newtype WDT (MaybeReduce a) => NTWithTyFam a = NTWithTyFam [MaybeReduce a] -- elaborate WFT and we are okay
 
 newtype Ord a => NTRec1 a = NTRec1 {unntRec1 :: NTRec2 a}
 newtype Ord a => NTRec2 a = NTRec2 {unntRec2 :: NTRec1 a} -- This Works fine too
@@ -32,3 +32,12 @@ newtype Ord a => NTRec2 a = NTRec2 {unntRec2 :: NTRec1 a} -- This Works fine too
 
 newtype m @ b => Kleisli m a b = Kleisli { runKleisli :: a -> m b }
                                 deriving Functor -- This is new
+
+
+newtype NT m a = MkNT {unNT :: forall b. a -> m b}
+
+foobar1 :: Total m => (b -> a) -> NT m a -> NT m b
+foobar1 f nt = MkNT $ \ a -> unNT nt (f a)
+
+foobar2 :: (b -> a) -> NT m a -> NT m b
+foobar2 f (MkNT nt) = MkNT $ \ a -> nt (f a)

@@ -232,8 +232,6 @@ isTyConInternal tycon =
   || isBoxedTupleTyCon tycon || isUnboxedTupleTyCon tycon
   || isUnboxedSumTyCon tycon
   || tycon `hasKey` stablePtrPrimTyConKey || tycon `hasKey` stablePtrTyConKey
-  -- || tycon `hasKey` staticPtrInfoTyConKey || (tyConName tycon == staticPtrInfoTyConName)
-  -- || tycon `hasKey` ptrTyConKey
   || tycon `hasKey` funPtrTyConKey
   || tycon `hasKey` qTyConKey || tyConName tycon == qTyConName
   || tycon `hasKey` anyTyConKey
@@ -299,7 +297,7 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; mergeAtAtConstraints r_args_wdt <$> redConstraints should_not_reduce_constraints (wdtct:extra_css)
        }
   | isTypeFamilyTyCon tycon && isWiredInName (tyConName tycon)
-  = do { traceTc "wdelab closed fam tycon" (ppr tycon)
+  = do { traceTc "wdelab other fam tycon" (ppr tycon)
        ; co_ty_mb <- matchFamTcM tycon args
        ; args_wdts <- mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args       
        ; case co_ty_mb of
@@ -309,22 +307,21 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
              ; return $ foldl mergeAtAtConstraints [] ((fmap newPreds args_wdts) ++ [newPreds elabd])
              }
        }
-  | isTypeSynonymTyCon tycon =
-      do { traceTc "wdelab typesyn" (ppr tycon)
-         ; cs <- if (args `lengthAtLeast` (tyConArity tycon))
-                 then case coreView (mkTyConApp tycon args) of
-                        Just ty   -> do { cs <- newPreds <$> genAtAtConstraintsExceptTcM isTyConPhase eTycons ts ty
-                                        ; redConstraints isTyConPhase cs
-                                        }
+  | isTypeSynonymTyCon tycon
+  = do { traceTc "wdelab typesyn" (ppr tycon)
+       ; cs <- if (args `lengthAtLeast` (tyConArity tycon))
+               then case coreView (mkTyConApp tycon args) of
+                      Just ty   -> do { cs <- newPreds <$> genAtAtConstraintsExceptTcM isTyConPhase eTycons ts ty
+                                      ; redConstraints isTyConPhase cs
+                                      }
                   
-                        Nothing   -> pprPanic "tysyn tyConGenAts" (ppr tycon)
-                 else failWithTc (tyConArityErr tycon args)
-         ; cs_args <- do css <- (fmap newPreds) <$>
+                      Nothing   -> pprPanic "tysyn tyConGenAts" (ppr tycon)
+               else failWithTc (tyConArityErr tycon args)
+       ; cs_args <- do css <- (fmap newPreds) <$>
                                 mapM (genAtAtConstraintsExceptTcM isTyConPhase eTycons ts) args
-                         foldl mergeAtAtConstraints [] <$> mapM (redConstraints isTyConPhase) css
-
-         ; return $ mergeAtAtConstraints cs_args cs
-         }
+                       foldl mergeAtAtConstraints [] <$> mapM (redConstraints isTyConPhase) css
+       ; return $ mergeAtAtConstraints cs_args cs
+       }
   -- Vanilla data types/newtypes/data family 
   | otherwise
   = do { traceTc "wdelab fallthrough" (ppr tycon <+> ppr args)
@@ -443,7 +440,7 @@ flatten_atat_constraint isTyConPhase ty
   , isWDMirrorTyCon tc
   , tc2 `hasKey` ioTyConKey
     || tc2 `hasKey` listTyConKey
-    -- || tc2 `hasKey` maybeTyConKey -- ANI Causes problems in specializer no idea why.
+    || tc2 `hasKey` maybeTyConKey -- ANI Causes problems in specializer no idea why.
     || tc2 `hasKey` ratioTyConKey
     || tc2 `hasKey` staticPtrTyConKey
     || tc2 `hasKey` ptrTyConKey    
@@ -452,7 +449,7 @@ flatten_atat_constraint isTyConPhase ty
   , isWDMirrorTyCon tc
   , tc2 `hasKey` ioTyConKey
     || tc2 `hasKey` listTyConKey
-    -- || tc2 `hasKey` maybeTyConKey
+    || tc2 `hasKey` maybeTyConKey
     || tc2 `hasKey` ratioTyConKey
     || tc2 `hasKey` staticPtrTyConKey
     || tc2 `hasKey` ptrTyConKey    
