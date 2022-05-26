@@ -17,7 +17,7 @@ import Control.Monad.State
 -------------------------------
 ------     Set Example  -------
 -------------------------------
-data Ord a => Set a = Set (S.Set a)
+newtype Ord a => Set a = Set (S.Set a)
 
 deriving instance (Ord a, Show a) => Show (Set a)
 deriving instance Ord a => Ord (Set a)
@@ -32,12 +32,13 @@ instance Functor Set where
   
 instance Applicative Set where
   pure a = singleton a
-  (<*>) _ _ = undefined
-  liftA2 _ _ _ = undefined
-  (*>) _ _ = undefined
-  (<*) _ _ = undefined
+  (<*>) = undefined
+  liftA2 = undefined
+  (*>) = undefined
+  (<*) = undefined
 
 instance Monad Set where
+  -- Set ss >>= f = foldr union empty $ fmap f (S.toList ss)
   m >>= f = flatten $ fmap f m
     
 
@@ -69,9 +70,6 @@ flatten a = foldr union empty (toList a)
 member :: a -> Set a -> Bool
 member a (Set s) = S.member a s
 
-notMember :: a -> Set a -> Bool
-notMember a = not . (member a)
-
 
 -------------------------------
 ------   Vector Example  -------
@@ -81,7 +79,7 @@ notMember a = not . (member a)
 class Finite a where
   enumerate :: [a]
 
-data (Eq a, Finite a) => Vec a = Vec (a -> Complex Double)
+newtype (Eq a, Finite a) => Vec a = Vec (a -> Complex Double)
 
 returnVec :: a -> Vec a
 returnVec a = Vec $ \b -> if a == b then 1 else 0
@@ -92,14 +90,16 @@ bindVec (Vec va) k = Vec $ \b -> sum [va a * ((k a) `apVec` b) | a <- enumerate]
 apVec :: Vec a -> a -> Complex Double
 apVec (Vec a) b = a b
 
-
+mapVec :: (a -> b) -> Vec a -> Vec b
+mapVec f v = v `bindVec` (returnVec . f)
+  
 instance Functor Vec where
-  fmap _ _ = undefined
+  fmap = mapVec
 
 instance Applicative Vec where
   pure   = returnVec
-  liftA2 _ _ _= undefined
   (<*>) _ _ = undefined
+  liftA2 _ _ _= undefined
   (*>) _ _ = undefined
   (<*) _ _ = undefined
 

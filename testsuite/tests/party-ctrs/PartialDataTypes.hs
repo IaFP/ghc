@@ -8,7 +8,7 @@
 {-# LANGUAGE UndecidableInstances, QuantifiedConstraints #-}
 
 module PartialDataTypes where
-import GHC.Types (WFT, type (@), Total)
+import GHC.Types (WDT, type (@), Total)
 
 data Ord a => BST a = Leaf | Node a (BST a) (BST a)
 data Only a = Only a
@@ -31,13 +31,17 @@ emptyDT :: Ord a => DT a
 emptyDT = MkDT undefined
 
 
-data ParDataTy1 m a = MkDT1 (m a)
+data ParDataTy1 m a = MkDT1 {unDT1 :: m a}
+
+-- destParDataTy1 :: ParDataTy1 m a -> m a
+destParDataTy1 (MkDT1 m) =  m
 
 pdt1 :: k -> ParDataTy1 Id k
 pdt1 k = MkDT1 (Id k)
 
 mapPartDataTy1 :: (Functor m, m @ a, m @ b) => (a -> b) -> ParDataTy1 m a -> ParDataTy1 m b
-mapPartDataTy1 f (MkDT1 h) = MkDT1 (fmap f h)
+mapPartDataTy1 f h = MkDT1 $ fmap f (destParDataTy1 h)
 
 instance (Functor m, Total m) => Functor (ParDataTy1 m) where
   fmap = mapPartDataTy1
+

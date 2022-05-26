@@ -269,10 +269,10 @@ tyConGenAtsTcM isTyConPhase eTycons ts tycon args
        ; return $ foldl mergeAtAtConstraints [] css
        }
   | not (saneTyConForElab tycon)
-  = if isTyConPhase then return [] -- if we are defining a datatype, we force users to write the constraints
-    else do { elabds <- mapM (genAtAtConstraintsExceptTcM isTyConPhase (tycon:eTycons) ts) args
-            ; return $ foldl mergeAtAtConstraints [] $ fmap newPreds elabds
-            }
+  =  do { traceTc "wdelab primtycon" (ppr tycon)
+        ; elabds <- mapM (genAtAtConstraintsExceptTcM isTyConPhase (tycon:eTycons) ts) args
+        ; return $ foldl mergeAtAtConstraints [] $ fmap newPreds elabds
+        }
   | isTyConAssoc tycon || isOpenTypeFamilyTyCon tycon || isClosedTypeFamilyTyCon tycon
   , hasWdMirrorTyCon tycon -- It can be an associated data type family it is handled as a normal tycon
   = do { traceTc "wdelab isTyConAssoc/open/closed typefam" (ppr tycon <+> ppr args)

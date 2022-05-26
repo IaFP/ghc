@@ -1,7 +1,9 @@
-{-# LANGUAGE FlexibleContexts, TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts, TypeFamilies, MagicHash #-}
 {-# LANGUAGE DataKinds #-}
 
 module AssoTypes where
+
+import GHC.Exts
 
 class Collection a where
   type Elem a
@@ -27,3 +29,16 @@ class Assoc2DF a where
   -- should elaborate to
   -- op2 :: (ADF @ a, $wf:ATF2 a) => a -> (ADF a, ATF2 a)
   
+
+ffff :: State# (Elem a) -> a -> a
+ffff = undefined
+
+
+
+class Assoc3DF t u where
+  type ATF3 t
+  
+
+
+qqqq :: ATF3 t -> t -> t
+qqqq = undefined
