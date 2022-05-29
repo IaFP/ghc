@@ -238,7 +238,7 @@ module GHC.Core.Type (
         classifiesTypeWithValues,
         isConcrete, isFixedRuntimeRepKind,
 
-        stableMergeTypes, stableMergeScaledTypes, mergeTypes, attachConstraints,
+        stableMergeTypes, stableMergeScaledTypes, mergeTypes, attachConstraints, forgetWdConstraints
     ) where
 
 import GHC.Prelude
@@ -1833,7 +1833,16 @@ attachConstraints [] ty = ty
 attachConstraints constraints ty = 
       mkSpecForAllTys vs $ mkInvisFunTysMany constraints tau 
       where (vs, tau) = splitForAllTyVars ty
- 
+
+
+forgetWdConstraints :: Type -> Type
+forgetWdConstraints ty = mkSpecForAllTys tvs $ mkVisFunTys args' res
+    where
+      (tvs, tau) = splitForAllTyVars ty
+      (args, res) = splitFunTys tau
+      args' = filter (\(Scaled _ t) -> not $ isWdPredTy t) args
+      
+  
 
 {- Note [Using synonyms to compress types]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

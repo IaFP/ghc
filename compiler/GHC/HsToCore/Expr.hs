@@ -1051,7 +1051,7 @@ dsConLike :: ConLike -> [TcInvisTVBinder] -> [Scaled Type] -> DsM CoreExpr
 dsConLike con tvbs tys
   = do { partyCtrs <- xoptM LangExt.PartialTypeConstructors
        ; (ds_con, arity_mb) <- dsHsConLike con
-       ; ids'    <- newSysLocalsDs tys
+       ; ids'    <- newSysLocalsDs tys -- $ map (mapScaledType (\ty -> if isForAllTy ty then forgetWdConstraints ty else ty))
        ; let ids = if partyCtrs
                    then (case arity_mb of
                            Just arity -> drop (length tys - arity) $ ids'

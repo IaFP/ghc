@@ -480,7 +480,8 @@ redWdTypeTcM ty = do
   return $ mkSpecSigmaTy tvs theta' tau
     where
       (tvs, theta, tau) = tcSplitSigmaTy ty
-  
+
+
 -- Lifted version of genAtAtConstraintsExceptTcM.
 -- Generates all the f @ a constraints in a DeriveM 
 genWdConstraints :: MonadTrans t => Bool -> Type -> [Type] ->  t TcM ThetaType

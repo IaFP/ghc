@@ -831,7 +831,7 @@ tcInferDataCon con
              args  = dataConOrigArgTys con
              res   = dataConOrigResTy con
              stupid_theta = dataConStupidTheta con
-
+       -- ; args' <- mapM elabArgs args
        ; scaled_arg_tys <- mapM linear_to_poly args
        -- for a call to a data constructor to be OK, we should also ensure
        -- that each of the type arguments are also well formed.
@@ -856,6 +856,16 @@ tcInferDataCon con
     linear_to_poly (Scaled One ty) = do { mul_var <- newFlexiTyVarTy multiplicityTy
                                         ; return (Scaled mul_var ty) }
     linear_to_poly scaled_ty       = return scaled_ty
+
+    -- elabArgs :: Scaled Type -> TcM (Scaled Type)
+    -- elabArgs scty = do if isForAllTy ty
+    --                      then do eTy <- elabWdTypeTcM False ty
+    --                              return $ Scaled m eTy
+    --                      else return $ scty
+    --       where ty = scaledThing scty
+    --             m = scaledMult scty
+
+
 
 tcInferPatSyn :: Name -> PatSyn -> TcM (HsExpr GhcTc, TcSigmaType)
 tcInferPatSyn id_name ps

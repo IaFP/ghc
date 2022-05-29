@@ -615,7 +615,7 @@ isTypeableBindOcc occ =
 isWDTyConOcc :: OccName -> Bool
 isWDTyConOcc occ =
    case occNameString occ of
-     '$':'w':'d': ':' : _ -> True  -- mkTyConRepOcc
+     'W':'D':'\'': _ -> True  -- mkTyConRepOcc
      _ -> False
 
 
@@ -648,7 +648,7 @@ mkClassDataConOcc   = mk_simple_deriv dataName "C:"   -- Data con for a class
 mkNewTyCoOcc        = mk_simple_deriv tcName   "N:"   -- Coercion for newtypes
 mkInstTyCoOcc       = mk_simple_deriv tcName   "D:"   -- Coercion for type functions
 mkEqPredCoOcc       = mk_simple_deriv tcName   "$co"
-mkWDTyConOcc        = mk_simple_deriv tcName   "$wd:" -- ANI TODO use this 
+mkWDTyConOcc        = mk_simple_deriv tcName   "WD'" -- ANI TODO use this 
 
 -- Used in derived instances for the names of auxiliary bindings.
 -- See Note [Auxiliary binders] in GHC.Tc.Deriv.Generate.

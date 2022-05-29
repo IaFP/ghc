@@ -13,11 +13,9 @@ class Monad m => PrimMonad m where
 
 type family Mutable (v :: Type -> Type) = (mv :: Type -> Type -> Type) | mv -> v
   
-data Chunk v a = Chunk Int (forall m. (m @ (), WDT (PrimState m), PrimMonad m) => Mutable v (PrimState m) a -> m ())
-
--- needsPrimStateDF :: m (PrimState m) a -> m ()
--- needsPrimStateDF = undefined
-
+data Chunk v a = Chunk (forall m. (PrimMonad m, WD'Mutable v, WD'PrimState m, m @ (), Mutable v (PrimState m) @ a
+                                  , Mutable v @ (PrimState m)) =>
+                                  Mutable v (PrimState m) a -> m ())
   
 data Step s a where
   Yield :: a -> s -> Step s a
@@ -30,4 +28,4 @@ needsPrimstate :: PrimMonad m => Mutable v (PrimState m) a -> m ()
 needsPrimstate = undefined
 
 vstep :: (PrimMonad m, WDT (Mutable v)) => s -> m (Step s (Chunk v a))
-vstep s = return (Yield (Chunk 0 (\mv -> needsPrimstate mv)) s)
+vstep s = return (Yield (Chunk (\mv -> needsPrimstate mv)) s)

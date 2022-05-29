@@ -272,7 +272,7 @@ isEqPrimPred ty = isCoVarType ty
 
 isWdPred ty = case tyConAppTyCon_maybe ty of
     Just tyCon | tyCon `hasKey` wdTyConKey -> True
-    _                                   -> False
+    _                                      -> False
 
 isCTupleClass :: Class -> Bool
 isCTupleClass cls = isTupleTyCon (classTyCon cls)
