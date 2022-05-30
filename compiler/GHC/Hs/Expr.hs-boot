@@ -37,7 +37,7 @@ import GHC.Hs.Extension ( OutputableBndrId, GhcPass, GhcRn, GhcTc
 #if MIN_VERSION_base(4,16,0)
 import GHC.Types (WDT)
 import Language.Haskell.Syntax.Extension
-import GHC.Hs.Extension (NoGhcTcPass, IdGhcP)
+import GHC.Hs.Extension (NoGhcTcPass)
 import qualified Data.Kind
 #endif
 

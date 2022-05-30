@@ -57,7 +57,6 @@ import GHC.Tc.Types.Evidence
 import GHC.Core.Multiplicity
 import GHC.Core.UsageEnv
 import GHC.Core.TyCon
-import GHC.Core.TyWD
 -- Create chunkified tuple tybes for monad comprehensions
 import GHC.Core.Make
 
@@ -79,10 +78,6 @@ import GHC.Types.SrcLoc
 
 import Control.Monad
 import Control.Arrow ( second )
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (WDT)
-#endif
-import qualified GHC.LanguageExtensions as LangExt
 {-
 ************************************************************************
 *                                                                      *
@@ -245,10 +240,6 @@ tcMatches ctxt pat_tys rhs_ty (MG { mg_alts = L l matches
        ; tcEmitBindingUsage $ supUEs usages
        ; pat_tys  <- mapM readScaledExpType pat_tys
        ; rhs_ty   <- readExpType rhs_ty
-       -- ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
-       -- ; rhs_ty <- if partyCtrs
-       --             then elabWdTypeTcM False rhs_ty
-       --             else return rhs_ty
        ; _concrete_evs <- zipWithM
                        (\ i (Scaled _ pat_ty) ->
                          hasFixedRuntimeRep (FRRMatch (mc_what ctxt) i) pat_ty)

@@ -49,6 +49,7 @@ import GHC.Tc.Gen.Pat
 import GHC.Tc.Utils.TcMType
 import GHC.Core.Reduction ( Reduction(..) )
 import GHC.Core.Multiplicity
+import GHC.Core.TyWD
 import GHC.Core.FamInstEnv( normaliseType )
 import GHC.Tc.Instance.Family( tcGetFamInstEnvs )
 import GHC.Tc.Utils.TcType
@@ -830,6 +831,10 @@ mkInferredPolyId insoluble qtvs inferred_theta poly_name mb_sig_inst mono_ty
                    -- a duplicate ambiguity error.  There is a similar
                    -- checkNoErrs for complete type signatures too.
     do { fam_envs <- tcGetFamInstEnvs
+       ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+       ; mono_ty <- if partyCtrs
+                    then elabWdTypeTcM False mono_ty
+                    else return mono_ty
        ; let mono_ty' = reductionReducedType $ normaliseType fam_envs Nominal mono_ty
                -- Unification may not have normalised the type,
                -- so do it here to make it as uncomplicated as possible.

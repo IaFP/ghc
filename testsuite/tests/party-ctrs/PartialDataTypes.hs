@@ -27,14 +27,15 @@ sbst = Node 1 Leaf Leaf
 data DT a = MkDT { bstFld :: BST a }
 -- we expect MkNT :: forall a. BST @ a => BST a -> NT a
 
-emptyDT :: Ord a => DT a
-emptyDT = MkDT undefined
+emptyDT :: Ord a => DT a -- need to add Ord a here as emptyBST needs it.
+emptyDT = MkDT { bstFld = emptyBST }
 
+destDT (MkDT b) = b
 
 data ParDataTy1 m a = MkDT1 {unDT1 :: m a}
 
 -- destParDataTy1 :: ParDataTy1 m a -> m a
-destParDataTy1 (MkDT1 m) =  m
+destParDataTy1 (MkDT1 f) =  f
 
 pdt1 :: k -> ParDataTy1 Id k
 pdt1 k = MkDT1 (Id k)
@@ -45,3 +46,7 @@ mapPartDataTy1 f h = MkDT1 $ fmap f (destParDataTy1 h)
 instance (Functor m, Total m) => Functor (ParDataTy1 m) where
   fmap = mapPartDataTy1
 
+
+
+data f ~ Maybe => WeirdDTy f a = MkWeirdTy {unWDTy :: f a}
+destWDty (MkWeirdTy f) = f
