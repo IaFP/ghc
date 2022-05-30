@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ConstraintKinds #-}
 module GHC.Rename.Expr where
@@ -7,9 +6,6 @@ import GHC.Hs
 import GHC.Types.Name.Set ( FreeVars )
 import GHC.Tc.Types
 import GHC.Utils.Outputable  ( Outputable )
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (WDT)
-#endif
 
 rnExpr :: HsExpr GhcPs
         -> RnM (HsExpr GhcRn, FreeVars)
@@ -24,12 +20,7 @@ type AnnoBody body
     , Anno (StmtLR GhcRn GhcRn (LocatedA (body GhcRn))) ~ SrcSpanAnnA
     )
 rnStmts :: --forall thing body.
-           (
-#if MIN_VERSION_base(4,16,0)
-             WDT (Anno (StmtLR GhcRn GhcPs (LocatedA (body GhcPs))))
-           ,
-#endif
-           AnnoBody body) => HsStmtContext GhcRn
+           (AnnoBody body) => HsStmtContext GhcRn
         -> (body GhcPs -> RnM (body GhcRn, FreeVars))
         -> [LStmt GhcPs (LocatedA (body GhcPs))]
         -> ([Name] -> RnM (thing, FreeVars))

@@ -164,7 +164,7 @@ import Data.Char
 import Data.Data       ( dataTypeOf, fromConstr, dataTypeConstrs )
 import Data.Kind       ( Type )
 #if MIN_VERSION_base(4,16,0)
-import GHC.Types (type(@), WDT)
+import GHC.Types (type(@))
 #endif
 {- **********************************************************************
 
@@ -1456,7 +1456,6 @@ type AnnoBody b
                        (LocatedA (Body (Body (Body b GhcPs) GhcPs) GhcPs)))] ~ SrcSpanAnnL
 #if MIN_VERSION_base(4,16,0)
     , Body b @ GhcPs
-    , WDT (Body (Body b GhcPs))
 #endif
     )
 

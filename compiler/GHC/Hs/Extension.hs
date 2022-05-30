@@ -225,8 +225,6 @@ type OutputableBndrId pass =
 #if MIN_VERSION_base(4,16,0)
   , WDT (XOverLit (GhcPass pass))
   , WDT (XOverLit (GhcPass (NoGhcTcPass pass)))
-  , WDT (Anno (IdGhcP pass))
-  , WDT (Anno (IdGhcP (NoGhcTcPass pass)))
 #endif
   )
 

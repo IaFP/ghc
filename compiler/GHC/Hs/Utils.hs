@@ -212,13 +212,7 @@ type AnnoBody p body
     , Anno (Match (GhcPass p) (LocatedA (body (GhcPass p)))) ~ SrcSpanAnnA
     )
 
-mkMatchGroup :: (
-#if MIN_VERSION_base(4,16,0)
-                 WDT (XMG (GhcPass p) (LocatedA (body (GhcPass p)))),
-                 WDT (Anno (Match (GhcPass p) (LocatedA (body (GhcPass p))))),
-                 WDT (Anno [GenLocated SrcSpanAnnA (Match (GhcPass p) (LocatedA (body (GhcPass p))))]),
-#endif
-                AnnoBody p body)
+mkMatchGroup :: AnnoBody p body
              => Origin
              -> LocatedL [LocatedA (Match (GhcPass p) (LocatedA (body (GhcPass p))))]
              -> MatchGroup (GhcPass p) (LocatedA (body (GhcPass p)))
@@ -342,20 +336,12 @@ mkRnBindStmt :: LPat GhcRn -> LocatedA (bodyR GhcRn)
 mkTcBindStmt :: LPat GhcTc -> LocatedA (bodyR GhcTc)
              -> StmtLR GhcTc GhcTc (LocatedA (bodyR GhcTc))
 
-emptyRecStmt     :: (
-#if MIN_VERSION_base(4,16,0)
-                     WDT (Anno (StmtLR (GhcPass idL) GhcPs bodyR)),
-#endif
-                          Anno [GenLocated
+emptyRecStmt     :: (Anno [GenLocated
                              (Anno (StmtLR (GhcPass idL) GhcPs bodyR))
                              (StmtLR (GhcPass idL) GhcPs bodyR)]
                         ~ SrcSpanAnnL)
                  => StmtLR (GhcPass idL) GhcPs bodyR
-emptyRecStmtName :: (
-#if MIN_VERSION_base(4,16,0)
-                     WDT (Anno (StmtLR GhcRn GhcRn bodyR)),
-#endif
-                     Anno [GenLocated
+emptyRecStmtName :: (Anno [GenLocated
                              (Anno (StmtLR GhcRn GhcRn bodyR))
                              (StmtLR GhcRn GhcRn bodyR)]
                         ~ SrcSpanAnnL)
@@ -508,19 +494,11 @@ mkConLikeTc con = XExpr (ConLikeTc con [] [])
 ************************************************************************
 -}
 
-nlHsVar :: (
-#if MIN_VERSION_base(4,16,0)
-             WDT (Anno (IdGhcP p)),
-#endif
-             IsSrcSpanAnn p a)
+nlHsVar :: (IsSrcSpanAnn p a)
         => IdP (GhcPass p) -> LHsExpr (GhcPass p)
 nlHsVar n = noLocA (HsVar noExtField (noLocA n))
 
-nl_HsVar :: (
-#if MIN_VERSION_base(4,16,0)
-           WDT (Anno (IdGhcP p)),
-#endif
-           IsSrcSpanAnn p a)
+nl_HsVar :: (IsSrcSpanAnn p a)
         => IdP (GhcPass p) -> HsExpr (GhcPass p)
 nl_HsVar n = HsVar noExtField (noLocA n)
 
@@ -534,11 +512,7 @@ nlHsLit n = noLocA (HsLit noComments n)
 nlHsIntLit :: Integer -> LHsExpr (GhcPass p)
 nlHsIntLit n = noLocA (HsLit noComments (HsInt noExtField (mkIntegralLit n)))
 
-nlVarPat :: (
-#if MIN_VERSION_base(4,16,0)
-           WDT (Anno (IdGhcP p)),
-#endif
-           IsSrcSpanAnn p a)
+nlVarPat :: (IsSrcSpanAnn p a)
         => IdP (GhcPass p) -> LPat (GhcPass p)
 nlVarPat n = noLocA (VarPat noExtField (noLocA n))
 
@@ -559,19 +533,11 @@ nlHsSyntaxApps NoSyntaxExprTc args = pprPanic "nlHsSyntaxApps" (ppr args)
   -- this function should never be called in scenarios where there is no
   -- syntax expr
 
-nlHsApps :: (
-#if MIN_VERSION_base(4,16,0)
-            WDT (Anno (IdGhcP p)),
-#endif
-            IsSrcSpanAnn p a)
+nlHsApps :: (IsSrcSpanAnn p a)
          => IdP (GhcPass p) -> [LHsExpr (GhcPass p)] -> LHsExpr (GhcPass p)
 nlHsApps f xs = foldl' nlHsApp (nlHsVar f) xs
 
-nlHsVarApps :: (
-#if MIN_VERSION_base(4,16,0)
-                WDT (Anno (IdGhcP p)),
-#endif
-                IsSrcSpanAnn p a)
+nlHsVarApps :: (IsSrcSpanAnn p a)
             => IdP (GhcPass p) -> [IdP (GhcPass p)] -> LHsExpr (GhcPass p)
 nlHsVarApps f xs = noLocA (foldl' mk (HsVar noExtField (noLocA f))
                                          (map ((HsVar noExtField) . noLocA) xs))
@@ -657,11 +623,7 @@ nlHsCase expr matches
 nlList exprs          = noLocA (ExplicitList noAnn exprs)
 
 nlHsAppTy :: LHsType (GhcPass p) -> LHsType (GhcPass p) -> LHsType (GhcPass p)
-nlHsTyVar :: (
-#if MIN_VERSION_base(4,16,0)
-              WDT (Anno (IdGhcP p)),
-#endif
-             IsSrcSpanAnn p a)
+nlHsTyVar :: (IsSrcSpanAnn p a)
           => IdP (GhcPass p)                            -> LHsType (GhcPass p)
 nlHsFunTy :: LHsType (GhcPass p) -> LHsType (GhcPass p) -> LHsType (GhcPass p)
 nlHsParTy :: LHsType (GhcPass p)                        -> LHsType (GhcPass p)
@@ -671,11 +633,7 @@ nlHsTyVar x   = noLocA (HsTyVar noAnn NotPromoted (noLocA x))
 nlHsFunTy a b = noLocA (HsFunTy noAnn (HsUnrestrictedArrow noHsUniTok) (parenthesizeHsType funPrec a) b)
 nlHsParTy t   = noLocA (HsParTy noAnn t)
 
-nlHsTyConApp :: (
-#if MIN_VERSION_base(4,16,0)
-                WDT (Anno (IdGhcP p)),
-#endif
-                IsSrcSpanAnn p a)
+nlHsTyConApp :: (IsSrcSpanAnn p a)
              => LexicalFixity -> IdP (GhcPass p)
              -> [LHsTypeArg (GhcPass p)] -> LHsType (GhcPass p)
 nlHsTyConApp fixity tycon tys
@@ -709,11 +667,7 @@ mkLHsTupleExpr [e] _ = e
 mkLHsTupleExpr es ext
   = noLocA $ ExplicitTuple ext (map (Present noAnn) es) Boxed
 
-mkLHsVarTuple :: (
-#if MIN_VERSION_base(4,16,0)
-                   WDT (Anno (IdGhcP p)),
-#endif
-                  IsSrcSpanAnn p a)
+mkLHsVarTuple :: (IsSrcSpanAnn p a)
                => [IdP (GhcPass p)]  -> XExplicitTuple (GhcPass p)
               -> LHsExpr (GhcPass p)
 mkLHsVarTuple ids ext = mkLHsTupleExpr (map nlHsVar ids) ext
@@ -730,11 +684,7 @@ mkLHsPatTup [lpat] = lpat
 mkLHsPatTup lpats  = L (getLoc (head lpats)) $ TuplePat noExtField lpats Boxed
 
 -- | The Big equivalents for the source tuple expressions
-mkBigLHsVarTup :: (
-#if MIN_VERSION_base(4,16,0)
-                   WDT (Anno (IdGhcP p)),
-#endif
-                   IsSrcSpanAnn p a)
+mkBigLHsVarTup :: (IsSrcSpanAnn p a)
                => [IdP (GhcPass p)] -> XExplicitTuple (GhcPass p)
                -> LHsExpr (GhcPass p)
 mkBigLHsVarTup ids anns = mkBigLHsTup (map nlHsVar ids) anns
@@ -1419,7 +1369,7 @@ add_ev_bndr (EvBind { eb_lhs = b }) bs | isId b    = b:bs
 -- it can reuse the code in GHC for collecting binders.
 class (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XXPat p),
+  WDT (XXPat p), WDT (IdP p),
 #endif
   UnXRec p) => CollectPass p where
   collectXXPat :: Proxy p -> CollectFlag p -> XXPat p -> [IdP p] -> [IdP p]

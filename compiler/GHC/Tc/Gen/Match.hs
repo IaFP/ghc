@@ -57,6 +57,7 @@ import GHC.Tc.Types.Evidence
 import GHC.Core.Multiplicity
 import GHC.Core.UsageEnv
 import GHC.Core.TyCon
+import GHC.Core.TyWD
 -- Create chunkified tuple tybes for monad comprehensions
 import GHC.Core.Make
 
@@ -81,7 +82,7 @@ import Control.Arrow ( second )
 #if MIN_VERSION_base(4,16,0)
 import GHC.Types (WDT)
 #endif
-
+import qualified GHC.LanguageExtensions as LangExt
 {-
 ************************************************************************
 *                                                                      *
@@ -147,19 +148,12 @@ tcMatchesFun fun_id matches exp_ty
 parser guarantees that each equation has exactly one argument.
 -}
 
-tcMatchesCase :: (
-#if MIN_VERSION_base(4,16,0)
-   WDT (Anno (Match GhcRn (LocatedA (body GhcRn)))),
-   WDT (Anno (Match GhcTc (LocatedA (body GhcTc)))),
-   WDT (Anno [GenLocated SrcSpanAnnA (Match GhcTc (LocatedA (body GhcTc)))]),
-   WDT (Anno (GRHS GhcTc (LocatedA (body GhcTc)))),
-#endif
-  AnnoBody body) =>
-                TcMatchCtxt body                         -- Case context
-             -> Scaled TcSigmaType                       -- Type of scrutinee
-             -> MatchGroup GhcRn (LocatedA (body GhcRn)) -- The case alternatives
-             -> ExpRhoType                    -- Type of whole case expressions
-             -> TcM (MatchGroup GhcTc (LocatedA (body GhcTc)))
+tcMatchesCase :: AnnoBody body
+              => TcMatchCtxt body                         -- Case context
+              -> Scaled TcSigmaType                       -- Type of scrutinee
+              -> MatchGroup GhcRn (LocatedA (body GhcRn)) -- The case alternatives
+              -> ExpRhoType                    -- Type of whole case expressions
+              -> TcM (MatchGroup GhcTc (LocatedA (body GhcTc)))
                 -- Translated alternatives
                 -- wrapper goes from MatchGroup's ty to expected ty
 
@@ -222,14 +216,7 @@ type AnnoBody body
     )
 
 -- | Type-check a MatchGroup.
-tcMatches :: (
-#if MIN_VERSION_base(4,16,0)
-   WDT (Anno (Match GhcRn (LocatedA (body GhcRn)))),
-   WDT (Anno (Match GhcTc (LocatedA (body GhcTc)))),
-   WDT (Anno [GenLocated SrcSpanAnnA (Match GhcTc (LocatedA (body GhcTc)))]),
-   WDT (Anno (GRHS GhcTc (LocatedA (body GhcTc)))),
-#endif
-  AnnoBody body) => TcMatchCtxt body
+tcMatches :: (AnnoBody body) => TcMatchCtxt body
           -> [Scaled ExpSigmaType]      -- Expected pattern types
           -> ExpRhoType          -- Expected result-type of the Match.
           -> MatchGroup GhcRn (LocatedA (body GhcRn))
@@ -258,6 +245,10 @@ tcMatches ctxt pat_tys rhs_ty (MG { mg_alts = L l matches
        ; tcEmitBindingUsage $ supUEs usages
        ; pat_tys  <- mapM readScaledExpType pat_tys
        ; rhs_ty   <- readExpType rhs_ty
+       -- ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+       -- ; rhs_ty <- if partyCtrs
+       --             then elabWdTypeTcM False rhs_ty
+       --             else return rhs_ty
        ; _concrete_evs <- zipWithM
                        (\ i (Scaled _ pat_ty) ->
                          hasFixedRuntimeRep (FRRMatch (mc_what ctxt) i) pat_ty)
@@ -267,11 +258,7 @@ tcMatches ctxt pat_tys rhs_ty (MG { mg_alts = L l matches
                     , mg_origin = origin }) }
 
 -------------
-tcMatch :: (
-#if MIN_VERSION_base(4,16,0)
-  WDT (Anno (GRHS GhcTc (LocatedA (body GhcTc)))),
-#endif
-  AnnoBody body) => TcMatchCtxt body
+tcMatch :: (AnnoBody body) => TcMatchCtxt body
         -> [Scaled ExpSigmaType]        -- Expected pattern types
         -> ExpRhoType            -- Expected result-type of the Match.
         -> LMatch GhcRn (LocatedA (body GhcRn))
@@ -297,11 +284,7 @@ tcMatch ctxt pat_tys rhs_ty match
             _          -> addErrCtxt (pprMatchInCtxt match) thing_inside
 
 -------------
-tcGRHSs :: (
-#if MIN_VERSION_base(4,16,0)
-           WDT (Anno (GRHS GhcTc (LocatedA (body GhcTc)))),
-#endif
-           AnnoBody body)
+tcGRHSs :: (AnnoBody body)
         => TcMatchCtxt body -> GRHSs GhcRn (LocatedA (body GhcRn)) -> ExpRhoType
         -> TcM (GRHSs GhcTc (LocatedA (body GhcTc)))
 

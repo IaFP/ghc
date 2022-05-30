@@ -78,9 +78,6 @@ import Control.Monad
 import Data.Foldable      ( toList )
 import Data.List          ( partition, sortBy )
 import Data.List.NonEmpty ( NonEmpty(..) )
-#if MIN_VERSION_base(4,16,0)
-import GHC.Types (WDT)
-#endif
 
 {-
 -- ToDo: Put the annotations into the monad, so that they arrive in the proper
@@ -1196,14 +1193,7 @@ type AnnoBody body
     , Outputable (body GhcPs)
     )
 
-rnMatchGroup :: (
-#if MIN_VERSION_base(4,16,0)
-                  WDT (Anno (Match GhcRn (LocatedA (body GhcRn))))
-                , WDT (Anno (GRHS GhcRn (LocatedA (body GhcRn))))
-                , WDT (Anno [GenLocated SrcSpanAnnA (Match GhcRn (LocatedA (body GhcRn)))]),
-#endif
-                  Outputable (body GhcPs), AnnoBody body
-                )
+rnMatchGroup :: (Outputable (body GhcPs), AnnoBody body)
              => HsMatchContext GhcRn
              -> (LocatedA (body GhcPs) -> RnM (LocatedA (body GhcRn), FreeVars))
              -> MatchGroup GhcPs (LocatedA (body GhcPs))
@@ -1214,26 +1204,14 @@ rnMatchGroup ctxt rnBody (MG { mg_alts = L lm ms, mg_origin = origin })
        ; (new_ms, ms_fvs) <- mapFvRn (rnMatch ctxt rnBody) ms
        ; return (mkMatchGroup origin (L lm new_ms), ms_fvs) }
 
-rnMatch :: (
-#if MIN_VERSION_base(4,16,0)
-             WDT (Anno (Match GhcRn (LocatedA (body GhcRn))))
-           , WDT (Anno (GRHS GhcRn (LocatedA (body GhcRn))))    
-           ,
-#endif
-             AnnoBody body)
+rnMatch :: (AnnoBody body)
         => HsMatchContext GhcRn
         -> (LocatedA (body GhcPs) -> RnM (LocatedA (body GhcRn), FreeVars))
         -> LMatch GhcPs (LocatedA (body GhcPs))
         -> RnM (LMatch GhcRn (LocatedA (body GhcRn)), FreeVars)
 rnMatch ctxt rnBody = wrapLocFstMA (rnMatch' ctxt rnBody)
 
-rnMatch' :: (
-#if MIN_VERSION_base(4,16,0)
-              WDT (Anno (Match GhcRn (LocatedA (body GhcRn))))
-            , WDT (Anno (GRHS GhcRn (LocatedA (body GhcRn))))
-            , 
-#endif
-              AnnoBody body)
+rnMatch' :: (AnnoBody body)
          => HsMatchContext GhcRn
          -> (LocatedA (body GhcPs) -> RnM (LocatedA (body GhcRn), FreeVars))
          -> Match GhcPs (LocatedA (body GhcPs))
@@ -1269,13 +1247,7 @@ emptyCaseErr ctxt = TcRnUnknownMessage $ mkPlainError noHints $
 ************************************************************************
 -}
 
-rnGRHSs :: (
-#if MIN_VERSION_base(4,16,0)
-             WDT (Anno (Match GhcRn (LocatedA (body GhcRn))))
-           , WDT (Anno (GRHS GhcRn (LocatedA (body GhcRn))))
-           ,
-#endif
-           AnnoBody body)
+rnGRHSs :: (AnnoBody body)
         => HsMatchContext GhcRn
         -> (LocatedA (body GhcPs) -> RnM (LocatedA (body GhcRn), FreeVars))
         -> GRHSs GhcPs (LocatedA (body GhcPs))
@@ -1285,12 +1257,7 @@ rnGRHSs ctxt rnBody (GRHSs _ grhss binds)
     (grhss', fvGRHSs) <- mapFvRn (rnGRHS ctxt rnBody) grhss
     return (GRHSs emptyComments grhss' binds', fvGRHSs)
 
-rnGRHS :: (
-#if MIN_VERSION_base(4,16,0)
-            WDT (Anno (GRHS GhcRn (LocatedA (body GhcRn))))
-          ,
-#endif
-          AnnoBody body)
+rnGRHS :: (AnnoBody body)
        => HsMatchContext GhcRn
        -> (LocatedA (body GhcPs) -> RnM (LocatedA (body GhcRn), FreeVars))
        -> LGRHS GhcPs (LocatedA (body GhcPs))

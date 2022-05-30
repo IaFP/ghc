@@ -883,8 +883,7 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-           WDT (Anno (GRHS (GhcPass p) (LocatedA (body (GhcPass p)))))
-          , WDT (IdGhcP p)
+           WDT (IdGhcP p)
           ,
 #endif
            HiePass p
@@ -942,8 +941,7 @@ instance (
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-           WDT (Anno (GRHS (GhcPass p) (LocatedA (body (GhcPass p)))))
-          , WDT (IdGhcP p)
+            WDT (IdGhcP p)
           ,
 #endif
            HiePass p
@@ -1090,8 +1088,7 @@ instance ToHie (TScoped (HsPatSigType GhcRn)) where
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-           WDT (Anno (GRHS (GhcPass p) (LocatedA (body (GhcPass p)))))
-         , WDT (IdGhcP p)
+          WDT (IdGhcP p)
          ,
 #endif
            ToHie (LocatedA (body (GhcPass p)))
@@ -1104,13 +1101,14 @@ instance (
      , toHie $ RS (mkScope $ grhss_span grhs) binds
      ]
 
-instance ( ToHie (LocatedA (body (GhcPass p)))
-         , HiePass p
-         , AnnoBody p body,
+instance (
 #if MIN_VERSION_base(4,16,0)
          WDT (IdGhcP p),
 #endif
-  HiePass p) => ToHie (LocatedAn NoEpAnns (GRHS (GhcPass p) (LocatedA (body (GhcPass p))))) where
+           ToHie (LocatedA (body (GhcPass p)))
+         , HiePass p
+         , AnnoBody p body
+         , HiePass p) => ToHie (LocatedAn NoEpAnns (GRHS (GhcPass p) (LocatedA (body (GhcPass p))))) where
   toHie (L span g) = concatM $ makeNodeA g span : case g of
     GRHS _ guards body ->
       [ toHie $ listScopes (mkLScopeA body) guards
@@ -1276,15 +1274,13 @@ instance (
       ]
     Missing _ -> []
 
-instance ( ToHie (LocatedA (body (GhcPass p)))
-         , AnnoBody p body
-         , HiePass p
-         ,
+instance (
 #if MIN_VERSION_base(4,16,0)
-         WDT (IdGhcP p)
-         ,
+         WDT (IdGhcP p) ,
 #endif
-  HiePass p) => ToHie (RScoped (LocatedA (Stmt (GhcPass p) (LocatedA (body (GhcPass p)))))) where
+           ToHie (LocatedA (body (GhcPass p)))
+         , AnnoBody p body
+         , HiePass p) => ToHie (RScoped (LocatedA (Stmt (GhcPass p) (LocatedA (body (GhcPass p)))))) where
   toHie (RS scope (L span stmt)) = concatM $ node : case stmt of
       LastStmt _ body _ _ ->
         [ toHie body
