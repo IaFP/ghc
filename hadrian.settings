@@ -5,18 +5,18 @@
 ##### Stage 1 hs options
 #####
 
-stage1.array.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage1.base.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage1.binary.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage1.bytestring.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage1.containers.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage1.Cabal.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XQuantifiedConstraints
+stage1.array.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage1.base.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage1.binary.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage1.bytestring.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage1.containers.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage1.Cabal.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XQuantifiedConstraints -XFlexibleContexts
 stage1.deepseq.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage1.directory.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+stage1.directory.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage1.exceptions.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage1.filepath.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage1.ghc.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage1.ghc-compact.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+stage1.ghc.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage1.ghc-compact.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage1.ghc-boot.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage1.ghc-boot-th.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage1.ghc-pkg.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
@@ -25,20 +25,20 @@ stage1.ghci.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -
 stage1.haskeline.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage1.hp2ps.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage1.hsc2hs.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage1.pretty.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+stage1.pretty.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage1.process.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage1.stm.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage1.time.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+stage1.time.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage1.xhtml.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage1.transformers.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XRankNTypes
 stage1.mtl.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XTypeOperators
 stage1.parsec.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage1.hpc.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage1.text.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage1.unix.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage1.template-haskell.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+stage1.hpc.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage1.text.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage1.unix.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage1.template-haskell.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage1.haddock.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage1.ghc-bin.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage1.ghc-bin.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XFlexibleContexts
 stage1.terminfo.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage1.check-exact.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage1.iserv.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
@@ -50,18 +50,19 @@ stage1.libiserv.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMetho
 #####
 
 
-stage2.array.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage2.base.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage2.binary.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage2.bytestring.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage2.containers.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+
+stage2.array.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage2.base.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage2.binary.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage2.bytestring.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage2.containers.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage2.Cabal.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XQuantifiedConstraints
-stage2.deepseq.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage2.directory.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+stage2.deepseq.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage2.directory.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage2.exceptions.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage2.filepath.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage2.ghc.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage2.ghc-compact.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+stage2.ghc.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage2.ghc-compact.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage2.ghc-boot.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage2.ghc-boot-th.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage2.ghc-pkg.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
@@ -70,20 +71,20 @@ stage2.ghci.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -
 stage2.haskeline.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage2.hp2ps.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage2.hsc2hs.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage2.pretty.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+stage2.pretty.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage2.process.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage2.stm.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage2.time.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+stage2.time.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage2.xhtml.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage2.transformers.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XRankNTypes
 stage2.mtl.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XTypeOperators
 stage2.parsec.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage2.hpc.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage2.text.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage2.unix.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage2.template-haskell.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+stage2.hpc.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage2.text.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage2.unix.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage2.template-haskell.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage2.haddock.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage2.ghc-bin.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage2.ghc-bin.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XFlexibleContexts
 stage2.terminfo.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage2.check-exact.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage2.iserv.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
@@ -95,18 +96,18 @@ stage2.libiserv.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMetho
 ##### 
 
 
-stage3.array.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage3.base.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage3.binary.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage3.bytestring.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage3.containers.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+stage3.array.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage3.base.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage3.binary.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage3.bytestring.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage3.containers.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage3.Cabal.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XQuantifiedConstraints
 stage3.deepseq.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage3.directory.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage3.exceptions.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage3.filepath.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage3.ghc.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage3.ghc-compact.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+stage3.ghc.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
+stage3.ghc-compact.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage3.ghc-boot.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage3.ghc-boot-th.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage3.ghc-pkg.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
@@ -115,34 +116,36 @@ stage3.ghci.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -
 stage3.haskeline.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage3.hp2ps.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage3.hsc2hs.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage3.pretty.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+stage3.pretty.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage3.process.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage3.stm.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage3.time.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+stage3.time.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage3.xhtml.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage3.transformers.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XRankNTypes
 stage3.mtl.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XTypeOperators
 stage3.parsec.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
 stage3.hpc.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage3.text.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+stage3.text.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage3.unix.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage3.template-haskell.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
+stage3.template-haskell.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators -XFlexibleContexts
 stage3.haddock.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XExplicitNamespaces -XTypeOperators
-stage3.ghc-bin.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
+stage3.ghc-bin.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances -XFlexibleContexts
 stage3.terminfo.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.check-exact.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.iserv.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 stage3.libiserv.ghc.hs.opts += -XPartialTypeConstructors -XConstrainedClassMethods -XUndecidableInstances
 
 
-## Commands that span over stages
 
-stage1.*.ghc.hs.opts += -fforce-recomp 
+## Commands that span over libraries
+
+stage1.*.ghc.hs.opts += -g3 -debug -fforce-recomp 
 stage2.*.ghc.hs.opts += -g3 -debug -fforce-recomp
+stage3.*.ghc.hs.opts += -g3 -debug -fforce-recomp
 
 stage2.rts.ghc.c.opts += -optc-ggdb
 
 # if you want to enable core linting, uncomment the two lines below
 # this makes the compilation ssssllllooooowwww
-stage1.*.ghc.hs.opts += -dcore-lint
-stage2.*.ghc.hs.opts += -dcore-lint
+# stage1.*.ghc.hs.opts += -dcore-lint
+# stage2.*.ghc.hs.opts += -dcore-lint
