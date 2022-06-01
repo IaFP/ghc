@@ -657,11 +657,13 @@ instance  Functor STM where
 -- | @since 4.8.0.0
 instance Applicative STM where
   {-# INLINE pure #-}
-  {-# INLINE (*>) #-}
   {-# INLINE liftA2 #-}
   pure x = returnSTM x
-  (<*>) = ap
   liftA2 = liftM2
+
+instance Splattable STM where  
+  {-# INLINE (*>) #-}
+  (<*>) = ap
   m *> k = thenSTM m k
 
 -- | @since 4.3.0.0

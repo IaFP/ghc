@@ -37,7 +37,7 @@ module Data.Version (
   ) where
 
 import Data.Functor     ( Functor(..) )
-import Control.Applicative ( Applicative(..) )
+import Control.Applicative ( Applicative(..), Splattable (..) )
 import Data.Bool        ( (&&) )
 import Data.Char        ( isDigit, isAlphaNum )
 import Data.Eq

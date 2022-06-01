@@ -39,6 +39,7 @@
 module Control.Applicative (
     -- * Applicative functors
     Applicative(..),
+    Splattable(..),
     -- * Alternatives
     Alternative(..),
     -- * Instances

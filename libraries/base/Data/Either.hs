@@ -150,8 +150,13 @@ instance Semigroup (Either a b) where
 -- | @since 3.0
 instance Applicative (Either e) where
     pure          = Right
-    Left  e <*> _ = Left e
-    Right f <*> r = fmap f r
+    liftA2 _ (Left a) _ = Left a 
+    liftA2 _ _ (Left a) = Left a
+    liftA2 f (Right a) (Right b) = Right (f a b)
+
+instance Splattable (Either e) where
+  Left  e <*> _ = Left e
+  Right f <*> r = fmap f r
 
 -- | @since 4.4.0.0
 instance Monad (Either e) where

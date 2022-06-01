@@ -746,7 +746,7 @@ import GHC.Types
 
 -- Needed for instances
 import GHC.Ix      ( Ix )
-import GHC.Base    ( Alternative(..), Applicative(..), Functor(..)
+import GHC.Base    ( Alternative(..), Applicative(..), Functor(..), Splattable (..)
                    , Monad(..), MonadPlus(..), NonEmpty(..), String, coerce
                    , Semigroup(..), Monoid(..) )
 import GHC.Classes ( Eq(..), Ord(..) )
@@ -809,9 +809,11 @@ instance Functor U1 where
 -- | @since 4.9.0.0
 instance Applicative U1 where
   pure _ = U1
-  _ <*> _ = U1
   liftA2 _ _ _ = U1
 
+instance Splattable U1 where  
+  _ <*> _ = U1
+  
 -- | @since 4.9.0.0
 instance Alternative U1 where
   empty = U1
@@ -847,9 +849,11 @@ newtype Par1 p = Par1 { unPar1 :: p }
 -- | @since 4.9.0.0
 instance Applicative Par1 where
   pure = Par1
-  (<*>) = coerce
   liftA2 = coerce
 
+instance Splattable Par1 where
+  (<*>) = coerce
+  
 -- | @since 4.9.0.0
 instance Monad Par1 where
   Par1 x >>= f = f x
@@ -909,8 +913,10 @@ newtype K1 (i :: Type) c (p :: k) = K1 { unK1 :: c }
 instance Monoid c => Applicative (K1 i c) where
   pure _ = K1 mempty
   liftA2 = \_ -> coerce (mappend :: c -> c -> c)
-  (<*>) = coerce (mappend :: c -> c -> c)
 
+instance Monoid c => Splattable (K1 i c) where
+  (<*>) = coerce (mappend :: c -> c -> c)
+  
 -- | @since 4.12.0.0
 deriving instance Semigroup c => Semigroup (K1 i c p)
 
@@ -974,8 +980,10 @@ data (f @ p, g @ p) => (:*:) (f :: k -> Type) (g :: k -> Type) (p :: k) = f p :*
 -- | @since 4.9.0.0
 instance (Applicative f, Applicative g) => Applicative (f :*: g) where
   pure a = pure a :*: pure a
-  (f :*: g) <*> (x :*: y) = (f <*> x) :*: (g <*> y)
   liftA2 f (a :*: b) (x :*: y) = liftA2 f a x :*: liftA2 f b y
+
+instance (Splattable f, Splattable g) => Splattable (f :*: g) where
+  (f :*: g) <*> (x :*: y) = (f <*> x) :*: (g <*> y)
 
 -- | @since 4.9.0.0
 instance (Alternative f, Alternative g) => Alternative (f :*: g) where
@@ -1017,9 +1025,12 @@ newtype (f @ g p, g @ p) => (:.:) (f :: k2 -> Type) (g :: k1 -> k2) (p :: k1) =
 -- | @since 4.9.0.0
 instance (Applicative f, Applicative g) => Applicative (f :.: g) where
   pure x = Comp1 (pure (pure x))
-  Comp1 f <*> Comp1 x = Comp1 (liftA2 (<*>) f x)
   liftA2 f (Comp1 x) (Comp1 y) = Comp1 (liftA2 (liftA2 f) x y)
 
+
+instance (Splattable f, Splattable g) => Splattable (f :.: g) where
+    Comp1 f <*> Comp1 x = Comp1 (liftA2 (<*>) f x)
+    
 -- | @since 4.9.0.0
 instance (Alternative f, Applicative g) => Alternative (f :.: g) where
   empty = Comp1 empty
@@ -1506,14 +1517,17 @@ instance (Total f, forall a. Rep1 f @ a,
   pure a = Generically1
     (to1 (pure a))
 
-  (<*>) :: Generically1 f (a1 -> a2) -> Generically1 f a1 -> Generically1 f a2
-  Generically1 fs <*> Generically1 as = Generically1
-    (to1 (from1 fs <*> from1 as))
-
   liftA2 :: (a1 -> a2 -> a3)
          -> (Generically1 f a1 -> Generically1 f a2 -> Generically1 f a3)
   liftA2 (·) (Generically1 as) (Generically1 bs) = Generically1
     (to1 (liftA2 (·) (from1 as) (from1 bs)))
+
+instance (Total f, forall a. Rep1 f @ a,
+          Generic1 f, Splattable (Rep1 f)) => Splattable (Generically1 f) where
+  (<*>) :: Generically1 f (a1 -> a2) -> Generically1 f a1 -> Generically1 f a2
+  Generically1 fs <*> Generically1 as = Generically1
+    (to1 (from1 fs <*> from1 as))
+
 
 -- | @since 4.17.0.0
 instance (Total f, forall a. Rep1 f @ a,

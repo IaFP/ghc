@@ -1081,7 +1081,7 @@ foldlM f z0 xs = foldr c return xs z0
 -- "Hello"
 -- "world"
 -- "!"
-traverse_ :: (Foldable t, Applicative f) => (a -> f b) -> t a -> f ()
+traverse_ :: (Foldable t, Splattable f) => (a -> f b) -> t a -> f ()
 traverse_ f = foldr c (pure ())
   -- See Note [List fusion and continuations in 'c']
   where c x k = f x *> k
@@ -1102,7 +1102,7 @@ traverse_ f = foldr c (pure ())
 -- 2
 -- 3
 -- 4
-for_ :: (Foldable t, Applicative f) => t a -> (a -> f b) -> f ()
+for_ :: (Foldable t, Splattable f) => t a -> (a -> f b) -> f ()
 {-# INLINE for_ #-}
 for_ = flip traverse_
 
@@ -1143,7 +1143,7 @@ forM_ = flip mapM_
 -- "Hello"
 -- "world"
 -- "!"
-sequenceA_ :: (Foldable t, Applicative f) => t (f a) -> f ()
+sequenceA_ :: (Foldable t, Splattable f) => t (f a) -> f ()
 sequenceA_ = foldr c (pure ())
   -- See Note [List fusion and continuations in 'c']
   where c m k = m *> k

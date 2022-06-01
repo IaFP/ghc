@@ -245,9 +245,9 @@ instance Storable a => Storable (Complex a) where
 -- | @since 4.9.0.0
 instance Applicative Complex where
   pure a = a :+ a
-  f :+ g <*> a :+ b = f a :+ g b
   liftA2 f (x :+ y) (a :+ b) = f x a :+ f y b
-
+instance Splattable Complex where  
+  f :+ g <*> a :+ b = f a :+ g b
 -- | @since 4.9.0.0
 instance Monad Complex where
   a :+ b >>= f = realPart (f a) :+ imagPart (f b)

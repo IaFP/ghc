@@ -96,9 +96,10 @@ instance (Traversable f, Traversable g) => Traversable (Product f g) where
 -- | @since 4.9.0.0
 instance (Applicative f, Applicative g) => Applicative (Product f g) where
     pure x = Pair (pure x) (pure x)
-    Pair f g <*> Pair x y = Pair (f <*> x) (g <*> y)
     liftA2 f (Pair a b) (Pair x y) = Pair (liftA2 f a x) (liftA2 f b y)
 
+instance (Splattable f, Splattable g) => Splattable (Product f g) where    
+    Pair f g <*> Pair x y = Pair (f <*> x) (g <*> y)
 -- | @since 4.9.0.0
 instance (Alternative f, Alternative g) => Alternative (Product f g) where
     empty = Pair empty empty

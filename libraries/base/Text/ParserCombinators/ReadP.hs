@@ -111,7 +111,11 @@ data P a
 -- | @since 4.5.0.0
 instance Applicative P where
   pure x = Result x Fail
+  liftA2 f a = (<*>) (fmap f a)
+
+instance Splattable P where
   (<*>) = ap
+
 
 -- | @since 2.01
 instance MonadPlus P
@@ -175,8 +179,9 @@ instance Functor ReadP where
 -- | @since 4.6.0.0
 instance Applicative ReadP where
     pure x = R (\k -> k x)
-    (<*>) = ap
     liftA2 = liftM2
+instance Splattable ReadP where
+    (<*>) = ap
 
 -- | @since 2.01
 instance Monad ReadP where

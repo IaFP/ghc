@@ -413,7 +413,7 @@ bifoldlM f g z0 xs = bifoldr f' g' return xs z0 where
 -- "Hello"
 --
 -- @since 4.10.0.0
-bitraverse_ :: (Bifoldable t, Applicative f)
+bitraverse_ :: (Bifoldable t, Splattable f)
             => (a -> f c) -> (b -> f d) -> t a b -> f ()
 bitraverse_ f g = bifoldr ((*>) . f) ((*>) . g) (pure ())
 
@@ -435,28 +435,28 @@ bitraverse_ f g = bifoldr ((*>) . f) ((*>) . g) (pure ())
 -- "Hello"
 --
 -- @since 4.10.0.0
-bifor_ :: (Bifoldable t, Applicative f)
+bifor_ :: (Bifoldable t, Splattable f)
        => t a b -> (a -> f c) -> (b -> f d) -> f ()
 bifor_ t f g = bitraverse_ f g t
 
 -- | Alias for 'bitraverse_'.
 --
 -- @since 4.10.0.0
-bimapM_ :: (Bifoldable t, Applicative f)
+bimapM_ :: (Bifoldable t, Splattable f)
         => (a -> f c) -> (b -> f d) -> t a b -> f ()
 bimapM_ = bitraverse_
 
 -- | Alias for 'bifor_'.
 --
 -- @since 4.10.0.0
-biforM_ :: (Bifoldable t, Applicative f)
+biforM_ :: (Bifoldable t, Splattable f)
         => t a b ->  (a -> f c) -> (b -> f d) -> f ()
 biforM_ = bifor_
 
 -- | Alias for 'bisequence_'.
 --
 -- @since 4.10.0.0
-bisequenceA_ :: (Bifoldable t, Applicative f) => t (f a) (f b) -> f ()
+bisequenceA_ :: (Bifoldable t, Splattable f) => t (f a) (f b) -> f ()
 bisequenceA_ = bisequence_
 
 -- | Evaluate each action in the structure from left to right, and ignore the
@@ -478,7 +478,7 @@ bisequenceA_ = bisequence_
 -- "World"
 --
 -- @since 4.10.0.0
-bisequence_ :: (Bifoldable t, Applicative f) => t (f a) (f b) -> f ()
+bisequence_ :: (Bifoldable t, Splattable f) => t (f a) (f b) -> f ()
 bisequence_ = bifoldr (*>) (*>) (pure ())
 
 -- | The sum of a collection of actions, generalizing 'biconcat'.

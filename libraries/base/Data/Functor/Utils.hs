@@ -11,7 +11,7 @@
 module Data.Functor.Utils where
 
 import Data.Coerce (Coercible, coerce)
-import GHC.Base ( Applicative(..), Functor(..), Maybe(..), Monoid(..), Ord(..)
+import GHC.Base ( Applicative(..), Functor(..), Maybe(..), Monoid(..), Ord(..), Splattable (..)
                 , Semigroup(..), ($), otherwise )
 import qualified GHC.List as List
 
@@ -68,14 +68,17 @@ instance Functor (StateL s) where
 -- | @since 4.0
 instance Applicative (StateL s) where
     pure x = StateL (\ s -> (s, x))
-    StateL kf <*> StateL kv = StateL $ \ s ->
-        let (s', f) = kf s
-            (s'', v) = kv s'
-        in (s'', f v)
     liftA2 f (StateL kx) (StateL ky) = StateL $ \s ->
         let (s', x) = kx s
             (s'', y) = ky s'
         in (s'', f x y)
+
+instance Splattable (StateL s) where
+   StateL kf <*> StateL kv = StateL $ \ s ->
+        let (s', f) = kf s
+            (s'', v) = kv s'
+        in (s'', f v)
+
 
 -- right-to-left state-transforming monad
 newtype StateR s a = StateR { runStateR :: s -> (s, a) }
@@ -87,14 +90,17 @@ instance Functor (StateR s) where
 -- | @since 4.0
 instance Applicative (StateR s) where
     pure x = StateR (\ s -> (s, x))
-    StateR kf <*> StateR kv = StateR $ \ s ->
-        let (s', v) = kv s
-            (s'', f) = kf s'
-        in (s'', f v)
     liftA2 f (StateR kx) (StateR ky) = StateR $ \ s ->
         let (s', y) = ky s
             (s'', x) = kx s'
         in (s'', f x y)
+
+instance Splattable (StateR s) where
+    StateR kf <*> StateR kv = StateR $ \ s ->
+        let (s', v) = kv s
+            (s'', f) = kf s'
+        in (s'', f v)
+  
 
 -- See Note [Function coercion]
 (#.) :: Coercible b c => (b -> c) -> (a -> b) -> (a -> c)

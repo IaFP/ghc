@@ -126,21 +126,6 @@ instance Functor (ST s) where
 instance Applicative (ST s) where
     pure a = ST $ \ s -> (a,s)
 
-    fm <*> xm = ST $ \ s ->
-       let
-         {-# NOINLINE res1 #-}
-         !res1 = unST fm s
-         !(f, s') = res1
-
-         {-# NOINLINE res2 #-}
-         -- See Note [Lazy ST and multithreading]
-         res2 = noDup (unST xm s')
-         (x, s'') = res2
-       in (f x, s'')
-    -- Why can we use a strict binding for res1? If someone
-    -- forces the (f x, s'') pair, then they must need
-    -- f or s''. To get s'', they need s'.
-
     liftA2 f m n = ST $ \ s ->
       let
         {-# NOINLINE res1 #-}
@@ -156,13 +141,6 @@ instance Applicative (ST s) where
     -- NOINLINE in comparison to the default definition, which may
     -- help the simplifier.
 
-    m *> n = ST $ \s ->
-       let
-         {-# NOINLINE s' #-}
-         -- See Note [Lazy ST and multithreading]
-         s' = noDup (snd (unST m s))
-       in unST n s'
-
     m <* n = ST $ \s ->
        let
          {-# NOINLINE res1 #-}
@@ -176,6 +154,30 @@ instance Applicative (ST s) where
     -- Why can we use a strict binding for res1? The same reason as
     -- in <*>. If someone demands the (mr, s'') pair, then they will
     -- force mr or s''. To get s'', they need s'.
+
+
+instance Splattable (ST s) where
+    fm <*> xm = ST $ \ s ->
+       let
+         {-# NOINLINE res1 #-}
+         !res1 = unST fm s
+         !(f, s') = res1
+
+         {-# NOINLINE res2 #-}
+         -- See Note [Lazy ST and multithreading]
+         res2 = noDup (unST xm s')
+         (x, s'') = res2
+       in (f x, s'')
+    -- Why can we use a strict binding for res1? If someone
+    -- forces the (f x, s'') pair, then they must need
+    -- f or s''. To get s'', they need s'.
+
+    m *> n = ST $ \s ->
+       let
+         {-# NOINLINE s' #-}
+         -- See Note [Lazy ST and multithreading]
+         s' = noDup (snd (unST m s))
+       in unST n s'
 
 -- | @since 2.01
 instance Monad (ST s) where

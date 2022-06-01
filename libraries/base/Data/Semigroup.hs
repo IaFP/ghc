@@ -195,9 +195,11 @@ instance Traversable Min where
 instance Applicative Min where
   pure = Min
   a <* _ = a
+  liftA2 = coerce
+
+instance Splattable Min where
   _ *> a = a
   (<*>) = coerce
-  liftA2 = coerce
 
 -- | @since 4.9.0.0
 instance Monad Min where
@@ -270,9 +272,11 @@ instance Traversable Max where
 instance Applicative Max where
   pure = Max
   a <* _ = a
+  liftA2 = coerce
+
+instance Splattable Max where
   _ *> a = a
   (<*>) = coerce
-  liftA2 = coerce
 
 -- | @since 4.9.0.0
 instance Monad Max where
@@ -358,7 +362,7 @@ instance Bifoldable Arg where
 
 -- | @since 4.10.0.0
 instance Bitraversable Arg where
-  bitraverse f g (Arg a b) = Arg <$> f a <*> g b
+  bitraverse f g (Arg a b) = liftA2 Arg (f a) (g b)
 
 newtype First a = First { getFirst :: a }
   deriving ( Bounded  -- ^ @since 4.9.0.0
@@ -403,9 +407,11 @@ instance Traversable First where
 instance Applicative First where
   pure x = First x
   a <* _ = a
+  liftA2 = coerce
+
+instance Splattable First where
   _ *> a = a
   (<*>) = coerce
-  liftA2 = coerce
 
 -- | @since 4.9.0.0
 instance Monad First where
@@ -461,9 +467,12 @@ instance Traversable Last where
 instance Applicative Last where
   pure = Last
   a <* _ = a
+  liftA2 = coerce
+
+instance Splattable Last where
   _ *> a = a
   (<*>) = coerce
-  liftA2 = coerce
+
 
 -- | @since 4.9.0.0
 instance Monad Last where

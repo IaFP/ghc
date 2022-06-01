@@ -147,6 +147,9 @@ instance Functor Down where
 -- | @since 4.11.0.0
 instance Applicative Down where
     pure = Down
+    liftA2 f (Down a) (Down b) = Down (f a b)
+
+instance Splattable Down where    
     (<*>) = coerce
 
 -- | @since 4.11.0.0

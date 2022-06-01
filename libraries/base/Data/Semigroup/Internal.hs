@@ -136,6 +136,9 @@ instance Functor Dual where
 -- | @since 4.8.0.0
 instance Applicative Dual where
     pure     = Dual
+    liftA2    = coerce
+
+instance Splattable Dual where
     (<*>)    = coerce
 
 -- | @since 4.8.0.0
@@ -246,9 +249,11 @@ instance Functor Sum where
 -- | @since 4.8.0.0
 instance Applicative Sum where
     pure     = Sum
-    (<*>)    = coerce
+    liftA2    = coerce
 
--- | @since 4.8.0.0
+instance Splattable Sum where
+    (<*>)    = coerce
+  -- | @since 4.8.0.0
 instance Monad Sum where
     m >>= k  = k (getSum m)
     return = Sum
@@ -289,6 +294,9 @@ instance Functor Product where
 -- | @since 4.8.0.0
 instance Applicative Product where
     pure     = Product
+    liftA2    = coerce
+
+instance Splattable Product where
     (<*>)    = coerce
 
 -- | @since 4.8.0.0

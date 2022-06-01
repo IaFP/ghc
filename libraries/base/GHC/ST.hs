@@ -62,12 +62,14 @@ instance Functor (ST s) where
 -- | @since 4.4.0.0
 instance Applicative (ST s) where
     {-# INLINE pure #-}
-    {-# INLINE (*>)   #-}
     pure x = ST (\ s -> (# s, x #))
-    m *> k = m >>= \ _ -> k
-    (<*>) = ap
     liftA2 = liftM2
 
+instance Splattable (ST s) where
+    {-# INLINE (*>)   #-}    
+    m *> k = m >>= \ _ -> k
+    (<*>) = ap
+  
 -- | @since 2.01
 instance Monad (ST s) where
     {-# INLINE (>>=)  #-}

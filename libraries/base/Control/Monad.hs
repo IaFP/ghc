@@ -194,7 +194,7 @@ f >=> g     = \x -> f x >>= g
 -- Note that "forever" isn't necessarily non-terminating.
 -- If the action is in a @'MonadPlus'@ and short-circuits after some number of iterations.
 -- then @'forever'@ actually returns `mzero`, effectively short-circuiting its caller.
-forever     :: (Applicative f) => f a -> f b
+forever     :: (Splattable f) => f a -> f b
 {-# INLINE forever #-}
 forever a   = let a' = a *> a' in a'
 -- Use explicit sharing here, as it prevents a space leak regardless of
@@ -206,21 +206,21 @@ forever a   = let a' = a *> a' in a'
 -- | The 'mapAndUnzipM' function maps its first argument over a list, returning
 -- the result as a pair of lists. This function is mainly used with complicated
 -- data structures or a state monad.
-mapAndUnzipM      :: (Applicative m) => (a -> m (b,c)) -> [a] -> m ([b], [c])
+mapAndUnzipM      :: (Splattable m) => (a -> m (b,c)) -> [a] -> m ([b], [c])
 {-# INLINE mapAndUnzipM #-}
 -- Inline so that fusion with 'unzip' and 'traverse' has a chance to fire.
 -- See Note [Inline @unzipN@ functions] in GHC/OldList.hs.
 mapAndUnzipM f xs =  unzip <$> traverse f xs
 
 -- | The 'zipWithM' function generalizes 'zipWith' to arbitrary applicative functors.
-zipWithM          :: (Applicative m) => (a -> b -> m c) -> [a] -> [b] -> m [c]
+zipWithM          :: (Splattable m) => (a -> b -> m c) -> [a] -> [b] -> m [c]
 {-# INLINE zipWithM #-}
 -- Inline so that fusion with zipWith and sequenceA have a chance to fire
 -- See Note [Fusion for zipN/zipWithN] in List.hs]
 zipWithM f xs ys  =  sequenceA (zipWith f xs ys)
 
 -- | 'zipWithM_' is the extension of 'zipWithM' which ignores the final result.
-zipWithM_         :: (Applicative m) => (a -> b -> m c) -> [a] -> [b] -> m ()
+zipWithM_         :: (Splattable m) => (a -> b -> m c) -> [a] -> [b] -> m ()
 {-# INLINE zipWithM_ #-}
 -- Inline so that fusion with zipWith and sequenceA have a chance to fire
 -- See Note [Fusion for zipN/zipWithN] in List.hs]
@@ -310,7 +310,7 @@ replicateM cnt0 f =
 -- a
 -- a
 --
-replicateM_       :: (Applicative m) => Int -> m a -> m ()
+replicateM_       :: (Splattable m) => Int -> m a -> m ()
 {-# INLINABLE replicateM_ #-}
 {-# SPECIALISE replicateM_ :: Int -> IO a -> IO () #-}
 {-# SPECIALISE replicateM_ :: Int -> Maybe a -> Maybe () #-}

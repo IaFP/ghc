@@ -118,6 +118,9 @@ instance Functor Proxy where
 instance Applicative Proxy where
     pure _ = Proxy
     {-# INLINE pure #-}
+    liftA2 _ _ _ = Proxy
+
+instance Splattable Proxy where
     _ <*> _ = Proxy
     {-# INLINE (<*>) #-}
 

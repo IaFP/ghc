@@ -40,7 +40,7 @@ import Data.Foldable
 import Data.Functor.Utils ((#.))
 import Foreign.Storable (Storable)
 import GHC.Ix (Ix)
-import GHC.Base ( Applicative(..), Eq(..), Functor(..), Monad(..)
+import GHC.Base ( Applicative(..), Eq(..), Functor(..), Monad(..), Splattable (..)
                 , Semigroup, Monoid, Ord(..), ($), (.) )
 import GHC.Enum (Bounded, Enum)
 import GHC.Float (Floating, RealFloat)
@@ -121,8 +121,10 @@ instance Functor Identity where
 -- | @since 4.8.0.0
 instance Applicative Identity where
     pure     = Identity
-    (<*>)    = coerce
     liftA2   = coerce
+
+instance Splattable Identity where
+    (<*>)    = coerce
 
 -- | @since 4.8.0.0
 instance Monad Identity where

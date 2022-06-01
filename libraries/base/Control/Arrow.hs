@@ -168,12 +168,16 @@ deriving instance Functor m => Functor (Kleisli m a)
 instance Applicative m => Applicative (Kleisli m a) where
   pure = Kleisli . const . pure
   {-# INLINE pure #-}
+  liftA2 f (Kleisli a) (Kleisli b) = Kleisli $ \x -> liftA2 f (a x) (b x)
+  {-# INLINE liftA2 #-}
+  Kleisli f <* Kleisli g = Kleisli $ \x -> f x <* g x
+  {-# INLINE (<*) #-}
+    
+instance Splattable m => Splattable (Kleisli m a) where  
   Kleisli f <*> Kleisli g = Kleisli $ \x -> f x <*> g x
   {-# INLINE (<*>) #-}
   Kleisli f *> Kleisli g = Kleisli $ \x -> f x *> g x
   {-# INLINE (*>) #-}
-  Kleisli f <* Kleisli g = Kleisli $ \x -> f x <* g x
-  {-# INLINE (<*) #-}
 
 -- | @since 4.14.0.0
 instance Alternative m => Alternative (Kleisli m a) where
@@ -230,7 +234,7 @@ class Arrow a => ArrowZero a where
     zeroArrow :: a b c
 
 -- | @since 2.01
-instance MonadPlus m => ArrowZero (Kleisli m) where
+instance (Total m, MonadPlus m) => ArrowZero (Kleisli m) where
     zeroArrow = Kleisli (\_ -> mzero)
 
 -- | A monoid on arrows.
@@ -239,7 +243,7 @@ class ArrowZero a => ArrowPlus a where
     (<+>) :: a b c -> a b c -> a b c
 
 -- | @since 2.01
-instance MonadPlus m => ArrowPlus (Kleisli m) where
+instance (Total m, MonadPlus m) => ArrowPlus (Kleisli m) where
     Kleisli f <+> Kleisli g = Kleisli (\x -> f x `mplus` g x)
 
 -- | Choice, for arrows that support it.  This class underlies the
@@ -368,7 +372,9 @@ instance Arrow a => Functor (ArrowMonad a) where
 -- | @since 4.6.0.0
 instance Arrow a => Applicative (ArrowMonad a) where
    pure x = ArrowMonad (arr (const x))
-   ArrowMonad f <*> ArrowMonad x = ArrowMonad (f &&& x >>> arr (uncurry id))
+
+instance Arrow a => Splattable (ArrowMonad a) where
+  ArrowMonad f <*> ArrowMonad x = ArrowMonad (f &&& x >>> arr (uncurry id))
 
 -- | @since 2.01
 instance ArrowApply a => Monad (ArrowMonad a) where

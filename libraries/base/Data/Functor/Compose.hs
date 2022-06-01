@@ -119,10 +119,13 @@ instance (Total f, Traversable f, Traversable g) => Traversable (Compose f g) wh
 -- | @since 4.9.0.0
 instance (Applicative f, Applicative g) => Applicative (Compose f g) where
     pure x = Compose (pure (pure x))
-    Compose f <*> Compose x = Compose (liftA2 (<*>) f x)
+
     liftA2 f (Compose x) (Compose y) =
       Compose (liftA2 (liftA2 f) x y)
 
+instance (Splattable f, Splattable g) => Splattable (Compose f g) where
+    Compose f <*> Compose x = Compose (liftA2 (<*>) f x)
+    
 -- | @since 4.9.0.0
 instance (Alternative f, Applicative g) => Alternative (Compose f g) where
     empty = Compose empty
