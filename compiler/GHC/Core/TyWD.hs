@@ -43,7 +43,7 @@ import GHC.Types.Name (isWiredInName)
 import GHC.Utils.Panic (pprPanic)
 import GHC.Utils.Outputable
 import GHC.Utils.Misc(lengthAtLeast)
-
+import Data.List (partition)
 import Control.Monad.Trans.Class
 -------------------------------------------------------------------------
 {-
@@ -127,17 +127,13 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
       return $ elabDetails (FunTy VisArg v (elabTy elabd1) (elabTy elabd2))
                            (mergeAtAtConstraints (newPreds elabd1) (newPreds elabd2))
 
-  | (FunTy InvisArg _ constraint ty') <- ty  = do
-      -- we have effectively lost v here becuase i am lazy and we don't care about linear constraints
-      -- Actually even those guys don't care about linear constraints hehehe.
-      -- They are always considered to have a Many multiplicity
+  | (FunTy InvisArg w constraint ty') <- ty  = do
       -- C a => \tau
       -- (wdt(C a), wdt(\tau), C a) => elab(\tau)
       cs <- newPreds <$> genAtAtConstraintsExceptTcM True tycons ts constraint
       elabd <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty'
-      let cs' = foldl mergeAtAtConstraints [constraint] ([cs] ++ [newPreds elabd])
-      let rty =  mkInvisFunTysMany cs' (elabTy elabd)
-      return $ elabDetails rty []
+      let cs' = foldl mergeAtAtConstraints [] ([cs] ++ [newPreds elabd])
+      return $ elabDetails (FunTy InvisArg w constraint (elabTy elabd)) cs'
 
   -- recursively build @ constraints for type constructor
   | (TyConApp tyc tycargs) <- ty =
@@ -205,11 +201,13 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
                  then return $ newPreds elabd
                  else redConstraints isTyConPhase $ newPreds elabd
                              
-      -- let (have'bvar, donthave'bvar) = partition (predHas bvarTy) c_extra
-      let r_ty = ForAllTy bndr (attachConstraints c_extra (elabTy elabd))
-      -- it is unlikely that we find a type application that is _not_ related to this binder.
-      -- May have to change this later
-      return $ elabDetails r_ty [] -- genAtAtConstraints ty'
+      let (have'bvar, donthave'bvar) = partition (predHas bvarTy) c_extra
+      traceTc "wdelab forall" (vcat [ ppr bvar
+                                    , ppr c_extra
+                                    , ppr have'bvar
+                                    , ppr donthave'bvar ])
+      let r_ty = ForAllTy bndr (attachConstraints have'bvar (elabTy elabd))
+      return $ elabDetails r_ty donthave'bvar
 
    | CastTy ty1 kco <- ty = do
        elabd <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
@@ -219,8 +217,8 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
       traceTc "wdelab unknown case or nothing to do: " (ppr ty)
       return $ elabDetails ty []
 
-  -- where predHas :: Type -> PredType -> Bool
-  --       predHas tv pred = or [eqType tv x | x <- (predTyArgs pred)] -- no me likey
+  where predHas :: Type -> PredType -> Bool
+        predHas tv pred = or [eqType tv x | x <- (predTyArgs pred)] -- no me likey
 
 
 isTyConInternal :: TyCon -> Bool
@@ -409,6 +407,8 @@ predTyArgs ty
   = concatMap predTyArgs args
   | (FunTy _ _ argTy resTy) <- ty
   = predTyArgs argTy ++ predTyArgs resTy
+  | CastTy argTy _ <- ty
+  = predTyArgs argTy
   | otherwise = []
 
 predTyVars :: PredType -> [TyVar]
@@ -421,6 +421,8 @@ predTyVars ty
   = concatMap predTyVars args
   | (FunTy _ _ argTy resTy) <- ty
   = predTyVars argTy ++ predTyVars resTy
+  | CastTy argTy _ <- ty
+  = predTyVars argTy 
   | otherwise = []
 
 redConstraints :: Bool -> ThetaType -> TcM ThetaType
