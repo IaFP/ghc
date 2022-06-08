@@ -3886,9 +3886,13 @@ tcConArg :: ContextKind  -- expected kind for args; always OpenKind for datatype
 tcConArg exp_kind (HsScaled w bty)
   = do  { traceTc "tcConArg 1" (ppr bty)
         ; arg_ty <- tcCheckLHsType (getBangType bty) exp_kind
+        ; partyCtrs <- xoptM LangExt.PartialTypeConstructors
+        ; arg_ty' <- if (partyCtrs && isForAllTy arg_ty)
+                     then elabWdTypeTcM False arg_ty
+                     else return arg_ty
         ; w' <- tcDataConMult w
-        ; traceTc "tcConArg 2" (ppr bty)
-        ; return (Scaled w' arg_ty, getBangStrictness bty) }
+        ; traceTc "tcConArg 2" (ppr arg_ty')
+        ; return (Scaled w' arg_ty', getBangStrictness bty) }
 
 tcRecConDeclFields :: ContextKind
                    -> LocatedL [LConDeclField GhcRn]

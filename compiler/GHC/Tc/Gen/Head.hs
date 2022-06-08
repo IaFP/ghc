@@ -363,8 +363,6 @@ countHsWrapperInvisArgs = go
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XOverLit (GhcPass (XPass p))),
-  WDT (XOverLit (GhcPass (NoGhcTcPass (XPass p)))),
   WDT (Anno (IdGhcP (XPass p))),
   WDT (Anno (IdGhcP (NoGhcTcPass (XPass p)))),
   WDT (SyntaxExprGhc (XPass p)),
@@ -383,8 +381,6 @@ instance Outputable EWrap where
 
 instance (
 #if MIN_VERSION_base(4,16,0)
-  WDT (XOverLit (GhcPass (XPass p))),
-  WDT (XOverLit (GhcPass (NoGhcTcPass (XPass p)))),
   WDT (Anno (IdGhcP (XPass p))),
   WDT (Anno (IdGhcP (NoGhcTcPass (XPass p)))),
   WDT (SyntaxExprGhc (XPass p)),

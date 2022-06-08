@@ -937,7 +937,7 @@ data MakeEnv = MakeEnv { hsc_env :: !HscEnv -- The basic HscEnv which will be au
                        -- For -j1, this wrapper doesn't do anything
                        -- For -jn, the wrapper initialised a log queue and then modifies the logger to pipe its output
                        --          into the log queue.
-                       , withLogger :: forall a . Int -> ((Logger -> Logger) -> RunMakeM a) -> RunMakeM a
+                       , withLogger :: forall a . Int -> ((Logger -> Logger) -> ReaderT MakeEnv (MaybeT IO) a) -> ReaderT MakeEnv (MaybeT IO) a
                        , env_messager :: !(Maybe Messager)
                        }
 

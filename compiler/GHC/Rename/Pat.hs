@@ -120,14 +120,7 @@ has a *left-to-right* scoping: it makes the binders in
 p1 scope over p2,p3.
 -}
 
-newtype CpsRn b = CpsRn { unCpsRn :: forall r.
-#if MIN_VERSION_base(4,16,0)
-                          (IOEnv (Env TcGblEnv TcLclEnv) @ (r, FreeVars),
-                           IOEnv @ Env TcGblEnv TcLclEnv, Env TcGblEnv @ TcLclEnv,
-                           Env @ TcGblEnv, UniqSet @ Name) => 
-#endif
-                          (b -> RnM (r, FreeVars))
-                                            -> RnM (r, FreeVars) }
+newtype CpsRn b = CpsRn { unCpsRn :: forall r. (b -> RnM (r, FreeVars)) -> RnM (r, FreeVars) }
         deriving (Functor)
         -- See Note [CpsRn monad]
 
@@ -149,7 +142,7 @@ liftCpsFV rn_thing = CpsRn (\k -> do { (v,fvs1) <- rn_thing
                                      ; (r,fvs2) <- k v
                                      ; return (r, fvs1 `plusFV` fvs2) })
 
-liftCpsWithCont :: (forall r. (b -> RnM (r, FreeVars)) -> RnM (r, FreeVars)) -> CpsRn b
+-- liftCpsWithCont :: (forall r. (b -> RnM (r, FreeVars)) -> RnM (r, FreeVars)) -> CpsRn b
 liftCpsWithCont = CpsRn
 
 wrapSrcSpanCps :: (a -> CpsRn b) -> LocatedA a -> CpsRn (LocatedA b)

@@ -2,20 +2,18 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE ExplicitNamespaces #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeOperators, QuantifiedConstraints #-}
 
 module OpenTF3 where
 
-import GHC.Types (WDT, Type, type(@))
+import GHC.Types (WDT, Type, type(@), Total)
 
 class Monad m => PrimMonad m where
   type PrimState m
 
 type family Mutable (v :: Type -> Type) = (mv :: Type -> Type -> Type) | mv -> v
   
-data Chunk v a = Chunk (forall m. (PrimMonad m, WD'Mutable v, WD'PrimState m, m @ (), Mutable v (PrimState m) @ a
-                                  , Mutable v @ (PrimState m)) =>
-                                  Mutable v (PrimState m) a -> m ())
+data Chunk v a = Chunk (forall m. (PrimMonad m) => Mutable v (PrimState m) a -> m ())
   
 data Step s a where
   Yield :: a -> s -> Step s a
