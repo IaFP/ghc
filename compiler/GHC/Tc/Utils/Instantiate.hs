@@ -469,7 +469,8 @@ tcInstType inst_tyvars id
   = do { (subst, tyvars') <- inst_tyvars tyvars
        ; let tv_prs  = map tyVarName tyvars `zip` tyvars'
              subst'  = extendTCvInScopeSet subst (tyCoVarsOfType rho)
-       ; return (tv_prs, substTheta subst' theta, substTy subst' tau) }
+             theta'  = filter (not . isUselessPred) $ substTheta subst' theta
+       ; return (tv_prs, theta', substTy subst' tau) }
   where
     (tyvars, rho) = tcSplitForAllInvisTyVars (idType id)
     (theta, tau)  = tcSplitPhiTy rho
@@ -485,7 +486,8 @@ tcInstTypeBndrs id
   = do { (subst, tyvars') <- mapAccumLM inst_invis_bndr emptyTCvSubst tyvars
        ; let tv_prs  = map (tyVarName . binderVar) tyvars `zip` tyvars'
              subst'  = extendTCvInScopeSet subst (tyCoVarsOfType rho)
-       ; return (tv_prs, substTheta subst' theta, substTy subst' tau) }
+             theta' = filter (not . isUselessPred) $ substTheta subst' theta
+       ; return (tv_prs, theta', substTy subst' tau) }
   where
     (tyvars, rho) = splitForAllInvisTVBinders (idType id)
     (theta, tau)  = tcSplitPhiTy rho

@@ -970,14 +970,8 @@ sequenceQ = sequence
 class Lift (t :: TYPE r) where
   -- | Turn a value into a Template Haskell expression, suitable for use in
   -- a splice.
-  lift :: (
-#if __GLASGOW_HASKELL__ >= 903
-          Total m,
-#endif
-          Quote m) => t -> m Exp
-#if __GLASGOW_HASKELL__ >= 903
-  default lift :: (r ~ ('BoxedRep 'Lifted), Quote m, Total m) => t -> m Exp
-#elif __GLASGOW_HASKELL__ >= 901 && __GLASGOW_HASKELL__ < 903
+  lift :: (Quote m) => t -> m Exp
+#if __GLASGOW_HASKELL__ >= 901
   default lift :: (r ~ ('BoxedRep 'Lifted), Quote m) => t -> m Exp
 #else
   default lift :: (r ~ 'LiftedRep, Quote m) => t -> m Exp
@@ -988,11 +982,7 @@ class Lift (t :: TYPE r) where
   -- in a typed splice.
   --
   -- @since 2.16.0.0
-  liftTyped :: (
-#if __GLASGOW_HASKELL__ >= 903
-                Total m,
-#endif
-                Quote m) => t -> Code m t
+  liftTyped :: (Quote m) => t -> Code m t
 
 
 -- If you add any instances here, consider updating test th/TH_Lift
@@ -1430,7 +1420,11 @@ function.  Two complications
 -- override type-specific cases; see 'liftData' for a more commonly
 -- used variant.
 dataToExpQ  ::  (Quote m, Data a)
-            =>  (forall b . Data b => b -> Maybe (m Exp))
+            =>  (forall b . (Data b
+#if MIN_VERSION_base(4,16,0)
+                    , m @ Exp
+#endif
+                    ) => b -> Maybe (m Exp))
             ->  a
             ->  m Exp
 dataToExpQ = dataToQa varOrConE litE (foldl appE)

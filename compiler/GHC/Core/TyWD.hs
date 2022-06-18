@@ -30,6 +30,7 @@ import GHC.Tc.Instance.Family (tcGetFamInstEnvs)
 import GHC.Tc.Solver.Monad (matchFamTcM)
 import GHC.Tc.Utils.TcType
 import GHC.Tc.Utils.Monad
+import GHC.Tc.Utils.Env
 import GHC.Tc.Validity (tyConArityErr)
 import GHC.Core.TyCo.Rep
 import GHC.Core.TyCon
@@ -156,7 +157,7 @@ genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty
         
   -- for type application we need ty1 @ ty2 (unless ty2 is * then skip it, or ty2 has a constraint kind)
   | (AppTy ty1 ty2) <- ty =
-        if ty2 `tcEqType` star
+        if ty2 `tcEqType` star || isExpTyConTy ty2
         then do { traceTc "wdelab appty1" (ppr ty1 <+> ppr ty2)
                 ; elabd1 <- genAtAtConstraintsExceptTcM isTyConPhase tycons ts ty1
                 ; return $ elabDetails (AppTy (elabTy elabd1) ty2) (newPreds elabd1)
@@ -235,6 +236,7 @@ isTyConInternal tycon =
   || tycon `hasKey` funPtrTyConKey
   || tycon `hasKey` qTyConKey || tyConName tycon == qTyConName
   || tycon `hasKey` anyTyConKey
+  || tycon `hasKey` codeTyConKey
   || tycon == funTyCon
   || isWDMirrorTyCon tycon -- @ is also a mirror
   
@@ -443,7 +445,8 @@ flatten_atat_constraint isTyConPhase ty
     || tc2 `hasKey` maybeTyConKey -- ANI Causes problems in specializer no idea why.
     || tc2 `hasKey` ratioTyConKey
     || tc2 `hasKey` staticPtrTyConKey
-    || tc2 `hasKey` ptrTyConKey    
+    || tc2 `hasKey` ptrTyConKey
+    || tc2 `hasKey` codeTyConKey
   = reduceType ty
   | (TyConApp tc (_:_:(TyConApp tc2 _):_)) <- ty
   , isWDMirrorTyCon tc
@@ -452,7 +455,8 @@ flatten_atat_constraint isTyConPhase ty
     || tc2 `hasKey` maybeTyConKey
     || tc2 `hasKey` ratioTyConKey
     || tc2 `hasKey` staticPtrTyConKey
-    || tc2 `hasKey` ptrTyConKey    
+    || tc2 `hasKey` ptrTyConKey
+    || tc2 `hasKey` codeTyConKey    
   = reduceType ty
   | otherwise
   = return [ty]

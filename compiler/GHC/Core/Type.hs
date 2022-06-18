@@ -238,7 +238,8 @@ module GHC.Core.Type (
         classifiesTypeWithValues,
         isConcrete, isFixedRuntimeRepKind,
 
-        stableMergeTypes, stableMergeScaledTypes, mergeTypes, attachConstraints, forgetWdConstraints
+        stableMergeTypes, stableMergeScaledTypes, mergeTypes, attachConstraints,
+        forgetWdConstraints, isUselessPred, isExpTyConTy
     ) where
 
 import GHC.Prelude
@@ -270,6 +271,7 @@ import {-# SOURCE #-} GHC.Builtin.Types
                                  , manyDataConTy, oneDataConTy )
 import GHC.Types.Name( Name )
 import GHC.Builtin.Names
+import GHC.Builtin.Names.TH
 import GHC.Core.Coercion.Axiom
 import {-# SOURCE #-} GHC.Core.Coercion
    ( mkNomReflCo, mkGReflCo, mkReflCo
@@ -1841,7 +1843,25 @@ forgetWdConstraints ty = mkSpecForAllTys tvs $ mkVisFunTys args' res
       (tvs, tau) = splitForAllTyVars ty
       (args, res) = splitFunTys tau
       args' = filter (\(Scaled _ t) -> not $ isWdPredTy t) args
+
+
+isUselessPred :: Type -> Bool
+isUselessPred ty
+  -- m @ Exp
+  | (TyConApp tc ts) <- ty
+  , isWDMirrorTyCon tc
+  , any isExpTyConTy ts
+  = True
+  | (TyConApp tc ts) <- ty
+  , isWDMirrorTyCon tc
+  , any isExpTyConTy ts
+  = True
+  | otherwise
+  = False
       
+isExpTyConTy :: Type -> Bool
+isExpTyConTy (TyConApp tc _) = tc `hasKey` expTyConKey
+isExpTyConTy _ = False
   
 
 {- Note [Using synonyms to compress types]
