@@ -17,7 +17,7 @@ How to I setup this code with partial type constructors and run the programs?
 1. `./hadrian/build -j`
 1. `_build/ghc-stage2 --version # this should print out the GHC version`
 1. `_build/ghc-stage2 --interactive # this should fire up ghci`
-   - With in GHCi `ghci> :t fmap` should `fmap :: (Functor f, f @ a, f @ b) => (a -> b) -> f a -> f b`
+   - With in GHCi `ghci> :t fmap` should print out `fmap :: (Functor f, f @ a, f @ b) => (a -> b) -> f a -> f b`
 
  
 At any point of time if things fail read the building guide. 
