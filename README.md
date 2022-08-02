@@ -10,7 +10,7 @@ How to I setup this code with partial type constructors and run the programs?
 1. `git submodule update --init --recursive`
 1. [Setup your system](https://gitlab.haskell.org/ghc/ghc/-/wikis/building/preparation)
 1. `./boot && ./configure` 
-1. `mkdir _build && cp <hadrian.settings> _build/hadrian.settings`
+1. `mkdir _build && cp ./hadrian.settings _build/hadrian.settings`
 1. `./hadrian/build -j stage1:exe:ghc-bin`
 1. [go read a paper that you have been putting off](https://xkcd.com/303/)
 1. `_build/ghc-stage1 --version # this should print out the GHC version`
