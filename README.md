@@ -16,6 +16,7 @@ How to I setup this code with partial type constructors and run the programs?
 1. `_build/ghc-stage1 --version # this should print out the GHC version`
 1. `./hadrian/build -j`
 1. `_build/ghc-stage2 --version # this should print out the GHC version`
+1. `_build/ghc-stage2 --interactive` # this should fire up ghci
 
  
 At any point of time if things fail read the building guide. 
