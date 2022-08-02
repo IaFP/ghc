@@ -6,23 +6,40 @@ How to I setup this code with partial type constructors and run the programs?
 
 1. `git clone git@github.com:IaFP/ghc.git`
 1. `cd ghc`
+1. `git checkout party-ctrs-paper`
 1. `git submodule sync`
 1. `git submodule update --init --recursive`
 1. [Setup your system](https://gitlab.haskell.org/ghc/ghc/-/wikis/building/preparation)
+1. This branch builds with ghc-9.0.1 
 1. `./boot && ./configure` 
 1. `mkdir _build && cp ./hadrian.settings _build/hadrian.settings`
-1. `./hadrian/build -j stage1:exe:ghc-bin`
+1. `./hadrian/build -j`
 1. [go read a paper that you have been putting off](https://xkcd.com/303/)
 1. `_build/ghc-stage1 --version # this should print out the GHC version`
-1. `./hadrian/build -j`
+1. `./hadrian/build -j stage2:exe:ghc-bin`
 1. `_build/ghc-stage2 --version # this should print out the GHC version`
 1. `_build/ghc-stage2 --interactive # this should fire up ghci`
    - With in GHCi `ghci> :t fmap` should print out `fmap :: (Functor f, f @ a, f @ b) => (a -> b) -> f a -> f b`
-
  
 At any point of time if things fail read the building guide. 
 *(see instructions [here](https://gitlab.haskell.org/ghc/ghc/-/wikis/building/hadrian) if on Windows).* If your hadrian build is failing for strange configuration reasons, it may be that a package is not up to date, which `./configure` will tell you.
  
+After successful compilation you can run the BST and Set example:
+
+1. `./_build/ghc-stage2 --interactive -i./testsuite/tests/party-ctrs`
+1. `ghci> :l testsuite/tests/party-ctrs/Main.hs`
+1. `ghci> main`
+
+This should print out 
+
+```
+Set (fromList [(1,"1"),(2,"2")])
+original bst: BST {unBST = Node 7 (Node 3 Leaf (Node 5 Leaf Leaf)) Leaf}
+fmap (+1) bst: BST {unBST = Node 6 (Node 4 Leaf Leaf) (Node 8 Leaf Leaf)}
+```
+
+---------
+
 This is the source tree for [GHC][1], a compiler and interactive
 environment for the Haskell functional programming language.
 
