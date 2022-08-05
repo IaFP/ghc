@@ -1,6 +1,6 @@
 The Glorioustest Haskell Compiler (Forked from The Glasgow Haskell Compiler)
 ==============================
-This is the artifact for Haskell'22's paper titled Partial Type Constructors in Practice.
+The artifact for Haskell'22's paper titled Partial Type Constructors in Practice.
 
 How to I setup this code with partial type constructors and run the programs?
 **TL;DR**
